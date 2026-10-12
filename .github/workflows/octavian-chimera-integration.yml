@@ -98,11 +98,14 @@ jobs:
           python-version: "3.12"
       - name: Test the inventory audit
         run: python tests/migration/test_chimera_source_inventory.py
-      - name: Compare upstream and vendored file inventories
+      - name: Record upstream source revision
+        run: echo "UPSTREAM_REVISION=$(git -C upstream-chimera rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Compare upstream paths and file content hashes
         run: |
           python tools/migration/chimera-source-inventory.py \
             --upstream upstream-chimera \
             --vendored vendor/chimera-ii-os/source \
+            --upstream-revision "$UPSTREAM_REVISION" \
             --output reports/chimera-source-inventory.json
       - name: Publish inventory report
         if: always()
