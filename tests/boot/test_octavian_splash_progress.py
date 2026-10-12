@@ -21,13 +21,13 @@ class OctavianSplashProgressTests(unittest.TestCase):
             env = os.environ.copy()
             env["OCTAVIAN_PROGRESS_DIR"] = temp
             subprocess.run(["bash", str(PROGRESS), "start", "Kernel", "Started"], env=env, check=True, capture_output=True, text=True)
-            subprocess.run([str(PROGRESS), "phase", "25", "Drivers", "Drivers initialized"], env=env, check=True, capture_output=True, text=True)
-            blocked = subprocess.run([str(PROGRESS), "phase", "10", "Backwards", "Must fail"], env=env, capture_output=True, text=True)
+            subprocess.run(["bash", str(PROGRESS), "phase", "25", "Drivers", "Drivers initialized"], env=env, check=True, capture_output=True, text=True)
+            blocked = subprocess.run(["bash", str(PROGRESS), "phase", "10", "Backwards", "Must fail"], env=env, capture_output=True, text=True)
             self.assertEqual(blocked.returncode, 3)
             state = (Path(temp) / "progress.state").read_text()
             self.assertIn("percent=25", state)
             self.assertIn("phase=Drivers", state)
-            subprocess.run([str(PROGRESS), "complete", "Userspace", "Session ready"], env=env, check=True, capture_output=True, text=True)
+            subprocess.run(["bash", str(PROGRESS), "complete", "Userspace", "Session ready"], env=env, check=True, capture_output=True, text=True)
             final = (Path(temp) / "progress.state").read_text()
             self.assertIn("percent=100", final)
             self.assertIn("status=complete", final)
@@ -36,8 +36,8 @@ class OctavianSplashProgressTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             env = os.environ.copy()
             env["OCTAVIAN_PROGRESS_DIR"] = temp
-            subprocess.run([str(PROGRESS), "complete"], env=env, check=True, capture_output=True, text=True)
-            subprocess.run([str(PROGRESS), "start"], env=env, check=True, capture_output=True, text=True)
+            subprocess.run(["bash", str(PROGRESS), "complete"], env=env, check=True, capture_output=True, text=True)
+            subprocess.run(["bash", str(PROGRESS), "start"], env=env, check=True, capture_output=True, text=True)
             self.assertIn("percent=0", (Path(temp) / "progress.state").read_text())
 
     def test_octopus_artwork_and_menu_contract_are_present(self):
