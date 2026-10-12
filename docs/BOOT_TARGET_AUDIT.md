@@ -48,6 +48,8 @@ For every selectable GUI/installer/recovery entry:
 ## Status
 
 - Static route review: performed.
+- OctavianOS installer routing fix: merged as PR #2; top-level Install now enters `/boot/jasper/install.cfg`, whose native path passes the dedicated installation image and contracts rather than the Live initramfs.
+- Static regression workflow: passed for the tested commit; this verifies menu-source routing only.
 - Source-level installer/recovery execution: **not verified**.
 - Actual GUI-ready markers in QEMU: **not verified**.
 - Full ISO rebuild on OctavianOS destination: **not run**.
