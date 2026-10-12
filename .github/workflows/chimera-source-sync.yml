@@ -1,0 +1,111 @@
+name: Sync ChimeraIIOS source snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * *"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/chimera-source-sync.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: chimera-source-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-and-validate:
+    name: Sync upstream source and validate snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Check out current ChimeraIIOS
+        uses: actions/checkout@v4
+        with:
+          repository: amerhwitat/ChimeraIIOS
+          ref: main
+          path: upstream-chimera
+      - name: Synchronize source snapshot
+        run: |
+          rsync -a --delete --exclude='.git/' upstream-chimera/ vendor/chimera-ii-os/source/
+          git -C upstream-chimera rev-parse HEAD > vendor/chimera-ii-os/UPSTREAM_REVISION
+          echo "Synced from ChimeraIIOS revision $(cat vendor/chimera-ii-os/UPSTREAM_REVISION)"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Enforce path and SHA-256 parity
+        run: |
+          python tools/migration/chimera-source-inventory.py \
+            --upstream upstream-chimera \
+            --vendored vendor/chimera-ii-os/source \
+            --upstream-revision "$(cat vendor/chimera-ii-os/UPSTREAM_REVISION)" \
+            --output reports/chimera-source-inventory.json \
+            --strict
+      - name: Run hosted bridge acceptance tests
+        run: |
+          python tests/migration/test_chimera_source_inventory.py
+          python tests/migration/test_chimera_hosted_bridge.py
+          python tests/migration/test_chimera_entrypoint.py
+      - name: Syntax-check imported Python build tools and tests
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_build_manifest.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_capability_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_orchestrator.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_portfolio_build_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/build_all_editions.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/main.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/orchestrator.py
+      - name: Syntax-check imported shell build tools
+        run: |
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/aurora-emulator-window.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-retro.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax170.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax230.sh
+          bash -n vendor/chimera-ii-os/source/mobile/build/build-mobile-image.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-all.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-baremetal.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-hosted.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-mobile.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-native-toolchain.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
+      - name: Configure vendored native toolchain
+        run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
+      - name: Upload strict parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-source-sync-report
+          path: reports/chimera-source-inventory.json
+          if-no-files-found: warn
+      - name: Open source synchronization pull request
+        if: success()
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          branch: chore/chimera-source-sync
+          delete-branch: true
+          commit-message: "Sync vendored ChimeraIIOS source snapshot"
+          title: "Sync vendored ChimeraIIOS source snapshot"
+          body: |
+            Automated synchronization from the current public ChimeraIIOS main branch.
+
+            This PR is opened only after strict source path/SHA-256 parity, hosted bridge acceptance tests, imported build-script syntax checks, and native toolchain CMake configuration pass in the sync workflow.
+
+            Source revision: `vendor/chimera-ii-os/UPSTREAM_REVISION`
+
+            This snapshot sync does not import upstream Git history or prove Koronos boot, full userspace readiness, ISA conformance, or physical/mobile hardware support.
+          add-paths: |
+            vendor/chimera-ii-os/source/**
+            vendor/chimera-ii-os/UPSTREAM_REVISION
