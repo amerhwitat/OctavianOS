@@ -47,6 +47,31 @@ jobs:
         run: python tests/migration/test_chimera_hosted_bridge.py
       - name: Test OctavianOS first-class hosted entry point
         run: python tests/migration/test_chimera_entrypoint.py
+      - name: Syntax-check imported Python build tools and tests
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_build_manifest.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_capability_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_orchestrator.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_portfolio_build_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/build_all_editions.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/main.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/orchestrator.py
+      - name: Syntax-check imported shell build tools
+        run: |
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/aurora-emulator-window.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-retro.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax170.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax230.sh
+          bash -n vendor/chimera-ii-os/source/mobile/build/build-mobile-image.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-all.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-baremetal.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-hosted.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-mobile.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-native-toolchain.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
       - name: Configure the vendored native toolchain
         run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
       - name: Record scope boundary
