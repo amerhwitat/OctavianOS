@@ -119,6 +119,7 @@ static inline void octavian_nbit_and(octavian_nbit *out,
     octavian_nbit tmp; size_t i;
     if (!out || !a || !b) return;
     for (i = 0; i < OCTAVIAN_NBIT_LIMBS; ++i) tmp.limb[i] = a->limb[i] & b->limb[i];
+    octavian_nbit_normalize(&tmp);
     *out = tmp;
 }
 
