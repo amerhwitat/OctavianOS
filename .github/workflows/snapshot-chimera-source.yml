@@ -35,7 +35,7 @@ jobs:
         with:
           repository: amerhwitat/ChimeraIIOS
           ref: ${{ inputs.source_ref }}
-          path: /tmp/chimera-source
+          path: chimera-source
           fetch-depth: 1
       - name: Snapshot source without flattening into active runtime
         env:
@@ -46,22 +46,25 @@ jobs:
           set -euo pipefail
           dest=vendor/chimera-ii-os/source
           mkdir -p "$dest"
-          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' /tmp/chimera-source/ "$dest/"
+          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' chimera-source/ "$dest/"
           if [[ "$INCLUDE_MEDIA" != "true" ]]; then find "$dest" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.mp3' -o -iname '*.wav' \) -delete; fi
-          source_sha="$(git -C /tmp/chimera-source rev-parse HEAD)"
+          source_sha="$(git -C chimera-source rev-parse HEAD)"
           file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
-          cat > vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json <<EOF
-          {
-            "schema_version": 1,
-            "source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
-            "source_ref": "$SOURCE_REF",
-            "source_commit": "$source_sha",
-            "snapshot_file_count": $file_count,
-            "includes_media": $INCLUDE_MEDIA,
-            "scope": "source snapshot; not yet a compiled or runtime-integrated port",
-            "history_preserved": false
+          SOURCE_SHA="$source_sha" FILE_COUNT="$file_count" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = {
+              "schema_version": 1,
+              "source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
+              "source_ref": os.environ["SOURCE_REF"],
+              "source_commit": os.environ["SOURCE_SHA"],
+              "snapshot_file_count": int(os.environ["FILE_COUNT"]),
+              "includes_media": os.environ["INCLUDE_MEDIA"].lower() == "true",
+              "scope": "source snapshot; not yet a compiled or runtime-integrated port",
+              "history_preserved": False
           }
-          EOF
+          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\\n", encoding="utf-8")
+          PY
           test "$file_count" -gt 100
           python3 -m json.tool vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json >/dev/null
           echo "Source snapshot: $source_sha ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
