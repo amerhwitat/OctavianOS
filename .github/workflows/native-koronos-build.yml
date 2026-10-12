@@ -37,7 +37,7 @@ on:
       - '.github/workflows/native-koronos-build.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: native-koronos-build-${{ github.ref }}
@@ -157,11 +157,32 @@ jobs:
           sha256sum "$iso" > "$iso.sha256"
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Boot the complete ISO and require Koronos readiness
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke"
+          set +e
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          cat "$smoke/full-iso-debugcon.log"
+          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+      - name: Upload full ISO QEMU trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-full-iso-qemu-trace
+          path: vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: octavianos-native-iso-candidate-not-release
+          name: octavianos-native-iso-candidate
           path: |
             vendor/chimera-ii-os/source/boot/iso/dist/output.iso
             vendor/chimera-ii-os/source/boot/iso/dist/output.iso.sha256
@@ -177,3 +198,19 @@ jobs:
             vendor/chimera-ii-os/source/build/koronos/x86_64/symbols.txt
           if-no-files-found: error
           retention-days: 14
+      - name: Publish OctavianOS native ISO candidate to Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          iso=boot/iso/dist/output.iso
+          sha256sum -c "$iso.sha256"
+          tag="native-iso-${GITHUB_SHA::12}"
+          gh release create "$tag" \
+            "$iso" "$iso.sha256" boot/iso/dist/ISO-BOOT-REPORT-CI.txt \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" \
+            --notes "Native x86_64 BIOS/UEFI ISO candidate built from OctavianOS commit $GITHUB_SHA and its vendored Chimera II OS source snapshot. CI validates the ISO boot records, checksum, and Koronos kernel readiness under QEMU. This is a development prerelease; it does not claim that Aurora desktop, installer completion, or all userspace services are fully validated."
