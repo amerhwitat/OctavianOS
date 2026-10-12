@@ -1,0 +1,81 @@
+name: Snapshot ChimeraIIOS source into OctavianOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source branch or tag to snapshot
+        required: true
+        default: main
+        type: string
+      include_media:
+        description: Include original artwork and media assets
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: chimera-source-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OctavianOS
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Checkout public ChimeraIIOS source
+        uses: actions/checkout@v4
+        with:
+          repository: amerhwitat/ChimeraIIOS
+          ref: ${{ inputs.source_ref }}
+          path: /tmp/chimera-source
+          fetch-depth: 1
+      - name: Snapshot source without flattening into active runtime
+        env:
+          INCLUDE_MEDIA: ${{ inputs.include_media }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest=vendor/chimera-ii-os/source
+          mkdir -p "$dest"
+          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' /tmp/chimera-source/ "$dest/"
+          if [[ "$INCLUDE_MEDIA" != "true" ]]; then find "$dest" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.mp3' -o -iname '*.wav' \) -delete; fi
+          source_sha="$(git -C /tmp/chimera-source rev-parse HEAD)"
+          file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
+          cat > vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json <<EOF
+          {
+            "schema_version": 1,
+            "source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
+            "source_ref": "$SOURCE_REF",
+            "source_commit": "$source_sha",
+            "snapshot_file_count": $file_count,
+            "includes_media": $INCLUDE_MEDIA,
+            "scope": "source snapshot; not yet a compiled or runtime-integrated port",
+            "history_preserved": false
+          }
+          EOF
+          test "$file_count" -gt 100
+          python3 -m json.tool vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json >/dev/null
+          echo "Source snapshot: $source_sha ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open source snapshot pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: migration/chimera-source-snapshot
+          delete-branch: false
+          title: 'Import ChimeraIIOS source snapshot for OctavianOS port'
+          commit-message: 'chore(migration): snapshot ChimeraIIOS source with provenance'
+          body: |
+            This PR snapshots source files from the selected public ChimeraIIOS ref under `vendor/chimera-ii-os/source/` and records the exact upstream commit in `SNAPSHOT-MANIFEST.json`.
+
+            This is not a completed port: the code is intentionally isolated from active OctavianOS runtime paths until each component has been reviewed, licensed, mapped, built, and tested. Git history is not included; use the separate history importer when preserving refs is required.
+          add-paths: |
+            vendor/chimera-ii-os/
