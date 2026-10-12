@@ -7,7 +7,13 @@ on:
       - 'boot/iso/grub.cfg'
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
-      - '.github/workflows/installer-routing.yml'
+      - 'kernel/**'
+      - 'editions/mobile/**'
+      - 'tools/release/**'
+      - 'tests/qemu/**'
+      - 'Dockerfile'
+      - 'web/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'boot/**/*.cfg'
