@@ -1,6 +1,10 @@
 name: Snapshot ChimeraIIOS source into OctavianOS
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/snapshot-chimera-source.yml
   workflow_dispatch:
     inputs:
       source_ref:
@@ -34,13 +38,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: amerhwitat/ChimeraIIOS
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ inputs.source_ref || 'main' }}
           path: chimera-source
           fetch-depth: 1
       - name: Snapshot source without flattening into active runtime
         env:
-          INCLUDE_MEDIA: ${{ inputs.include_media }}
-          SOURCE_REF: ${{ inputs.source_ref }}
+          INCLUDE_MEDIA: ${{ github.event_name == 'push' || inputs.include_media }}
+          SOURCE_REF: ${{ inputs.source_ref || 'main' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -73,6 +77,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: migration/chimera-source-snapshot
+          base: main
           delete-branch: false
           title: 'Import ChimeraIIOS source snapshot for OctavianOS port'
           commit-message: 'chore(migration): snapshot ChimeraIIOS source with provenance'
