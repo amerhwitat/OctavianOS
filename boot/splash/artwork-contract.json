@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "brand": "OctavianOS",
+  "status": "source-artwork-and-staging-contract",
+  "canonical_vector": "/boot/splash/octavian-octopus-background.svg",
+  "grub_raster_output": "/boot/grub/octavian-octopus-background.png",
+  "splash_video_source": "desktop/aurora/assets/library/Init.mp4",
+  "splash_video_output": "/boot/splash/Init-OctavianOS.mp4",
+  "progress_state": "/run/octavian/progress.state",
+  "progress_json": "/run/octavian/progress.json",
+  "progress_osd_script": "/boot/splash/octavian-progress-osd.lua",
+  "required_targets": ["installer", "live-aurora", "live-marine", "installed-os"],
+  "fallback": "If media or graphical display fails, continue boot and retain serial/text progress.",
+  "packaging_steps": [
+    "Import Init.mp4 from the source repository without overwriting the source asset.",
+    "Rebrand video frames with tools/artwork/rebrand-init-video.sh in a build environment with ffmpeg and DejaVu Sans.",
+    "Rasterize the octopus SVG to PNG with a deterministic image tool and record SHA-256.",
+    "Stage the PNG and branded MP4 at the declared ISO paths.",
+    "Stage the Lua OSD script and ensure mpv can read the progress state.",
+    "Verify all required files and hashes before ISO publication."
+  ],
+  "progress_semantics": "Progress is driven by completed initialization/install events, never by elapsed time or static menu echoes."
+}
