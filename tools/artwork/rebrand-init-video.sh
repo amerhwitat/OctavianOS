@@ -12,6 +12,6 @@ mkdir -p "$(dirname "$OUTPUT")"
 # The progress bar is rendered by mpv's live OSD script; it must not be baked into
 # the video because boot progress differs by installer, Live CD and installed system.
 ffmpeg -hide_banner -y -i "$INPUT" \
-  -vf "drawbox=x=0:y=0:w=iw:h=ih:color=0x04182ccc:t=fill,drawtext=fontfile=$FONT:text='OCTAVIANOS':fontcolor=white:fontsize=h*0.055:x=w*0.055:y=h*0.075:shadowcolor=black@0.8:shadowx=2:shadowy=2,drawtext=fontfile=$FONT:text='OCEANIC COMPUTING':fontcolor=0x8beaf0:fontsize=h*0.022:x=w*0.058:y=h*0.145:shadowcolor=black@0.8:shadowx=2:shadowy=2" \
+  -vf "drawbox=x=0:y=0:w=iw:h=ih*0.23:color=0x04182cbb:t=fill,drawtext=fontfile=$FONT:text='OCTAVIANOS':fontcolor=white:fontsize=h*0.055:x=w*0.055:y=h*0.075:shadowcolor=black@0.8:shadowx=2:shadowy=2,drawtext=fontfile=$FONT:text='OCEANIC COMPUTING':fontcolor=0x8beaf0:fontsize=h*0.022:x=w*0.058:y=h*0.145:shadowcolor=black@0.8:shadowx=2:shadowy=2" \
   -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart "$OUTPUT"
 echo "Branded splash written to $OUTPUT"
