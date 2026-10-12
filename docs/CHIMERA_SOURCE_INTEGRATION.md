@@ -40,6 +40,24 @@ This is a runnable hosted user-mode bridge, not a complete guest OS or a kernel 
 | Mobile / alternate architectures | Source and target contracts may be present | Build and boot per validated device/profile; x86-64 success does not prove ARM/mobile support |
 | Release | CI source-level checks are available | Rebuild ISO from the destination commit, verify SHA-256, boot test and publish only verified artifacts |
 
+## Automated source inventory audit
+
+The `source-inventory` CI job checks out the current public `amerhwitat/ChimeraIIOS` main branch beside the vendored snapshot and publishes a JSON inventory comparison as the `chimera-source-inventory` workflow artifact. It lists files missing from the vendored tree and files present only in the vendored tree. The audit deliberately runs in report-only mode initially so repository layout differences are visible without misrepresenting them as a failed build.
+
+This comparison is not a byte-for-byte content audit, Git history import, semantic equivalence test, or build/boot test. Review the report, reconcile legitimate layout changes, then enable strict inventory enforcement as a separate change. The source repository can move after a CI run; retain the report and source commit SHA when recording migration evidence.
+
+Run locally:
+
+```sh
+python3 tests/migration/test_chimera_source_inventory.py
+python3 tools/migration/chimera-source-inventory.py \
+  --upstream /path/to/ChimeraIIOS \
+  --vendored vendor/chimera-ii-os/source \
+  --output reports/chimera-source-inventory.json
+```
+
+Add `--strict` only when the expected differences have been reconciled.
+
 ## Full source history import
 
 The separate history importer requires the repository secret `OCTAVIANOS_IMPORT_TOKEN` with Contents and Workflows write permission. Configure it in GitHub repository settings, then run the **Import ChimeraIIOS source history** workflow. Never put a token in a commit, issue, chat, or workflow log. The importer is intentionally designed to preserve source history on `chimera-import/*` branches instead of overwriting OctavianOS `main`.
