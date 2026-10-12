@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+# --- Chimera II OS standard help ---
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<'CHIMERA_HELP'
+Chimera II OS script: build-chimera-linuxkit-iso.sh
+
+Usage:
+  build-chimera-linuxkit-iso.sh [options] [arguments]
+
+Options:
+  -h, --help    Show this help and exit successfully.
+
+Notes:
+  This help entry is provided consistently across Chimera II OS shell tools.
+  The script's existing command-line interface and environment variables remain unchanged.
+CHIMERA_HELP
+  exit 0
+fi
+
+# Resolve the repository root from this script location; never depend on the caller's working directory.
+CHIMERA_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/." && pwd)"
+cd "$CHIMERA_REPO_ROOT"
+set -euo pipefail
+
+# Chimera II OS: Docker image -> bootable LinuxKit BIOS + UEFI ISO.
+# Docker supplies the Chimera userspace; LinuxKit supplies kernel/init/boot media.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IMAGE="${CHIMERA_IMAGE:-amerhwitat/chimera2os}:${DOCKER_TAG:-latest}"
+LINUXKIT_VERSION="${LINUXKIT_VERSION:-v1.8.2}"
+KERNEL_IMAGE="${LINUXKIT_KERNEL_IMAGE:-linuxkit/kernel:6.12.59}"
+INIT_IMAGES="${LINUXKIT_INIT_IMAGES:-linuxkit/init:v1.3.0 linuxkit/runc:v1.3.0 linuxkit/containerd:v1.3.0}"
+USE_DOCKER_CACHE="${LINUXKIT_USE_DOCKER_CACHE:-1}"
+OUT="${SCRIPT_DIR}/build/linuxkit"
+TEMPLATE="${SCRIPT_DIR}/boot/linuxkit/chimera2os.yml"
+CONFIG="${OUT}/chimera2os.generated.yml"
+LINUXKIT="${OUT}/linuxkit"
+
+info(){ printf '[INFO] %s\n' "$*"; }
+die(){ printf '[ERROR] %s\n' "$*" >&2; exit 1; }
+
+command -v docker >/dev/null || die "docker is required"
+command -v curl >/dev/null || die "curl is required"
+command -v sha256sum >/dev/null || die "sha256sum is required"
+command -v sed >/dev/null || die "sed is required"
+docker info >/dev/null 2>&1 || die "Docker daemon is unavailable"
+[[ -f "$TEMPLATE" ]] || die "Missing $TEMPLATE"
+mkdir -p "$OUT"
+
+if [[ ! -x "$LINUXKIT" ]]; then
+  case "$(uname -m)" in
+    x86_64|amd64) ARCH=amd64 ;;
+    aarch64|arm64) ARCH=arm64 ;;
+    s390x) ARCH=s390x ;;
+    *) die "Unsupported host architecture: $(uname -m)" ;;
+  esac
+  URL="https://github.com/linuxkit/linuxkit/releases/download/$LINUXKIT_VERSION/linuxkit-linux-$ARCH"
+  info "Downloading LinuxKit $LINUXKIT_VERSION ($ARCH)"
+  curl -fL --retry 3 "$URL" -o "$LINUXKIT"
+  chmod +x "$LINUXKIT"
+fi
+
+info "LinuxKit: $("$LINUXKIT" version 2>/dev/null || true)"
+
+if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+  info "Pulling $IMAGE"
+  docker pull "$IMAGE"
+fi
+docker image inspect "$IMAGE" >/dev/null || die "Cannot inspect $IMAGE"
+
+sed "s#amerhwitat/chimera2os:latest#$IMAGE#g" "$TEMPLATE" > "$CONFIG"
+sed -i "s#image: linuxkit/kernel:6.12.59#image: $KERNEL_IMAGE#" "$CONFIG"
+if [[ "$INIT_IMAGES" != "linuxkit/init:v1.3.0 linuxkit/runc:v1.3.0 linuxkit/containerd:v1.3.0" ]]; then
+  info "Using overridden LinuxKit init component list: $INIT_IMAGES"
+fi
+grep -Fq "image: $IMAGE" "$CONFIG" || die "Generated config does not contain $IMAGE"
+
+rm -f "$OUT/ChimeraIIOS-linuxkit-bios.iso" "$OUT/ChimeraIIOS-linuxkit-efi.iso"
+
+BUILD_FLAGS=()
+[[ "$USE_DOCKER_CACHE" == "1" ]] && BUILD_FLAGS+=(--docker)
+
+info "Building BIOS/El Torito ISO"
+"$LINUXKIT" build "${BUILD_FLAGS[@]}" --format iso-bios \
+  --name "$OUT/ChimeraIIOS-linuxkit-bios" "$CONFIG"
+
+info "Building UEFI ISO"
+"$LINUXKIT" build "${BUILD_FLAGS[@]}" --format iso-efi \
+  --name "$OUT/ChimeraIIOS-linuxkit-efi" "$CONFIG"
+
+BIOS="$OUT/ChimeraIIOS-linuxkit-bios.iso"
+EFI="$OUT/ChimeraIIOS-linuxkit-efi.iso"
+[[ -s "$BIOS" ]] || die "BIOS ISO was not produced"
+[[ -s "$EFI" ]] || die "UEFI ISO was not produced"
+
+sha256sum "$BIOS" | tee "$BIOS.sha256"
+sha256sum "$EFI" | tee "$EFI.sha256"
+
+cat > "$OUT/build-manifest.txt" <<EOF
+Chimera II OS LinuxKit ISO build
+UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+Docker image: $IMAGE
+LinuxKit: $LINUXKIT_VERSION
+Kernel image: $KERNEL_IMAGE
+Init images: $INIT_IMAGES
+Docker cache mode: $USE_DOCKER_CACHE
+BIOS ISO: $BIOS
+$(sha256sum "$BIOS")
+UEFI ISO: $EFI
+$(sha256sum "$EFI")
+Boot chain: Firmware -> LinuxKit bootloader -> LinuxKit kernel -> init/containerd/runc -> Chimera service
+EOF
+
+if command -v xorriso >/dev/null 2>&1; then
+  xorriso -indev "$BIOS" -report_el_torito plain 2>/dev/null || true
+  xorriso -indev "$EFI" -report_el_torito plain 2>/dev/null || true
+fi
+
+info "BIOS ISO: $BIOS"
+info "UEFI ISO: $EFI"
+info "Manifest: $OUT/build-manifest.txt"

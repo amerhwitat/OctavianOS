@@ -1,0 +1,745 @@
+{
+  "schema": "CHM-APP-2",
+  "applications": [
+    {
+      "id": "file-manager",
+      "category": "file-manager",
+      "upstream": "https://www.gnome.org/nautilus/",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "linux",
+        "unix"
+      ],
+      "languages": [
+        "C"
+      ],
+      "integration": "reference",
+      "sandbox": "desktop-policy"
+    },
+    {
+      "id": "aurora-files",
+      "category": "file-manager",
+      "upstream": "https://github.com/amerhwitat/ChimeraIIOS",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "chimera",
+        "linux"
+      ],
+      "languages": [
+        "C++",
+        "Python"
+      ],
+      "integration": "native",
+      "sandbox": "file-policy",
+      "features": [
+        "properties",
+        "mime-associations",
+        "open-with",
+        "permissions",
+        "directory-summary"
+      ]
+    },
+    {
+      "id": "aurora-media-player",
+      "category": "media-player",
+      "upstream": "https://github.com/amerhwitat/ChimeraIIOS",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "chimera",
+        "linux"
+      ],
+      "languages": [
+        "C++",
+        "Python"
+      ],
+      "integration": "native",
+      "sandbox": "media-policy",
+      "features": [
+        "audio",
+        "images",
+        "playlists",
+        "metadata",
+        "file-properties"
+      ]
+    },
+    {
+      "id": "aurora-video-player",
+      "category": "video-player",
+      "upstream": "https://github.com/amerhwitat/ChimeraIIOS",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "chimera",
+        "linux"
+      ],
+      "languages": [
+        "C++",
+        "Python"
+      ],
+      "integration": "native",
+      "sandbox": "media-policy",
+      "features": [
+        "video",
+        "audio",
+        "subtitles",
+        "playlists",
+        "metadata",
+        "file-properties"
+      ]
+    },
+    {
+      "id": "terminal",
+      "category": "terminal",
+      "upstream": "https://github.com/microsoft/terminal",
+      "spdx": "MIT",
+      "platforms": [
+        "windows"
+      ],
+      "languages": [
+        "C++",
+        "C#"
+      ],
+      "integration": "wrapped",
+      "sandbox": "process-policy"
+    },
+    {
+      "id": "libreoffice",
+      "category": "office",
+      "upstream": "https://github.com/LibreOffice/core",
+      "spdx": "MPL-2.0",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++",
+        "Python",
+        "Java"
+      ],
+      "integration": "fetched",
+      "sandbox": "document-policy"
+    },
+    {
+      "id": "gimp",
+      "category": "image-editor",
+      "upstream": "https://gitlab.gnome.org/GNOME/gimp",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C"
+      ],
+      "integration": "fetched",
+      "sandbox": "file-policy"
+    },
+    {
+      "id": "vlc",
+      "category": "media-player",
+      "upstream": "https://code.videolan.org/videolan/vlc",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos",
+        "unix"
+      ],
+      "languages": [
+        "C",
+        "C++"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy"
+    },
+    {
+      "id": "webkit-shell",
+      "category": "browser-engine",
+      "upstream": "https://github.com/WebKit/WebKit",
+      "spdx": "LicenseRef-WebKit-BSD-LGPL-Composite",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++",
+        "Objective-C",
+        "Swift",
+        "Python"
+      ],
+      "integration": "wrapped",
+      "sandbox": "web-policy"
+    },
+    {
+      "id": "git",
+      "category": "developer",
+      "upstream": "https://github.com/git/git",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos",
+        "unix"
+      ],
+      "languages": [
+        "C",
+        "Shell",
+        "Perl"
+      ],
+      "integration": "native",
+      "sandbox": "process-policy"
+    },
+    {
+      "id": "curl",
+      "category": "network",
+      "upstream": "https://github.com/curl/curl",
+      "spdx": "curl",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos",
+        "unix"
+      ],
+      "languages": [
+        "C"
+      ],
+      "integration": "native",
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "archive-manager",
+      "category": "archive",
+      "upstream": "https://gitlab.gnome.org/GNOME/file-roller",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux"
+      ],
+      "languages": [
+        "C",
+        "Vala"
+      ],
+      "integration": "reference",
+      "sandbox": "file-policy"
+    },
+    {
+      "id": "system-monitor",
+      "category": "system-monitor",
+      "upstream": "https://gitlab.gnome.org/GNOME/gnome-system-monitor",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux"
+      ],
+      "languages": [
+        "C++"
+      ],
+      "integration": "reference",
+      "sandbox": "read-only-system"
+    },
+    {
+      "id": "obs-studio",
+      "category": "screen-recorder-streamer",
+      "upstream": "https://github.com/obsproject/obs-studio",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C",
+        "C++"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "recording",
+        "streaming",
+        "scenes",
+        "audio-mixer",
+        "plugins"
+      ]
+    },
+    {
+      "id": "mpv",
+      "category": "media-player",
+      "upstream": "https://github.com/mpv-player/mpv",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos",
+        "unix"
+      ],
+      "languages": [
+        "C",
+        "C++"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "video",
+        "audio",
+        "gpu-rendering",
+        "subtitle"
+      ]
+    },
+    {
+      "id": "ardour",
+      "category": "digital-audio-workstation",
+      "upstream": "https://github.com/Ardour/ardour",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "record",
+        "edit",
+        "mix",
+        "midi",
+        "plugins"
+      ]
+    },
+    {
+      "id": "audacity",
+      "category": "audio-editor",
+      "upstream": "https://github.com/audacity/audacity",
+      "spdx": "GPL-3.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "record",
+        "edit",
+        "effects",
+        "analysis"
+      ]
+    },
+    {
+      "id": "blender",
+      "category": "vfx-3d",
+      "upstream": "https://github.com/blender/blender",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C",
+        "C++",
+        "Python"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "3d",
+        "animation",
+        "vfx",
+        "compositing",
+        "rendering",
+        "video-editing"
+      ]
+    },
+    {
+      "id": "kdenlive",
+      "category": "video-editor",
+      "upstream": "https://invent.kde.org/multimedia/kdenlive",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++",
+        "QML"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "video-editing",
+        "effects",
+        "color",
+        "audio",
+        "proxy-media"
+      ]
+    },
+    {
+      "id": "natron",
+      "category": "vfx-compositor",
+      "upstream": "https://github.com/NatronGitHub/Natron",
+      "spdx": "GPL-2.0-or-later",
+      "platforms": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "languages": [
+        "C++",
+        "Python"
+      ],
+      "integration": "fetched",
+      "sandbox": "media-policy",
+      "features": [
+        "compositing",
+        "vfx",
+        "node-graph",
+        "roto",
+        "keying"
+      ]
+    },
+    {
+      "id": "aurora-flash-tool",
+      "name": "Aurora Flash Tool",
+      "category": "System",
+      "desktop": "aurora-flash-tool.desktop",
+      "binary": "aurora_flash_tool_gui.py",
+      "sandbox": "system-policy"
+    },
+    {
+      "id": "repository-portfolio",
+      "name": "Repository Application Center",
+      "category": "Development",
+      "desktop": "repository-application-center.desktop",
+      "binary": "repository_application_center.py",
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "chimera-installer",
+      "name": "Chimera II Installer",
+      "category": "System",
+      "binary": "installer",
+      "sandbox": "system-policy"
+    },
+    {
+      "id": "chimera-boot-manager",
+      "name": "Jasper Boot Manager",
+      "category": "System",
+      "binary": "jasper",
+      "sandbox": "system-policy"
+    },
+    {
+      "id": "gates",
+      "name": "Gates System Control Center",
+      "category": "System",
+      "binary": "gates",
+      "sandbox": "system-policy"
+    },
+    {
+      "id": "cpu4096",
+      "name": "CPU4096",
+      "source": "CPU4096",
+      "category": "Development;Hardware",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "cpu4096simulator",
+      "name": "CPU4096Simulator",
+      "source": "CPU4096Simulator",
+      "category": "Development;Simulation;Web",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "general",
+      "name": "general",
+      "source": "general",
+      "category": "Development;Integration;Mobile",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "test",
+      "name": "test",
+      "source": "test",
+      "category": "Development;Testing;Integration",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "keygen",
+      "name": "keygen",
+      "source": "keygen",
+      "category": "Security;Development;Java",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "eth-key-check",
+      "name": "eth-key-check",
+      "source": "eth-key-check",
+      "category": "Security;Crypto",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "bruteforce",
+      "name": "bruteforce",
+      "source": "bruteforce",
+      "category": "Security;Research",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "nlp",
+      "name": "nlp",
+      "source": "nlp",
+      "category": "AI;NLP;Research",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "pdfreaderpy",
+      "name": "PDFreaderPY",
+      "source": "PDFreaderPY",
+      "category": "Documents;PDF",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "bizx",
+      "name": "BizX",
+      "source": "BizX",
+      "category": "Business;Development",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "bizxtreme",
+      "name": "BizXtreme",
+      "source": "BizXtreme",
+      "category": "Games;Business;WebGL",
+      "integration": "repository-application-center",
+      "sandbox": "application-policy"
+    },
+    {
+      "id": "web-portal",
+      "name": "amerhwitat.github.io",
+      "source": "amerhwitat.github.io",
+      "category": "Internet;Documentation",
+      "integration": "repository-application-center",
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "bitcoin-core",
+      "name": "Bitcoin Core",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/bitcoin/bitcoin",
+      "license": "MIT",
+      "network": "Bitcoin Mainnet",
+      "launcher": "bitcoin-qt",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "geth",
+      "name": "Go Ethereum (Geth)",
+      "category": "Crypto;Ethereum;Full Node",
+      "upstream": "https://github.com/ethereum/go-ethereum",
+      "license": "LGPL-3.0",
+      "network": "Ethereum Mainnet",
+      "launcher": "geth",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "monero",
+      "name": "Monero",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/monero-project/monero",
+      "license": "BSD-3-Clause",
+      "network": "Monero Mainnet",
+      "launcher": "monero-wallet-gui",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "litecoin-core",
+      "name": "Litecoin Core",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/litecoin-project/litecoin",
+      "license": "MIT",
+      "network": "Litecoin Mainnet",
+      "launcher": "litecoin-qt",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "dogecoin-core",
+      "name": "Dogecoin Core",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/dogecoin/dogecoin",
+      "license": "MIT",
+      "network": "Dogecoin Mainnet",
+      "launcher": "dogecoin-qt",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "zcash",
+      "name": "Zcash",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/zcash/zcash",
+      "license": "MIT/Apache-2.0",
+      "network": "Zcash Mainnet",
+      "launcher": "zcashd",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "dash-core",
+      "name": "Dash Core",
+      "category": "Crypto;Wallet;Full Node",
+      "upstream": "https://github.com/dashpay/dash",
+      "license": "MIT",
+      "network": "Dash Mainnet",
+      "launcher": "dash-qt",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "solana-agave",
+      "name": "Solana Agave",
+      "category": "Crypto;Validator;Node",
+      "upstream": "https://github.com/anza-xyz/agave",
+      "license": "Apache-2.0",
+      "network": "Solana Mainnet",
+      "launcher": "agave-validator",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "cardano-node",
+      "name": "Cardano Node",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/IntersectMBO/cardano-node",
+      "license": "Apache-2.0",
+      "network": "Cardano Mainnet",
+      "launcher": "cardano-node",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "xrpl-rippled",
+      "name": "XRPL rippled",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/XRPLF/rippled",
+      "license": "ISC",
+      "network": "XRP Ledger Mainnet",
+      "launcher": "rippled",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "stellar-core",
+      "name": "Stellar Core",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/stellar/stellar-core",
+      "license": "Apache-2.0",
+      "network": "Stellar Mainnet",
+      "launcher": "stellar-core",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "avalanchego",
+      "name": "AvalancheGo",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/ava-labs/avalanchego",
+      "license": "BSD-3-Clause",
+      "network": "Avalanche Mainnet",
+      "launcher": "avalanchego",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "nearcore",
+      "name": "NEAR Core",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/near/nearcore",
+      "license": "GPL-3.0",
+      "network": "NEAR Mainnet",
+      "launcher": "neard",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "aptos-core",
+      "name": "Aptos Core",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/aptos-labs/aptos-core",
+      "license": "Apache-2.0",
+      "network": "Aptos Mainnet",
+      "launcher": "aptos-node",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "sui",
+      "name": "Sui",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/MystenLabs/sui",
+      "license": "Apache-2.0",
+      "network": "Sui Mainnet",
+      "launcher": "sui-node",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "algorand",
+      "name": "go-algorand",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/algorand/go-algorand",
+      "license": "MIT",
+      "network": "Algorand Mainnet",
+      "launcher": "algod",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    },
+    {
+      "id": "kaspa",
+      "name": "Rusty Kaspa",
+      "category": "Crypto;Node",
+      "upstream": "https://github.com/kaspanet/rusty-kaspa",
+      "license": "ISC",
+      "network": "Kaspa Mainnet",
+      "launcher": "kaspad",
+      "integration": "Aurora Crypto Center",
+      "mainnet": true,
+      "sandbox": "network-policy"
+    }
+  ]
+}

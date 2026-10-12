@@ -1,0 +1,97 @@
+#!/bin/sh
+
+# --- Chimera II OS standard help ---
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<'CHIMERA_HELP'
+Chimera II OS script: tools/chimera-driver-manager.sh
+
+Usage:
+  tools/chimera-driver-manager.sh [options] [arguments]
+
+Options:
+  -h, --help    Show this help and exit successfully.
+
+Notes:
+  This help entry is provided consistently across Chimera II OS shell tools.
+  The script's existing command-line interface and environment variables remain unchanged.
+CHIMERA_HELP
+  exit 0
+fi
+set -eu
+CONFIG=${CHIMERA_DRIVER_REPOSITORIES:-/etc/chimera/drivers/driver-repositories.json}
+DB=/var/lib/chimera/drivers
+LOG=/var/log/mesgs
+CACHE="$DB/repository-cache"
+QUARANTINE="$DB/quarantine"
+mkdir -p "$CACHE" "$DB/downloads" "$QUARANTINE" "$DB/build" "$DB/state" "$LOG"
+log(){ printf '[DRIVER] %s\n' "$*" >> "$LOG/mesgs" 2>/dev/null || true; }
+have(){ command -v "$1" >/dev/null 2>&1; }
+fetch(){
+  url="$1"; out="$2"
+  if have curl; then curl -fL --retry 2 --connect-timeout 10 -A 'ChimeraIIOS-DriverManager/1.0' "$url" -o "$out"
+  elif have wget; then wget -q --tries=2 --timeout=20 --user-agent='ChimeraIIOS-DriverManager/1.0' -O "$out" "$url"
+  else return 127; fi
+}
+inventory(){
+  : > "$DB/state/hardware.inventory"
+  if [ -d /sys/bus/pci/devices ]; then
+    for d in /sys/bus/pci/devices/*; do
+      [ -d "$d" ] || continue
+      printf 'pci %s %s %s\n' "$(basename "$d")" "$(cat "$d/vendor" 2>/dev/null || echo unknown)" "$(cat "$d/device" 2>/dev/null || echo unknown)" >> "$DB/state/hardware.inventory"
+    done
+  fi
+  if [ -d /sys/bus/usb/devices ]; then
+    for d in /sys/bus/usb/devices/*:*; do
+      [ -d "$d" ] || continue
+      printf 'usb %s %s %s\n' "$(basename "$d")" "$(cat "$d/idVendor" 2>/dev/null || echo unknown)" "$(cat "$d/idProduct" 2>/dev/null || echo unknown)" >> "$DB/state/hardware.inventory"
+    done
+  fi
+  while IFS= read -r line; do log "$line"; done < "$DB/state/hardware.inventory"
+}
+search(){
+  inventory
+  log "Searching configured driver, firmware and hardware-ID sources."
+  if have wget || have curl; then
+    fetch 'https://pci-ids.ucw.cz/v2.2/pci.ids' "$CACHE/pci.ids" 2>/dev/null || fetch 'https://pci-ids.ucw.cz/pci.ids' "$CACHE/pci.ids" 2>/dev/null || true
+    [ -s "$CACHE/pci.ids" ] && log "PCI ID database refreshed" || log "PCI ID database refresh unavailable"
+  else
+    log "No network downloader available; retaining offline cache."
+  fi
+  log "Repository registry: $CONFIG"
+  log "Native candidates: Chimera-native packages, Chimera source builds, and firmware."
+  log "Foreign driver formats are quarantined until a Chimera compatibility provider validates them."
+}
+download_candidate(){
+  url="$1"; expected="${2:-}"; name="${3:-$(basename "$url")}"
+  case "$url" in https://*) ;; *) log "Refusing non-HTTPS driver URL: $url"; return 2;; esac
+  out="$DB/downloads/$name"
+  fetch "$url" "$out" || { log "Download failed: $url"; return 1; }
+  if [ -n "$expected" ] && command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$out" | awk '{print $1}')
+    [ "$actual" = "$expected" ] || { log "SHA-256 mismatch for $name"; cp -f "$out" "$QUARANTINE/"; return 1; }
+  fi
+  log "Downloaded verified driver candidate: $out"
+  printf '%s\n' "$out"
+}
+install_candidate(){
+  file="$1"
+  [ -f "$file" ] || { log "Candidate not found: $file"; return 1; }
+  case "$file" in
+    *.chm-driver|*.chmfw|*.fw|*.bin)
+      mkdir -p /lib/chimera/drivers /lib/firmware
+      cp -f "$file" /lib/chimera/drivers/ 2>/dev/null || cp -f "$file" /lib/firmware/
+      log "Installed native/firmware candidate: $file";;
+    *.ko|*.sys|*.dll|*.kext|*.dext|*.inf)
+      cp -f "$file" "$QUARANTINE/"
+      log "Quarantined foreign driver: $file";;
+    *) cp -f "$file" "$QUARANTINE/"; log "Unknown driver artifact quarantined: $file";;
+  esac
+}
+case "${1:-search}" in
+  inventory) inventory;;
+  search|update) search;;
+  download) download_candidate "${2:-}" "${3:-}" "${4:-}";;
+  install) install_candidate "${2:-}";;
+  daemon) while :; do search || true; sleep "${CHIMERA_DRIVER_REFRESH_SECONDS:-21600}"; done;;
+  *) echo 'usage: chimera-driver-manager {inventory|search|update|download URL [SHA256] [NAME]|install FILE|daemon}'; exit 2;;
+esac

@@ -1,0 +1,59 @@
+name: Build Hypervisor Images
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile*'
+      - 'docker/**'
+      - '.dockerignore'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: hosted
+            file: Dockerfile.hosted
+          - name: emulator
+            file: Dockerfile.emulator
+          - name: buildkit
+            file: Dockerfile.buildkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Select image repository
+        id: image
+        shell: bash
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          if [[ -n "$DOCKER_USERNAME" ]]; then
+            echo "repo=$DOCKER_USERNAME/chimera-ii-os" >> "$GITHUB_OUTPUT"
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "repo=chimera-ii-os-local" >> "$GITHUB_OUTPUT"
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/login-action@v3
+        if: ${{ steps.image.outputs.push == 'true' }}
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ steps.image.outputs.push == 'true' }}
+          tags: |
+            ${{ steps.image.outputs.repo }}:${{ matrix.name }}
+            ${{ steps.image.outputs.repo }}:${{ matrix.name }}-${{ github.sha }}

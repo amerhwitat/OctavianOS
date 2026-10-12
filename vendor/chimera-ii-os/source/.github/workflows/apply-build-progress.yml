@@ -1,0 +1,39 @@
+name: Validate build progress instrumentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build-chimera-iso.sh'
+      - '.github/workflows/apply-build-progress.yml'
+      - 'tools/validation/validate_capability_status.py'
+  pull_request:
+    paths:
+      - 'build-chimera-iso.sh'
+      - '.github/workflows/apply-build-progress.yml'
+      - 'tools/validation/validate_capability_status.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate ISO builder shell syntax
+        run: bash -n build-chimera-iso.sh
+      - name: Validate existing stage and log instrumentation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          script = Path("build-chimera-iso.sh").read_text(encoding="utf-8")
+          required = ("CURRENT_STAGE", "run_stage", "LOG_DIR", "WATCHDOG_PID", "preflight")
+          missing = [marker for marker in required if marker not in script]
+          if missing:
+              raise SystemExit("ISO builder is missing existing stage/log contracts: " + ", ".join(missing))
+          print("Existing resumable stage, logging, watchdog, and preflight contracts are present.")
+          PY
+      - name: Validate capability status registry
+        run: python3 tools/validation/validate_capability_status.py

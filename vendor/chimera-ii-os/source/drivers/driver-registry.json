@@ -1,0 +1,24 @@
+{
+  "schema": "chimera-driver-registry-v2",
+  "matching": [
+    "PCI",
+    "USB",
+    "ACPI",
+    "DMI",
+    "device-tree",
+    "platform-id"
+  ],
+  "source_catalog": "drivers/manifests/driver-source-catalog.json",
+  "foreign_sources": [
+    "Linux",
+    "Unix",
+    "Windows",
+    "macOS"
+  ],
+  "native_driver_priority": true,
+  "binary_import_requires_license": true,
+  "binary_import_requires_signature_or_hash": true,
+  "proprietary_redistribution_forbidden_without_rights": true,
+  "automatic_install_requires_explicit_user_policy": true,
+  "entries": []
+}

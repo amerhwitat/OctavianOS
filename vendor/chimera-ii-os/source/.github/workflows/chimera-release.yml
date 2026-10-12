@@ -1,0 +1,87 @@
+name: Chimera II OS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Normalize release build line endings
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config core.autocrlf false
+          find boot tools scripts .github -type f \( -name '*.sh' -o -name 'Dockerfile*' -o -name '*.bash' \) -print0 2>/dev/null |
+            while IFS= read -r -d '' f; do
+              python3 -c 'import pathlib,sys; p=pathlib.Path(sys.argv[1]); b=p.read_bytes(); p.write_bytes(b.replace(bytes([13,10]),bytes([10])).replace(bytes([13]),bytes([10]))) if bytes([0]) not in b else None' "$f"
+            done
+          find boot tools scripts -type f -name '*.sh' -print0 2>/dev/null |
+            while IFS= read -r -d '' f; do chmod +x "$f"; done
+      - name: Install release toolchain
+        run: sudo apt-get update && sudo apt-get install -y grub-pc-bin grub-common grub-efi-amd64-bin xorriso mtools gcc g++ gcc-multilib binutils nasm python3 python3-pytest qemu-system-x86
+      - name: Validate registries
+        run: |
+          for f in repositories/platform-manifest.json drivers/driver-registry.json filesystems/filesystem-registry.json packages/package-manager-registry.json compat/binary-format-registry.json install/installer-contract.json desktop/aurora/gates_menu.json; do python3 -m json.tool "$f" >/dev/null; done
+      - name: Build ISO
+        run: chmod +x boot/iso/build-iso.sh boot/iso/prepare-layout.sh && boot/iso/build-iso.sh
+      - name: Validate Multiboot2 kernel
+        run: |
+          grub-file --is-x86-multiboot2 boot/iso/dist/kernel.bin
+          file boot/iso/dist/kernel.bin
+          readelf -h boot/iso/dist/kernel.bin | grep -E 'Class:.*ELF64|Machine:.*Advanced Micro Devices X86-64'
+
+      - name: VMware/QEMU BIOS boot smoke test
+        run: |
+          set +e
+          timeout 15s qemu-system-x86_64 \
+            -accel tcg \
+            -m 512M \
+            -cdrom boot/iso/dist/chimera2os-bootstrap.iso \
+            -boot d \
+            -display none \
+            -monitor none \
+            -serial stdio \
+            -no-reboot \
+            -no-shutdown > qemu-boot.log 2>&1
+          rc=$?
+          set -e
+          cat qemu-boot.log
+          if ! grep -q 'KORONOS_READY' qemu-boot.log; then
+            echo 'Koronos did not reach KORONOS_READY; ISO boot is not releaseable.' >&2
+            exit 1
+          fi
+          echo "QEMU stopped with rc=$rc after successful kernel handoff (timeout is expected for the parked kernel)."
+
+      - name: Verify release tree
+        run: |
+          test -s boot/iso/dist/chimera2os-bootstrap.iso
+          test -d boot/iso/dist/iso/src
+          test -d boot/iso/dist/iso/opt
+          test -f boot/iso/dist/iso/checksums/SHA256SUMS
+          xorriso -indev boot/iso/dist/chimera2os-bootstrap.iso -report_el_torito plain -report_system_area plain -print ''
+      - name: Generate release metadata
+        run: |
+          mkdir -p release
+          cp boot/iso/dist/chimera2os-bootstrap.iso release/Chimera-II-OS-x86_64-BareMetal.iso
+          sha256sum release/Chimera-II-OS-x86_64-BareMetal.iso > release/Chimera-II-OS-x86_64-BareMetal.iso.sha256
+          git archive --format=tar.gz --prefix=ChimeraIIOS-${GITHUB_REF_NAME}/ "$GITHUB_REF_NAME" > release/ChimeraIIOS-${GITHUB_REF_NAME}-source.tar.gz
+          printf '%s\n' '{' '  "schema":"chimera-release-v1",' "  \"version\":\"${GITHUB_REF_NAME}\"," "  \"commit\":\"${GITHUB_SHA}\"," '  "artifacts":["Chimera-II-OS-x86_64-BareMetal.iso","Chimera-II-OS-x86_64-BareMetal.iso.sha256", "release-manifest.json"]' '}' > release/release-manifest.json
+      - name: Upload release artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera2os-release-${{ github.ref_name }}
+          path: release/
+          retention-days: 30
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --title "Chimera II OS $GITHUB_REF_NAME" --generate-notes

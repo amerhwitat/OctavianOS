@@ -1,0 +1,97 @@
+add_library(chimera_shell STATIC
+  shell/chimera_shell.cpp
+)
+target_include_directories(chimera_shell PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/shell
+  ${CMAKE_CURRENT_SOURCE_DIR}/../desktop/aurora/i18n
+)
+add_library(aurora_utf STATIC
+  ../desktop/aurora/i18n/aurora_utf.cpp
+  ../desktop/aurora/i18n/aurora_emoji.cpp
+  ../desktop/aurora/icons/chimera_icons.cpp
+)
+target_include_directories(aurora_utf PUBLIC
+  ../desktop/aurora/i18n
+  ../desktop/aurora/icons
+)
+target_compile_features(aurora_utf PUBLIC cxx_std_20)
+add_executable(chimera-shell shell/main.cpp)
+target_link_libraries(chimera-shell PRIVATE chimera_shell aurora_utf)
+target_compile_features(chimera_shell PUBLIC cxx_std_20)
+target_compile_features(chimera-shell PRIVATE cxx_std_20)
+add_executable(chimera-utils commands/chimera_utils.cpp)
+target_compile_features(chimera-utils PRIVATE cxx_std_20)
+add_executable(aurora-launcher ../desktop/aurora/aurora-launcher.cpp)
+target_compile_features(aurora-launcher PRIVATE cxx_std_20)
+install(TARGETS chimera-shell chimera-utils aurora-launcher aurora_utf RUNTIME DESTINATION bin ARCHIVE DESTINATION lib)
+add_executable(chmctl commands/chmctl.cpp)
+add_executable(chm-diagnostics commands/chimera_diagnostics.cpp)
+add_executable(chmhelp commands/chmhelp.cpp)
+add_executable(chm-utf8 commands/chm-utf8.cpp)
+add_executable(chm-knowledge-daemon ../knowledge/daemon/chimera_knowledge_daemon.cpp)
+add_executable(chm-patch ../knowledge/patch/chimera_patch_engine.cpp ../knowledge/patch/reboot_manager.cpp)
+add_executable(chm-reboot commands/chm-reboot.cpp ../knowledge/patch/reboot_manager.cpp)
+add_executable(chm-resource-manager ../system/resource/chimera_resource_manager.cpp)
+# These account/permission utilities depend on POSIX libc interfaces
+# (crypt.h, sys/file.h, sys/random.h, unistd.h, flock/chown/geteuid).
+# Keep the native Unix implementation intact while allowing the MSVC
+# compatibility build to compile the rest of ChimeraIIOS.
+if(NOT WIN32)
+  add_executable(chm-user-setup ../system/security/chimera_account_manager.cpp)
+  add_executable(chm-ad ../system/security/chimera_ad_manager.cpp)
+  add_executable(chm-passwd ../system/security/chimera_passwd.cpp)
+  add_executable(chm-groupadd ../system/security/chimera_group.cpp)
+  add_executable(chm-perms ../system/security/chimera_permissions.cpp)
+  add_executable(chm-usermod ../system/security/chimera_user_mod.cpp)
+  add_executable(chm-groupmod ../system/security/chimera_group_mod.cpp)
+  add_executable(chm-security-selftest ../system/security/chimera_security_selftest.cpp)
+  target_link_libraries(chm-passwd PRIVATE crypt)
+  target_link_libraries(chm-user-setup PRIVATE crypt)
+endif()
+add_executable(aurora-utf-selftest ../desktop/aurora/i18n/aurora_utf_selftest.cpp)
+add_executable(aurora-settings ../desktop/aurora/apps/aurora_settings.cpp)
+set(CHIMERA_COMMON_TARGETS chmctl chm-diagnostics chmhelp chm-utf8 chm-knowledge-daemon chm-patch chm-reboot chm-resource-manager aurora-settings aurora-utf-selftest)
+if(NOT WIN32)
+  list(APPEND CHIMERA_COMMON_TARGETS chm-user-setup chm-ad chm-passwd chm-groupadd chm-perms chm-usermod chm-groupmod chm-security-selftest)
+endif()
+foreach(chm_target IN LISTS CHIMERA_COMMON_TARGETS)
+  target_link_libraries(${chm_target} PRIVATE aurora_utf)
+  target_compile_features(${chm_target} PRIVATE cxx_std_20)
+endforeach()
+install(TARGETS ${CHIMERA_COMMON_TARGETS} RUNTIME DESTINATION bin)
+
+add_executable(chm-sed ../system/languages/chm_sed.cpp)
+target_compile_features(chm-sed PRIVATE cxx_std_20)
+add_executable(chm-awk ../system/languages/chm_awk.cpp)
+target_compile_features(chm-awk PRIVATE cxx_std_20)
+install(TARGETS chm-sed chm-awk RUNTIME DESTINATION bin)
+
+
+add_library(chimera_hardware_runtime STATIC
+  ../kernel/core/hardware.cpp
+  ../kernel/core/nbit.cpp
+)
+target_include_directories(chimera_hardware_runtime PUBLIC ../kernel/include)
+target_compile_features(chimera_hardware_runtime PUBLIC cxx_std_20)
+
+add_executable(chimera-hwmode ../services/hardware/chimera-hwmode.cpp)
+target_link_libraries(chimera-hwmode PRIVATE chimera_hardware_runtime)
+target_compile_features(chimera-hwmode PRIVATE cxx_std_20)
+install(TARGETS chimera-hwmode RUNTIME DESTINATION bin)
+install(FILES
+  ../system/hardware/chimera-hardware-profile.json
+  ../system/hardware/compatibility-modes.json
+  DESTINATION share/chimera/hardware)
+install(DIRECTORY ../services/hardware/ DESTINATION share/chimera/hardware FILES_MATCHING PATTERN "*.md")
+
+
+
+
+add_executable(chimera-boot-learning boot/chimera_boot_learning.cpp)
+target_compile_features(chimera-boot-learning PRIVATE cxx_std_20)
+install(TARGETS chimera-boot-learning RUNTIME DESTINATION bin)
+install(FILES ../system/learning/chimera-boot-learning.json DESTINATION share/chimera/learning)
+
+add_executable(chimera-runtime-recovery boot/chimera_runtime_recovery.cpp)
+target_compile_features(chimera-runtime-recovery PRIVATE cxx_std_20)
+install(TARGETS chimera-runtime-recovery RUNTIME DESTINATION bin)

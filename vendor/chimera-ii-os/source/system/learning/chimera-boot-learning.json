@@ -1,0 +1,51 @@
+{
+  "schema": "CHIMERA-BOOT-LEARNING-2",
+  "component": "chimera-boot-learning",
+  "model": "recurrent-hidden-state",
+  "hidden_units": 16,
+  "features": ["stage_percent","stage_duration_ms","cpu_signal","memory_available_percent","io_pressure","bias"],
+  "learning_rate": 0.0025,
+  "runtime_mode": "daemon",
+  "poll_seconds": 30,
+  "error_observer": {
+    "component": "chimera-runtime-recovery",
+    "poll_seconds": 10,
+    "source": "Aurora progress state transitions and boot error journal",
+    "format": "CSV/JSONL",
+    "classification": ["storage","memory","permission","driver","filesystem","network","timeout","crash","build","unknown"],
+    "retention": "bounded-by-service-policy"
+  },
+  "runtime_remediation": {
+    "enabled": true,
+    "mode": "safe-preparation",
+    "automatic_actions": [
+      "create recovery/quarantine/retry state directories",
+      "record remediation decisions",
+      "prune only bounded learner telemetry when storage pressure is detected",
+      "prepare deferred-service and driver-retry markers"
+    ],
+    "forbidden_actions": [
+      "modify kernel or driver binaries",
+      "execute arbitrary commands from model output",
+      "kill arbitrary processes",
+      "change boot order of critical services",
+      "disable security controls",
+      "automatic reboot"
+    ],
+    "administrator_approval_required_for": [
+      "kernel patches",
+      "driver replacement",
+      "service reordering",
+      "privileged command execution",
+      "reboot-required changes"
+    ]
+  },
+  "objectives": [
+    "learn successful boot-stage transitions",
+    "detect recurring resource pressure",
+    "detect and classify runtime boot errors",
+    "prepare bounded non-destructive recovery actions",
+    "rank future boot optimization proposals",
+    "improve Aurora progress estimates from observed runtime behavior"
+  ]
+}

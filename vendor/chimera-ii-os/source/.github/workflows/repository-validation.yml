@@ -1,0 +1,66 @@
+name: Chimera II repository validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'src/**'
+      - 'include/**'
+      - 'tests/**'
+      - 'network/**'
+      - '.github/workflows/repository-validation.yml'
+  pull_request:
+    paths:
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+      - 'src/**'
+      - 'include/**'
+      - 'tests/**'
+      - 'network/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject private-key material
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -n -E -- '-----BEGIN (RSA|OPENSSH|EC|DSA|PRIVATE) KEY-----'; then
+            echo 'Private-key material detected in tracked source.' >&2
+            exit 1
+          fi
+
+      - name: Validate network capability JSON
+        run: python -m json.tool network/routing_capabilities.json >/dev/null
+
+      - name: Configure core CMake build
+        run: cmake -S . -B build/ci
+
+      - name: Build core targets
+        run: cmake --build build/ci --parallel 2
+
+      - name: Run CTest suite
+        working-directory: build/ci
+        run: ctest --output-on-failure
+
+      - name: Validate required architecture documents
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s network/ApplicationNetworkModule.md
+          test -s network/RoutingAndSDN.md
+          test -s SECURITY.md

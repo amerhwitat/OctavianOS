@@ -1,0 +1,274 @@
+option(CHIMERA_ENABLE_EXPERIMENTAL "Build experimental machine/cognitive prototypes" ON)
+option(CHIMERA_ENABLE_X86_ASM "Build x86-64 performance helpers when supported" ON)
+option(CHIMERA_BUILD_STARTUP_RUNTIME "Build the host-side Koronos startup runtime" ON)
+option(CHIMERA_ENABLE_CVEL "Build Chimera Virtualization & Emulation Layer" ON)
+find_package(Threads REQUIRED)
+
+function(chimera_warnings target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+endfunction()
+add_library(chimera_core STATIC src/chimera.c)
+target_include_directories(chimera_core PUBLIC include)
+chimera_warnings(chimera_core)
+add_library(chimera_machine STATIC src/isa/chimera_isa.cpp src/isa/unified_isa.cpp src/isa/isa_bitfields.cpp src/isa/ISA_EncoderDecoder.cpp src/isa/universal_isa.cpp src/isa/nbit_isa.cpp src/kernel/kernel_arch.cpp src/kernel/linux_compat.cpp src/kernel/bootinfo.cpp src/kernel/arch_context.cpp src/kernel/microkernel_services.cpp src/dma/dma.cpp src/memory/memory_bus.cpp src/memory/memory_bus_probe.cpp src/net/inet.cpp src/net/spotnik.cpp src/neural/trusted_node.cpp src/neural/hyperdimensional.cpp src/security/biometric_auth.cpp src/runtime/nbit_runtime.cpp src/ai/media.cpp database/src/db_backend.cpp)
+target_include_directories(chimera_machine PUBLIC include database/include)
+target_link_libraries(chimera_machine PUBLIC Threads::Threads)
+chimera_warnings(chimera_machine)
+if(CHIMERA_ENABLE_X86_ASM AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+  target_sources(chimera_machine PRIVATE src/arch/x86_64/chimera_fastpath.S)
+  target_compile_definitions(chimera_machine PUBLIC CHIMERA_X86_FASTPATH=1)
+endif()
+if(CHIMERA_ENABLE_CVEL)
+  add_library(chimera_cvel STATIC src/virtualization/cvel.cpp)
+  target_include_directories(chimera_cvel PUBLIC include)
+  chimera_warnings(chimera_cvel)
+  add_executable(chimera_vm tools/virtualization/chimera_vm.cpp)
+  target_link_libraries(chimera_vm PRIVATE chimera_cvel)
+  chimera_warnings(chimera_vm)
+  add_executable(chimera_cvel_test tests/virtualization/test_cvel.cpp)
+  target_link_libraries(chimera_cvel_test PRIVATE chimera_cvel)
+  target_include_directories(chimera_cvel_test PRIVATE include)
+  install(TARGETS chimera_cvel chimera_vm ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(FILES virtualization/cvel/cvel_registry.json docs/virtualization/CVEL.md DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/virtualization)
+endif()
+if(CHIMERA_BUILD_STARTUP_RUNTIME AND NOT WIN32)
+  add_executable(chimera_kernel src/kernel/chimera_kernel_main.cpp)
+  target_link_libraries(chimera_kernel PRIVATE chimera_machine)
+  chimera_warnings(chimera_kernel)
+  install(TARGETS chimera_kernel RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(PROGRAMS desktop/aurora/aurora-session.sh DESTINATION ${CMAKE_INSTALL_LIBDIR}/chimera RENAME aurora-session)
+  install(PROGRAMS tools/installer/enable-startup.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME chimera-enable-startup)
+  install(FILES platform/systemd/chimera-kernel.service platform/systemd/aurora-session@.service DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system)
+  install(FILES platform/wayland/aurora.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions)
+endif()
+if(WIN32)
+  add_executable(chimera_server src/server_windows.c)
+else()
+  add_executable(chimera_server src/server.c)
+endif()
+target_link_libraries(chimera_server PRIVATE chimera_core chimera_machine)
+if(WIN32)
+  target_link_libraries(chimera_server PRIVATE ws2_32)
+endif()
+if(NOT WIN32)
+  target_link_libraries(chimera_server PRIVATE pthread)
+endif()
+chimera_warnings(chimera_server)
+install(TARGETS chimera_server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS chimera_core chimera_machine ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+add_executable(chimera_linux_compatibility_test tests/unit/test_linux_compatibility.cpp)
+target_link_libraries(chimera_linux_compatibility_test PRIVATE chimera_machine)
+target_include_directories(chimera_linux_compatibility_test PRIVATE include)
+add_executable(chimera_unit tests/unit/test_core.cpp)
+target_link_libraries(chimera_unit PRIVATE chimera_machine)
+target_include_directories(chimera_unit PRIVATE include)
+add_executable(chimera_trusted_node_test tests/unit/test_trusted_node.cpp)
+target_link_libraries(chimera_trusted_node_test PRIVATE chimera_machine)
+target_include_directories(chimera_trusted_node_test PRIVATE include)
+add_executable(chimera_kernel_runtime_test tests/unit/test_kernel_runtime.cpp)
+target_link_libraries(chimera_kernel_runtime_test PRIVATE chimera_machine)
+target_include_directories(chimera_kernel_runtime_test PRIVATE include)
+add_executable(chimera_dma_manager_test tests/unit/test_dma_manager.cpp)
+target_link_libraries(chimera_dma_manager_test PRIVATE chimera_machine)
+target_include_directories(chimera_dma_manager_test PRIVATE include)
+add_executable(chimera_memory_bus_test tests/unit/test_memory_bus.cpp)
+target_link_libraries(chimera_memory_bus_test PRIVATE chimera_machine)
+target_include_directories(chimera_memory_bus_test PRIVATE include)
+add_executable(chimera_memory_bus_probe_test tests/unit/test_memory_bus_probe.cpp)
+target_link_libraries(chimera_memory_bus_probe_test PRIVATE chimera_machine)
+target_include_directories(chimera_memory_bus_probe_test PRIVATE include)
+add_executable(chimera_isa_catalog_test tests/unit/test_isa_catalog.cpp)
+target_include_directories(chimera_isa_catalog_test PRIVATE include)
+add_executable(chimera_r8192_isa_test tests/unit/test_r8192_isa.cpp)
+target_link_libraries(chimera_r8192_isa_test PRIVATE chimera_machine)
+target_include_directories(chimera_r8192_isa_test PRIVATE include)
+add_executable(chimera_isa_bitfields_test tests/unit/test_isa_bitfields.cpp)
+target_link_libraries(chimera_isa_bitfields_test PRIVATE chimera_machine)
+target_include_directories(chimera_isa_bitfields_test PRIVATE include)
+add_executable(chimera_isa_encoder_decoder_test tests/unit/test_isa_encoder_decoder.cpp)
+target_link_libraries(chimera_isa_encoder_decoder_test PRIVATE chimera_machine)
+target_include_directories(chimera_isa_encoder_decoder_test PRIVATE include)
+add_executable(chimera_universal_isa_test tests/unit/test_universal_isa.cpp)
+target_link_libraries(chimera_universal_isa_test PRIVATE chimera_machine)
+target_include_directories(chimera_universal_isa_test PRIVATE include)
+add_executable(chimera_nbit_isa_test tests/unit/test_nbit_isa.cpp)
+add_executable(chimera_neural_hyperdimensional_test tests/unit/test_neural_hyperdimensional.cpp)
+add_executable(chimera_biometric_auth_test tests/unit/test_biometric_auth.cpp)
+target_link_libraries(chimera_biometric_auth_test PRIVATE chimera_machine)
+target_include_directories(chimera_biometric_auth_test PRIVATE include)
+target_link_libraries(chimera_neural_hyperdimensional_test PRIVATE chimera_machine)
+target_include_directories(chimera_neural_hyperdimensional_test PRIVATE include)
+target_link_libraries(chimera_nbit_isa_test PRIVATE chimera_machine)
+target_include_directories(chimera_nbit_isa_test PRIVATE include)
+add_executable(chimera_microkernel_services_test tests/unit/test_microkernel_services.cpp)
+target_link_libraries(chimera_microkernel_services_test PRIVATE chimera_machine)
+target_include_directories(chimera_microkernel_services_test PRIVATE include)
+add_executable(chimera_database_backend_test tests/unit/test_database_backend.cpp)
+target_link_libraries(chimera_database_backend_test PRIVATE chimera_machine)
+target_include_directories(chimera_database_backend_test PRIVATE include database/include)
+add_executable(chimera_inet_test tests/unit/test_inet.cpp)
+target_link_libraries(chimera_inet_test PRIVATE chimera_machine)
+target_include_directories(chimera_inet_test PRIVATE include)
+add_executable(chimera_isa_extension_catalog_test tests/isa/test_isa_extension_catalog.cpp)
+target_include_directories(chimera_isa_extension_catalog_test PRIVATE include)
+add_executable(chimera_isa_extension_ops_test tests/isa/test_isa_extension_ops.cpp)
+target_include_directories(chimera_isa_extension_ops_test PRIVATE include)
+add_executable(chimera_filesystem_matrix_test tests/filesystem/test_filesystem_matrix.cpp)
+target_include_directories(chimera_filesystem_matrix_test PRIVATE include)
+add_executable(chimera_nbit_extended_ops_test tests/unit/test_nbit_extended_ops.cpp)
+target_link_libraries(chimera_nbit_extended_ops_test PRIVATE chimera_machine)
+target_include_directories(chimera_nbit_extended_ops_test PRIVATE include)
+add_executable(chimera_ai_discipline_test tests/ai/test_ai_discipline.cpp)
+target_include_directories(chimera_ai_discipline_test PRIVATE include)
+add_executable(aurora_context_menu desktop/aurora/aurora_context_menu.cpp)
+chimera_warnings(aurora_context_menu)
+install(TARGETS aurora_context_menu RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS desktop/aurora/aurora_flash_tool.py desktop/aurora/aurora_flash_tool_gui.py desktop/aurora/repository_application_center.py DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/aurora)
+install(FILES desktop/aurora/aurora-flash-tool.desktop desktop/aurora/repository-application-center.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(PROGRAMS desktop/aurora/aurora_flash_tool.py desktop/aurora/aurora_flash_tool_gui.py DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/aurora)
+install(FILES desktop/aurora/aurora-flash-tool.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES desktop/file_associations/context_menu_registry.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/file-associations)
+add_executable(aurora_settings desktop/aurora/apps/aurora_settings.cpp)
+chimera_warnings(aurora_settings)
+install(TARGETS aurora_settings RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES desktop/aurora/aurora_settings_registry.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/settings)
+install(FILES desktop/aurora/aurora_media_ecosystem.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/media)
+add_executable(aurora_media_player desktop/aurora/apps/aurora_media.cpp)
+add_executable(aurora_video_player desktop/aurora/apps/aurora_video.cpp)
+set_target_properties(aurora_media_player PROPERTIES OUTPUT_NAME "aurora-media-player")
+set_target_properties(aurora_video_player PROPERTIES OUTPUT_NAME "aurora-video-player")
+chimera_warnings(aurora_media_player)
+chimera_warnings(aurora_video_player)
+install(TARGETS aurora_media_player aurora_video_player RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES platform/pam/chimera-auth.conf DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/security)
+install(FILES boot/boot-menu-contract.json boot/loader-menu.cfg boot/boot_protocol.json boot/mode_matrix.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/boot)
+install(FILES boot/jasper/jasper.cfg boot/jasper/live.cfg boot/jasper/install.cfg boot/jasper/recovery.cfg boot/jasper/diagnostics.cfg DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/boot/jasper)
+install(FILES boot/spitfire/spitfire-menu.cfg boot/installation/menu.cfg boot/recovery/recovery-manifest.json boot/diagnostics/diagnostics-manifest.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/boot/menus)
+install(PROGRAMS tools/runtime/chimera-nbit-mode.py tools/runtime/chimera-nbitd.py tools/runtime/chimera-neural-dim.py tools/runtime/chimera-biometric-auth.py desktop/aurora/aurora-nbit-top-panel.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS tools/media/file_metadata.py tools/media/file_associations.py tools/media/chimera_media.py tools/media/playback.py tools/media/aurora_media_player.py tools/media/aurora_video_player.py tools/build-live-boot-binaries.sh tools/build-mobile-binaries.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES desktop/file_associations/file_property_schema.json desktop/file_associations/file_association_registry.json desktop/file_associations/mimeapps.list DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/file-associations)
+install(FILES desktop/aurora/aurora-biometric-login.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES desktop/aurora/aurora-files.desktop desktop/aurora/aurora-media-player.desktop desktop/aurora/aurora-video-player.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+add_executable(chimera_media_ai_test tests/ai/test_media.cpp)
+target_link_libraries(chimera_media_ai_test PRIVATE chimera_machine)
+target_include_directories(chimera_media_ai_test PRIVATE include)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+set(CHIMERA_ISA_JSON ${CMAKE_BINARY_DIR}/isa_bitfields.json)
+set(CHIMERA_ISA_SAMPLE_JSON ${CMAKE_BINARY_DIR}/isa_encoder_decoder_sample.json)
+enable_testing()
+add_test(NAME chimera_linux_compatibility COMMAND chimera_linux_compatibility_test)
+add_test(NAME chimera_unit COMMAND chimera_unit)
+add_test(NAME chimera_trusted_node COMMAND chimera_trusted_node_test)
+add_test(NAME chimera_kernel_runtime COMMAND chimera_kernel_runtime_test)
+add_test(NAME chimera_dma_manager COMMAND chimera_dma_manager_test)
+add_test(NAME chimera_memory_bus COMMAND chimera_memory_bus_test)
+add_test(NAME chimera_memory_bus_probe COMMAND chimera_memory_bus_probe_test)
+add_test(NAME chimera_isa_catalog COMMAND chimera_isa_catalog_test)
+add_test(NAME chimera_r8192_isa COMMAND chimera_r8192_isa_test)
+add_test(NAME chimera_isa_bitfields COMMAND chimera_isa_bitfields_test)
+add_test(NAME chimera_isa_encoder_decoder
+  COMMAND ${CMAKE_COMMAND}
+    -DCHIMERA_ISA_JSON=${CHIMERA_ISA_JSON}
+    -DCHIMERA_ISA_SAMPLE_JSON=${CHIMERA_ISA_SAMPLE_JSON}
+    -DCHIMERA_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+    -DCHIMERA_ENCODER_TEST=$<TARGET_FILE:chimera_isa_encoder_decoder_test>
+    -DCHIMERA_PYTHON_EXECUTABLE=${Python3_EXECUTABLE}
+    -P ${CMAKE_SOURCE_DIR}/cmake/RunIsaEncoderDecoderTest.cmake
+  VERBATIM)
+set_tests_properties(chimera_isa_encoder_decoder PROPERTIES
+  REQUIRED_FILES "${CHIMERA_ISA_JSON}"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+add_test(NAME chimera_universal_isa COMMAND chimera_universal_isa_test)
+add_test(NAME chimera_nbit_isa COMMAND chimera_nbit_isa_test)
+add_test(NAME chimera_neural_hyperdimensional COMMAND chimera_neural_hyperdimensional_test)
+add_test(NAME chimera_biometric_auth COMMAND chimera_biometric_auth_test)
+add_test(NAME chimera_microkernel_services COMMAND chimera_microkernel_services_test)
+add_test(NAME chimera_database_backend COMMAND chimera_database_backend_test)
+add_test(NAME chimera_inet COMMAND chimera_inet_test)
+add_test(NAME chimera_isa_extension_catalog COMMAND chimera_isa_extension_catalog_test)
+add_test(NAME chimera_isa_extension_ops COMMAND chimera_isa_extension_ops_test)
+add_test(NAME chimera_filesystem_matrix COMMAND chimera_filesystem_matrix_test)
+add_test(NAME chimera_nbit_extended_ops COMMAND chimera_nbit_extended_ops_test)
+add_test(NAME chimera_ai_discipline COMMAND chimera_ai_discipline_test)
+add_test(NAME chimera_media_ai COMMAND chimera_media_ai_test)
+if(CHIMERA_ENABLE_CVEL)
+  add_test(NAME chimera_cvel COMMAND chimera_cvel_test)
+endif()
+if(Python3_Interpreter_FOUND)
+  # Regenerate metadata whenever the generator target is requested so stale
+  # build-tree ISA JSON cannot shadow the canonical CSV/CPP metadata.
+  add_custom_target(chimera_generate_isa_bitfields
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_isa_bitfields.py
+            --output ${CHIMERA_ISA_JSON}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_encoder_decoder_sample.py
+            ${CHIMERA_ISA_JSON} ${CHIMERA_ISA_SAMPLE_JSON}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    BYPRODUCTS ${CHIMERA_ISA_JSON} ${CHIMERA_ISA_SAMPLE_JSON}
+    DEPENDS
+      ${CMAKE_SOURCE_DIR}/tools/isa/generate_isa_bitfields.py
+      ${CMAKE_SOURCE_DIR}/tools/isa/generate_encoder_decoder_sample.py
+      ${CMAKE_SOURCE_DIR}/tools/isa/chimera_r8192_opcode_index.csv
+      ${CMAKE_SOURCE_DIR}/tools/isa/isa_opcodes_expanded_with_encodings.csv
+      ${CMAKE_SOURCE_DIR}/tools/isa/isa_extension_0092_011c.csv
+      ${CMAKE_SOURCE_DIR}/src/isa/chimera_isa.cpp)
+  add_dependencies(chimera_isa_bitfields_test chimera_generate_isa_bitfields)
+  add_dependencies(chimera_isa_encoder_decoder_test chimera_generate_isa_bitfields)
+  # CTest does not build targets itself. Regenerate metadata post-build too,
+  # preventing an already-configured tree from executing stale ISA JSON.
+  add_custom_command(TARGET chimera_isa_encoder_decoder_test POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_isa_bitfields.py
+            --output ${CHIMERA_ISA_JSON}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_encoder_decoder_sample.py
+            ${CHIMERA_ISA_JSON} ${CHIMERA_ISA_SAMPLE_JSON}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    VERBATIM)
+  add_custom_command(TARGET chimera_nbit_isa_test POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_local_nbit_isa.py
+            --output ${CMAKE_BINARY_DIR}/local_nbit_isa.json
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    VERBATIM)
+  add_test(NAME chimera_isa_bitfield_reader COMMAND chimera_isa_bitfields_test ${CHIMERA_ISA_JSON})
+  add_test(NAME chimera_isa_bitfield_generation_and_conformance COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/test_isa_toolchain.py --root ${CMAKE_SOURCE_DIR})
+  add_test(NAME chimera_isa_encoder_decoder_sample COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/isa/generate_encoder_decoder_sample.py ${CHIMERA_ISA_JSON} ${CHIMERA_ISA_SAMPLE_JSON} --count 30)
+  add_test(NAME chimera_shell_command_registry COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/shell/generate_command_registry.py --output ${CMAKE_BINARY_DIR}/chimera_command_registry.json)
+  add_test(NAME chimera_installer_plan COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/installer/test_installer_plan.py)
+  add_test(NAME chimera_help_core COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/help/test_help_core.py)
+  add_test(NAME chimera_universal_isa_registry COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/isa/test_isa_registry.py)
+  add_test(NAME chimera_database_catalog COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/database/test_database_catalog.py)
+  add_test(NAME chimera_toolchain_registry COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/toolchain/validate_registry.py)
+  add_test(NAME chimera_memory_bus_metadata COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/memory/validate_profiles.py)
+endif()
+install(FILES tools/isa/local_isa_catalog.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/isa)
+install(FILES cloud/providers.json cloud/README.md devops/README.md devops/pipeline_schema.json ai/README.md ai/registry.json ai/media/media_contract.json docs/ai/AI_DISCIPLINES.md docs/kernel/LINUX_7_2_2_COMPATIBILITY.md docs/kernel/linux_feature_matrix.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera)
+install(FILES include/chimera/ai/discipline.h include/chimera/ai/media.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/chimera/ai)
+install(DIRECTORY infrastructure/kubernetes infrastructure/openshift infrastructure/openstack DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/infrastructure)
+install(PROGRAMS tools/cloud/chimera_cloud.py tools/image/chimera_image.py tools/media/chimera_media.py tools/media/playback.py tools/media/vision_mediapipe.py tools/installer/install_cloud_platforms.sh tools/installer/install_kubernetes.sh tools/installer/install_openshift_tools.sh tools/installer/install_openstack_tools.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(FILES applications/catalog.json applications/ecosystem/repos.json applications/ecosystem/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/applications)
+
+install(PROGRAMS desktop/aurora/aurora_crypto_center.py DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/aurora)
+install(FILES desktop/aurora/aurora-crypto-center.desktop desktop/aurora/aurora_crypto_center.json DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES applications/crypto/crypto_ecosystem_registry.json DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/crypto)
+
+# Cross-host execution and non-destructive dual-boot tooling.
+install(PROGRAMS
+  tools/hosted/chimera-host-run.sh
+  tools/vmware/chimera-vmware.sh
+  tools/hosted/chimera-host-detect.sh
+  tools/hosted/install-chimera-host.sh
+  tools/dualboot/chimera-dualboot-linux.sh
+  tools/dualboot/chimera-dualboot-macos.sh
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(FILES
+  tools/hosted/chimera-host.json
+  tools/dualboot/chimera-dualboot-plan.json
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/hosted
+)
+install(PROGRAMS tools/hosted/chimera-host-run.ps1 tools/dualboot/chimera-dualboot-windows.ps1 tools/hyperv/chimera-hyperv.ps1 DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/hosted)
+install(FILES tools/hyperv/README.md tools/vmware/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/chimera/hypervisors)

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# --- Chimera II OS standard help ---
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<'CHIMERA_HELP'
+Chimera II OS script: tests/toolchain/test_native_toolchain.sh
+
+Usage:
+  tests/toolchain/test_native_toolchain.sh [options] [arguments]
+
+Options:
+  -h, --help    Show this help and exit successfully.
+
+Notes:
+  This help entry is provided consistently across Chimera II OS shell tools.
+  The script's existing command-line interface and environment variables remain unchanged.
+CHIMERA_HELP
+  exit 0
+fi
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+required=(gcc g++ as ld ar ranlib nm objcopy objdump readelf strip)
+for tool in "${required[@]}"; do command -v "$tool" >/dev/null || { echo "missing: $tool" >&2; exit 1; }; done
+CHIMERA_NATIVE_COMPILER=gcc bash "$ROOT/tools/toolchain/chimera-cc" -std=c11 -Wall -Werror -x c -o "$TMP/c-test" - <<'EOF'
+int main(void) { return 0; }
+EOF
+"$TMP/c-test"
+CHIMERA_NATIVE_COMPILER=gcc bash "$ROOT/tools/toolchain/chimera-cxx" -std=c++20 -Wall -Werror -x c++ -o "$TMP/cxx-test" - <<'EOF'
+#include <iostream>
+int main() { std::cout << "chimera-native-cxx\n"; return 0; }
+EOF
+"$TMP/cxx-test"
+cat > "$TMP/native.s" <<'EOF'
+.text
+.globl chimera_native_asm
+.type chimera_native_asm,@function
+chimera_native_asm:
+  mov $7, %eax
+  ret
+EOF
+CHIMERA_ASSEMBLER=gnu bash "$ROOT/tools/toolchain/chimera-gas" -o "$TMP/native.o" "$TMP/native.s"
+test -s "$TMP/native.o"
+CHIMERA_NATIVE_LINKER=bfd bash "$ROOT/tools/toolchain/chimera-ld" --version >/dev/null
+cat > "$TMP/chimera.asm" <<'EOF'
+ADD r1, r2, r3
+HALT
+EOF
+bash "$ROOT/tools/chimera-asm/chimera-ncb-as.sh" "$TMP/chimera.asm" "$TMP/chimera.ncb" 8192 1
+python3 "$ROOT/tools/chimera-asm/chimera-ncb-dis.py" "$TMP/chimera.ncb" > "$TMP/chimera.dis"
+grep -q 'ADD r1, r2, r3' "$TMP/chimera.dis"
+grep -q 'HALT r0, r0, r0' "$TMP/chimera.dis"
+echo "native C/C++/ASM/linker toolchain conformance passed"

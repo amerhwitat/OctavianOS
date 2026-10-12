@@ -1,0 +1,359 @@
+{
+  "schema_version": "1.1",
+  "generated_by": "tools/catalogs/refresh_online_catalogs.py",
+  "policy": "Store source metadata, hashes, discovered instruction-definition identifiers, command names, and URLs only. Do not mirror vendor manuals or source-file prose. Architecture-family coverage was expanded on 2026-10-09; catalog-only families do not imply decoded or executed instruction coverage. Recursive discovery is configured to a maximum link depth of 10; online identifiers remain candidates until verified against the relevant architecture specification.",
+  "isa_sources": [
+    {
+      "id": "intel-sdm",
+      "family": "x86",
+      "kind": "official-document-index",
+      "url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      "authority": "Intel"
+    },
+    {
+      "id": "amd64-architecture",
+      "family": "x86-64",
+      "kind": "official-document-index",
+      "url": "https://www.amd.com/en/search/documentation/hub.html",
+      "authority": "AMD"
+    },
+    {
+      "id": "arm-architecture-reference",
+      "family": "Arm-AArch64",
+      "kind": "official-document-index",
+      "url": "https://developer.arm.com/documentation/ddi0487/latest",
+      "authority": "Arm"
+    },
+    {
+      "id": "riscv-ratified-specs",
+      "family": "RISC-V",
+      "kind": "official-specification-index",
+      "url": "https://docs.riscv.org/reference/isa/index.html",
+      "authority": "RISC-V International"
+    },
+    {
+      "id": "llvm-x86-tablegen",
+      "family": "x86",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/X86/X86InstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-aarch64-tablegen",
+      "family": "AArch64",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AArch64/AArch64InstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-arm-tablegen",
+      "family": "ARM32",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/ARM/ARMInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-riscv-tablegen",
+      "family": "RISC-V",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/RISCV/RISCVInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-mips-tablegen",
+      "family": "MIPS",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/Mips/MipsInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-powerpc-tablegen",
+      "family": "Power ISA",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/PowerPC/PPCInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-systemz-tablegen",
+      "family": "IBM Z / SystemZ",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/SystemZ/SystemZInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-sparc-tablegen",
+      "family": "SPARC",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/Sparc/SparcInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-avr-tablegen",
+      "family": "AVR",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AVR/AVRInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-loongarch-tablegen",
+      "family": "LoongArch",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/LoongArch/LoongArchInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-hexagon-tablegen",
+      "family": "Hexagon",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/Hexagon/HexagonInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-msp430-tablegen",
+      "family": "MSP430",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/MSP430/MSP430InstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-amdgpu-tablegen",
+      "family": "AMD GPU",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AMDGPU/SIInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-nvptx-tablegen",
+      "family": "NVIDIA PTX",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/NVPTX/NVPTXInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-wasm-tablegen",
+      "family": "WebAssembly",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/WebAssembly/WebAssemblyInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-bpf-tablegen",
+      "family": "eBPF",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/BPF/BPFInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-xcore-tablegen",
+      "family": "XCore",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/XCore/XCoreInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-ve-tablegen",
+      "family": "NEC Vector Engine",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/VE/VEInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "llvm-openrisc-tablegen",
+      "family": "OpenRISC",
+      "kind": "machine-readable-instruction-definitions",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/OR1K/OR1KInstrInfo.td",
+      "authority": "LLVM Project"
+    },
+    {
+      "id": "official-loongarch-reference",
+      "family": "LoongArch",
+      "kind": "official-architecture-reference",
+      "url": "https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html",
+      "authority": "Loongson"
+    },
+    {
+      "id": "official-webassembly-core",
+      "family": "WebAssembly",
+      "kind": "official-virtual-isa-specification",
+      "url": "https://webassembly.github.io/spec/core/",
+      "authority": "WebAssembly Community Group"
+    },
+    {
+      "id": "linux-ebpf-instruction-set",
+      "family": "eBPF",
+      "kind": "official-kernel-documentation",
+      "url": "https://docs.kernel.org/bpf/instruction-set.html",
+      "authority": "Linux kernel documentation"
+    },
+    {
+      "id": "nvidia-ptx-isa",
+      "family": "NVIDIA PTX",
+      "kind": "official-virtual-isa-reference",
+      "url": "https://docs.nvidia.com/cuda/parallel-thread-execution/",
+      "authority": "NVIDIA"
+    },
+    {
+      "id": "openrisc-architecture",
+      "family": "OpenRISC",
+      "kind": "official-architecture-reference",
+      "url": "https://openrisc.io/",
+      "authority": "OpenRISC"
+    },
+    {
+      "id": "amd-microblaze-reference",
+      "family": "MicroBlaze",
+      "kind": "official-architecture-reference",
+      "url": "https://docs.amd.com/r/en-US/ug984-vivado-microblaze-ref",
+      "authority": "AMD"
+    },
+    {
+      "id": "openpower-isa",
+      "family": "Power ISA",
+      "kind": "official-isa-specification",
+      "url": "https://openpower.foundation/specifications/isa/",
+      "authority": "OpenPOWER Foundation"
+    },
+    {
+      "id": "ibm-z-architecture",
+      "family": "IBM z/Architecture",
+      "kind": "official-architecture-reference",
+      "url": "https://www.ibm.com/docs/en/zos/3.1.0?topic=architecture-principles-operation",
+      "authority": "IBM"
+    },
+    {
+      "id": "oracle-sparc-architecture",
+      "family": "SPARC",
+      "kind": "official-architecture-reference",
+      "url": "https://docs.oracle.com/cd/E53394_01/html/E54833/index.html",
+      "authority": "Oracle"
+    },
+    {
+      "id": "mips-architecture-docs",
+      "family": "MIPS",
+      "kind": "architecture-documentation-index",
+      "url": "https://www.mips.com/products/architectures/",
+      "authority": "MIPS"
+    },
+    {
+      "id": "microchip-avr-instruction-set",
+      "family": "AVR",
+      "kind": "official-instruction-set-reference",
+      "url": "https://www.microchip.com/en-us/products/microcontrollers-and-microprocessors/8-bit-mcus/avr-mcus",
+      "authority": "Microchip"
+    },
+    {
+      "id": "ti-msp430-instruction-set",
+      "family": "MSP430",
+      "kind": "official-architecture-reference",
+      "url": "https://www.ti.com/lit/ug/slau144/slau144.pdf",
+      "authority": "Texas Instruments"
+    },
+    {
+      "id": "zilog-z80-reference",
+      "family": "Z80",
+      "kind": "architecture-reference",
+      "url": "https://www.zilog.com/docs/z80/um0080.pdf",
+      "authority": "Zilog"
+    },
+    {
+      "id": "keil-8051-instruction-set",
+      "family": "8051 / MCS-51",
+      "kind": "instruction-set-reference",
+      "url": "https://www.keil.com/support/man/docs/is51/is51_instructions.htm",
+      "authority": "Arm Keil"
+    },
+    {
+      "id": "motorola-68000-reference",
+      "family": "Motorola 68000",
+      "kind": "architecture-reference",
+      "url": "https://www.nxp.com/docs/en/reference-manual/M68000PRM.pdf",
+      "authority": "NXP"
+    },
+    {
+      "id": "vax-architecture-reference",
+      "family": "VAX",
+      "kind": "historical-architecture-reference",
+      "url": "https://www.bitsavers.org/pdf/dec/vax/",
+      "authority": "Bitsavers archive"
+    },
+    {
+      "id": "renesas-rx-instruction-set",
+      "family": "Renesas RX",
+      "kind": "official-architecture-reference",
+      "url": "https://www.renesas.com/en/document/mat/rx-family-users-manual-instruction-set",
+      "authority": "Renesas"
+    },
+    {
+      "id": "amd64-isa-programmers-manual",
+      "family": "x86-64",
+      "kind": "official-architecture-reference",
+      "url": "https://www.amd.com/en/search/documentation/hub.html",
+      "authority": "AMD"
+    }
+  ],
+  "command_sources": [
+    {
+      "id": "ss64-bash",
+      "platform": "Linux/POSIX shells",
+      "url": "https://ss64.com/bash/",
+      "authority": "SS64",
+      "policy": "Index metadata only"
+    },
+    {
+      "id": "ss64-macos",
+      "platform": "macOS",
+      "url": "https://ss64.com/mac/",
+      "authority": "SS64",
+      "policy": "Index metadata only"
+    },
+    {
+      "id": "ss64-windows-cmd",
+      "platform": "Windows CMD",
+      "url": "https://ss64.com/nt/",
+      "authority": "SS64",
+      "policy": "Index metadata only"
+    },
+    {
+      "id": "ss64-powershell",
+      "platform": "PowerShell",
+      "url": "https://ss64.com/ps/",
+      "authority": "SS64",
+      "policy": "Index metadata only"
+    },
+    {
+      "id": "posix-utilities",
+      "platform": "POSIX",
+      "url": "https://pubs.opengroup.org/onlinepubs/9799919799/idx/utilities.html",
+      "authority": "The Open Group",
+      "policy": "Normative utility index"
+    },
+    {
+      "id": "gnu-coreutils",
+      "platform": "GNU/Linux",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/index.html",
+      "authority": "GNU Project",
+      "policy": "Command index metadata"
+    },
+    {
+      "id": "windows-commands",
+      "platform": "Windows",
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands",
+      "authority": "Microsoft",
+      "policy": "Official command index"
+    },
+    {
+      "id": "powershell-reference",
+      "platform": "PowerShell",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/",
+      "authority": "Microsoft",
+      "policy": "Official cmdlet reference index"
+    },
+    {
+      "id": "freebsd-manpages",
+      "platform": "FreeBSD / Unix",
+      "url": "https://man.freebsd.org/cgi/man.cgi",
+      "authority": "FreeBSD Project",
+      "policy": "Manual index metadata"
+    }
+  ]
+}

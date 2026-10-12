@@ -1,0 +1,17 @@
+name: Apple build
+on:
+  workflow_dispatch:
+  push:
+    paths: ['apple/**','kotlin/apple/**','tools/apple/**']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate --spec apple/project.yml
+      - run: xcodebuild -project apple/ChimeraIIOSApple.xcodeproj -scheme ChimeraIIOSApple -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
