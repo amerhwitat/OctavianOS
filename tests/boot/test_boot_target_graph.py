@@ -43,6 +43,7 @@ def main():
 
     require("configfile /boot/jasper/jasper.cfg" in grub, "normal/select-target entry must route to Jasper, not masquerade as installed-system boot")
     require("chm.desktop=aurora" in grub and "chm.desktop=marine" in grub, "top-level Aurora and Marine desktop profiles are not distinct")
+    require("/boot/live/desktop-sessions.json ]; then" in live or "/boot/live/desktop-sessions.json" in live, "Live desktop manifest must be part of the guarded session-selection contract")
     require("module2 /boot/live/desktop-sessions.json octavian-desktop-sessions" in grub, "top-level Live entries do not pass desktop-selection contract")
     require("configfile /boot/jasper/install.cfg" in grub, "GRUB Install must route to the dedicated Jasper installer")
     require("chimera-live-initramfs.img" not in re.search(r'menuentry[^\n]*--id install\s*\{(.*?)\n\}', grub, re.S).group(1), "Install menu must not substitute the live initramfs")
