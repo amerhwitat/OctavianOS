@@ -1,0 +1,47 @@
+name: OctavianOS Chimera source integration
+
+on:
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/**"
+      - "tests/migration/**"
+      - ".github/workflows/octavian-chimera-integration.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/**"
+      - "tests/migration/**"
+      - ".github/workflows/octavian-chimera-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: octavian-chimera-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hosted-bridge:
+    name: Hosted runtime smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax-check hosted bridge and test
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/tools/runtime/chimera-hosted.py
+          python -m py_compile tests/migration/test_chimera_hosted_bridge.py
+      - name: Run hosted bridge acceptance tests
+        run: python tests/migration/test_chimera_hosted_bridge.py
+      - name: Configure the vendored native toolchain
+        run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
+      - name: Record scope boundary
+        run: |
+          echo "Hosted bridge and toolchain configuration passed."
+          echo "This job does not claim Koronos boot, native GUI startup, or guest ISA conformance."
