@@ -1,0 +1,100 @@
+name: Import all owned repository histories
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_private:
+        description: Include private repositories (requires token access to them)
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: owned-repository-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Preserve source refs without merging unrelated trees
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Validate import token
+        env:
+          IMPORT_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+          INCLUDE_PRIVATE: ${{ inputs.include_private }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$IMPORT_TOKEN" ]]; then
+            echo "::error::Configure OCTAVIANOS_IMPORT_TOKEN in repository Actions secrets. Do not paste tokens into chat or source files."
+            exit 2
+          fi
+          echo "Import token is present; repository access will be tested during fetch."
+
+      - name: Checkout destination
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Import branch and tag refs from owned repositories
+        env:
+          IMPORT_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+          INCLUDE_PRIVATE: ${{ inputs.include_private }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Repositories visible in the account inventory at workflow creation time.
+          # Add newly created repositories here after reviewing access, license, and purpose.
+          repos=(
+            general BizX BizXtreme test eth-key-check bruteforce keygen
+            CPU4096 PDFreaderPY CPU4096Simulator nlp ChimeraIIOS amerhwitat.github.io
+          )
+          if [[ "$INCLUDE_PRIVATE" == "true" ]]; then
+            repos+=(VanG)
+          fi
+
+          mkdir -p import-work
+          for name in "${repos[@]}"; do
+            echo "::group::Importing refs for amerhwitat/$name"
+            mirror="import-work/${name}.git"
+            source="https://x-access-token:${IMPORT_TOKEN}@github.com/amerhwitat/${name}.git"
+            target="https://x-access-token:${IMPORT_TOKEN}@github.com/${TARGET_REPO}.git"
+
+            if ! git ls-remote "$source" HEAD >/dev/null 2>&1; then
+              echo "::error::Cannot read amerhwitat/$name. Check repository visibility and token permissions."
+              exit 1
+            fi
+
+            git init --bare "$mirror"
+            git -C "$mirror" remote add source "$source"
+            git -C "$mirror" fetch --prune source \
+              '+refs/heads/*:refs/heads/source/*' \
+              '+refs/tags/*:refs/tags/source/*'
+            git -C "$mirror" fsck --connectivity-only
+
+            # Keep repositories isolated by name; never replace OctavianOS main or
+            # flatten unrelated source trees into a single root.
+            git -C "$mirror" remote add destination "$target"
+            git -C "$mirror" push destination \
+              "refs/heads/source/*:refs/heads/imports/$name/heads/*"
+            git -C "$mirror" push destination \
+              "refs/tags/source/*:refs/tags/imports/$name/tags/*"
+
+            echo "Imported refs for amerhwitat/$name into imports/$name/."
+            echo "::endgroup::"
+          done
+
+          {
+            echo "## Owned repository history import"
+            echo "The following repositories had their branches/tags fetched and connectivity-checked:"
+            for name in "${repos[@]}"; do echo "- `amerhwitat/$name` → `imports/$name/heads/*` and `imports/$name/tags/*`"; done
+            echo
+            echo "This job preserves history refs; it does not merge unrelated working trees into main or assert that their applications are ported."
+            echo "Large repository pushes may be rejected by hosting limits; split or use an approved large-repository migration path if that occurs."
+          } >> "$GITHUB_STEP_SUMMARY"
