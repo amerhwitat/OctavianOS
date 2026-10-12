@@ -42,9 +42,9 @@ This is a runnable hosted user-mode bridge, not a complete guest OS or a kernel 
 
 ## Automated source inventory audit
 
-The `source-inventory` CI job checks out the current public `amerhwitat/ChimeraIIOS` main branch beside the vendored snapshot and publishes a JSON inventory comparison as the `chimera-source-inventory` workflow artifact. Its first run found 40 missing paths (including SDK launchers, build orchestrators, tests, mobile build scripts, and Aurora emulator launchers); these paths were copied from upstream into the vendored tree in the follow-up import PR. The next CI report is the acceptance check for that copy. It lists files missing from the vendored tree and files present only in the vendored tree. The audit deliberately runs in report-only mode initially so repository layout differences are visible without misrepresenting them as a failed build.
+The `source-inventory` CI job checks out the current public `amerhwitat/ChimeraIIOS` main branch beside the vendored snapshot, records the exact upstream Git revision, and publishes a JSON comparison as the `chimera-source-inventory` workflow artifact. It compares relative paths and SHA-256 hashes for matching files, and lists missing paths, extra paths, and content differences. Its first run found 40 missing paths (including SDK launchers, build orchestrators, tests, mobile build scripts, and Aurora emulator launchers); these paths were copied from upstream into the vendored tree in the follow-up import PR. The next CI report is the acceptance check for that copy. It lists files missing from the vendored tree and files present only in the vendored tree. The audit deliberately runs in report-only mode initially so repository layout differences are visible without misrepresenting them as a failed build.
 
-This comparison is not a byte-for-byte content audit, Git history import, semantic equivalence test, or build/boot test. Review the report, reconcile legitimate layout changes, then enable strict inventory enforcement as a separate change. The source repository can move after a CI run; retain the report and source commit SHA when recording migration evidence.
+The SHA-256 comparison detects byte-level differences in regular files, but does not compare Git history, prove semantic equivalence, or establish a build/boot. CI currently runs in report-only mode so legitimate divergences can be reviewed before strict parity enforcement is enabled. The report records the source commit SHA so its comparison baseline is reproducible.
 
 Run locally:
 
@@ -56,7 +56,7 @@ python3 tools/migration/chimera-source-inventory.py \
   --output reports/chimera-source-inventory.json
 ```
 
-Add `--strict` only when the expected differences have been reconciled.
+Add `--strict` to fail on any missing path, extra path, or content hash difference after intentional divergences have been reconciled.
 
 ## Full source history import
 
