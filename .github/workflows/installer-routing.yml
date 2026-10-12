@@ -7,14 +7,26 @@ on:
       - 'boot/iso/grub.cfg'
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
-      - '.github/workflows/installer-routing.yml'
+      - 'kernel/**'
+      - 'editions/mobile/**'
+      - 'tools/release/**'
+      - 'tests/qemu/**'
+      - 'Dockerfile'
+      - 'web/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'boot/**/*.cfg'
       - 'boot/iso/grub.cfg'
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
-      - '.github/workflows/installer-routing.yml'
+      - 'kernel/**'
+      - 'editions/mobile/**'
+      - 'tools/release/**'
+      - 'tests/qemu/**'
+      - 'Dockerfile'
+      - 'web/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -47,3 +59,14 @@ jobs:
         run: python3 tests/boot/test_octavian_splash_progress.py
       - name: Validate splash helper shell syntax
         run: bash -n tools/boot/octavian-progress.sh tools/artwork/rebrand-init-video.sh
+      - name: Smoke-test desktop companion container
+        run: |
+          set -euo pipefail
+          docker build --pull -t octavianos-desktop-preview:ci .
+          cid="$(docker run -d -p 127.0.0.1:8080:80 octavianos-desktop-preview:ci)"
+          trap 'docker logs "$cid" || true; docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8080/ -o /tmp/octavianos-index.html; then break; fi
+            sleep 1
+          done
+          grep -q 'OctavianOS' /tmp/octavianos-index.html
