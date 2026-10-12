@@ -1,0 +1,388 @@
+﻿docker : #0 building with "desktop-linux" instance using docker driver
+At line:1 char:24
++ ... himeraIIOS; docker build -f Dockerfile.fixed -t chimera2os-comprehens ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (#0 building wit...g docker driver:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#1 [internal] load build definition from Dockerfile.fixed
+#1 transferring dockerfile: 9.88kB done
+#1 DONE 0.0s
+
+#2 [auth] library/ubuntu:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/ubuntu:24.04
+#3 DONE 1.7s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 222B 0.0s done
+#4 DONE 0.0s
+
+#5 [builder  1/31] FROM 
+docker.io/library/ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
+#5 resolve docker.io/library/ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3 0.0s 
+done
+#5 CACHED
+
+#6 [stage-1 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     ca-certificates curl wget     
+openssl libssl3     libboost1.83     zlib1g libffi8     libreadline8 libncurses6     libsqlite3-0     python3     
+nodejs     openjdk-21-jre-headless     dotnet-runtime-8.0     git curl wget     vim nano     less grep sed     sqlite3 
+    systemd     && rm -rf /var/lib/apt/lists/*
+#6 0.959 Get:1 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]
+#6 1.293 Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+#6 4.524 Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+#6 6.165 Get:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+#6 6.419 Get:5 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1533 kB]
+#6 ...
+
+#7 [builder  2/31] RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     cmake 
+cmake-data     ninja-build     make automake autoconf     libtool pkg-config     gcc g++     clang llvm llvm-dev     
+python3 python3-dev python3-pip     python3-venv python3-setuptools python3-wheel     nodejs npm     rustc cargo     
+openjdk-21-jdk-headless     perl     dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     
+libboost-dev     zlib1g-dev libffi-dev     libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     
+unzip tar gzip bzip2 xz-utils     doxygen graphviz     vim nano less     grep sed     sqlite3     systemd     && rm 
+-rf /var/lib/apt/lists/*     && ln -s /usr/bin/python3 /usr/bin/python
+#7 0.878 Get:1 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]
+#7 1.578 Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+#7 5.383 Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+#7 6.544 Get:4 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1533 kB]
+#7 9.360 Get:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+#7 ...
+
+#6 [stage-1 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     ca-certificates curl wget     
+openssl libssl3     libboost1.83     zlib1g libffi8     libreadline8 libncurses6     libsqlite3-0     python3     
+nodejs     openjdk-21-jre-headless     dotnet-runtime-8.0     git curl wget     vim nano     less grep sed     sqlite3 
+    systemd     && rm -rf /var/lib/apt/lists/*
+#6 11.64 Get:6 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages [1808 kB]
+#6 ...
+
+#7 [builder  2/31] RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     cmake 
+cmake-data     ninja-build     make automake autoconf     libtool pkg-config     gcc g++     clang llvm llvm-dev     
+python3 python3-dev python3-pip     python3-venv python3-setuptools python3-wheel     nodejs npm     rustc cargo     
+openjdk-21-jdk-headless     perl     dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     
+libboost-dev     zlib1g-dev libffi-dev     libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     
+unzip tar gzip bzip2 xz-utils     doxygen graphviz     vim nano less     grep sed     sqlite3     systemd     && rm 
+-rf /var/lib/apt/lists/*     && ln -s /usr/bin/python3 /usr/bin/python
+#7 13.52 Get:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages [19.3 MB]
+#7 ...
+
+#6 [stage-1 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     ca-certificates curl wget     
+openssl libssl3     libboost1.83     zlib1g libffi8     libreadline8 libncurses6     libsqlite3-0     python3     
+nodejs     openjdk-21-jre-headless     dotnet-runtime-8.0     git curl wget     vim nano     less grep sed     sqlite3 
+    systemd     && rm -rf /var/lib/apt/lists/*
+#6 24.81 Get:7 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [50.0 kB]
+#6 25.18 Get:8 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1801 kB]
+#6 40.43 Get:9 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages [117 kB]
+#6 42.38 Get:10 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1245 kB]
+#6 44.46 Get:11 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages [331 kB]
+#6 47.20 Get:12 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages [19.3 MB]
+#6 ...
+
+#7 [builder  2/31] RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     cmake 
+cmake-data     ninja-build     make automake autoconf     libtool pkg-config     gcc g++     clang llvm llvm-dev     
+python3 python3-dev python3-pip     python3-venv python3-setuptools python3-wheel     nodejs npm     rustc cargo     
+openjdk-21-jdk-headless     perl     dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     
+libboost-dev     zlib1g-dev libffi-dev     libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     
+unzip tar gzip bzip2 xz-utils     doxygen graphviz     vim nano less     grep sed     sqlite3     systemd     && rm 
+-rf /var/lib/apt/lists/*     && ln -s /usr/bin/python3 /usr/bin/python
+#7 61.75 Get:7 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [50.0 kB]
+#7 65.16 Get:8 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1245 kB]
+#7 73.84 Get:9 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1801 kB]
+#7 190.0 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 195.1 Ign:10 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages
+#7 195.1 Ign:11 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages
+#7 195.1 Ign:12 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages
+#7 195.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 195.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 195.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 195.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 195.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 195.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 195.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 195.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 196.1 Ign:10 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages
+#7 196.1 Ign:11 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages
+#7 196.1 Ign:12 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages
+#7 196.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 196.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 196.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 196.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 196.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 196.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 196.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 197.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 198.1 Ign:10 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages
+#7 198.1 Ign:11 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages
+#7 198.1 Ign:12 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages
+#7 198.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 198.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 198.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 198.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 198.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 198.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 198.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 201.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1 Ign:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1 Err:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+#7 201.1   Connection timed out [IP: 91.189.91.81 80]
+#7 202.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1 Ign:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1 Ign:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1 Ign:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1 Ign:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1 Ign:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1 Ign:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1 Ign:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1 Err:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:15 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:17 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Err:19 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages
+#7 202.1   Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.1 Fetched 5263 kB in 3min 22s (26.1 kB/s)
+#7 202.1 Reading package lists...
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/Packages  Connection 
+timed out [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-updates/multiverse/binary-amd64/Packages  
+Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/Packages  Could 
+not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/Packages  Could not 
+resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-updates/restricted/binary-amd64/Packages  
+Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-backports/universe/binary-amd64/Packages  
+Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-backports/multiverse/binary-amd64/Packages  
+Could not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-backports/main/binary-amd64/Packages  Could 
+not resolve 'archive.ubuntu.com' [IP: 91.189.91.81 80]
+#7 202.3 W: Some index files failed to download. They have been ignored, or old ones used instead.
+#7 202.3 Reading package lists...
+#7 202.5 Building dependency tree...
+#7 202.5 Reading state information...
+#7 202.5 Package gdb is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package gcc is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 However the following packages replace it:
+#7 202.5   gcc-13-doc gcc-14-doc gcc-12-doc gcc-11-doc gcc-10-doc
+#7 202.5 
+#7 202.5 Package clang is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package make is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package build-essential is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package pkg-config is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package cmake is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package valgrind is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package libffi-dev is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package autoconf is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package automake is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package libtool is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package graphviz is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package nodejs is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package npm is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package ninja-build is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 Package python3-wheel is not available, but is referred to by another package.
+#7 202.5 This may mean that the package is missing, has been obsoleted, or
+#7 202.5 is only available from another source
+#7 202.5 
+#7 202.5 E: Package 'build-essential' has no installation candidate
+#7 202.5 E: Package 'cmake' has no installation candidate
+#7 202.5 E: Unable to locate package cmake-data
+#7 202.5 E: Package 'ninja-build' has no installation candidate
+#7 202.5 E: Package 'make' has no installation candidate
+#7 202.5 E: Package 'automake' has no installation candidate
+#7 202.5 E: Package 'autoconf' has no installation candidate
+#7 202.5 E: Package 'libtool' has no installation candidate
+#7 202.5 E: Package 'pkg-config' has no installation candidate
+#7 202.5 E: Package 'gcc' has no installation candidate
+#7 202.5 E: Package 'clang' has no installation candidate
+#7 202.5 E: Unable to locate package llvm
+#7 202.5 E: Unable to locate package llvm-dev
+#7 202.5 E: Package 'python3-wheel' has no installation candidate
+#7 202.5 E: Package 'nodejs' has no installation candidate
+#7 202.5 E: Package 'npm' has no installation candidate
+#7 202.5 E: Unable to locate package libboost-dev
+#7 202.5 E: Package 'libffi-dev' has no installation candidate
+#7 202.5 E: Unable to locate package libreadline-dev
+#7 202.5 E: Package 'gdb' has no installation candidate
+#7 202.5 E: Package 'valgrind' has no installation candidate
+#7 202.5 E: Package 'graphviz' has no installation candidate
+#7 ERROR: process "/bin/sh -c apt-get update && apt-get install -y --no-install-recommends     build-essential     
+cmake cmake-data     ninja-build     make automake autoconf     libtool pkg-config     gcc g++     clang llvm llvm-dev 
+    python3 python3-dev python3-pip     python3-venv python3-setuptools python3-wheel     nodejs npm     rustc cargo   
+  openjdk-21-jdk-headless     perl     dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     
+libboost-dev     zlib1g-dev libffi-dev     libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     
+unzip tar gzip bzip2 xz-utils     doxygen graphviz     vim nano less     grep sed     sqlite3     systemd     && rm 
+-rf /var/lib/apt/lists/*     && ln -s /usr/bin/python3 /usr/bin/python" did not complete successfully: exit code: 100
+
+#6 [stage-1 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     ca-certificates curl wget     
+openssl libssl3     libboost1.83     zlib1g libffi8     libreadline8 libncurses6     libsqlite3-0     python3     
+nodejs     openjdk-21-jre-headless     dotnet-runtime-8.0     git curl wget     vim nano     less grep sed     sqlite3 
+    systemd     && rm -rf /var/lib/apt/lists/*
+#6 CANCELED
+------
+ > [builder  2/31] RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     cmake 
+cmake-data     ninja-build     make automake autoconf     libtool pkg-config     gcc g++     clang llvm llvm-dev     
+python3 python3-dev python3-pip     python3-venv python3-setuptools python3-wheel     nodejs npm     rustc cargo     
+openjdk-21-jdk-headless     perl     dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     
+libboost-dev     zlib1g-dev libffi-dev     libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     
+unzip tar gzip bzip2 xz-utils     doxygen graphviz     vim nano less     grep sed     sqlite3     systemd     && rm 
+-rf /var/lib/apt/lists/*     && ln -s /usr/bin/python3 /usr/bin/python:
+202.5 E: Unable to locate package llvm-dev
+202.5 E: Package 'python3-wheel' has no installation candidate
+202.5 E: Package 'nodejs' has no installation candidate
+202.5 E: Package 'npm' has no installation candidate
+202.5 E: Unable to locate package libboost-dev
+202.5 E: Package 'libffi-dev' has no installation candidate
+202.5 E: Unable to locate package libreadline-dev
+202.5 E: Package 'gdb' has no installation candidate
+202.5 E: Package 'valgrind' has no installation candidate
+202.5 E: Package 'graphviz' has no installation candidate
+------
+Dockerfile.fixed:25
+--------------------
+  24 |     # Install comprehensive build toolchain
+  25 | >>> RUN apt-get update && apt-get install -y --no-install-recommends \
+  26 | >>>     # Build essentials
+  27 | >>>     build-essential \
+  28 | >>>     cmake cmake-data \
+  29 | >>>     ninja-build \
+  30 | >>>     make automake autoconf \
+  31 | >>>     libtool pkg-config \
+  32 | >>>     # Compilers
+  33 | >>>     gcc g++ \
+  34 | >>>     clang llvm llvm-dev \
+  35 | >>>     # Python
+  36 | >>>     python3 python3-dev python3-pip \
+  37 | >>>     python3-venv python3-setuptools python3-wheel \
+  38 | >>>     # Node.js
+  39 | >>>     nodejs npm \
+  40 | >>>     # Rust
+  41 | >>>     rustc cargo \
+  42 | >>>     # Java
+  43 | >>>     openjdk-21-jdk-headless \
+  44 | >>>     # Perl
+  45 | >>>     perl \
+  46 | >>>     # .NET
+  47 | >>>     dotnet-sdk-8.0 \
+  48 | >>>     # Version control
+  49 | >>>     git \
+  50 | >>>     # Network & utilities
+  51 | >>>     curl wget ca-certificates \
+  52 | >>>     openssl libssl-dev \
+  53 | >>>     # Libraries
+  54 | >>>     libboost-dev \
+  55 | >>>     zlib1g-dev libffi-dev \
+  56 | >>>     libreadline-dev libncurses-dev \
+  57 | >>>     libsqlite3-dev \
+  58 | >>>     # Development tools
+  59 | >>>     gdb valgrind \
+  60 | >>>     # Compression
+  61 | >>>     unzip tar gzip bzip2 xz-utils \
+  62 | >>>     # Documentation
+  63 | >>>     doxygen graphviz \
+  64 | >>>     # Utilities
+  65 | >>>     vim nano less \
+  66 | >>>     grep sed \
+  67 | >>>     sqlite3 \
+  68 | >>>     systemd \
+  69 | >>>     && rm -rf /var/lib/apt/lists/* \
+  70 | >>>     && ln -s /usr/bin/python3 /usr/bin/python
+  71 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c apt-get update && apt-get install -y 
+--no-install-recommends     build-essential     cmake cmake-data     ninja-build     make automake autoconf     
+libtool pkg-config     gcc g++     clang llvm llvm-dev     python3 python3-dev python3-pip     python3-venv 
+python3-setuptools python3-wheel     nodejs npm     rustc cargo     openjdk-21-jdk-headless     perl     
+dotnet-sdk-8.0     git     curl wget ca-certificates     openssl libssl-dev     libboost-dev     zlib1g-dev libffi-dev 
+    libreadline-dev libncurses-dev     libsqlite3-dev     gdb valgrind     unzip tar gzip bzip2 xz-utils     doxygen 
+graphviz     vim nano less     grep sed     sqlite3     systemd     && rm -rf /var/lib/apt/lists/*     && ln -s 
+/usr/bin/python3 /usr/bin/python" did not complete successfully: exit code: 100
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/n7zzh98kn2p3ozodebi1j3n4v
