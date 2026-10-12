@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "vendor/chimera-ii-os/source/**"
+      - "tools/chimera/**"
+      - "docs/CHIMERA_SOURCE_INTEGRATION.md"
       - "tests/migration/**"
       - ".github/workflows/octavian-chimera-integration.yml"
   push:
@@ -37,8 +39,12 @@ jobs:
         run: |
           python -m py_compile vendor/chimera-ii-os/source/tools/runtime/chimera-hosted.py
           python -m py_compile tests/migration/test_chimera_hosted_bridge.py
+          python -m py_compile tests/migration/test_chimera_entrypoint.py
+          python -m py_compile tools/chimera/chimera-hosted
       - name: Run hosted bridge acceptance tests
         run: python tests/migration/test_chimera_hosted_bridge.py
+      - name: Test OctavianOS first-class hosted entry point
+        run: python tests/migration/test_chimera_entrypoint.py
       - name: Configure the vendored native toolchain
         run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
       - name: Record scope boundary
