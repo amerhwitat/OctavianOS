@@ -8,12 +8,16 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/boot/**'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/boot/**'
       - '.github/workflows/native-koronos-build.yml'
 
 permissions:
@@ -34,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86 busybox-static cpio
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -87,6 +91,46 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/koronos-smoke.iso
           if-no-files-found: ignore
           retention-days: 7
+      - name: Build Live and Jasper recovery initramfs payloads
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          bash tools/build-live-boot-binaries.sh
+          live=build/live-boot/boot/live/chimera-live-initramfs.img
+          recovery=build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+          test -s "$live"
+          test -s build/live-boot/boot/live/live-manifest.json
+          test -s "$recovery"
+          test -s build/live-boot/boot/recovery/recovery-manifest.json
+          gzip -t "$live"
+          gzip -t "$recovery"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("build/live-boot")
+          for rel in ("boot/live/live-manifest.json", "boot/recovery/recovery-manifest.json"):
+              json.loads((root / rel).read_text(encoding="utf-8"))
+          for arch in ("arm64", "armv7", "x86_64"):
+              manifest = json.loads((root / "mobile" / arch / "manifest.json").read_text(encoding="utf-8"))
+              assert manifest["verified_binary_generation"] is False, (arch, manifest)
+              runtime = root / "mobile" / arch / "koronos-runtime.elf"
+              if arch != "x86_64":
+                  assert not runtime.exists(), f"incorrect cross-architecture kernel artifact: {runtime}"
+          print("Live/recovery initramfs archives and boot manifests validated; mobile targets remain explicitly unverified.")
+          PY
+      - name: Upload Live and recovery boot payloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-live-recovery-payloads
+          path: |
+            vendor/chimera-ii-os/source/build/live-boot/boot/koronos/koronos.elf
+            vendor/chimera-ii-os/source/build/live-boot/boot/live/chimera-live-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/live/live-manifest.json
+            vendor/chimera-ii-os/source/build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/recovery/recovery-manifest.json
+            vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload validated kernel build artifact
         uses: actions/upload-artifact@v4
         with:
