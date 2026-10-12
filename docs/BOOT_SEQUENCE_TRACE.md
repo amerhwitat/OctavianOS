@@ -50,7 +50,7 @@ The repository tracks boot configuration and the desktop-selection contract. The
 - Optional retro and rollback payloads
 - Aurora/Marine session executables and their session manifests
 
-The source-level payload contract is tracked in `boot/iso/target-payload-contract.json`. The ISO staging/build pipeline must assert the required target-specific files exist and match hashes/architectures before packaging. Missing payloads should fail the build or show the menu's explicit failure message. Do not use the live initramfs as a substitute installer or claim that a desktop selection request proves a desktop is running.
+The source-level payload contract is tracked in `boot/iso/target-payload-contract.json`. The ISO staging/build pipeline should run `python3 tools/boot/validate_iso_payloads.py --root <extracted-or-staged-iso-root>` before packaging. The validator checks required files, ELF64/x86_64 identity, the Multiboot2 header/checksum, JSON payloads, and complete-or-absent optional bundles; an optional SHA-256 manifest can pin expected payload hashes. This is a packaging gate, not a boot test. Missing payloads should fail the build or show the menu's explicit failure message. Do not use the live initramfs as a substitute installer or claim that a desktop selection request proves a desktop is running.
 
 ## Koronos/userspace handoff gates
 
