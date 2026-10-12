@@ -55,7 +55,7 @@ class OctavianSplashProgressTests(unittest.TestCase):
         osd = OSD.read_text(encoding="utf-8")
         self.assertIn("OCTAVIANOS", script)
         self.assertIn("mp.set_osd_ass(0, 0", osd)
-        self.assertIn("elapsed video time", script)
+        self.assertIn("progress differs by installer", script)
         self.assertIn("progress.state", osd)
 
 
