@@ -4,7 +4,7 @@ OctavianOS is the successor identity for the ChimeraIIOS operating-system resear
 
 ## Migration status
 
-A GitHub Actions importer is being staged to preserve the source repository's branches and tags under `chimera-import/*` refs. This keeps the original project untouched and avoids overwriting the destination bootstrap branch. Imported source history is not the same as a completed rename; the OctavianOS working tree and builds must still be migrated and validated.
+A GitHub Actions importer is being staged to preserve the source repository's branches and tags under `chimera-import/*` refs. This keeps the original project untouched and avoids overwriting the destination bootstrap branch. Imported source history is not the same as a completed rename; the OctavianOS working tree and builds must still be migrated and validated. The source-history workflow currently requires the repository secret `OCTAVIANOS_IMPORT_TOKEN` with contents and workflows write access.
 
 - Source repository: https://github.com/amerhwitat/ChimeraIIOS
 - Required boot path: **Spit Fire → Jasper/GRUB → Koronos ELF → hardware/driver initialization → scheduler/runtime loop → live/recovery/installer userspace → Aurora**
@@ -28,3 +28,12 @@ Do not claim a target GUI or installer works until the boot menu target, staged 
 - [Migration runbook](docs/MIGRATION_RUNBOOK.md) — required GitHub token permissions and history-preserving import procedure.
 - [Boot target audit](docs/BOOT_TARGET_AUDIT.md) — source-level target-to-payload trace and QEMU acceptance gates.
 - [Native N-bit model](docs/architecture/NBIT_NATIVE_MODEL.md) — configurable register substrate, tests, and limitations.
+
+
+## Installer routing correction
+
+The top-level GRUB installer menu now routes to `/boot/jasper/install.cfg` rather than passing the Live initramfs as installer media. The dedicated Jasper path checks for the installation image, manifest, contract, phase list and profile list; if required media is missing, the menu fails closed instead of booting Live as Installer.
+
+- Change: [PR #2](https://github.com/amerhwitat/OctavianOS/pull/2) — merged.
+- Static regression CI: [installer routing workflow](https://github.com/amerhwitat/OctavianOS/actions/workflows/installer-routing.yml).
+- Remaining: import full source/assets, rebuild ISO, validate staged file paths, execute the installer userspace, and observe the Aurora Installer GUI-ready marker in QEMU. Static menu checks do not prove these runtime stages.
