@@ -6,5 +6,8 @@
   "snapshot_file_count": 2446,
   "includes_media": true,
   "scope": "source snapshot; not yet a compiled or runtime-integrated port",
-  "history_preserved": false
+  "history_preserved": false,
+  "local_port_modifications": [
+    "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation"
+  ]
 }
