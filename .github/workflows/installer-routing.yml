@@ -1,15 +1,21 @@
-name: OctavianOS installer routing contract
+name: OctavianOS boot target routing contracts
 
 on:
   push:
-    branches: [fix/installer-payload-routing]
+    paths:
+      - 'boot/**/*.cfg'
+      - 'boot/iso/grub.cfg'
+      - 'tests/boot/**'
+      - 'docs/BOOT_SEQUENCE_TRACE.md'
+      - '.github/workflows/installer-routing.yml'
   pull_request:
     paths:
-      - boot/iso/grub.cfg
-      - boot/jasper/install.cfg
-      - boot/jasper/jasper.cfg
-      - tests/boot/test_installer_payload_routing.py
-      - .github/workflows/installer-routing.yml
+      - 'boot/**/*.cfg'
+      - 'boot/iso/grub.cfg'
+      - 'tests/boot/**'
+      - 'docs/BOOT_SEQUENCE_TRACE.md'
+      - '.github/workflows/installer-routing.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,5 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate installer target routing
+      - name: Install GRUB parser
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes grub-common
+      - name: Parse all tracked GRUB scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "Checking $file"
+            grub-script-check "$file"
+          done < <(find boot -type f -name '*.cfg' -print | sort)
+      - name: Validate complete configfile target graph
+        run: python3 tests/boot/test_boot_target_graph.py
+      - name: Validate native installer payload routing
         run: python3 tests/boot/test_installer_payload_routing.py
