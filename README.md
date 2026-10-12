@@ -21,3 +21,10 @@ The implementation is not complete until arithmetic/flags, decoding, memory addr
 ## Engineering gates
 
 Do not claim a target GUI or installer works until the boot menu target, staged payload, kernel handoff, userspace entry, and GUI process have been traced and exercised in automated boot tests. Do not mark an ISA as implemented based only on a catalog entry or metadata.
+
+
+## Engineering notes
+
+- [Migration runbook](docs/MIGRATION_RUNBOOK.md) — required GitHub token permissions and history-preserving import procedure.
+- [Boot target audit](docs/BOOT_TARGET_AUDIT.md) — source-level target-to-payload trace and QEMU acceptance gates.
+- [Native N-bit model](https://github.com/amerhwitat/OctavianOS/tree/octavianos/nbit-foundation/docs/architecture/NBIT_NATIVE_MODEL.md) — configurable register substrate, tests, and limitations.
