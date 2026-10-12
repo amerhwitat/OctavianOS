@@ -1,0 +1,42 @@
+name: Web UI integrity and glue audit
+on:
+  push:
+    branches: [main]
+    paths: ['web/**','tools/network/**','.github/workflows/web-ui-integrity.yml']
+  pull_request:
+    paths: ['web/**','tools/network/**','.github/workflows/web-ui-integrity.yml']
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit local links, fragments and JavaScript
+        run: python3 tools/web-ui/audit.py
+      - name: Validate JSON
+        run: |
+          python3 -m json.tool web/manifest.json >/dev/null
+          python3 -m json.tool web/desktop_profiles.json >/dev/null
+          python3 -m json.tool web/game-center-manifest.json >/dev/null
+          python3 -m json.tool web/retro_emulators.json >/dev/null
+          python3 -m json.tool web/playstation_emulators.json >/dev/null
+          test -s web/playstation_emulators.html
+          test -s web/playstation_emulators.css
+          test ! -e web/playstation_status.php
+      - name: Validate Retro and Portfolio JavaScript
+        run: |
+          node --check web/retro_emulators.js
+          node --check web/playstation_emulators.js
+          node --check web/portfolio.js
+      - name: Validate signaling package
+        run: node --check tools/network/signaling-server.mjs
+          python3 -m py_compile tools/runtime/chimera-local-bridge.py

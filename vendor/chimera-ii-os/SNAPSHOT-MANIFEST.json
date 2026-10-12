@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
+  "source_ref": "main",
+  "source_commit": "f1609c2f8a9565a9bced61ffbe0b2366b10d1ad5",
+  "snapshot_file_count": 2446,
+  "includes_media": true,
+  "scope": "source snapshot; not yet a compiled or runtime-integrated port",
+  "history_preserved": false
+}

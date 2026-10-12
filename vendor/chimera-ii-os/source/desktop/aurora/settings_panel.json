@@ -1,0 +1,212 @@
+{
+  "schema": "CHM-AURORA-SETTINGS-1",
+  "application": "aurora-settings",
+  "layout": "settings-sidebar-detail",
+  "categories": [
+    {
+      "id": "system",
+      "pages": [
+        "Display",
+        "Resolution & Refresh Rate",
+        "Multi-monitor",
+        "Graphics Drivers",
+        "Sound",
+        "Notifications",
+        "Power",
+        "Battery",
+        "Screensaver",
+        "Lock screen",
+        "Storage",
+        "Multitasking",
+        "About"
+      ]
+    },
+    {
+      "id": "devices",
+      "pages": [
+        "Bluetooth",
+        "Mouse",
+        "Touchpad",
+        "Keyboard",
+        "Pen",
+        "Printers",
+        "USB",
+        "Cameras",
+        "Audio"
+      ]
+    },
+    {
+      "id": "network",
+      "pages": [
+        "Wi-Fi",
+        "Ethernet",
+        "VPN",
+        "Proxy",
+        "DNS",
+        "Firewall",
+        "Spotnik"
+      ]
+    },
+    {
+      "id": "personalization",
+      "pages": [
+        "Appearance",
+        "Theme",
+        "Wallpaper",
+        "Colors",
+        "Start",
+        "Taskbar",
+        "Dock",
+        "Desktop",
+        "Desktop sounds"
+      ]
+    },
+    {
+      "id": "apps",
+      "pages": [
+        "Installed apps",
+        "Defaults",
+        "Startup",
+        "Optional features",
+        "Permissions"
+      ]
+    },
+    {
+      "id": "accounts",
+      "pages": [
+        "Users",
+        "Groups",
+        "Sign-in",
+        "Session",
+        "Remote access",
+        "Administrator",
+        "Active Directory",
+        "Kerberos",
+        "LDAP/SSSD",
+        "Winbind",
+        "Filesystem permissions",
+        "ACLs"
+      ]
+    },
+    {
+      "id": "time-language",
+      "pages": [
+        "Date & time",
+        "Language",
+        "Region",
+        "Keyboard",
+        "Input methods",
+        "RTL/LTR"
+      ]
+    },
+    {
+      "id": "gaming",
+      "pages": [
+        "Controllers",
+        "Game mode",
+        "Graphics",
+        "Capture"
+      ]
+    },
+    {
+      "id": "accessibility",
+      "pages": [
+        "Screen reader",
+        "Magnification",
+        "Contrast",
+        "Pointer",
+        "Keyboard",
+        "Captions",
+        "Reduced motion"
+      ]
+    },
+    {
+      "id": "privacy-security",
+      "pages": [
+        "Permissions",
+        "Camera",
+        "Microphone",
+        "Location",
+        "Sandbox",
+        "Aegis",
+        "Encryption"
+      ]
+    },
+    {
+      "id": "compatibility",
+      "pages": [
+        "Windows",
+        "macOS",
+        "Linux",
+        "BSD",
+        "Wine/Win32",
+        "POSIX",
+        "CEF"
+      ]
+    },
+    {
+      "id": "system-services",
+      "pages": [
+        "Koronos",
+        "Kore",
+        "Spit Fire",
+        "Jasper",
+        "Spotnik",
+        "Nucleus",
+        "Hive",
+        "Aegis",
+        "Logs"
+      ]
+    },
+    {
+      "id": "drivers-hardware",
+      "pages": [
+        "Hardware scan",
+        "Drivers",
+        "Firmware",
+        "Compatibility",
+        "Devices"
+      ]
+    },
+    {
+      "id": "developer",
+      "pages": [
+        "Toolchains",
+        "Debugging",
+        "Kernel",
+        "Modules",
+        "Shell",
+        "Environment",
+        "Diagnostics"
+      ]
+    }
+  ],
+  "policy": {
+    "changes": "apply-immediately-when-safe",
+    "privileged_changes": "request-Koronos-Aegis-policy",
+    "page_visibility": "configurable"
+  },
+  "display_control": {
+    "resolution_backends": [
+      "kscreen-doctor",
+      "wlr-randr",
+      "xrandr"
+    ],
+    "persistent_state": "$XDG_CONFIG_HOME/chimera/display.conf",
+    "driver_manager": "/usr/bin/chimera-gpu-driver-manager",
+    "network_policy": "signed Ubuntu package repositories only"
+  },
+  "driver_hardware": {
+    "entry": "/usr/bin/chimera-driver-panel.py",
+    "automatic_detection": true,
+    "audio_driver_manifest": "/usr/share/chimera/drivers/audio-driver-manifest.json",
+    "hardware_catalog": "/usr/share/chimera/drivers/hardware-driver-catalog.json",
+    "policy": "/usr/share/chimera/drivers/hardware-driver-policy.json"
+  },
+  "audio_drivers": {
+    "page": "Sound",
+    "manager": "/usr/bin/chimera-driver-panel.py",
+    "manifest": "/usr/share/chimera/drivers/audio-driver-manifest.json",
+    "automatic_detection": true
+  }
+}

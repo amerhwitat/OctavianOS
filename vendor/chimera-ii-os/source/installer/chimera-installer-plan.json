@@ -1,0 +1,71 @@
+{
+  "schema": "chimera.installer.plan",
+  "version": 1,
+  "bootModes": [
+    "spitfire",
+    "grub2-multiboot2",
+    "lilo-compat",
+    "linux-chainload",
+    "windows-chainload"
+  ],
+  "media": [
+    "iso",
+    "usb",
+    "live-dvd",
+    "disk"
+  ],
+  "targets": [
+    "ssd",
+    "nvme",
+    "hdd"
+  ],
+  "partitionTables": [
+    "gpt",
+    "mbr"
+  ],
+  "ui": {
+    "mouse": true,
+    "keyboard": true,
+    "rtl": true
+  },
+  "stages": [
+    "hardware-profile",
+    "nbit-policy",
+    "compatibility-policy",
+    "detect",
+    "partition",
+    "format",
+    "copy",
+    "boot",
+    "configure",
+    "verify",
+    "reboot"
+  ],
+  "destructiveOperationsRequireConfirmation": true,
+  "executionModes": ["auto-native", "manual-nbit", "wide-emulated", "compatibility"],
+  "mixedWidthIPC": {"enabled": true, "canonicalTransport": "width-neutral"},
+  "installationModes": [
+    "hosted",
+    "emulator",
+    "dual-boot",
+    "bare-metal"
+  ],
+  "hosts": [
+    "linux",
+    "unix",
+    "windows",
+    "macos"
+  ],
+  "dualBoot": {
+    "preserveExistingOS": true,
+    "uefiFirst": true,
+    "automaticErase": false,
+    "automaticPartitioning": false
+  },
+  "hosted": {
+    "backend": "qemu-system",
+    "acceleratedWhenAvailable": true,
+    "tcgFallback": true,
+    "diskFormat": "qcow2"
+  }
+}

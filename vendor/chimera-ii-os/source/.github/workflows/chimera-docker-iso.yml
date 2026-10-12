@@ -1,0 +1,69 @@
+name: Chimera II OS Docker ISO
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ISA.csv'
+      - 'tools/isa/**'
+      - 'docker/iso/**'
+      - 'tools/build/create-bootable-iso.sh'
+      - 'boot/iso/**'
+      - 'boot/spitfire/**'
+      - 'boot/kernel.bin'
+      - 'cmake/**'
+      - 'src/**'
+      - 'include/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  docker-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate ISA catalog
+        run: python3 tools/isa/validate-isa.py
+      - name: Build ISO builder image
+        run: docker build --file docker/iso/Dockerfile --tag chimera-ii-os-iso .
+      - name: Run complete ISO builder
+        run: |
+          mkdir -p docker-output
+          docker run --rm \
+            --env CHIMERA_ARCH=x86_64 \
+            --env CHIMERA_FIRMWARE=uefi \
+            --volume "$PWD/docker-output:/output" \
+            chimera-ii-os-iso
+      - name: Verify ISO artifact and checksum
+        run: |
+          test -s docker-output/output.iso
+          test -s docker-output/output.iso.sha256
+          sha256sum --check docker-output/output.iso.sha256
+      - name: Verify staged SF0 SF1 kernel and GRUB metadata
+        run: |
+          test -s boot/iso/dist/iso/src/ISA.csv
+          test -s boot/iso/dist/iso/boot/spitfire/spitfire-sf0-mbr.bin
+          test -s boot/iso/dist/iso/boot/spitfire/spitfire-sf1-longmode.o
+          test -s boot/iso/dist/iso/boot/kernel.bin
+          grep -q 'My AI OS' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q '/boot/kernel.bin' boot/iso/dist/iso/boot/grub/grub.cfg
+      - name: Inspect ISO BIOS El Torito and UEFI metadata
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso
+          xorriso -indev docker-output/output.iso -report_el_torito plain -report_system_area plain -print '' | tee docker-output/ISO-BOOT-REPORT.txt
+      - name: Upload Docker ISO release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera2os-docker-output-iso
+          path: |
+            docker-output/output.iso
+            docker-output/output.iso.sha256
+            docker-output/ISO-BOOT-REPORT.txt
+          retention-days: 14

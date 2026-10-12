@@ -1,0 +1,317 @@
+{
+  "schema": "CHM-INSTALL-2",
+  "phases": [
+    {
+      "id": "welcome",
+      "name": "Welcome / Aurora",
+      "actions": [
+        "show_license",
+        "select_language",
+        "select_keyboard",
+        "accessibility"
+      ],
+      "background": {
+        "default": "/install/installer-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "hardware",
+      "name": "Hardware Discovery",
+      "actions": [
+        "cpu",
+        "isa",
+        "firmware",
+        "memory",
+        "storage",
+        "motherboard",
+        "pci_usb_topology",
+        "gpu",
+        "network",
+        "secure_boot",
+        "tpm",
+        "mobile_profile",
+        "hardware_nbit_probe",
+        "best_native_mode",
+        "wide_mode_emulation_capability",
+        "mixed_width_ipc_capability"
+      ],
+      "background": {
+        "default": "/install/library-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "mode",
+      "name": "Execution Mode",
+      "actions": [
+        "hosted",
+        "baremetal",
+        "recovery",
+        "emulator",
+        "auto_native_nbit",
+        "manual_nbit_selection",
+        "compatibility_profile"
+      ],
+      "background": {
+        "default": "/usr/share/chimera/aurora/desktop-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "target",
+      "name": "Target Architecture",
+      "actions": [
+        "x86",
+        "x86_64",
+        "aarch64",
+        "arm32",
+        "riscv32",
+        "riscv64",
+        "mips",
+        "powerpc",
+        "sparc",
+        "m68k",
+        "s390x",
+        "loongarch64",
+        "profile_specific"
+      ],
+      "background": {
+        "default": "/usr/share/chimera/aurora/desktop-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "storage",
+      "name": "Storage",
+      "actions": [
+        "partition_plan",
+        "EFI_system_partition",
+        "boot_partition",
+        "root",
+        "swap_or_zram",
+        "data",
+        "encryption",
+        "filesystem_selection"
+      ],
+      "background": {
+        "default": "/usr/share/chimera/aurora/desktop-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "boot",
+      "name": "Bootloader",
+      "actions": [
+        "native_spit_fire",
+        "UEFI",
+        "BIOS_MBR",
+        "multiboot",
+        "limine_compatible",
+        "chainload",
+        "recovery_entry"
+      ],
+      "background": {
+        "default": "/boot/spitfire/background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "software",
+      "name": "System Software",
+      "actions": [
+        "kernel",
+        "hardware_nbit_policy",
+        "drivers",
+        "driver_recommendations",
+        "firmware_driver_validation",
+        "network",
+        "services",
+        "toolchains",
+        "language_packs",
+        "keyboard_layouts",
+        "Aurora"
+      ],
+      "background": {
+        "default": "/install/library-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "actions": [
+        "signature_validation",
+        "secure_boot_policy",
+        "disk_encryption",
+        "user_accounts",
+        "permissions",
+        "firewall_defaults",
+        "audit_log"
+      ],
+      "background": {
+        "default": "/boot/jasper/background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "tools",
+      "name": "Developer / RE Tools",
+      "actions": [
+        "select_tool_profile",
+        "compiler_sets",
+        "assembler_sets",
+        "debuggers",
+        "decompilers",
+        "binary_analysis",
+        "emulators"
+      ],
+      "background": {
+        "default": "/install/library-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "users",
+      "name": "Users and Locale",
+      "actions": [
+        "accounts",
+        "timezone",
+        "locale",
+        "keyboard",
+        "language",
+        "network"
+      ],
+      "background": {
+        "default": "/usr/share/chimera/aurora/desktop-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "install",
+      "name": "Install",
+      "actions": [
+        "verify_plan",
+        "write_images",
+        "install_boot_entries",
+        "install_kernel",
+        "install_drivers",
+        "install_services",
+        "install_Aurora"
+      ],
+      "background": {
+        "default": "/install/installer-background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "validate",
+      "name": "Validation",
+      "actions": [
+        "bootloader_check",
+        "filesystem_check",
+        "driver_probe",
+        "driver_recommendation_check",
+        "firmware_table_check",
+        "network_check",
+        "graphics_check",
+        "keyboard_check",
+        "toolchain_check",
+        "recovery_check"
+      ],
+      "background": {
+        "default": "/boot/jasper/background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "reboot",
+      "name": "First Boot",
+      "actions": [
+        "remove_install_media",
+        "boot_menu",
+        "kernel_progress_ui",
+        "first_run_setup",
+        "apply_hardware_nbit_policy",
+        "initialize_mixed_width_ipc"
+      ],
+      "background": {
+        "default": "/boot/grub/aurora-wayland-glass.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "identity-security",
+      "order": 60,
+      "name": "Identity and security",
+      "actions": [
+        "initialize /etc/passwd /etc/shadow /etc/group /etc/gshadow",
+        "create UID 0 root account",
+        "prompt for root password",
+        "install filesystem security policy",
+        "optionally stage SSSD/winbind/Kerberos AD configuration"
+      ],
+      "requires_root": true,
+      "reboot": false,
+      "background": {
+        "default": "/boot/jasper/background.png",
+        "fit": "cover",
+        "overlay": "aurora-glass",
+        "transition": "fade"
+      }
+    }
+  ],
+  "profiles": [
+    "minimal",
+    "desktop",
+    "developer",
+    "security-lab",
+    "forensics",
+    "reverse-engineering",
+    "server",
+    "mobile-hosted",
+    "mobile-baremetal",
+    "emulator",
+    "full"
+  ],
+  "safety": {
+    "destructive_operations_require_confirmation": true,
+    "partition_changes_require_confirmation": true,
+    "baremetal_flash_requires_device_profile": true,
+    "locked_bootloader_is_not_bypassed": true,
+    "secure_boot_is_not_bypassed": true,
+    "recovery_media_recommended": true
+  },
+  "backgrounds": {
+    "schema": "CHM-INSTALL-BACKGROUNDS-1",
+    "default": "/install/installer-background.png",
+    "source": "desktop/aurora/assets and boot/splash",
+    "fallback": "/install/installer-background.png"
+  }
+}

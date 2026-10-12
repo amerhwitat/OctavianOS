@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# --- Chimera II OS standard help ---
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<'CHIMERA_HELP'
+Chimera II OS script: tools/installer/install_kubernetes.sh
+
+Usage:
+  tools/installer/install_kubernetes.sh [options] [arguments]
+
+Options:
+  -h, --help    Show this help and exit successfully.
+
+Notes:
+  This help entry is provided consistently across Chimera II OS shell tools.
+  The script's existing command-line interface and environment variables remain unchanged.
+CHIMERA_HELP
+  exit 0
+fi
+
+# Resolve the repository root from this script location; never depend on the caller's working directory.
+CHIMERA_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$CHIMERA_REPO_ROOT"
+set -euo pipefail
+# Install Kubernetes administration/runtime prerequisites on a Chimera II OS Linux installation.
+# This script installs packages only; cluster creation remains an explicit operation.
+
+if [[ "${EUID}" -ne 0 ]]; then echo "Run as root (or through sudo)." >&2; exit 1; fi
+command -v apt-get >/dev/null 2>&1 || { echo "This installer currently targets Debian/Ubuntu-compatible Chimera installations." >&2; exit 2; }
+apt-get update
+apt-get install -y ca-certificates curl gpg containerd
+install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.37/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+printf '%s\n' 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.37/deb/ /' > /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+systemctl enable --now containerd
+systemctl enable kubelet
+printf '%s\n' 'Kubernetes prerequisites installed. Use kubeadm init/join explicitly to create or join a cluster.'

@@ -1,0 +1,28 @@
+{
+  "schema": "CHM-INSTALLER-2",
+  "kernel": "/boot/koronos/koronos.elf",
+  "initrd": "/boot/installer/installer-initrd.img",
+  "boot_protocol": "multiboot2",
+  "desktop": "Aurora Wayland Glass",
+  "background": "/boot/visual/aurora-wayland-glass.jpg",
+  "background_system": "/usr/share/chimera/aurora/ChimeraIIOS-Aurora-Wayland-Glass.jpg",
+  "hardware_discovery": true,
+  "driver_recommendations": true,
+  "firmware_detection": true,
+  "safe_graphics": true,
+  "required_artifacts": [
+    "/boot/koronos/koronos.elf",
+    "/boot/visual/aurora-wayland-glass.jpg",
+    "/boot/installer/installer-initrd.img",
+    "/boot/installer/installer-manifest.json",
+    "/boot/visual/Init.mp4",
+    "/usr/share/chimera/installer/assets/Init.mp4",
+    "/usr/share/chimera/aurora/assets/Init.mp4"
+  ],
+  "post_install_background": "/usr/share/chimera/aurora/ChimeraIIOS-Aurora-Wayland-Glass.jpg",
+  "aurora_init_video": "/usr/share/chimera/installer/assets/Init.mp4",
+  "aurora_desktop_video": "/usr/share/chimera/aurora/assets/Init.mp4",
+  "aurora_boot_video": "/boot/visual/Init.mp4",
+  "aurora_progress": "/usr/share/chimera/aurora/aurora-progress.sh",
+  "aurora_progress_state": "/run/chimera/koronos-progress.state"
+}

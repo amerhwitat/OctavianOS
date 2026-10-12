@@ -1,0 +1,85 @@
+name: Chimera II CI/CD
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCHIMERA_ENABLE_CVEL=ON -DCHIMERA_BUILD_STARTUP_RUNTIME=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
+  build-test-windows:
+    # Windows leg (billed at 2x) runs on pull requests and manual dispatch only.
+    if: github.event_name != 'push'
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCHIMERA_ENABLE_CVEL=ON -DCHIMERA_BUILD_STARTUP_RUNTIME=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
+
+  validate-infrastructure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate registries
+        run: python3 -m json.tool cloud/providers.json >/dev/null && python3 -m json.tool virtualization/cvel/cvel_registry.json >/dev/null && python3 -m json.tool devops/pipeline_schema.json >/dev/null
+      - name: Validate Python modules
+        run: python3 -m compileall -q cloud tools/image devops desktop/aurora
+      - name: Install Python test dependencies
+        run: python3 -m pip install --disable-pip-version-check --no-input pytest
+      - name: Validate capability maturity and evidence
+        run: python3 tools/validation/validate_capability_status.py
+      - name: Validate Python tests
+        run: python3 -m pytest -q tests/cloud tests/image tests/devops tests/build/test_capability_status.py tests/build/test_build_manifest.py tests/build/test_portfolio_build_status.py
+      - name: Validate Terraform when installed
+        run: |
+          if command -v terraform >/dev/null 2>&1; then
+            terraform -chdir=infrastructure/openstack fmt -check
+            terraform -chdir=infrastructure/openstack init -backend=false
+            terraform -chdir=infrastructure/openstack validate
+          else
+            echo "Terraform not installed; provider-specific IaC validation runs in IaC environments."
+          fi
+      - name: Validate cloud fabric
+        run: python3 tools/cloud/validate_cloud.py
+  code-generation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate ISA artifacts
+        run: |
+          cmake -S . -B build -DCHIMERA_BUILD_STARTUP_RUNTIME=OFF
+          cmake --build build --target chimera_generate_isa_bitfields
+      - name: Generate infrastructure plan
+        run: python3 tools/cloud/chimera_cloud.py plan kubernetes --output build/chimera-kubernetes-plan.json
+  package:
+    needs: [build-test, validate-infrastructure, code-generation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCHIMERA_ENABLE_CVEL=ON -DCHIMERA_BUILD_STARTUP_RUNTIME=OFF
+      - name: Build release
+        run: cmake --build build --config Release --parallel
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chimera-ii-os-build
+          path: build/

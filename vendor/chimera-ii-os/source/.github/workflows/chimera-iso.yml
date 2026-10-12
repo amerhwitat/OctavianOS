@@ -1,0 +1,201 @@
+name: Chimera II OS Structured ISO
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'boot/**'
+      - 'kernel/**'
+      - 'src/**'
+      - 'include/**'
+      - 'cmake/**'
+      - 'desktop/**'
+      - 'network/**'
+      - 'installer/**'
+      - 'appcenter/**'
+      - 'mobile/**'
+      - 'toolchains/**'
+      - 'drivers/**'
+      - 'filesystems/**'
+      - 'packages/**'
+      - 'compat/**'
+      - 'repositories/**'
+      - 'games/**'
+      - 'wallets/**'
+      - 'install/**'
+      - 'docs/**'
+      - 'tests/**'
+      - 'tools/portfolio/**'
+      - 'tools/boot/**'
+      - 'tools/commands/**'
+      - 'tools/build-live-boot-binaries.sh'
+      - 'iso/chimera-live-iso.sh'
+      - 'system/**'
+      - 'assets/boot/**'
+      - '.github/workflows/chimera-iso.yml'
+  push:
+    paths:
+      - 'boot/**'
+      - 'kernel/**'
+      - 'src/**'
+      - 'include/**'
+      - 'cmake/**'
+      - 'desktop/**'
+      - 'network/**'
+      - 'installer/**'
+      - 'appcenter/**'
+      - 'mobile/**'
+      - 'toolchains/**'
+      - 'drivers/**'
+      - 'filesystems/**'
+      - 'packages/**'
+      - 'compat/**'
+      - 'repositories/**'
+      - 'games/**'
+      - 'wallets/**'
+      - 'install/**'
+      - 'docs/**'
+      - 'tests/**'
+      - 'tools/portfolio/**'
+      - 'tools/boot/**'
+      - 'tools/commands/**'
+      - 'system/**'
+      - 'assets/boot/**'
+      - '.github/workflows/chimera-iso.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ISO, EFI and visual-runtime tools
+        run: sudo apt-get update && sudo apt-get install -y grub-pc-bin grub-common grub-efi-amd64-bin xorriso mtools gcc gcc-multilib binutils nasm python3 python3-pil python3-pytest clang lldb gdb cmake ninja-build qemu-system-x86 git nodejs npm openjdk-17-jdk golang-go rustc cargo perl ffmpeg gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good busybox-static cpio
+      - name: Validate platform registries
+        run: |
+          python3 -m json.tool repositories/platform-manifest.json >/dev/null
+          python3 tools/validation/validate_capability_status.py
+          python3 -m pytest -q tests/build/test_portfolio_build_status.py
+          python3 -m json.tool repositories/portfolio-integration.json >/dev/null
+          python3 -m json.tool repositories/reference-document-import.json >/dev/null
+          python3 -m json.tool repositories/isa-sources.json >/dev/null
+          python3 -m json.tool drivers/driver-registry.json >/dev/null
+          python3 -m json.tool drivers/manifests/driver-source-catalog.json >/dev/null
+          python3 -m json.tool hardware/compatibility-modes.json >/dev/null
+          python3 -m json.tool security/security-integration.json >/dev/null
+          python3 -m json.tool system/services/chimera-service-manager.json >/dev/null
+          python3 -m json.tool system/kore/units.json >/dev/null
+          python3 -m json.tool desktop/aurora/windows-settings-layout.json >/dev/null
+          python3 -m json.tool filesystems/filesystem-registry.json >/dev/null
+          python3 -m json.tool packages/package-manager-registry.json >/dev/null
+          python3 -m json.tool compat/binary-format-registry.json >/dev/null
+          python3 -m json.tool install/installer-contract.json >/dev/null
+          python3 -m json.tool desktop/aurora/gates_menu.json >/dev/null
+          python3 -m json.tool appcenter/catalog/apps.json >/dev/null
+          python3 -m json.tool appcenter/providers/providers.json >/dev/null
+          python3 -m json.tool appcenter/schema/chimera-app.schema.json >/dev/null
+          python3 -m json.tool toolchains/cpp/registry.json >/dev/null
+          python3 -m json.tool toolchains/cpp/ides.json >/dev/null
+          python3 -m json.tool toolchains/cpp/debuggers.json >/dev/null
+          for p in mobile/device-profiles/*.json; do python3 mobile/build/validate-profile.py "$p"; done
+      - name: Configure Java 25 for portfolio Maven projects
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Recursively acquire, compile and stage Amer Hwitat portfolio
+        run: |
+          rm -rf boot/iso/portfolio-build
+          python3 tools/portfolio/build_portfolio.py --output boot/iso/portfolio-build
+          test -s boot/iso/portfolio-build/portfolio-build-report.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("boot/iso/portfolio-build/portfolio-build-report.json").read_text())
+          assert report.get("schema") == "chimera-portfolio-build-v2", "missing explicit per-repository build statuses"
+          assert "chimera-ii-os" in report.get("repositories", {}), "core repository was not inventoried"
+          core = report["repositories"]["chimera-ii-os"]
+          assert core.get("status") == "built", f"core source build did not succeed: {core.get('status')}"
+          print("Portfolio build status counts:", report.get("summary", {}).get("status_counts", {}))
+          for name, item in report["repositories"].items():
+              if item.get("status") != "built":
+                  print(f"PORTFOLIO WARNING: {name}: {item.get('status')} (build_success={item.get('build_success')})")
+          PY
+      - name: Acquire official Linux and Windows driver source catalogs
+        run: |
+          python3 drivers/tools/acquire_official_driver_sources.py
+          python3 -m json.tool drivers/manifests/acquired-driver-sources.json >/dev/null
+          test -s drivers/manifests/acquired-driver-sources.json
+      - name: Validate host hardware scanner and Kore orchestrator
+        run: |
+          python3 hardware/host_scanner.py >/tmp/hardware.json
+          python3 -m json.tool /tmp/hardware.json >/dev/null
+          python3 system/kore/kore.py system/kore/units.json >/tmp/kore.json
+          python3 -m json.tool /tmp/kore.json >/dev/null
+      - name: Validate unified command registry and runtime model
+        run: |
+          python3 -m json.tool system/commands/chimera-arabic.json >/dev/null
+          python3 -m json.tool system/commands/chimera-command-list.json >/dev/null
+          python3 -m json.tool system/kore/chimera-unified-runtime-model.json >/dev/null
+          bash tools/commands/test-chimera-command-resolution.sh
+      - name: Validate Aurora boot visual contract
+        run: |
+          python3 -m json.tool boot/visual/boot-visual-manifest.json >/dev/null
+          python3 -m py_compile tools/boot/prepare-visual-assets.py
+          bash -n tools/boot/chimera-boot-visual.sh
+      - name: Build Aurora GUI container
+        run: docker build -t chimeraiios:ci .
+      - name: Run boot and ISO tests
+        run: python3 -m pytest -q tests/boot tests/iso
+      - name: Validate Spit Fire MBR sector
+        run: nasm -f bin boot/spitfire/sf0_mbr.asm -o /tmp/sf0.bin && test "$(stat -c %s /tmp/sf0.bin)" = 512 && tail -c 2 /tmp/sf0.bin | od -An -tx1 | grep -qi '55 aa'
+      - name: Build host C/C++ targets
+        run: |
+          cmake -S . -B build -DCHIMERA_ENABLE_X86_ASM=OFF
+          cmake --build build --parallel --target chimera_kernel chimera_server
+      - name: Validate Spit Fire SF0/SF1 artifacts
+        run: |
+          chmod +x boot/spitfire/build-spitfire.sh
+          boot/spitfire/build-spitfire.sh /tmp/spitfire
+          test "$(stat -c %s /tmp/spitfire/spitfire-sf0-mbr.bin)" = 512
+          test -s /tmp/spitfire/spitfire-sf1-longmode.o
+          readelf -h /tmp/spitfire/spitfire-sf1-longmode.o | grep -q 'ELF64'
+      - name: Validate host toolchain
+        run: |
+          gcc --version | head -n 1
+          g++ --version | head -n 1
+          clang --version | head -n 1
+          lldb --version | head -n 1
+          gdb --version | head -n 1
+      - name: Build structured ISO with GRUB2
+        env:
+          CHIMERA_BOOT_VIDEO_SOURCE: ${{ github.workspace }}/assets/boot/chimera-intro.mp4
+        run: |
+          command -v grub-mkrescue
+          command -v xorriso
+          chmod +x boot/iso/build-iso.sh boot/iso/prepare-layout.sh tools/boot/prepare-visual-assets.py tools/boot/chimera-boot-visual.sh
+          if [ ! -s "$CHIMERA_BOOT_VIDEO_SOURCE" ]; then
+            mkdir -p "$(dirname "$CHIMERA_BOOT_VIDEO_SOURCE")"
+            ffmpeg -hide_banner -loglevel error -f lavfi -i "color=c=black:s=240x426:d=3" -vf "drawtext=text='CHIMERA II OS — Aurora Boot':fontcolor=white:fontsize=18:x=(w-text_w)/2:y=(h-text_h)/2" -an -c:v libx264 -pix_fmt yuv420p -crf 38 -movflags +faststart "$CHIMERA_BOOT_VIDEO_SOURCE"
+          fi
+          test -s "$CHIMERA_BOOT_VIDEO_SOURCE"
+          boot/iso/build-iso.sh
+          test -s boot/iso/dist/output.iso
+      - name: Inspect ISO boot records
+        run: xorriso -indev boot/iso/dist/output.iso -report_el_torito plain -report_system_area plain -print '' | tee boot/iso/dist/ISO-BOOT-REPORT.txt
+      - name: ISO content smoke test
+        run: |
+          test -s boot/iso/dist/output.iso
+          test -f boot/iso/dist/iso/boot/spitfire/sf0_mbr.asm
+          test -s boot/iso/dist/iso/boot/spitfire/spitfire-sf0-mbr.bin
+          test -s boot/iso/dist/iso/boot/visual/aurora-background.jpg
+          test -s boot/iso/dist/iso/boot/visual/aurora-background.jpg.b64
+          test -s boot/iso/dist/iso/boot/visual/chimera-intro.mp4
+          test -s boot/iso/dist/iso/boot/visual/boot-visual-manifest.json

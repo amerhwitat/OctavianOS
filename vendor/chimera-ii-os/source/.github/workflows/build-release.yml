@@ -1,0 +1,66 @@
+name: Chimera II build and release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Toolchain doctor
+        run: python tools/build/orchestrator.py doctor
+      - name: Configure
+        run: python tools/build/orchestrator.py configure
+      - name: Build
+        run: python tools/build/orchestrator.py build
+      - name: Test
+        run: python tools/build/orchestrator.py test
+      - name: Install staging tree
+        run: python tools/build/orchestrator.py install
+      - name: Package
+        run: python tools/build/orchestrator.py package
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-${{ matrix.os }}
+          path: build/
+          if-no-files-found: error
+
+  web:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate web assets
+        run: |
+          test -f web/index.html
+          test -f web/nbit-runtime.js
+          test -f web/aurora-three.js
+          test -f web/aurora-gl.js
+      - name: Upload web explorer
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy-pages:
+    if: github.ref == 'refs/heads/main'
+    needs: web
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

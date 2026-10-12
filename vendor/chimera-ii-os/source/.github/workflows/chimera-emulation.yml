@@ -1,0 +1,59 @@
+name: ChimeraIIOS Emulator Catalog Validation
+on:
+  push:
+    paths:
+      - "emulation/**"
+      - "tools/emulation/**"
+      - "system/kore/chimera-emulation-runtime.json"
+      - ".github/workflows/chimera-emulation.yml"
+  pull_request:
+    paths:
+      - "emulation/**"
+      - "tools/emulation/**"
+      - "system/kore/chimera-emulation-runtime.json"
+      - ".github/workflows/chimera-emulation.yml"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON schemas and catalogs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          files = [
+              "emulation/catalog/known-emulators.json",
+              "emulation/catalog/bios-rules.json",
+              "system/kore/chimera-emulation-runtime.json",
+          ]
+          for p in files:
+              json.loads(pathlib.Path(p).read_text())
+              print("[PASS]", p)
+          PY
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            "tools/emulation/scan-roms.ps1",
+            "tools/emulation/chimera-emulator-manager.ps1",
+            "tools/emulation/test-scan-roms.ps1"
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $file, [ref]$tokens, [ref]$errors
+            ) | Out-Null
+            if ($errors.Count) {
+              $errors | Format-List | Out-String | Write-Error
+              exit 1
+            }
+            Write-Host "[PASS] $file syntax"
+          }
+          & .\tools\emulation\test-scan-roms.ps1

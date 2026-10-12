@@ -1,0 +1,55 @@
+name: Desktop Compatibility CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  portable:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile C++ desktop header
+        run: |
+          printf '#include "desktop/cpp/chm_desktop.hpp"\nint main(){auto p=chimera::desktop::profile(chimera::desktop::Platform::WindowsWin32); return p.menu_bar ? 0 : 1;}' | c++ -std=c++17 -I. -x c++ - -o /tmp/chm-desktop
+          /tmp/chm-desktop
+      - name: Compile C ABI header
+        run: |
+          printf '#include "desktop/c/desktop_event.h"\nint main(){return CHM_QUIT==23 ? 0 : 1;}' | cc -std=c11 -I. -x c - -o /tmp/chm-desktop-c
+          /tmp/chm-desktop-c
+      - name: Build Aurora input and locale runtime
+        run: |
+          chmod +x tools/build-desktop-binaries.sh
+          CHIMERA_DESKTOP_BUILD_DIR=/tmp/chimera-desktop-build ./tools/build-desktop-binaries.sh
+          test -s /tmp/chimera-desktop-build/aurora_input.o
+          test -s /tmp/chimera-desktop-build/aurora_input_router.o
+          test -s /tmp/chimera-desktop-build/aurora_locale.o
+          test -s /tmp/chimera-desktop-build/aurora_utf.o
+          test -s /tmp/chimera-desktop-build/aurora_emoji.o
+          test -s /tmp/chimera-desktop-build/chimera_icons.o
+          test -x /tmp/chimera-desktop-build/bin/chm-utf8
+          test -x /tmp/chimera-desktop-build/bin/aurora-utf-selftest
+      - name: Validate Aurora locale and input manifests
+        run: |
+          python3 -m json.tool desktop/aurora/i18n/input_sources.json >/dev/null
+          python3 -m json.tool desktop/aurora/i18n/language_catalog.json >/dev/null
+          python3 -m json.tool desktop/aurora/window_manager_policy.json >/dev/null
+      - name: Validate capability maturity registry
+        run: python3 tools/validation/validate_capability_status.py
+      - name: Build native userland shell and system utilities
+        run: |
+          cmake -S . -B /tmp/chimera-build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/chimera-build --target chimera-shell chimera-utils chmctl chm-diagnostics chmhelp chm-utf8 aurora-settings aurora-utf-selftest -j2
+          /tmp/chimera-build/userland/aurora-utf-selftest
+      - name: Validate man pages
+        run: |
+          test -s man/chimera-shell.1
+          test -s man/chimera-utils.1
+          test -s man/chmctl.1
+          test -s man/aurora-settings.1
+          test -s man/chm-diagnostics.1
+          test -s man/chm-utf8.1
+          test -s man/aurora-terminal.1
+      - name: Python syntax
+        run: python -m py_compile desktop/python/chimera_desktop.py tools/validation/validate_capability_status.py
+      - name: Java syntax/build
+        run: javac java/chimera/desktop/*.java

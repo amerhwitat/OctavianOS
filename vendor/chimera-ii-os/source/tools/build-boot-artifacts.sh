@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+
+# --- Chimera II OS standard help ---
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<'CHIMERA_HELP'
+Chimera II OS script: tools/build-boot-artifacts.sh
+
+Usage:
+  tools/build-boot-artifacts.sh [options] [arguments]
+
+Options:
+  -h, --help    Show this help and exit successfully.
+
+Notes:
+  This help entry is provided consistently across Chimera II OS shell tools.
+  The script's existing command-line interface and environment variables remain unchanged.
+CHIMERA_HELP
+  exit 0
+fi
+set -euo pipefail
+
+chimera_copy_if_distinct() {
+    local src="$1"
+    local dst="$2"
+
+    mkdir -p "$(dirname "$dst")"
+
+    local src_real dst_real
+    src_real="$(realpath -m "$src")"
+    dst_real="$(realpath -m "$dst")"
+
+    if [[ "$src_real" == "$dst_real" ]]; then
+        echo "[CHIMERA] SKIP self-copy: $src_real"
+        return 0
+    fi
+
+    cp -f -- "$src" "$dst"
+}
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="${CHIMERA_BOOT_ARTIFACT_DIR:-${CHIMERA_BUILD_DIR:-$ROOT/build}/boot-artifacts}"
+rm -rf "$OUT"
+mkdir -p "$OUT/spitfire" "$OUT/jasper" "$OUT/koronos" "$OUT/grub" "$OUT/uefi" "$OUT/all-elf" "$OUT/all-bin" "$OUT/runtime" "$OUT/manifests"
+
+# Keep the visual boot contract inside the boot-artifact bundle itself. These
+# files are data consumed by the native/GRUB/Jasper stages; GRUB never decodes
+# MP4, but Jasper/Aurora can hand the same deterministic media forward.
+BOOT_VIDEO=""
+for candidate in \
+  "$ROOT/desktop/aurora/assets/Init.mp4" \
+  "$ROOT/desktop/aurora/assets/library/Init.mp4" \
+  "$ROOT/build/aurora-media/Init.mp4" \
+  "$ROOT/Init.mp4"; do
+  if [[ -s "$candidate" ]]; then BOOT_VIDEO="$candidate"; break; fi
+done
+[[ -n "$BOOT_VIDEO" ]] || {
+  echo "ERROR: required Aurora Init.mp4 is missing from the repository." >&2
+  exit 1
+}
+for stage in spitfire jasper grub koronos; do
+  cp -f "$BOOT_VIDEO" "$OUT/$stage/Init.mp4"
+done
+for asset in \
+  "$ROOT/boot/splash/spitfire_background.svg" \
+  "$ROOT/boot/splash/jasper_background.svg" \
+  "$ROOT/boot/splash/aurora_boot_splash.svg" \
+  "$ROOT/boot/boot-artwork-manifest.json"; do
+  [[ -s "$asset" ]] || { echo "ERROR: required boot artwork is missing: $asset" >&2; exit 1; }
+done
+cp -f "$ROOT/boot/splash/spitfire_background.svg" "$OUT/spitfire/"
+cp -f "$ROOT/boot/splash/jasper_background.svg" "$OUT/jasper/"
+cp -f "$ROOT/boot/splash/aurora_boot_splash.svg" "$OUT/koronos/"
+cp -f "$ROOT/boot/splash/aurora_boot_splash.svg" "$OUT/grub/"
+cp -f "$ROOT/boot/boot-artwork-manifest.json" "$OUT/spitfire/"
+cp -f "$ROOT/boot/boot-artwork-manifest.json" "$OUT/jasper/"
+cp -f "$ROOT/boot/boot-artwork-manifest.json" "$OUT/koronos/"
+cp -f "$ROOT/boot/boot-artwork-manifest.json" "$OUT/grub/"
+KORONOS="$ROOT/build/koronos/x86_64/koronos.elf"
+test -s "$KORONOS" || "$ROOT/kernel/build-koronos.sh"
+test -s "$KORONOS"
+"$ROOT/boot/spitfire/build-spitfire.sh" "$OUT/spitfire" "$KORONOS"
+command -v nasm >/dev/null || { echo "nasm required" >&2; exit 2; }
+command -v g++ >/dev/null || { echo "g++ required" >&2; exit 2; }
+command -v ld >/dev/null || { echo "ld required" >&2; exit 2; }
+JASPER_BUILD="$ROOT/build/jasper/x86_64"
+mkdir -p "$JASPER_BUILD"
+g++ -ffreestanding -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -I"$ROOT/kernel/include" -c "$ROOT/boot/jasper/jasper_main.cpp" -o "$JASPER_BUILD/jasper_main.o"
+nasm -f elf64 "$ROOT/boot/jasper/jasper_entry.asm" -o "$JASPER_BUILD/jasper_entry.o"
+ld -nostdlib -z max-page-size=0x1000 --build-id=none -T "$ROOT/boot/jasper/jasper.ld" "$JASPER_BUILD/jasper_entry.o" "$JASPER_BUILD/jasper_main.o" -o "$JASPER_BUILD/jasper.elf"
+cp "$JASPER_BUILD/jasper.elf" "$OUT/jasper/jasper.elf"
+chimera_copy_if_distinct "$KORONOS" "$OUT/koronos/koronos.elf"
+if command -v grub-mkimage >/dev/null 2>&1; then
+  MODDIR=""
+  for d in /usr/lib/grub/i386-pc /usr/lib/grub/i386-pc-eltorito; do [[ -d "$d" ]] && { MODDIR="$d"; break; }; done
+  if [[ -n "$MODDIR" ]]; then
+    grub-mkimage -O i386-pc-eltorito -d "$MODDIR" -p /boot/grub -c "$ROOT/boot/iso/grub.cfg" -o "$OUT/grub/grub-core.img" biosdisk iso9660 normal configfile search search_fs_file multiboot2 png gfxterm all_video reboot halt
+  fi
+fi
+
+# Build the standard x86_64 UEFI removable-media loader. Do not request
+# and may intentionally omit the obsolete EFI UGA module. Requesting a
+# missing module makes grub-mkstandalone abort before creating BOOTX64.EFI.
+if command -v grub-mkstandalone >/dev/null 2>&1; then
+  EFIMODDIR=""
+  for d in /usr/lib/grub/x86_64-efi /usr/lib/grub/x86_64-efi-signed; do
+    if [[ -f "$d/normal.mod" && -f "$d/efi_gop.mod" ]]; then
+      EFIMODDIR="$d"
+      break
+    fi
+  done
+  if [[ -n "$EFIMODDIR" ]]; then
+    UEFI_MODULES=()
+    for module in efi_gop efifwsetup all_video video video_bochs video_cirrus gfxterm jpeg png font normal configfile search search_fs_file iso9660 multiboot2 chain reboot halt echo; do
+      if [[ -f "$EFIMODDIR/$module.mod" ]]; then
+        UEFI_MODULES+=("$module")
+      else
+        echo "[WARN] Optional GRUB UEFI module unavailable: $module" >&2
+      fi
+    done
+    # normal/configfile/search/iso9660/multiboot2 are required by the
+    # Chimera boot configuration; fail clearly if a required module is absent.
+    for required in normal configfile search iso9660 multiboot2; do
+      [[ -f "$EFIMODDIR/$required.mod" ]] || {
+        echo "ERROR: required GRUB UEFI module missing: $EFIMODDIR/$required.mod" >&2
+        exit 2
+      }
+    done
+    # grub-mkstandalone creates intermediate files through TMPDIR. The ISO
+    # builder may point TMPDIR at a removed, unwritable, or DrvFs-backed path;
+    # provision a fresh writable Linux temp directory for this invocation.
+    GRUB_TMP_BASE="${TMPDIR:-/tmp}"
+    if ! mkdir -p "$GRUB_TMP_BASE" 2>/dev/null || [[ ! -d "$GRUB_TMP_BASE" || ! -w "$GRUB_TMP_BASE" ]]; then
+      GRUB_TMP_BASE="/tmp"
+    fi
+    GRUB_TMP_DIR="$(mktemp -d "$GRUB_TMP_BASE/chimera-grub.XXXXXX" 2>/dev/null || true)"
+    if [[ -z "$GRUB_TMP_DIR" || ! -d "$GRUB_TMP_DIR" || ! -w "$GRUB_TMP_DIR" ]]; then
+      GRUB_TMP_BASE="/tmp"
+      mkdir -p "$GRUB_TMP_BASE"
+      GRUB_TMP_DIR="$(mktemp -d "$GRUB_TMP_BASE/chimera-grub.XXXXXX")"
+    fi
+    HAD_TMPDIR=0
+    [[ "${TMPDIR+x}" == x ]] && HAD_TMPDIR=1
+    OLD_TMPDIR="${TMPDIR-}"
+    export TMPDIR="$GRUB_TMP_DIR"
+    if grub-mkstandalone \
+      -O x86_64-efi \
+      -d "$EFIMODDIR" \
+      -o "$OUT/uefi/BOOTX64.EFI" \
+      --modules="$(IFS=' '; echo "${UEFI_MODULES[*]}")" \
+      "boot/grub/grub.cfg=$ROOT/boot/iso/grub.cfg"; then
+      grub_rc=0
+    else
+      grub_rc=$?
+    fi
+    if [[ "$HAD_TMPDIR" == 1 ]]; then export TMPDIR="$OLD_TMPDIR"; else unset TMPDIR; fi
+    rm -rf -- "$GRUB_TMP_DIR"
+    if (( grub_rc != 0 )); then
+      echo "ERROR: grub-mkstandalone failed (exit $grub_rc); temporary directory was: $GRUB_TMP_DIR" >&2
+      exit "$grub_rc"
+    fi
+    test -s "$OUT/uefi/BOOTX64.EFI"
+    ISO_STAGE="${CHIMERA_BUILD_DIR:-$ROOT/build}/iso"
+    if [[ -d "$ISO_STAGE" ]]; then
+      mkdir -p "$ISO_STAGE/EFI/BOOT"
+      cp -f "$OUT/uefi/BOOTX64.EFI" "$ISO_STAGE/EFI/BOOT/BOOTX64.EFI"
+      echo "UEFI removable-media loader staged: $ISO_STAGE/EFI/BOOT/BOOTX64.EFI"
+    fi
+  else
+    echo "ERROR: grub-mkstandalone is installed but a usable x86_64-efi GRUB module directory was not found." >&2
+    echo "Expected normal.mod and efi_gop.mod under /usr/lib/grub/x86_64-efi." >&2
+    echo "Install/update the GRUB UEFI package (Debian/Ubuntu: grub-efi-amd64-bin) and rebuild." >&2
+    exit 2
+  fi
+else
+  echo "ERROR: grub-mkstandalone is required to generate UEFI BOOTX64.EFI." >&2
+  echo "Install the GRUB UEFI package (Debian/Ubuntu: grub-efi-amd64-bin) and rebuild." >&2
+  exit 2
+fi
+
+find "$ROOT/build" -type f \( -name "*.elf" -o -name "*.bin" -o -name "*.efi" -o -name "*.img" \) -not -path "$ROOT/build/iso/*" -not -path "$ROOT/build/boot-artifacts/*" -print0 2>/dev/null | while IFS= read -r -d "" f; do
+  base="$(basename "$f")"
+  case "$f" in *.elf) cp -f "$f" "$OUT/all-elf/$base";; *) cp -f "$f" "$OUT/all-bin/$base";; esac
+done
+cp -f "$OUT/spitfire"/* "$OUT/all-bin/" 2>/dev/null || true
+cp -f "$OUT/jasper/jasper.elf" "$OUT/all-elf/"
+cp -f "$OUT/koronos/koronos.elf" "$OUT/all-elf/"
+cp -f "$OUT/uefi/BOOTX64.EFI" "$OUT/all-bin/BOOTX64.EFI"
+[[ -f "$OUT/grub/grub-core.img" ]] && cp -f "$OUT/grub/grub-core.img" "$OUT/all-bin/" || true
+find "$ROOT/build" -type f -not -path "$ROOT/build/iso/*" -not -path "$ROOT/build/boot-artifacts/*" -not -path "$ROOT/build/full/cmake/*" -not -path "$ROOT/build/*/CMakeFiles/*" -print0 2>/dev/null |
+while IFS= read -r -d "" f; do
+  kind="$(file -b "$f" 2>/dev/null || true)"
+  case "$kind" in
+    *"ELF"*"executable"*|*"ELF"*"shared object"*)
+      rel="${f#"$ROOT/build/"}"
+      dest="$OUT/runtime/$rel"
+      mkdir -p "$(dirname "$dest")"
+      cp -f "$f" "$dest"
+      ;;
+    *) continue ;;
+  esac
+done
+if [[ -d "$OUT/runtime" ]]; then cp -a "$OUT/runtime/." "$OUT/all-elf/"; fi
+RUNTIME_COUNT="$(find "$OUT/runtime" -type f 2>/dev/null | wc -l | tr -d ' ')"
+RUNTIME_BYTES="$(du -sb "$OUT/runtime" 2>/dev/null | awk '{print $1}')"
+echo "Runtime ELF payload staged: ${RUNTIME_COUNT} files, ${RUNTIME_BYTES} bytes"
+sha256sum "$OUT"/all-elf/* "$OUT"/all-bin/* > "$OUT/SHA256SUMS" 2>/dev/null || true
+cat > "$OUT/manifests/boot-execution-order.json" <<EOF
+{
+  "schema": "CHM-BOOT-EXECUTION-4",
+  "native_execution_order": [
+    {"sequence":1,"id":"spitfire","role":"BIOS/MBR native bootstrap"},
+    {"sequence":2,"id":"jasper","role":"boot policy and stage selection"},
+    {"sequence":3,"id":"grub","role":"filesystem-aware final boot manager and Multiboot2 loader"},
+    {"sequence":4,"id":"koronos","role":"Chimera II OS kernel"}
+  ],
+  "uefi_removable_media": {"path":"/EFI/BOOT/BOOTX64.EFI","architecture":"x86_64","format":"PE/COFF GRUB EFI application"},
+  "iso_fallback": {"sequence":["firmware","grub","jasper-menu","koronos"],"reason":"El Torito firmware selects the ISO boot image; GRUB remains the standards-compatible ISO fallback."},
+  "kernel_protocol":"Multiboot2",
+  "elf_policy":"Every generated runtime/boot ELF is staged and checksummed; relocatable .o files remain build inputs and are not treated as executable boot payloads."
+}
+EOF
+cp "$OUT/manifests/boot-execution-order.json" "$OUT/"
+echo "Boot artifacts generated: $OUT"

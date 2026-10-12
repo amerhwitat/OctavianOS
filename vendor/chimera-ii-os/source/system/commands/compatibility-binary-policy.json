@@ -1,0 +1,81 @@
+{
+  "schema": "CHM-COMPAT-BINARY-POLICY-1",
+  "ss64": {
+    "role": "reference index",
+    "allowed": [
+      "command names",
+      "categories",
+      "source URLs"
+    ],
+    "prohibited": [
+      "redistributing SS64 prose",
+      "treating SS64 as a binary repository"
+    ]
+  },
+  "native_resolution_order": [
+    "Chimera native implementation",
+    "binary already present in the target rootfs",
+    "official distribution/package provider staged by the build or installer",
+    "compatibility shim with explicit provider-missing status"
+  ],
+  "binary_staging": {
+    "source": "target rootfs or official package provider",
+    "destination": "/usr/lib/chimera/compat/bin",
+    "preserve_executable_mode": true,
+    "never_copy_from_ss64": true
+  },
+  "systemd_compatibility": {
+    "manager": "Kore",
+    "frontends": [
+      "systemctl",
+      "service",
+      "korectl"
+    ],
+    "unit_state": "/run/kore/state.json",
+    "requests": "/run/kore/requests",
+    "native_targets": [
+      "koronos.target",
+      "hardware.target",
+      "runtime.target",
+      "live.target",
+      "installer.target",
+      "complete.target"
+    ]
+  },
+  "native_build": {
+    "entrypoint": "tools/build-chimera-command-compat.sh",
+    "source": "src/chimera-command-compat/chimera-cmd.c",
+    "compiler": "CC environment override, otherwise cc/gcc/clang",
+    "output": "rootfs/usr/bin/chimera-cmd",
+    "multicall_aliases": [
+      "pwd",
+      "echo",
+      "ls",
+      "cp",
+      "mv",
+      "touch",
+      "mkdir",
+      "rm",
+      "cat",
+      "clear",
+      "whoami",
+      "hostname",
+      "date",
+      "true",
+      "false"
+    ],
+    "policy": "Only commands implemented in the native source are marked native. Other catalogued commands must resolve to a staged provider or remain explicitly unavailable; catalog membership never implies an executable exists."
+  },
+  "isa_execution": {
+    "catalog_source": "isa/catalog.json",
+    "kernel_registry": "kernel/generated/chimera_isa_registry.generated.h",
+    "sample_encodings_json": "isa/generated/isa-encoding-samples.json",
+    "sample_encodings_header": "kernel/generated/chimera_isa_encoding_samples.generated.h",
+    "lookup_api": [
+      "chimera_isa_sample_count",
+      "chimera_isa_find_sample"
+    ],
+    "scope": "The sample lookup API exposes worked binary/hex encodings. It is not a complete ISA decoder, encoder, emulator, JIT, or hardware execution backend.",
+    "foreign_execution": "Requires a validated architecture-specific decoder/lowering backend or a compatible emulation runtime; unsupported instructions must fail closed."
+  }
+}

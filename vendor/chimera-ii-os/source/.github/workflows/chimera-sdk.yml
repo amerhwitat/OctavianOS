@@ -1,0 +1,75 @@
+name: Chimera II SDK CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "sdk/**"
+      - "tools/chimera-toolchain/**"
+      - "config/aurora/toolchain-install-profiles.json"
+      - "config/compatibility/apple-cpu-targets.json"
+      - "desktop/aurora/aurora_settings_registry.json"
+      - "CMakeLists.txt"
+      - ".github/workflows/chimera-sdk.yml"
+  push:
+    paths:
+      - "sdk/**"
+      - "tools/chimera-toolchain/**"
+      - "config/aurora/toolchain-install-profiles.json"
+      - "config/compatibility/apple-cpu-targets.json"
+      - "desktop/aurora/aurora_settings_registry.json"
+      - "CMakeLists.txt"
+      - ".github/workflows/chimera-sdk.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDK toolchains
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc g++ clang python3 openjdk-21-jdk
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Validate C# driver and managed SDK project
+        run: |
+          sh -n tools/chimera-toolchain/chimera-csharp
+          sh tools/chimera-toolchain/chimera-csharp --version
+          dotnet build sdk/csharp/Chimera.Sdk.csproj --configuration Release
+          python3 -m json.tool tools/chimera-toolchain/languages.json >/dev/null
+          python3 -m json.tool config/compatibility/apple-cpu-targets.json >/dev/null
+          python3 -m json.tool config/aurora/toolchain-install-profiles.json >/dev/null
+          python3 -m json.tool desktop/aurora/aurora_settings_registry.json >/dev/null
+      - name: Configure
+        run: cmake -S . -B build/sdk -DCMAKE_BUILD_TYPE=Release
+      - name: Build SDK
+        run: cmake --build build/sdk --target chimera_sdk chimera-sdk-config chimera-sdk-native-api-smoke chimera-sdk-event-example chimera-sdk-file-example --parallel 2
+      - name: SDK smoke test
+        run: |
+          PYTHONPATH=sdk/python python3 sdk/tests/sdk_smoke.py
+          build/sdk/sdk/chimera-sdk-config
+          build/sdk/sdk/chimera-sdk-native-api-smoke
+          ctest --test-dir build/sdk -R '^chimera_sdk_' --output-on-failure
+          python3 -m json.tool compat/api-abi-registry.json >/dev/null
+      - name: Objective-C and macOS target syntax checks
+        run: |
+          sdk/bin/chimera-objc --chimera-target=darwin-x86_64 -c sdk/examples/objective-c/hello_chimera.m -o /tmp/chimera-objc-x86_64.o
+          sdk/bin/chimera-objc --chimera-target=darwin-arm64 -c sdk/examples/objective-c/hello_chimera.m -o /tmp/chimera-objc-arm64.o
+          test -s /tmp/chimera-objc-x86_64.o
+          test -s /tmp/chimera-objc-arm64.o
+      - name: Build Java SDK
+        run: bash sdk/java/build.sh
+      - name: Validate Python package
+        run: python3 -m compileall -q sdk/python/chimera_sdk
+      - name: Upload SDK source bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-ii-sdk-source
+          path: sdk/

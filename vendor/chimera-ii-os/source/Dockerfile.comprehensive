@@ -1,0 +1,503 @@
+# =============================================================================
+# COMPREHENSIVE CHIMERA II OS DOCKER IMAGE
+# =============================================================================
+# Integrates ALL amerhwitat GitHub repositories
+# Compiles all code, builds applications, and creates a complete development
+# environment with ChimeraIIOS, NLP, BizX, BizXtreme, and supporting utilities
+#
+# Author: Amer Abdullah Suleiman Hwitat - عامر الحويطات
+# =============================================================================
+
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CHIMERA_BUILD=1 \
+    CHIMERA_COMPREHENSIVE=1 \
+    BUILD_REPOS_DIR=/build/repos \
+    INSTALL_DIR=/opt/chimera \
+    APPS_DIR=/opt/chimera/applications \
+    SRC_DIR=/src/chimera \
+    PIP_BREAK_SYSTEM_PACKAGES=1
+
+# Install the comprehensive Ubuntu 24.04 build toolchain.
+# Keep the bootstrap set small and deterministic. The large development
+# dependency set is installed package-by-package so one Ubuntu package
+# conflict does not abort the whole Docker build.
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5; \
+    core_required="build-essential binutils clang llvm lld nasm cmake cmake-data ninja-build make automake autoconf libtool pkg-config gcc g++ clang llvm llvm-dev python3 python3-dev python3-pip python3-venv python3-setuptools python3-wheel nodejs npm rustc cargo openjdk-21-jdk-headless perl perl-modules git curl wget ca-certificates openssl libssl-dev zlib1g-dev libffi-dev libreadline-dev libsqlite3-dev sqlite3 pciutils usbutils dmidecode iproute2 procps net-tools busybox clamav clamav-daemon yara nftables"; \
+    echo "[Chimera] Installing core build packages..."; \
+    apt-get install -y --no-install-recommends $core_required; \
+    extras="libboost-all-dev libgtest-dev libc++-dev libc++abi-dev libncurses-dev libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev mesa-common-dev python3-numpy python3-scipy python3-pandas python3-scikit-learn python3-matplotlib postgresql-client apt-transport-https gnupg lsb-release systemd systemd-sysv gdb strace vim nano less grep sed awk unzip tar gzip bzip2 xz-utils doxygen graphviz libsodium-dev librsvg2-bin"; \
+    echo "[Chimera] Installing extended development packages..."; \
+    for pkg in $extras; do \
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')"; \
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then \
+        if apt-get install -y --no-install-recommends "$pkg"; then \
+          echo "[Chimera] installed: $pkg"; \
+        else \
+          echo "[Chimera][WARN] package install failed; continuing: $pkg"; \
+          echo "[Chimera][WARN] optional package failed; continuing without dependency repair"; \
+        fi; \
+      else \
+        echo "[Chimera][WARN] package unavailable; skipped: $pkg"; \
+      fi; \
+    done; \
+    optional="gcc-13 g++-13 python3.12 python3.12-dev qemu-system-x86 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-riscv64-linux-gnu g++-riscv64-linux-gnu grub-pc-bin grub-common grub-efi-amd64-bin grub-efi-arm64-bin xorriso squashfs-tools mtools nasm linux-firmware"; \
+    echo "[Chimera] Installing optional/architecture-specific packages..."; \
+    for pkg in $optional; do \
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')"; \
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then \
+        if apt-get install -y --no-install-recommends "$pkg"; then \
+          echo "[Chimera] installed optional: $pkg"; \
+        else \
+          echo "[Chimera][WARN] optional package failed; continuing: $pkg"; \
+          echo "[Chimera][WARN] optional package failure; no dependency repair attempted"; \
+        fi; \
+      else \
+        echo "[Chimera] optional/unavailable package skipped: $pkg"; \
+      fi; \
+    done; \
+    if apt-cache policy valgrind 2>/dev/null | grep -q 'Candidate:'; then \
+      if apt-get install -y --no-install-recommends valgrind; then \
+        echo "[Chimera] installed: valgrind"; \
+      else \
+        echo "[Chimera][WARN] valgrind/libc6-dbg is not resolvable; skipped."; \
+      fi; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*
+
+# Optional repository-specific packages are never allowed to turn the image
+# build into an apt failure.
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5; \
+    optional=""; \
+    for pkg in yarnpkg dotnet-sdk-8.0 git-flow; do \
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')"; \
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then optional="$optional $pkg"; \
+      else echo "[Chimera] optional/unavailable package skipped: $pkg"; fi; \
+    done; \
+    if [ -n "$optional" ]; then \
+      if ! apt-get install -y --no-install-recommends $optional; then \
+        echo "[Chimera][WARN] optional repository package set failed; continuing"; \
+        echo "[Chimera][WARN] optional package failure; no dependency repair attempted"; \
+      fi; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*
+
+# Normalize the Yarn command name when Ubuntu supplies yarnpkg.
+RUN if command -v yarnpkg >/dev/null 2>&1 && ! command -v yarn >/dev/null 2>&1; then ln -s "$(command -v yarnpkg)" /usr/local/bin/yarn; fi
+
+# Create build structure
+RUN mkdir -p \
+    $BUILD_REPOS_DIR \
+    $INSTALL_DIR/bin \
+    $INSTALL_DIR/lib \
+    $INSTALL_DIR/include \
+    $APPS_DIR \
+    $SRC_DIR \
+    $INSTALL_DIR/venv
+
+RUN python3 -m venv $INSTALL_DIR/venv && \
+    $INSTALL_DIR/venv/bin/python -m pip install --upgrade --no-cache-dir --retries 5 --timeout 120 pip setuptools wheel
+
+ENV VIRTUAL_ENV=$INSTALL_DIR/venv \
+    PATH=$INSTALL_DIR/venv/bin:$PATH
+
+WORKDIR $BUILD_REPOS_DIR
+
+# =============================================================================
+# CLONE AND BUILD: ChimeraIIOS (Core Platform)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/ChimeraIIOS.git && \
+    cd ChimeraIIOS && \
+    mkdir -p build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. || true && \
+    make -j$(nproc) 2>/dev/null || echo "ChimeraIIOS build completed with defaults" && \
+    make install 2>/dev/null || true && \
+    cp -r $BUILD_REPOS_DIR/ChimeraIIOS $SRC_DIR/ChimeraIIOS 2>/dev/null || true
+
+# =============================================================================
+# CLONE AND BUILD: NLP (Natural Language Processing)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/nlp.git && \
+    cd nlp && \
+    if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi && \
+    if [ -f setup.py ]; then python -m pip install --no-cache-dir .; fi && \
+    mkdir -p $APPS_DIR/nlp && \
+    cp -r . $APPS_DIR/nlp && \
+    cp -r . $SRC_DIR/nlp
+
+# =============================================================================
+# CLONE AND BUILD: BizX (Business Application)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/BizX.git && \
+    cd BizX && \
+    if [ -f package.json ]; then npm install && npm run build 2>/dev/null || true; fi && \
+    mkdir -p $APPS_DIR/BizX && \
+    cp -r . $APPS_DIR/BizX && \
+    cp -r . $SRC_DIR/BizX
+
+# =============================================================================
+# CLONE AND BUILD: BizXtreme (Enterprise Business Platform)
+# =============================================================================
+# BizXtreme is fetched defensively because GitHub smart-HTTP pack streams can be interrupted by BuildKit/proxy HTTP2 CANCELs.
+# Prefer an HTTP/1.1 shallow clone, then fall back to GitHub codeload tarball.
+RUN set -eux; \
+    rm -rf BizXtreme /tmp/BizXtreme.tar.gz /tmp/BizXtreme-src; \
+    export GIT_TERMINAL_PROMPT=0 GIT_HTTP_VERSION=HTTP/1.1; \
+    git config --global http.version HTTP/1.1; \
+    git config --global http.lowSpeedLimit 1; \
+    git config --global http.lowSpeedTime 600; \
+    cloned=0; \
+    for attempt in 1 2 3 4 5; do \
+      echo "[Chimera] BizXtreme git clone attempt $attempt/5 (HTTP/1.1)"; \
+      rm -rf BizXtreme; \
+      if git -c http.version=HTTP/1.1 clone --depth 1 --single-branch \
+          --config http.lowSpeedLimit=1 --config http.lowSpeedTime=600 \
+          https://github.com/amerhwitat/BizXtreme.git BizXtreme; then \
+        cloned=1; break; \
+      fi; \
+      sleep $((attempt * 5)); \
+    done; \
+    if [ "$cloned" -ne 1 ]; then \
+      echo "[Chimera][WARN] Git smart-HTTP clone failed; using GitHub codeload fallback."; \
+      rm -rf BizXtreme /tmp/BizXtreme-src; \
+      mkdir -p /tmp/BizXtreme-src; \
+      for attempt in 1 2 3 4 5; do \
+        echo "[Chimera] BizXtreme codeload attempt $attempt/5"; \
+        rm -f /tmp/BizXtreme.tar.gz; \
+        if curl --fail --location --retry 5 --retry-delay 5 \
+            --connect-timeout 30 --max-time 900 \
+            -o /tmp/BizXtreme.tar.gz \
+            https://codeload.github.com/amerhwitat/BizXtreme/tar.gz/refs/heads/main; then \
+          tar -xzf /tmp/BizXtreme.tar.gz -C /tmp/BizXtreme-src; \
+          src="$(find /tmp/BizXtreme-src -mindepth 1 -maxdepth 1 -type d -print -quit)"; \
+          if [ -n "$src" ]; then mv "$src" BizXtreme; cloned=1; break; fi; \
+        fi; \
+        sleep $((attempt * 5)); \
+      done; \
+    fi; \
+    if [ "$cloned" -ne 1 ]; then echo "[Chimera][ERROR] Unable to fetch BizXtreme after Git and codeload retries."; exit 1; fi; \
+    cd BizXtreme; \
+    if [ -f requirements.txt ]; then pip3 install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt; fi; \
+    if [ -f setup.py ]; then python -m pip install --no-cache-dir --retries 5 --timeout 120 .; fi; \
+    mkdir -p "$APPS_DIR/BizXtreme" "$SRC_DIR/BizXtreme"; \
+    cp -a . "$APPS_DIR/BizXtreme/"; \
+    cp -a . "$SRC_DIR/BizXtreme/"
+
+# =============================================================================
+# CLONE AND BUILD: CPU4096 (4096-bit CPU Simulator)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/CPU4096.git && \
+    cd CPU4096 && \
+    mkdir -p build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. 2>/dev/null || true && \
+    make -j$(nproc) 2>/dev/null || true && \
+    make install 2>/dev/null || true && \
+    cp -r $BUILD_REPOS_DIR/CPU4096 $SRC_DIR/CPU4096
+
+# =============================================================================
+# CLONE AND BUILD: CPU4096Simulator (Web/JS Simulator)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/CPU4096Simulator.git && \
+    cd CPU4096Simulator && \
+    if [ -f package.json ]; then npm install && npm run build 2>/dev/null || true; fi && \
+    mkdir -p $APPS_DIR/CPU4096Simulator && \
+    cp -r . $APPS_DIR/CPU4096Simulator && \
+    cp -r . $SRC_DIR/CPU4096Simulator
+
+# =============================================================================
+# CLONE AND BUILD: Keygen (Key Generation Utility - Java)
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/keygen.git && \
+    cd keygen && \
+    if [ -f pom.xml ]; then mvn clean install 2>/dev/null || true; fi && \
+    if [ -f build.gradle ]; then gradle build 2>/dev/null || true; fi && \
+    mkdir -p $APPS_DIR/keygen && \
+    cp -r . $APPS_DIR/keygen && \
+    cp -r . $SRC_DIR/keygen
+
+# =============================================================================
+# CLONE AND BUILD: Crypto Utilities
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/eth-key-check.git && \
+    cd eth-key-check && \
+    if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi && \
+    mkdir -p $APPS_DIR/eth-key-check && \
+    cp -r . $APPS_DIR/eth-key-check && \
+    cp -r . $SRC_DIR/eth-key-check
+
+RUN git clone --depth 1 https://github.com/amerhwitat/bruteforce.git && \
+    cd bruteforce && \
+    if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi && \
+    mkdir -p $APPS_DIR/bruteforce && \
+    cp -r . $APPS_DIR/bruteforce && \
+    cp -r . $SRC_DIR/bruteforce
+
+# =============================================================================
+# CLONE AND BUILD: Utility Applications
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/PDFreaderPY.git && \
+    cd PDFreaderPY && \
+    if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi && \
+    mkdir -p $APPS_DIR/PDFreaderPY && \
+    cp -r . $APPS_DIR/PDFreaderPY && \
+    cp -r . $SRC_DIR/PDFreaderPY
+
+# =============================================================================
+# CLONE: General and Reference Repositories
+# =============================================================================
+RUN git clone --depth 1 https://github.com/amerhwitat/general.git && \
+    cp -r general $SRC_DIR/general && \
+    mkdir -p $APPS_DIR/general && \
+    cp -r general $APPS_DIR/general
+
+RUN git clone --depth 1 https://github.com/amerhwitat/test.git && \
+    cp -r test $SRC_DIR/test && \
+    mkdir -p $APPS_DIR/test && \
+    cp -r test $APPS_DIR/test
+
+RUN git clone --depth 1 https://github.com/amerhwitat/amerhwitat.github.io.git && \
+    cp -r amerhwitat.github.io $SRC_DIR/portfolio && \
+    mkdir -p $APPS_DIR/portfolio && \
+    cp -r amerhwitat.github.io $APPS_DIR/portfolio
+
+# =============================================================================
+# Install comprehensive Python dependencies
+# =============================================================================
+RUN set -eux; \
+    pip_install() { \
+      echo "[Chimera] Installing Python group: $*"; \
+      /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary "$@"; \
+    }; \
+    pip_install requests beautifulsoup4 lxml; \
+    pip_install web3 eth-keys eth-typing cryptography pycryptodome; \
+    pip_install flask fastapi uvicorn sqlalchemy alembic; \
+    pip_install psycopg2-binary mysql-connector-python redis celery; \
+    pip_install pytest pytest-cov sphinx pylint black flake8 mypy; \
+    pip_install jupyter ipython notebook; \
+    pip_install numpy scipy pandas matplotlib seaborn scikit-learn; \
+    pip_install nltk spacy gensim pillow opencv-python; \
+    if ! /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary xgboost; then \
+      echo "[Chimera][WARN] xgboost wheel unavailable for this architecture; continuing without xgboost"; \
+    fi; \
+    if ! /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary lightgbm; then \
+      echo "[Chimera][WARN] lightgbm wheel unavailable for this architecture; continuing without lightgbm"; \
+    fi; \
+    /opt/chimera/venv/bin/python -m pip check || { echo "[Chimera][ERROR] Python dependency check failed"; exit 1; }; \
+    /opt/chimera/venv/bin/python -m pip cache purge || true
+
+ENV VIRTUAL_ENV=/opt/chimera/venv
+ENV PATH=/opt/chimera/venv/bin:$PATH
+
+# =============================================================================
+# Install Node.js ecosystem
+# =============================================================================
+RUN set -eux; \
+    npm config set registry https://registry.npmjs.org/; \
+    npm config set fetch-retries 6; \
+    npm config set fetch-retry-factor 2; \
+    npm config set fetch-retry-mintimeout 10000; \
+    npm config set fetch-retry-maxtimeout 120000; \
+    npm config set fetch-timeout 300000; \
+    npm config set maxsockets 4; \
+    npm_config_audit=false npm_config_fund=false npm_config_update_notifier=false \
+      npm view typescript version --fetch-retries=6 --fetch-timeout=300000 >/dev/null; \
+    node_packages="typescript webpack webpack-cli @babel/core @babel/cli eslint prettier jest pm2"; \
+    for pkg in $node_packages; do \
+      installed=0; \
+      for attempt in 1 2 3; do \
+        echo "[Chimera] npm install -g $pkg attempt $attempt/3"; \
+        if npm install -g --no-audit --no-fund --prefer-offline \
+            --fetch-retries=8 --fetch-retry-factor=2 \
+            --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=180000 \
+            --fetch-timeout=300000 --maxsockets=4 "$pkg"; then \
+          installed=1; break; \
+        fi; \
+        sleep $((attempt * 10)); \
+      done; \
+      if [ "$installed" -ne 1 ]; then \
+        echo "[Chimera][WARN] npm package unavailable after retries; continuing without: $pkg"; \
+      fi; \
+    done; \
+    npm cache clean --force
+
+# =============================================================================
+# Deep SS64 command catalog and Linux binary providers
+# =============================================================================
+RUN set -eux; \
+    mkdir -p /opt/chimera/share/chimera/commands; \
+    if [ -f /build/repos/ChimeraIIOS/tools/commands/crawl_ss64.py ]; then \
+      python3 /build/repos/ChimeraIIOS/tools/commands/crawl_ss64.py \
+        --output /opt/chimera/share/chimera/commands/ss64-command-catalog.json \
+        --max-pages 3000 || echo "[Chimera][WARN] SS64 network crawl failed; retained static command catalog."; \
+    fi; \
+    if [ ! -s /opt/chimera/share/chimera/commands/ss64-command-catalog.json ]; then \
+      printf '%s\\n' '{"schema_version":"3.0","product":"Chimera II OS","source":"SS64","platforms":{}}' > /opt/chimera/share/chimera/commands/ss64-command-catalog.json; \
+    fi
+
+# The provider installer is deliberately non-fatal. It already handles
+# individual package failures and apt-cache SIGPIPE (141); keep this final
+# guard as a defense against future revisions of the script.
+RUN if [ -f /build/repos/ChimeraIIOS/tools/commands/install-command-providers.sh ]; then \
+      if bash /build/repos/ChimeraIIOS/tools/commands/install-command-providers.sh; then \
+        echo "[Chimera][COMMANDS] provider installer completed."; \
+      else \
+        status=$?; \
+        echo "[Chimera][COMMANDS][WARN] provider installer returned $status; continuing comprehensive image build."; \
+      fi; \
+    else \
+      echo "[Chimera][COMMANDS] provider installer not present; skipping."; \
+    fi
+
+# =============================================================================
+# Free/open-source terminal emulators + Aurora application-panel entries
+# =============================================================================
+RUN if [ -f /build/repos/ChimeraIIOS/tools/terminals/install-free-terminals.sh ]; then \
+      bash /build/repos/ChimeraIIOS/tools/terminals/install-free-terminals.sh; \
+    fi
+
+# Universal hardware/audio driver runtime. Kernel modules and firmware come from
+# Ubuntu/Linux packages; proprietary binaries are never embedded from untrusted URLs.
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5; \
+    for pkg in linux-modules-extra-generic linux-firmware firmware-sof-signed pciutils usbutils hwdata lshw dmidecode kmod fwupd alsa-utils alsa-ucm-conf alsa-topology-conf alsa-tools pipewire wireplumber pipewire-alsa pipewire-pulse libasound2-plugins pavucontrol bluez v4l-utils cups cups-filters printer-driver-all rfkill network-manager; do \
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')"; \
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then \
+        apt-get install -y --no-install-recommends "$pkg" || echo "[Chimera][WARN] hardware/audio package failed: $pkg"; \
+      else echo "[Chimera][WARN] hardware/audio package unavailable: $pkg"; fi; \
+    done; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/chimera/share/chimera/drivers /usr/local/bin && \
+    install -m 0644 /build/repos/ChimeraIIOS/drivers/audio-driver-manifest.json /opt/chimera/share/chimera/drivers/ && \
+    install -m 0644 /build/repos/ChimeraIIOS/drivers/hardware-driver-policy.json /opt/chimera/share/chimera/drivers/ && \
+    install -m 0644 /build/repos/ChimeraIIOS/drivers/hardware-driver-catalog.json /opt/chimera/share/chimera/drivers/ && \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/drivers/chimera-hardware-drivers /usr/local/bin/chimera-hardware-drivers && \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/drivers/chimera-driver-panel.py /usr/local/bin/chimera-driver-panel.py
+
+# Display/GPU runtime stack. Use distro-signed components; never curl arbitrary
+# vendor installers into the image. ubuntu-drivers selects signed NVIDIA
+# packages, while AMD/Intel use the kernel DRM drivers plus Mesa/firmware.
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5; \
+    for pkg in wlr-randr x11-xserver-utils xrandr python3-tk mesa-utils mesa-vulkan-drivers libgl1-mesa-dri libglx-mesa0 libdrm2 vulkan-tools ubuntu-drivers-common linux-firmware xserver-xorg-video-amdgpu intel-media-va-driver mesa-va-drivers policykit-1; do \
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')"; \
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then \
+        apt-get install -y --no-install-recommends "$pkg" || echo "[Chimera][WARN] display/GPU package failed: $pkg"; \
+      else echo "[Chimera] display/GPU package unavailable: $pkg"; fi; \
+    done; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/chimera/share/chimera/display /usr/bin && \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-display /opt/chimera/share/chimera/display/chimera-display && \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-display-settings.py /opt/chimera/share/chimera/display/chimera-display-settings.py && \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-gpu-driver-manager /opt/chimera/share/chimera/display/chimera-gpu-driver-manager
+RUN ln -sf /opt/chimera/share/chimera/display/chimera-display /usr/local/bin/chimera-display && \
+    ln -sf /opt/chimera/share/chimera/display/chimera-display-settings.py /usr/local/bin/chimera-display-settings.py && \
+    ln -sf /opt/chimera/share/chimera/display/chimera-gpu-driver-manager /usr/local/bin/chimera-gpu-driver-manager && \
+    if [ -f /build/repos/ChimeraIIOS/tools/display/chimera-desktop-action ]; then install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-desktop-action /usr/local/bin/chimera-desktop-action; fi
+RUN if [ -f /build/repos/ChimeraIIOS/system/services/chimera-gpu-driver-autoscan.service ]; then \
+      install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-gpu-driver-autoscan.service /etc/systemd/system/chimera-gpu-driver-autoscan.service; \
+    fi
+RUN if [ -f /build/repos/ChimeraIIOS/system/services/chimera-hardware-driver-autoscan.service ]; then \
+      install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-hardware-driver-autoscan.service /etc/systemd/system/chimera-hardware-driver-autoscan.service; \
+    fi
+
+# Arabic Chimera shell integration and localized command catalog.
+RUN mkdir -p /etc/profile.d /opt/chimera/share/chimera/commands && \
+    if [ -f /build/repos/ChimeraIIOS/system/commands/chimera-arabic.json ]; then \
+      install -m 0644 /build/repos/ChimeraIIOS/system/commands/chimera-arabic.json /opt/chimera/share/chimera/commands/chimera-arabic.json; \
+    fi && \
+    if [ -f /build/repos/ChimeraIIOS/system/shell/chimera-shell.sh ]; then \
+      install -m 0644 /build/repos/ChimeraIIOS/system/shell/chimera-shell.sh /etc/profile.d/chimera-shell.sh; \
+    fi
+
+# =============================================================================
+# Native security stack: malware/spyware detection, signed intelligence and firewall
+# =============================================================================
+RUN set -eux; \
+    mkdir -p /opt/chimera/tools/security /opt/chimera/share/chimera/security /etc/chimera /var/lib/chimera/security /var/log/chimera; \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_securityd.py /opt/chimera/tools/security/chimera_securityd.py; \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_security_update.py /opt/chimera/tools/security/chimera_security_update.py; \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_rnn_security.py /opt/chimera/tools/security/chimera_rnn_security.py; \
+    install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_firewall.py /opt/chimera/tools/security/chimera_firewall.py; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/security/security-intelligence.json /opt/chimera/share/chimera/security/security-intelligence.json; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/security/firewall-policy.json /opt/chimera/share/chimera/security/firewall-policy.json; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/security/security-update.json /etc/chimera/security-update.json; \
+    ln -sf /opt/chimera/share/chimera/security/firewall-policy.json /etc/chimera/firewall-policy.json; \
+    ln -sf /opt/chimera/tools/security/chimera_securityd.py /usr/local/bin/chimera-security; \
+    ln -sf /opt/chimera/tools/security/chimera_firewall.py /usr/local/bin/chimera-firewall; \
+    python3 -m py_compile /opt/chimera/tools/security/*.py
+RUN install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-securityd.service /etc/systemd/system/chimera-securityd.service; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-security-update.service /etc/systemd/system/chimera-security-update.service; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-security-update.timer /etc/systemd/system/chimera-security-update.timer; \
+    install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-firewall.service /etc/systemd/system/chimera-firewall.service
+
+# =============================================================================
+# Create initialization and startup scripts
+# =============================================================================
+RUN mkdir -p $INSTALL_DIR/scripts && \
+    cat > $INSTALL_DIR/scripts/init-chimera.sh << 'INIT_SCRIPT'
+#!/bin/bash
+echo "=================================================="
+echo "CHIMERA II OS - Comprehensive Environment"
+echo "created by Amer Abdullah Suleiman Hwitat"
+echo "عامر الحويطات - Amman 11814/Jordan"
+echo "contact: amer.hwitat@proton.me"
+echo "=================================================="
+echo ""
+echo "[INFO] Installed Applications:"
+ls -1 /opt/chimera/applications 2>/dev/null | head -10
+echo ""
+echo "[SUCCESS] Chimera II OS ready!"
+INIT_SCRIPT
+RUN chmod +x $INSTALL_DIR/scripts/init-chimera.sh
+
+# =============================================================================
+# RUNTIME IMAGE
+# =============================================================================
+FROM builder AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CHIMERA_ENV=runtime \
+    INSTALL_DIR=/opt/chimera \
+    APPS_DIR=/opt/chimera/applications \
+    SRC_DIR=/src/chimera
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip \
+    nodejs npm \
+    openjdk-21-jre-headless \
+    git curl wget \
+    libssl3 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 10001 chimera && \
+    mkdir -p /workspace && \
+    chown -R chimera:chimera /workspace
+
+# Keep the exported runtime image deterministic and free of host/package-manager
+# state that has no value inside an immutable Chimera ISO.
+RUN set -eux; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /var/log/* /var/log/.* 2>/dev/null || true; \
+    rm -rf /var/tmp/* /tmp/* /run/* /root/.cache/*; \
+    find /opt/chimera /src/chimera -type d -name .git -prune -exec rm -rf {} + 2>/dev/null || true; \
+    find /opt/chimera /src/chimera -type d \( -name __pycache__ -o -name .pytest_cache -o -name .mypy_cache \) -prune -exec rm -rf {} + 2>/dev/null || true; \
+    mkdir -p /var/log /var/tmp /tmp /run; \
+    chmod 1777 /tmp /var/tmp
+
+WORKDIR /workspace
+
+EXPOSE 8000 8080 9000 9001 5000 3000
+
+ENTRYPOINT ["/bin/bash", "/opt/chimera/scripts/init-chimera.sh"]
+CMD ["/bin/bash"]
+
+LABEL maintainer="Amer Abdullah Suleiman Hwitat <amer.hwitat@proton.me>" \
+      description="Comprehensive Chimera II OS - All GitHub Repositories Integrated" \
+      version="1.0.0" \
+      location="Amman 11814/Jordan"
