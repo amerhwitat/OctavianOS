@@ -32,7 +32,6 @@ def main() -> int:
     required = [
         RUNTIME,
         SOURCE / "tools" / "chimera-toolchain" / "CMakeLists.txt",
-        SOURCE / "lib" / "chimera-nbit",
         SOURCE / "kernel",
         SOURCE / "boot",
     ]
