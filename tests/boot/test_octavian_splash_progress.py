@@ -20,7 +20,7 @@ class OctavianSplashProgressTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             env = os.environ.copy()
             env["OCTAVIAN_PROGRESS_DIR"] = temp
-            subprocess.run([str(PROGRESS), "start", "Kernel", "Started"], env=env, check=True, capture_output=True, text=True)
+            subprocess.run(["bash", str(PROGRESS), "start", "Kernel", "Started"], env=env, check=True, capture_output=True, text=True)
             subprocess.run([str(PROGRESS), "phase", "25", "Drivers", "Drivers initialized"], env=env, check=True, capture_output=True, text=True)
             blocked = subprocess.run([str(PROGRESS), "phase", "10", "Backwards", "Must fail"], env=env, capture_output=True, text=True)
             self.assertEqual(blocked.returncode, 3)
