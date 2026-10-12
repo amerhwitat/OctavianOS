@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -51,6 +51,42 @@ jobs:
           nm -a --defined-only build/koronos/x86_64/koronos.elf > build/koronos/x86_64/symbols.txt
           grep -q 'chimera_process_admit_elf' build/koronos/x86_64/symbols.txt
           grep -q 'chimera_sched_run_parallel' build/koronos/x86_64/symbols.txt
+      - name: Boot kernel in QEMU and require Koronos readiness marker
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke/iso/boot/grub"
+          cp build/koronos/x86_64/koronos.elf "$smoke/iso/boot/koronos.elf"
+          cat > "$smoke/iso/boot/grub/grub.cfg" <<'GRUB'
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Koronos native kernel smoke test" {
+            multiboot2 /boot/koronos.elf
+            boot
+          }
+          GRUB
+          grub-mkrescue -o "$smoke/koronos-smoke.iso" "$smoke/iso"
+          set +e
+          timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          # A running idle kernel is intentionally stopped by timeout (124).
+          # Any exit status is acceptable only if the kernel's own readiness marker appeared.
+          if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
+          cat "$smoke/debugcon.log"
+          grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
+      - name: Upload QEMU kernel smoke trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-qemu-smoke-trace
+          path: |
+            vendor/chimera-ii-os/source/build/qemu-smoke/debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/koronos-smoke.iso
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload validated kernel build artifact
         uses: actions/upload-artifact@v4
         with:
