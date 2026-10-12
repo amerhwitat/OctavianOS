@@ -41,3 +41,5 @@ jobs:
         run: python3 tests/boot/test_boot_target_graph.py
       - name: Validate native installer payload routing
         run: python3 tests/boot/test_installer_payload_routing.py
+      - name: Test ISO payload validator
+        run: python3 tests/boot/test_iso_payload_validator.py
