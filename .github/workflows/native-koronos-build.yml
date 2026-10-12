@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86 busybox-static cpio
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -130,6 +130,27 @@ jobs:
             vendor/chimera-ii-os/source/build/live-boot/boot/recovery/recovery-manifest.json
             vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
           if-no-files-found: error
+          retention-days: 14
+      - name: Build native BIOS/UEFI ISO candidate from source
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          bash boot/iso/build-iso.sh
+          iso=boot/iso/dist/output.iso
+          test -s "$iso"
+          sha256sum "$iso" > "$iso.sha256"
+          xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+          grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Upload native ISO candidate for review (not a release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate-not-release
+          path: |
+            vendor/chimera-ii-os/source/boot/iso/dist/output.iso
+            vendor/chimera-ii-os/source/boot/iso/dist/output.iso.sha256
+            vendor/chimera-ii-os/source/boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+          if-no-files-found: ignore
           retention-days: 14
       - name: Upload validated kernel build artifact
         uses: actions/upload-artifact@v4
