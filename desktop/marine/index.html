@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Marine Desktop — OctavianOS</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#e9f4f8;background:#071b2b;--glass:#14364bcc;--line:#6c9fb477;--accent:#56d5cf}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 20% 5%,#1c5a72 0,transparent 42%),linear-gradient(150deg,#071b2b,#0a2a3a 60%,#071520);padding:clamp(1rem,4vw,3rem)}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}.brand{font-size:.9rem;letter-spacing:.15em;text-transform:uppercase;color:#a8c9d6}.status{border:1px solid var(--line);border-radius:99px;padding:.45rem .8rem;color:#b9e8e6;font-size:.8rem}
+main{max-width:1100px;margin:clamp(2rem,8vh,5rem) auto}.eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.18em;font-size:.78rem}h1{font-size:clamp(2.4rem,7vw,5rem);line-height:1;margin:.7rem 0}p{color:#b7d0db;line-height:1.65;max-width:66ch}.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:1rem;margin:2rem 0}.choice{border:1px solid var(--line);border-radius:1.2rem;padding:1.4rem;background:var(--glass);backdrop-filter:blur(16px);min-height:190px;display:flex;flex-direction:column;align-items:flex-start;gap:.7rem}.choice h2{margin:0;font-size:1.25rem}.choice p{margin:0;font-size:.93rem}.choice button{margin-top:auto;background:transparent;color:#e9f4f8;border:1px solid #79b9c6;border-radius:.7rem;padding:.65rem .9rem;font:inherit;cursor:pointer}.choice button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.choice button:hover{background:#2b6570}.choice[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.note{border-left:3px solid var(--accent);padding:.2rem 1rem;margin-top:2rem}.note p{font-size:.88rem}.footer{color:#7fa5b4;font-size:.8rem;margin-top:3rem}
+</style>
+</head>
+<body>
+<header><div class="brand">OctavianOS · Session selector</div><div class="status" id="status" role="status" aria-live="polite">Prototype · no session launched</div></header>
+<main>
+<div class="eyebrow">Choose your workspace</div>
+<h1>One system.<br>Many environments.</h1>
+<p>Marine is OctavianOS's second first-party desktop environment. Choose Marine or keep the established Aurora Wayland Glass Desktop identity. Other desktops appear here only when a compatible session is installed and verified.</p>
+<section class="choices" aria-label="Available desktop environments">
+<article class="choice" data-session="marine" aria-current="true"><div class="eyebrow">First-party · Prototype</div><h2>Marine Desktop</h2><p>A calm, ocean-inspired workspace concept with a unified panel, app launcher and system settings.</p><button type="button" data-select="marine">Select Marine</button></article>
+<article class="choice" data-session="aurora"><div class="eyebrow">First-party · Existing identity</div><h2>Aurora Wayland Glass Desktop</h2><p>The established glass desktop experience. Its branding and artwork contract remain unchanged.</p><button type="button" data-select="aurora">Select Aurora</button></article>
+<article class="choice" data-session="external"><div class="eyebrow">Optional · Requires integration</div><h2>Other desktops</h2><p>Linux/Unix sessions or Windows/macOS environments through an installed native port, VM, remote session or supported compatibility layer.</p><button type="button" data-select="external">View requirements</button></article>
+</section>
+<div class="note"><strong id="selection">Marine selected (prototype only).</strong><p id="detail">This page demonstrates selection UI. It does not launch a native desktop session or prove a compositor is installed.</p></div>
+<div class="footer">Session choices must be backed by installed manifests, architecture checks, dependency validation and a successful readiness probe.</div>
+</main>
+<script>
+(() => {
+ const status = document.getElementById('status');
+ const selection = document.getElementById('selection');
+ const detail = document.getElementById('detail');
+ const cards = [...document.querySelectorAll('[data-session]')];
+ const messages = {
+  marine: ['Marine selected (prototype only).','Marine Desktop is a design scaffold; native session launch is not wired yet.'],
+  aurora: ['Aurora selected (prototype only).','Aurora Wayland Glass Desktop keeps its existing identity. Native session launch requires the installed Aurora session manifest.'],
+  external: ['External desktop support requires integration.','Only show external desktops after installing and validating a native, virtualized, remote or compatibility-backed session.']
+ };
+ document.querySelectorAll('[data-select]').forEach(button => button.addEventListener('click', () => {
+  const id = button.dataset.select;
+  cards.forEach(card => card.setAttribute('aria-current', String(card.dataset.session === id)));
+  selection.textContent = messages[id][0];
+  detail.textContent = messages[id][1];
+  status.textContent = 'Prototype · no session launched';
+ }));
+})();
+</script>
+</body>
+</html>
