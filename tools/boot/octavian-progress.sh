@@ -38,7 +38,7 @@ write_state() {
   mv -f "$json_tmp" "$JSON_FILE"
 }
 case "$MODE" in
-  start) write_state 0 "${2:-Initializing}" "${3:-OctavianOS initialization started}" running ;;
+  start) rm -f "$STATE_FILE" "$JSON_FILE"; write_state 0 "${2:-Initializing}" "${3:-OctavianOS initialization started}" running ;;
   phase) [[ $# -ge 4 ]] || { echo "usage: $0 phase PERCENT PHASE MESSAGE" >&2; exit 2; }; write_state "$2" "$3" "$4" running ;;
   complete) write_state 100 "${2:-Ready}" "${3:-OctavianOS userspace is ready}" complete ;;
   fail) write_state "${2:-0}" "${3:-Failed}" "${4:-Initialization failed}" failed ;;
