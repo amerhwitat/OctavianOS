@@ -12,6 +12,22 @@ A GitHub Actions importer is being staged to preserve the source repository's br
 - Installer and recovery acceptance requires observable userspace execution in QEMU, not just payload classification.
 - ISA status must distinguish documented, cataloged, encoded/decoded, executed, and conformance-tested.
 
+## Runnable Chimera hosted runtime
+
+The vendored Chimera II hosted user-mode bridge is exposed through an OctavianOS entry point:
+
+```sh
+python3 tools/chimera/chimera-hosted info
+python3 tools/chimera/chimera-hosted compat list
+python3 tools/chimera/chimera-hosted isa
+python3 tools/chimera/chimera-hosted desktop-info
+python3 tools/chimera/chimera-hosted run --mode linux -- echo "hello from OctavianOS"
+```
+
+The hosted bridge runs as a process on the existing host OS; it is not a replacement kernel, full Windows/Linux syscall emulator, or bare-metal guest. CI smoke-tests its commands and configures the vendored native-toolchain CMake project. Those checks do not prove that Koronos boots, Aurora launches as a native compositor, or guest ISA backends are conformant.
+
+See [Chimera source integration and acceptance gates](docs/CHIMERA_SOURCE_INTEGRATION.md) for migration status, validation requirements, and the full-history import prerequisite. Full source-history import remains blocked until the repository owner configures the `OCTAVIANOS_IMPORT_TOKEN` secret with the documented least-privilege permissions and runs the import workflow.
+
 ## Native N-bit architecture
 
 The architectural target is an 8192-bit default *software-defined* native execution model, configurable to N bits. It requires explicit-width integer/register abstractions, architecture profiles, ABI and memory-layout rules, and checked adapters for physical ISA backends. An 8192-bit register model does not imply that x86-64, ARM64, or other physical CPUs directly execute 8192-bit instructions; physical backends must lower, emulate, or trap unsupported operations honestly.
