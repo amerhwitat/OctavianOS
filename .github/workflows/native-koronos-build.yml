@@ -14,9 +14,12 @@ on:
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
-      - 'vendor/chimera-ii-os/source/tools/aurora/**'
-      - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
-      - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
+
+
+
+
+
+
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
@@ -27,6 +30,9 @@ on:
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
+      - 'vendor/chimera-ii-os/source/tools/aurora/**'
+      - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
+      - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - '.github/workflows/native-koronos-build.yml'
 
