@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""OctavianOS entry point for the vendored Chimera II hosted runtime.
+
+This launches a user-mode bridge on the current host. It does not boot Koronos,
+emulate a guest ISA, or replace the host operating system.
+"""
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+RUNTIME = ROOT / "vendor" / "chimera-ii-os" / "source" / "tools" / "runtime" / "chimera-hosted.py"
+
+if not RUNTIME.is_file():
+    print(f"OctavianOS: vendored Chimera runtime is missing: {RUNTIME}", file=sys.stderr)
+    raise SystemExit(2)
+
+os.execv(sys.executable, [sys.executable, str(RUNTIME), *sys.argv[1:]])
