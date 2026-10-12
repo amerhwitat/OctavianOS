@@ -63,7 +63,7 @@ jobs:
               "scope": "source snapshot; not yet a compiled or runtime-integrated port",
               "history_preserved": False
           }
-          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\\n", encoding="utf-8")
+          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
           PY
           test "$file_count" -gt 100
           python3 -m json.tool vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json >/dev/null
