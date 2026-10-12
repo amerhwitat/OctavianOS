@@ -1,0 +1,40 @@
+name: OctavianOS QEMU target acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['kernel/**', 'build/iso-root/**', 'boot/**', 'tests/qemu/**', '.github/workflows/qemu-acceptance.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-targets:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [live-aurora, live-marine, installer, recovery, diagnostics, safe-mode]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require real ISO and QEMU
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 xorriso
+          test -s build/octavianos.iso || { echo 'Build a validated ISO before running QEMU acceptance.'; exit 2; }
+      - name: Boot target and collect serial logs
+        run: |
+          set -euo pipefail
+          mkdir -p build/qemu-logs
+          timeout 90s qemu-system-x86_64 -machine q35,accel=tcg -cpu max -m 2048 -smp 2 -cdrom build/octavianos.iso -boot d -display none -serial file:build/qemu-logs/${{ matrix.target }}.serial.log -no-reboot -no-shutdown || rc=$?
+          cat build/qemu-logs/${{ matrix.target }}.serial.log
+          test -s build/qemu-logs/${{ matrix.target }}.serial.log
+          grep -Eqi 'OCTAVIANOS_KERNEL_READY|OCTAVIANOS_USERSPACE_READY|OCTAVIANOS_INSTALLER_READY|OCTAVIANOS_RECOVERY_READY|OCTAVIANOS_DIAGNOSTICS_READY' build/qemu-logs/${{ matrix.target }}.serial.log || { echo 'No readiness marker observed'; exit 3; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qemu-serial-${{ matrix.target }}
+          path: build/qemu-logs/
+          if-no-files-found: ignore
+          retention-days: 30
