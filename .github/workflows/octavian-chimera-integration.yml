@@ -5,6 +5,7 @@ on:
     paths:
       - "vendor/chimera-ii-os/source/**"
       - "tools/chimera/**"
+      - "tools/migration/**"
       - "docs/CHIMERA_SOURCE_INTEGRATION.md"
       - "tests/migration/**"
       - ".github/workflows/octavian-chimera-integration.yml"
@@ -13,6 +14,7 @@ on:
     paths:
       - "vendor/chimera-ii-os/source/**"
       - "tests/migration/**"
+      - "tools/migration/**"
       - ".github/workflows/octavian-chimera-integration.yml"
   workflow_dispatch:
 
@@ -51,3 +53,36 @@ jobs:
         run: |
           echo "Hosted bridge and toolchain configuration passed."
           echo "This job does not claim Koronos boot, native GUI startup, or guest ISA conformance."
+
+  source-inventory:
+    name: Compare vendored source inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Check out current ChimeraIIOS source
+        uses: actions/checkout@v4
+        with:
+          repository: amerhwitat/ChimeraIIOS
+          ref: main
+          path: upstream-chimera
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test the inventory audit
+        run: python tests/migration/test_chimera_source_inventory.py
+      - name: Compare upstream and vendored file inventories
+        run: |
+          python tools/migration/chimera-source-inventory.py \
+            --upstream upstream-chimera \
+            --vendored vendor/chimera-ii-os/source \
+            --output reports/chimera-source-inventory.json
+      - name: Publish inventory report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-source-inventory
+          path: reports/chimera-source-inventory.json
+          if-no-files-found: warn
