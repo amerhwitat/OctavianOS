@@ -60,6 +60,13 @@ def main():
     require("not present in this ISO" in retro, "missing retro payload must be reported rather than booting an unrelated payload")
     require("configfile /boot/jasper/jasper.cfg" in spitfire, "Spit Fire must offer Jasper as the canonical target manager")
 
+    payload_contract = json.loads(read(ROOT / "boot/iso/target-payload-contract.json"))
+    require(payload_contract["status"] == "staging-contract-only", "payload manifest must not claim ISO assets are built")
+    require(payload_contract["targets"]["live-aurora"]["desktop"] == "chm.desktop=aurora", "Aurora payload contract is inconsistent")
+    require(payload_contract["targets"]["live-marine"]["desktop"] == "chm.desktop=marine", "Marine payload contract is inconsistent")
+    require("/install/installer/installation.img" in payload_contract["targets"]["installer"]["required"], "installer image is absent from staging contract")
+    require("/boot/recovery/chimera-recovery-initramfs.img" in payload_contract["targets"]["recovery"]["required"], "recovery payload is absent from staging contract")
+
     sessions = json.loads(read(ROOT / "boot/live/desktop-sessions.json"))
     session_ids = {s["id"] for s in sessions["sessions"]}
     require(session_ids == {"aurora", "marine"}, "desktop selection contract must define exactly Aurora and Marine")
