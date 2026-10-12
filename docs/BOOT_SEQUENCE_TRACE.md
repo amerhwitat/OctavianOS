@@ -50,7 +50,7 @@ The repository tracks boot configuration and the desktop-selection contract. The
 - Optional retro and rollback payloads
 - Aurora/Marine session executables and their session manifests
 
-The ISO staging/build pipeline must assert the required target-specific files exist and match hashes/architectures before packaging. Missing payloads should fail the build or show the menu's explicit failure message. Do not use the live initramfs as a substitute installer or claim that a desktop selection request proves a desktop is running.
+The source-level payload contract is tracked in `boot/iso/target-payload-contract.json`. The ISO staging/build pipeline must assert the required target-specific files exist and match hashes/architectures before packaging. Missing payloads should fail the build or show the menu's explicit failure message. Do not use the live initramfs as a substitute installer or claim that a desktop selection request proves a desktop is running.
 
 ## Koronos/userspace handoff gates
 
