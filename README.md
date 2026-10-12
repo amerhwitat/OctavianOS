@@ -27,4 +27,4 @@ Do not claim a target GUI or installer works until the boot menu target, staged 
 
 - [Migration runbook](docs/MIGRATION_RUNBOOK.md) — required GitHub token permissions and history-preserving import procedure.
 - [Boot target audit](docs/BOOT_TARGET_AUDIT.md) — source-level target-to-payload trace and QEMU acceptance gates.
-- [Native N-bit model](https://github.com/amerhwitat/OctavianOS/tree/octavianos/nbit-foundation/docs/architecture/NBIT_NATIVE_MODEL.md) — configurable register substrate, tests, and limitations.
+- [Native N-bit model](docs/architecture/NBIT_NATIVE_MODEL.md) — configurable register substrate, tests, and limitations.
