@@ -43,3 +43,7 @@ jobs:
         run: python3 tests/boot/test_installer_payload_routing.py
       - name: Test ISO payload validator
         run: python3 tests/boot/test_iso_payload_validator.py
+      - name: Test OctavianOS splash and progress contracts
+        run: python3 tests/boot/test_octavian_splash_progress.py
+      - name: Validate splash helper shell syntax
+        run: bash -n tools/boot/octavian-progress.sh tools/artwork/rebrand-init-video.sh
