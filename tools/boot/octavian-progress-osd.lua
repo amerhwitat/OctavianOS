@@ -21,8 +21,8 @@ local function render()
     local filled = math.floor(width * s.percent / 100)
     local bar = string.rep('━', filled) .. string.rep('─', width - filled)
     local text = string.format('OCTAVIANOS  |  %s\n%s %3d%%\n%s', s.phase, bar, s.percent, s.message)
-    mp.set_osd_ass(0, string.format('{\\an2\\fs24\\bord2\\shad1\\1c&HFFFFFF&\\3c&H30180A&}%s', text:gsub('[{}]', '')))
-    if s.status == 'complete' then mp.set_osd_ass(0, string.format('{\\an2\\fs24\\bord2\\shad1}OCTAVIANOS  |  READY\\N%s', s.message:gsub('[{}]', ''))) end
+    mp.set_osd_ass(0, 0, string.format('{\\an2\\fs24\\bord2\\shad1\\1c&HFFFFFF&\\3c&H30180A&}%s', text:gsub('[{}]', '')))
+    if s.status == 'complete' then mp.set_osd_ass(0, 0, string.format('{\\an2\\fs24\\bord2\\shad1}OCTAVIANOS  |  READY\\N%s', s.message:gsub('[{}]', ''))) end
 end
 mp.add_periodic_timer(0.25, render)
 render()
