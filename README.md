@@ -52,3 +52,5 @@ These HTML pages are interactive design prototypes, not native Wayland composito
 ## Boot target trace
 
 The source-level GRUB/Jasper routing graph is documented in [docs/BOOT_SEQUENCE_TRACE.md](docs/BOOT_SEQUENCE_TRACE.md), with the current status and runtime gates in [docs/BOOT_TARGET_AUDIT.md](docs/BOOT_TARGET_AUDIT.md). The boot-routing workflow parses tracked GRUB scripts and checks that every `configfile` edge resolves to a tracked config. Live CD menu entries distinguish Aurora Wayland Glass Desktop from Marine Desktop. These checks do not prove that generated ISO payloads are present or that Koronos executes userspace; ISO and QEMU acceptance remain required.
+
+The staged ISO payload validator is [tools/boot/validate_iso_payloads.py](tools/boot/validate_iso_payloads.py). Run it against an extracted or staged ISO tree before publishing: `python3 tools/boot/validate_iso_payloads.py --root <iso-root>`. It checks required target payloads, x86_64 ELF identity and Multiboot2 header checksum; it does not replace QEMU boot testing.
