@@ -1,0 +1,106 @@
+name: OctavianOS release artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag, for example v0.1.0-preview.1
+        required: true
+        type: string
+      publish:
+        description: Publish GitHub Release after all OS payload gates pass
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  container:
+    name: Build desktop companion container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and smoke-test web companion container
+        run: |
+          set -euo pipefail
+          docker build --pull -t octavianos-desktop-preview:ci .
+          cid="$(docker run -d -p 127.0.0.1:8080:80 octavianos-desktop-preview:ci)"
+          trap 'docker logs "$cid" || true; docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do if curl --fail --silent http://127.0.0.1:8080/ -o /tmp/container-index.html; then break; fi; sleep 1; done
+          grep -q 'OctavianOS' /tmp/container-index.html
+          docker save octavianos-desktop-preview:ci | gzip -1 > octavianos-desktop-preview-docker.tar.gz
+          sha256sum octavianos-desktop-preview-docker.tar.gz > octavianos-desktop-preview-docker.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-desktop-preview-container
+          path: |
+            octavianos-desktop-preview-docker.tar.gz
+            octavianos-desktop-preview-docker.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  iso:
+    name: Build and validate actual OS ISO
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require imported kernel and userspace payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(kernel/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
+          missing=0
+          for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
+          if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
+      - name: Validate staged payloads
+        run: |
+          python3 tools/boot/validate_iso_payloads.py --root build/iso-root
+          python3 tools/release/validate_release_inputs.py --root build/iso-root
+      - name: Build bootable ISO
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools dosfstools
+          mkdir -p build/iso-root/boot/grub
+          cp boot/iso/grub.cfg build/iso-root/boot/grub/grub.cfg
+          xorriso -as mkisofs -r -V OCTAVIANOS -o octavianos-release.iso -J -joliet-long -l build/iso-root
+          test -s octavianos-release.iso
+          sha256sum octavianos-release.iso > octavianos-iso.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-release-iso
+          path: |
+            octavianos-release.iso
+            octavianos-iso.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+    needs: [container, iso]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: octavianos-*
+          path: release-assets
+          merge-multiple: true
+      - name: Publish ISO and Docker image tarball
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then tag="$INPUT_VERSION"; fi
+          test -n "$tag"
+          test -s release-assets/octavianos-release.iso
+          test -s release-assets/octavianos-desktop-preview-docker.tar.gz
+          gh release create "$tag" release-assets/octavianos-release.iso release-assets/octavianos-iso.sha256 release-assets/octavianos-desktop-preview-docker.tar.gz release-assets/octavianos-desktop-preview-docker.tar.gz.sha256 --repo "$GITHUB_REPOSITORY" --title "OctavianOS $tag" --notes "ISO publication is gated on real native kernel, Live, installer and recovery payloads. Docker image is the web desktop companion preview, not a virtual machine or replacement for the native OS."
