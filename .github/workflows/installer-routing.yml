@@ -1,0 +1,23 @@
+name: OctavianOS installer routing contract
+
+on:
+  push:
+    branches: [fix/installer-payload-routing]
+  pull_request:
+    paths:
+      - boot/iso/grub.cfg
+      - boot/jasper/install.cfg
+      - boot/jasper/jasper.cfg
+      - tests/boot/test_installer_payload_routing.py
+      - .github/workflows/installer-routing.yml
+
+permissions:
+  contents: read
+
+jobs:
+  static-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate installer target routing
+        run: python3 tests/boot/test_installer_payload_routing.py
