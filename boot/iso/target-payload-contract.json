@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "contract": "octavianos.iso.target-payloads",
+  "status": "staging-contract-only",
+  "architecture": "x86_64",
+  "kernel": {
+    "path": "/boot/koronos/koronos.elf",
+    "format": "ELF",
+    "required": true,
+    "note": "The ISO builder must validate ELF architecture and the Multiboot2 entry contract."
+  },
+  "targets": {
+    "live-aurora": {
+      "required": [
+        "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/live-manifest.json",
+        "/boot/live/desktop-sessions.json"
+      ],
+      "mode": "chm.mode=live",
+      "desktop": "chm.desktop=aurora",
+      "expected_session": "Aurora Wayland Glass Desktop"
+    },
+    "live-marine": {
+      "required": [
+        "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/live-manifest.json",
+        "/boot/live/desktop-sessions.json"
+      ],
+      "mode": "chm.mode=live",
+      "desktop": "chm.desktop=marine",
+      "expected_session": "Marine Desktop"
+    },
+    "installer": {
+      "required": [
+        "/install/installer/installation.img",
+        "/install/installer/installation-manifest.json",
+        "/install/installer/installer-contract.json",
+        "/install/installer/installation_phases.json",
+        "/install/installer/installer_profiles.json"
+      ],
+      "mode": "chm.mode=installer"
+    },
+    "recovery": {
+      "required": [
+        "/boot/recovery/chimera-recovery-initramfs.img",
+        "/boot/recovery/recovery-manifest.json"
+      ],
+      "mode": "chm.mode=recovery"
+    },
+    "diagnostics": {
+      "required": [
+        "/boot/recovery/chimera-recovery-initramfs.img",
+        "/boot/recovery/recovery-manifest.json"
+      ],
+      "mode": "chm.mode=diagnostics"
+    },
+    "safe-mode": {
+      "required": [
+        "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/live-manifest.json"
+      ],
+      "mode": "chm.mode=safe chm.graphics=basic"
+    }
+  },
+  "optional_targets": {
+    "retro": [
+      "/boot/retro/retro-initramfs.img",
+      "/boot/retro/retro-manifest.json"
+    ],
+    "last-known-good": [
+      "/boot/rollback/rollback-initramfs.img",
+      "/boot/rollback/rollback-manifest.json"
+    ]
+  },
+  "packaging_rules": [
+    "Every required target file must exist in the staged ISO before publishing it.",
+    "Verify SHA-256 hashes, size limits, format, and architecture for kernel and payloads.",
+    "A required missing or invalid payload fails the build; optional targets must display their unavailable message.",
+    "Never substitute Live payloads for installer, recovery, rollback, or retro payloads.",
+    "The presence of this manifest is not evidence that any listed binary is built or staged."
+  ]
+}
