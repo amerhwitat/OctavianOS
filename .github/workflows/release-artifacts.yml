@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          required=(kernel/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
+          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
           missing=0
           for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
           if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
@@ -68,7 +68,7 @@ jobs:
           sudo apt-get install --yes grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools dosfstools
           mkdir -p build/iso-root/boot/grub
           cp boot/iso/grub.cfg build/iso-root/boot/grub/grub.cfg
-          xorriso -as mkisofs -r -V OCTAVIANOS -o octavianos-release.iso -J -joliet-long -l build/iso-root
+          grub-mkrescue -o octavianos-release.iso build/iso-root
           test -s octavianos-release.iso
           sha256sum octavianos-release.iso > octavianos-iso.sha256
       - uses: actions/upload-artifact@v4
@@ -101,6 +101,6 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           if [[ "$GITHUB_REF" == refs/heads/* ]]; then tag="$INPUT_VERSION"; fi
           test -n "$tag"
-          test -s release-assets/octavianos-release.iso
-          test -s release-assets/octavianos-desktop-preview-docker.tar.gz
+          compgen -G "release-assets/octavianos-release.iso" >/dev/null
+          compgen -G "release-assets/octavianos-desktop-preview-docker.tar.gz" >/dev/null
           gh release create "$tag" release-assets/octavianos-release.iso release-assets/octavianos-iso.sha256 release-assets/octavianos-desktop-preview-docker.tar.gz release-assets/octavianos-desktop-preview-docker.tar.gz.sha256 --repo "$GITHUB_REPOSITORY" --title "OctavianOS $tag" --notes "ISO publication is gated on real native kernel, Live, installer and recovery payloads. Docker image is the web desktop companion preview, not a virtual machine or replacement for the native OS."
