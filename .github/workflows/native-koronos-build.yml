@@ -9,6 +9,7 @@ on:
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
