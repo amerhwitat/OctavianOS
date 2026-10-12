@@ -37,3 +37,13 @@ The top-level GRUB installer menu now routes to `/boot/jasper/install.cfg` rathe
 - Change: [PR #2](https://github.com/amerhwitat/OctavianOS/pull/2) — merged.
 - Static regression CI: [installer routing workflow](https://github.com/amerhwitat/OctavianOS/actions/workflows/installer-routing.yml).
 - Remaining: import full source/assets, rebuild ISO, validate staged file paths, execute the installer userspace, and observe the Aurora Installer GUI-ready marker in QEMU. Static menu checks do not prove these runtime stages.
+
+
+## Desktop environments and artwork
+
+- [Aurora Wayland Glass Desktop prototype](desktop/aurora-wayland-glass/index.html) — macOS-inspired global menu bar, glass windows and centered dock. Aurora's product name and existing artwork contract remain unchanged.
+- [Marine Desktop prototype](desktop/marine/index.html) — Windows-style centered taskbar, Start menu, desktop shortcuts and ocean wallpaper.
+- [Wallpaper catalog and license notes](desktop/artwork/README.md) — remote Unsplash image sources, attribution, license references and offline packaging requirements.
+- [Desktop layout and session contract](docs/DESKTOP_ENVIRONMENTS.md) — native/compatibility/VM/remote session boundaries.
+
+These HTML pages are interactive design prototypes, not native Wayland compositors or proof that session launch works. The current wallpapers are remotely hosted; offline ISO packaging must import, checksum, and stage approved assets through the existing artwork contract. Static contract tests are in `tests/desktop/` and run through the Desktop artwork and layout contracts workflow.
