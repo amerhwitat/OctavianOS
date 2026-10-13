@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 ovmf busybox-static cpio ffmpeg imagemagick unzip
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -179,25 +179,48 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
-      - name: Boot the complete ISO and require Koronos readiness
+      - name: Boot the complete ISO in BIOS and UEFI modes
         working-directory: vendor/chimera-ii-os/source
         run: |
-          set -euo pipefail
+          set -uo pipefail
           smoke=build/qemu-smoke
+          iso=boot/iso/dist/output.iso
           mkdir -p "$smoke"
+          test -s "$iso"
+          # Fail early on missing handoff assets, and retain the actual staged menu for diagnosis.
+          test -s boot/iso/dist/iso/boot/grub/grub.cfg
+          test -s boot/iso/dist/iso/boot/koronos/koronos.elf
+          test -s boot/iso/dist/iso/boot/live/chimera-live-initramfs.img
+          grep -q '3840x2160' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q '1024x768' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q '640x480' boot/iso/dist/iso/boot/grub/grub.cfg
+          cp boot/iso/dist/iso/boot/grub/grub.cfg "$smoke/staged-grub.cfg"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$iso" -boot d -display none -serial "file:$smoke/full-iso-bios-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-bios-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-bios-qemu.log"
+          bios_status=$?
+          cp /usr/share/OVMF/OVMF_VARS.fd "$smoke/OVMF_VARS.fd"
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd -drive if=pflash,format=raw,file="$smoke/OVMF_VARS.fd" -cdrom "$iso" -boot order=d -display none -serial "file:$smoke/full-iso-uefi-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-uefi-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-uefi-qemu.log"
+          uefi_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
-          cat "$smoke/full-iso-debugcon.log"
-          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
-      - name: Upload full ISO QEMU trace
+          echo "BIOS QEMU exit: $bios_status; UEFI QEMU exit: $uefi_status"
+          for mode in bios uefi; do
+            trace="$smoke/full-iso-$mode-debugcon.log"
+            if ! grep -Fq '[KRN ] KORONOS READY' "$trace" 2>/dev/null; then
+              echo "::error::$mode ISO boot did not reach the Koronos readiness marker"
+              [[ -f "$smoke/full-iso-$mode-serial.log" ]] && tail -100 "$smoke/full-iso-$mode-serial.log" || true
+              [[ -f "$smoke/full-iso-$mode-qemu.log" ]] && tail -100 "$smoke/full-iso-$mode-qemu.log" || true
+              exit 1
+            fi
+          done
+      - name: Upload full ISO QEMU traces and staged boot contract
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: octavianos-full-iso-qemu-trace
-          path: vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+          name: octavianos-full-iso-qemu-traces
+          path: |
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-*
+            vendor/chimera-ii-os/source/build/qemu-smoke/staged-grub.cfg
+            vendor/chimera-ii-os/source/build/qemu-smoke/OVMF_VARS.fd
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
