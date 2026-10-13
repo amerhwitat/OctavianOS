@@ -24,6 +24,8 @@ on:
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/Dockerfile'
+      - 'vendor/chimera-ii-os/source/tools/commands/install-command-providers.sh'
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
@@ -38,6 +40,11 @@ on:
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
+      - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
+      - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/Dockerfile'
+      - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - '.github/workflows/native-koronos-build.yml'
 
 permissions:
