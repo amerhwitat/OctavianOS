@@ -21,6 +21,11 @@ on:
 
 
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
+      - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/rootfs/usr/share/chimera/commands/chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/rootfs/usr/sbin/chimera-cpu-mode'
+      - 'vendor/chimera-ii-os/source/rootfs/etc/chimera/commands/registry.tsv'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
@@ -40,6 +45,11 @@ on:
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
+      - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/rootfs/usr/share/chimera/commands/chimera-cpu-mode.py'
+      - 'vendor/chimera-ii-os/source/rootfs/usr/sbin/chimera-cpu-mode'
+      - 'vendor/chimera-ii-os/source/rootfs/etc/chimera/commands/registry.tsv'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
