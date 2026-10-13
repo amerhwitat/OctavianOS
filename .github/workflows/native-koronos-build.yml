@@ -205,6 +205,9 @@ jobs:
           grep -q 'configfile /boot/installation/menu.cfg' boot/iso/dist/iso/boot/grub/grub.cfg
           grep -q 'module2 /install/installer/installation.img chimera-installation-image' boot/iso/dist/iso/boot/jasper/install.cfg
           grep -q 'Mobile boot is unavailable in this build' boot/iso/dist/iso/boot/grub/grub.cfg
+          for cfg in boot/iso/grub.cfg boot/jasper/jasper.cfg boot/jasper/live.cfg boot/jasper/install.cfg boot/installation/menu.cfg boot/spitfire/spitfire-menu.cfg; do
+            grub-script-check "$cfg"
+          done
           cp boot/iso/dist/iso/boot/grub/grub.cfg "$smoke/staged-grub.cfg"
           set +e
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$iso" -boot d -display none -serial "file:$smoke/full-iso-bios-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-bios-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-bios-qemu.log"
