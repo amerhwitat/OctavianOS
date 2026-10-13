@@ -209,8 +209,15 @@ jobs:
           set +e
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$iso" -boot d -display none -serial "file:$smoke/full-iso-bios-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-bios-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-bios-qemu.log"
           bios_status=$?
-          cp /usr/share/OVMF/OVMF_VARS.fd "$smoke/OVMF_VARS.fd"
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd -drive if=pflash,format=raw,file="$smoke/OVMF_VARS.fd" -cdrom "$iso" -boot order=d -display none -serial "file:$smoke/full-iso-uefi-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-uefi-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-uefi-qemu.log"
+          ovmf_code="$(find /usr/share -type f -iname 'OVMF_CODE*.fd' -print -quit)"
+          ovmf_vars="$(find /usr/share -type f -iname 'OVMF_VARS*.fd' -print -quit)"
+          if [[ -z "$ovmf_code" || -z "$ovmf_vars" ]]; then
+            echo "::error::OVMF firmware files are missing; installed package contents:"
+            dpkg -L ovmf || true
+            exit 1
+          fi
+          cp "$ovmf_vars" "$smoke/OVMF_VARS.fd"
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -drive if=pflash,format=raw,readonly=on,file="$ovmf_code" -drive if=pflash,format=raw,file="$smoke/OVMF_VARS.fd" -cdrom "$iso" -boot order=d -display none -serial "file:$smoke/full-iso-uefi-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-uefi-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-uefi-qemu.log"
           uefi_status=$?
           set -e
           echo "BIOS QEMU exit: $bios_status; UEFI QEMU exit: $uefi_status"
