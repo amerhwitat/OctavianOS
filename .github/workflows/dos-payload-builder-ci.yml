@@ -1,0 +1,34 @@
+name: DOS online payload policy
+on:
+  push:
+    paths:
+      - 'vendor/chimera-ii-os/source/tools/commands/dos-payload-builder.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/test-dos-payload-builder.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/dos-legacy-payload-manifest.json'
+      - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
+      - '.github/workflows/dos-payload-builder-ci.yml'
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/tools/commands/dos-payload-builder.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/test-dos-payload-builder.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/dos-legacy-payload-manifest.json'
+      - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
+      - '.github/workflows/dos-payload-builder-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-dos-payload-builder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Validate manifest and script syntax
+        run: |
+          python3 -m json.tool vendor/chimera-ii-os/source/tools/commands/dos-legacy-payload-manifest.json >/dev/null
+          python3 -m py_compile vendor/chimera-ii-os/source/tools/commands/dos-payload-builder.py vendor/chimera-ii-os/source/tools/commands/test-dos-payload-builder.py
+          bash -n vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh
+      - name: Test license gates and safe archive extraction
+        run: python3 vendor/chimera-ii-os/source/tools/commands/test-dos-payload-builder.py -v
