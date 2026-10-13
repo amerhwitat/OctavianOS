@@ -34,4 +34,4 @@ jobs:
       - name: Test ISA refresh schema without network
         run: |
           python3 tools/isa/refresh_isa_catalog.py --self-test
-          python3 -m unittest vendor/chimera-ii-os/source/tools/isa/test_refresh_isa_catalog.py -v
+          python3 vendor/chimera-ii-os/source/tools/isa/test_refresh_isa_catalog.py -v
