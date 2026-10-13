@@ -8,6 +8,7 @@
   "scope": "source snapshot; not yet a compiled or runtime-integrated port",
   "history_preserved": false,
   "local_port_modifications": [
-    "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation"
+    "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation",
+    "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness."
   ]
 }
