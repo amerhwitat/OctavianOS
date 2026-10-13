@@ -31,6 +31,15 @@ on:
       - 'tools/commands/chimera-cpu-mode'
       - 'tools/commands/test-chimera-cpu-mode.py'
       - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
+      - 'tools/commands/chimera-dos-adapter.py'
+      - 'tools/commands/test-chimera-dos-adapter.py'
+      - 'tools/commands/DOS-COMPATIBILITY.md'
+      - 'tools/commands/dos-legacy-payload-manifest.json'
+      - 'tools/commands/dos-payload-builder.py'
+      - 'tools/commands/test-dos-payload-builder.py'
+      - 'tools/commands/DOS-ONLINE-PAYLOADS.md'
+      - 'tools/commands/install-command-providers.sh'
+      - 'boot/iso/prepare-layout.sh'
       - 'tools/commands/os-command-runtime.json'
       - 'tools/commands/test-cross-os-runtime.py'
       - 'tools/commands/README-cross-os-runtime.md'
@@ -120,6 +129,11 @@ jobs:
           python3 -m py_compile tools/commands/chimera-cpu-mode.py tools/commands/test-chimera-cpu-mode.py
           python3 tools/commands/test-cross-os-runtime.py -v
           python3 tools/commands/test-chimera-cpu-mode.py -v
+          python3 -m py_compile tools/commands/chimera-dos-adapter.py tools/commands/test-chimera-dos-adapter.py tools/commands/dos-payload-builder.py tools/commands/test-dos-payload-builder.py
+          python3 tools/commands/test-chimera-dos-adapter.py -v
+          python3 tools/commands/test-dos-payload-builder.py -v
+          python3 -m json.tool tools/commands/dos-legacy-payload-manifest.json >/dev/null
+          bash -n tools/commands/install-command-providers.sh boot/iso/prepare-layout.sh build-chimera-iso.sh
           cmp -s tools/commands/chimera-cpu-mode.py rootfs/usr/share/chimera/commands/chimera-cpu-mode.py
           bash -n rootfs/usr/sbin/chimera-cpu-mode
       - name: Validate generated command capability manifest
