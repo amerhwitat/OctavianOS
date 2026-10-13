@@ -191,9 +191,20 @@ jobs:
           test -s boot/iso/dist/iso/boot/grub/grub.cfg
           test -s boot/iso/dist/iso/boot/koronos/koronos.elf
           test -s boot/iso/dist/iso/boot/live/chimera-live-initramfs.img
+          test -s boot/iso/dist/iso/boot/live/live-manifest.json
+          test -s boot/iso/dist/iso/boot/recovery/chimera-recovery-initramfs.img
+          test -s boot/iso/dist/iso/boot/recovery/recovery-manifest.json
+          test -s boot/iso/dist/iso/install/installer/installation.img
+          test -s boot/iso/dist/iso/install/installer/installation-manifest.json
+          test -s boot/iso/dist/iso/install/installer/installer-contract.json
+          test -s boot/iso/dist/iso/install/installer/installation_phases.json
+          test -s boot/iso/dist/iso/install/installer/installer_profiles.json
           grep -q '3840x2160' boot/iso/dist/iso/boot/grub/grub.cfg
           grep -q '1024x768' boot/iso/dist/iso/boot/grub/grub.cfg
           grep -q '640x480' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q 'configfile /boot/installation/menu.cfg' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q 'module2 /install/installer/installation.img chimera-installation-image' boot/iso/dist/iso/boot/jasper/install.cfg
+          grep -q 'Mobile boot is unavailable in this build' boot/iso/dist/iso/boot/grub/grub.cfg
           cp boot/iso/dist/iso/boot/grub/grub.cfg "$smoke/staged-grub.cfg"
           set +e
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$iso" -boot d -display none -serial "file:$smoke/full-iso-bios-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-bios-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-bios-qemu.log"
