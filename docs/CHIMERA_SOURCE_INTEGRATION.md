@@ -29,7 +29,7 @@ This is a runnable hosted user-mode bridge, not a complete guest OS or a kernel 
 
 | Area | Current evidence | Remaining acceptance gate |
 |---|---|---|
-| Vendored source | Inventory CI previously found 2,433 vendored files versus 2,473 upstream files; the 40 reported missing paths have now been copied into the snapshot | Re-run inventory CI, review any remaining differences, verify content/provenance, and import Git history separately |
+| Vendored source | The strict sync job passed exact path and SHA-256 parity against upstream revision `48a6a51f1fe39c8f7f23c29abef9e91c50ea4375`; the validated snapshot is proposed in PR #29 | Merge the snapshot PR after CI passes, then repeat parity checks against the latest upstream revision |
 | Hosted runtime | CI exercises host info, compatibility listing, ISA inventory, alias translation and a safe built-in | Test supported host OS/CPU matrix and packaging |
 | Native toolchain | CI configures the vendored CMake project | Compile representative C/C++ artifacts and verify SDK/header install paths |
 | Koronos kernel | Kernel and boot sources are vendored | Build the real kernel and verify its ELF, entry contract and Multiboot2 header |
@@ -38,13 +38,13 @@ This is a runnable hosted user-mode bridge, not a complete guest OS or a kernel 
 | Aurora | Desktop assets/contracts are present in the source snapshot | Launch a real session and verify compositor, input, app-launch and safe fallback behavior |
 | ISA backends | Architecture/ISA inventories and tooling are present | Execute official conformance suites per backend; never infer execution from catalog rows |
 | Mobile / alternate architectures | Source and target contracts may be present | Build and boot per validated device/profile; x86-64 success does not prove ARM/mobile support |
-| Release | CI source-level checks are available | Rebuild ISO from the destination commit, verify SHA-256, boot test and publish only verified artifacts |
+| Release | A development prerelease ISO candidate exists at [native-iso-baa635daf41d](https://github.com/amerhwitat/OctavianOS/releases/tag/native-iso-baa635daf41d), with ISO, checksum, and CI boot report assets | Treat it as a development candidate only; repeat build/checksum/boot validation after the snapshot is merged and verify each target before a stable release |
 
 ## Automated source inventory audit
 
-The `source-inventory` CI job checks out the current public `amerhwitat/ChimeraIIOS` main branch beside the vendored snapshot, records the exact upstream Git revision, and publishes a JSON comparison as the `chimera-source-inventory` workflow artifact. It compares relative paths and SHA-256 hashes for matching files, and lists missing paths, extra paths, and content differences. Its first run found 40 missing paths (including SDK launchers, build orchestrators, tests, mobile build scripts, and Aurora emulator launchers); these paths were copied from upstream into the vendored tree in the follow-up import PR. The next CI report is the acceptance check for that copy. It lists files missing from the vendored tree and files present only in the vendored tree. The audit deliberately runs in report-only mode initially so repository layout differences are visible without misrepresenting them as a failed build.
+The `source-inventory` CI job checks out the current public `amerhwitat/ChimeraIIOS` main branch beside the vendored snapshot and publishes a JSON comparison artifact. It compares relative paths and SHA-256 hashes and records the exact upstream revision. The initial audit found 40 missing paths and a later content audit found 1,019 differing files. The automated sync job then copied the upstream tree and passed strict path/hash parity against revision `48a6a51f1fe39c8f7f23c29abef9e91c50ea4375`; that snapshot is proposed in PR #29. The integration workflow's separate inventory job remains report-oriented so intentional changes can be reviewed; the dedicated sync workflow is the strict gate.
 
-The SHA-256 comparison detects byte-level differences in regular files, but does not compare Git history, prove semantic equivalence, or establish a build/boot. CI currently runs in report-only mode so legitimate divergences can be reviewed before strict parity enforcement is enabled. The report records the source commit SHA so its comparison baseline is reproducible.
+A SHA-256 match proves byte-level parity for the checked regular files at that revision. It does not compare Git history, prove semantic equivalence, or establish a native build or boot.
 
 Run locally:
 
@@ -60,7 +60,7 @@ Add `--strict` to fail on any missing path, extra path, or content hash differen
 
 ## Full source history import
 
-The separate history importer requires the repository secret `OCTAVIANOS_IMPORT_TOKEN` with Contents and Workflows write permission. Configure it in GitHub repository settings, then run the **Import ChimeraIIOS source history** workflow. Never put a token in a commit, issue, chat, or workflow log. The importer is intentionally designed to preserve source history on `chimera-import/*` branches instead of overwriting OctavianOS `main`.
+The separate history importer requires the repository secret `OCTAVIANOS_IMPORT_TOKEN` with repository Contents and Workflows write permission (a classic PAT needs `repo` and `workflow` scopes). The source-sync workflow uses the same secret to create its PR because the initial run showed that repository Actions settings prohibit `GITHUB_TOKEN` from creating pull requests. Add the secret in GitHub Settings → Secrets and variables → Actions, then run **Import ChimeraIIOS source history** from Actions. Never put a token in a commit, issue, chat, or workflow log. The importer preserves upstream branches and tags under `chimera-import/*` instead of overwriting OctavianOS `main`.
 
 ## Canonical architecture flow
 

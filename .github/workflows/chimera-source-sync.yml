@@ -89,11 +89,21 @@ jobs:
           name: chimera-source-sync-report
           path: reports/chimera-source-inventory.json
           if-no-files-found: warn
+      - name: Require repository token for pull-request creation
+        if: success()
+        env:
+          SYNC_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SYNC_TOKEN}" ]; then
+            echo "::error::The source sync and history import both need OCTAVIANOS_IMPORT_TOKEN. Add it under Settings > Secrets and variables > Actions with Contents, Pull requests, and Workflows write permissions, or configure Actions settings to allow GITHUB_TOKEN to create pull requests and adapt this step accordingly."
+            exit 2
+          fi
       - name: Open source synchronization pull request
         if: success()
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
           branch: chore/chimera-source-sync
           delete-branch: true
           commit-message: "Sync vendored ChimeraIIOS source snapshot"
