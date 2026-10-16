@@ -3,7 +3,8 @@ name: Sync ChimeraIIOS source snapshot
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 4 * * *"
+    # Reconcile the public upstream several times daily; PRs are opened only when parity changes.
+    - cron: "23 */6 * * *"
   push:
     branches: [main]
     paths:
