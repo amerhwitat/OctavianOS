@@ -32,6 +32,40 @@ class SS64RootfsMappingTests(unittest.TestCase):
                 self.assertFalse((root / directory / "bad/name").exists())
                 self.assertFalse((root / directory / "../escape").exists())
 
+    def test_all_catalogued_linux_bash_names_are_reachable_from_bin_and_sbin(self):
+        # Exercise every valid Linux/Bash command mapped from the checked-in
+        # SS64 catalog, not just a small hand-picked sample.
+        repo_root = Path(__file__).resolve().parents[2]
+        catalog_path = repo_root / "system/commands/ss64-command-catalog.json"
+        if not catalog_path.is_file():
+            self.skipTest("checked-in SS64 command catalog is not present")
+        import json
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        names = []
+        for platform in catalog.get("platforms", {}).values():
+            if platform.get("index", "").rstrip("/").endswith("linux"):
+                names.extend(row.get("name", "") for row in platform.get("commands", []))
+            elif any(row.get("platform") == "linux_bash" for row in platform.get("commands", [])):
+                names.extend(row.get("name", "") for row in platform.get("commands", [])
+                             if row.get("platform") == "linux_bash")
+        names = sorted({name for name in names
+                        if isinstance(name, str) and
+                        __import__("re").fullmatch(r"[A-Za-z0-9_.+-]+", name)})
+        self.assertTrue(names, "SS64 catalog yielded no valid Linux/Bash command names")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "usr/bin").mkdir(parents=True)
+            for name in names:
+                (root / "usr/bin" / name).write_text("dispatcher", encoding="utf-8")
+            counts = MODULE.install_command_path_aliases(root, names)
+            self.assertEqual(counts, {"bin": len(names), "sbin": len(names)})
+            for name in names:
+                for directory in ("bin", "sbin"):
+                    path = root / directory / name
+                    self.assertTrue(path.exists() or path.is_symlink(), f"{directory}/{name}")
+                    self.assertEqual(path.resolve(), (root / "usr/bin" / name).resolve(),
+                                     f"incorrect {directory}/{name} target")
+
     def test_preserves_existing_files_and_links(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
