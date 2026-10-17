@@ -138,12 +138,16 @@ def write_json(path: Path, value: Any) -> None:
 
 
 def canonical_url(base: str, href: str) -> str:
-    from urllib.parse import urljoin, urlparse, urlunparse
+    from urllib.parse import quote, urljoin, urlparse, urlunparse
+
     absolute = urljoin(base, href)
     parsed = urlparse(absolute)
-    if parsed.scheme not in ("http", "https"):
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return ""
-    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+    # Encode spaces and unsafe path characters before opening the URL.
+    # Keep valid percent escapes and URL path delimiters intact.
+    safe_path = quote(parsed.path, safe="/%:@!$&'()*+,;=-._~")
+    return urlunparse((parsed.scheme, parsed.netloc, safe_path, "", "", ""))
 
 
 def candidate_name(label: str) -> str:

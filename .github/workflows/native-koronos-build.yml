@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 ovmf busybox-static cpio ffmpeg imagemagick unzip
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -179,25 +179,146 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
-      - name: Boot the complete ISO and require Koronos readiness
+      - name: Boot the complete ISO in BIOS and UEFI modes
         working-directory: vendor/chimera-ii-os/source
         run: |
-          set -euo pipefail
+          set -uo pipefail
           smoke=build/qemu-smoke
+          iso=boot/iso/dist/output.iso
           mkdir -p "$smoke"
+          test -s "$iso"
+          # Fail early on missing handoff assets, and retain the actual staged menu for diagnosis.
+          test -s boot/iso/dist/iso/boot/grub/grub.cfg
+          test -s boot/iso/dist/iso/boot/koronos/koronos.elf
+          test -s boot/iso/dist/iso/boot/live/chimera-live-initramfs.img
+          test -s boot/iso/dist/iso/boot/live/live-manifest.json
+          test -s boot/iso/dist/iso/boot/recovery/chimera-recovery-initramfs.img
+          test -s boot/iso/dist/iso/boot/recovery/recovery-manifest.json
+          test -s boot/iso/dist/iso/install/installer/installation.img
+          test -s boot/iso/dist/iso/install/installer/installation-manifest.json
+          test -s boot/iso/dist/iso/install/installer/installer-contract.json
+          test -s boot/iso/dist/iso/install/installer/installation_phases.json
+          test -s boot/iso/dist/iso/install/installer/installer_profiles.json
+          grep -q '3840x2160' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q '1024x768' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q '640x480' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q 'configfile /boot/installation/menu.cfg' boot/iso/dist/iso/boot/grub/grub.cfg
+          grep -q 'module2 /install/installer/installation.img chimera-installation-image' boot/iso/dist/iso/boot/jasper/install.cfg
+          grep -q 'Mobile boot is unavailable in this build' boot/iso/dist/iso/boot/grub/grub.cfg
+          for cfg in boot/iso/grub.cfg boot/jasper/jasper.cfg boot/jasper/live.cfg boot/jasper/install.cfg boot/installation/menu.cfg boot/spitfire/spitfire-menu.cfg; do
+            grub-script-check "$cfg"
+          done
+          cp boot/iso/dist/iso/boot/grub/grub.cfg "$smoke/staged-grub.cfg"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$iso" -boot d -display none -serial "file:$smoke/full-iso-bios-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-bios-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-bios-qemu.log"
+          bios_status=$?
+          # Prefer the non-Secure-Boot firmware pair, matching the disk image size.
+          ovmf_code="$(find /usr/share/OVMF -maxdepth 1 -type f -name 'OVMF_CODE_4M.fd' -print -quit)"
+          ovmf_vars="$(find /usr/share/OVMF -maxdepth 1 -type f -name 'OVMF_VARS_4M.fd' -print -quit)"
+          if [[ -z "$ovmf_code" || -z "$ovmf_vars" ]]; then
+            ovmf_code="$(find /usr/share/OVMF -maxdepth 1 -type f -name 'OVMF_CODE.fd' -print -quit)"
+            ovmf_vars="$(find /usr/share/OVMF -maxdepth 1 -type f -name 'OVMF_VARS.fd' -print -quit)"
+          fi
+          if [[ -z "$ovmf_code" || -z "$ovmf_vars" ]]; then
+            echo "::error::OVMF firmware files are missing; installed package contents:"
+            dpkg -L ovmf || true
+            exit 1
+          fi
+          cp "$ovmf_vars" "$smoke/OVMF_VARS.fd"
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -vga std -drive if=pflash,format=raw,readonly=on,file="$ovmf_code" -drive if=pflash,format=raw,file="$smoke/OVMF_VARS.fd" -cdrom "$iso" -boot order=d -display none -serial "file:$smoke/full-iso-uefi-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-uefi-debugcon.log" -global isa-debugcon.iobase=0xe9 -d guest_errors,cpu_reset -D "$smoke/full-iso-uefi-qemu.log"
+          uefi_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
-          cat "$smoke/full-iso-debugcon.log"
-          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
-      - name: Upload full ISO QEMU trace
+          echo "BIOS QEMU exit: $bios_status; UEFI QEMU exit: $uefi_status"
+          for mode in bios uefi; do
+            trace="$smoke/full-iso-$mode-debugcon.log"
+            if ! grep -Fq '[KRN ] KORONOS READY' "$trace" 2>/dev/null; then
+              echo "::error::$mode ISO boot did not reach the Koronos readiness marker"
+              [[ -f "$smoke/full-iso-$mode-serial.log" ]] && tail -100 "$smoke/full-iso-$mode-serial.log" || true
+              [[ -f "$smoke/full-iso-$mode-qemu.log" ]] && tail -100 "$smoke/full-iso-$mode-qemu.log" || true
+              exit 1
+            fi
+          done
+          # Test target routing through each possible top-level menu configuration, with GRUB output mirrored to serial.
+          original_cfg="$smoke/staged-grub.cfg"
+          if [[ ! -s "$original_cfg" ]]; then cp boot/iso/dist/iso/boot/grub/grub.cfg "$original_cfg"; fi
+          original_jasper_cfg="$smoke/original-jasper.cfg"
+          original_install_cfg="$smoke/original-installation-menu.cfg"
+          cp boot/iso/dist/iso/boot/jasper/jasper.cfg "$original_jasper_cfg"
+          cp boot/iso/dist/iso/boot/installation/menu.cfg "$original_install_cfg"
+          original_jasper_install_cfg="$smoke/original-jasper-install.cfg"
+          cp boot/iso/dist/iso/boot/jasper/install.cfg "$original_jasper_install_cfg"
+          for target in live install recovery; do
+            case "$target" in
+              live) main_index=0; jasper_index=0; install_index=0 ;;
+              install) main_index=2; jasper_index=1; install_index=1 ;;
+              recovery) main_index=5; jasper_index=2; install_index=0 ;;
+            esac
+            sed -E "s/^set default=.*/set default=$main_index/" "$original_cfg" > "$smoke/target-grub.cfg"
+            printf '\ninsmod serial\nserial --unit=0 --speed=115200\nterminal_output --append serial\n' >> "$smoke/target-grub.cfg"
+            cp "$smoke/target-grub.cfg" boot/iso/dist/iso/boot/grub/grub.cfg
+            cp "$smoke/target-grub.cfg" boot/iso/dist/iso/boot/jasper/grub.cfg
+            sed -E "s/^set default=.*/set default=$jasper_index/" "$original_jasper_cfg" > "$smoke/target-jasper.cfg"
+            printf '\ninsmod serial\nserial --unit=0 --speed=115200\nterminal_output --append serial\n' >> "$smoke/target-jasper.cfg"
+            cp "$smoke/target-jasper.cfg" boot/iso/dist/iso/boot/jasper/jasper.cfg
+            { printf 'set timeout=0\nset default=%s\n' "$install_index"; cat "$original_install_cfg"; printf '\ninsmod serial\nserial --unit=0 --speed=115200\nterminal_output --append serial\n'; } > "$smoke/target-installation-menu.cfg"
+            cp "$smoke/target-installation-menu.cfg" boot/iso/dist/iso/boot/installation/menu.cfg
+            if [[ "$target" == recovery ]]; then
+              cat > "$smoke/target-jasper-install.cfg" <<'EOF'
+          set timeout=0
+          set default=0
+          insmod normal
+          insmod multiboot2
+          insmod serial
+          serial --unit=0 --speed=115200
+          terminal_output --append serial
+          menuentry "QEMU recovery target" {
+            multiboot2 /boot/koronos/koronos.elf chm.log=verbose chm.progress=events
+            module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+            module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+            boot
+          }
+          EOF
+            else
+              sed -E "s/^set timeout=.*/set timeout=0/; s/^set default=.*/set default=$install_index/" "$original_jasper_install_cfg" > "$smoke/target-jasper-install.cfg"
+              printf '\ninsmod serial\nserial --unit=0 --speed=115200\nterminal_output --append serial\n' >> "$smoke/target-jasper-install.cfg"
+            fi
+            cp "$smoke/target-jasper-install.cfg" boot/iso/dist/iso/boot/jasper/install.cfg
+            grub-mkrescue -o "$smoke/target-$target.iso" boot/iso/dist/iso
+            set +e
+            timeout 15s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom "$smoke/target-$target.iso" -boot d -display none -serial "file:$smoke/target-$target-serial.log" -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/target-$target-debugcon.log" -global isa-debugcon.iobase=0xe9
+            target_status=$?
+            set -e
+            trace="$smoke/target-$target-debugcon.log"
+            grep -Fq '[KRN ] KORONOS READY' "$trace" || { echo "::error::$target menu did not reach Koronos (QEMU exit $target_status)"; tail -100 "$smoke/target-$target-serial.log" || true; exit 1; }
+            case "$target" in
+              live)
+                grep -Fq '[LIVE] Live initramfs module accepted' "$trace" || { echo "::error::Live menu loaded the wrong target payload"; tail -100 "$smoke/target-live-serial.log" || true; exit 1; }
+                grep -Fq 'USERSPACE NOT READY' "$trace" || { echo "::error::Live target must report the real userspace readiness boundary"; exit 1; }
+                ;;
+              install)
+                grep -Fq '[INST] Installer target detected' "$trace" || { echo "::error::Installer menu did not hand off installer modules"; tail -100 "$smoke/target-install-serial.log" || true; exit 1; }
+                grep -Fq 'installer userspace NOT READY' "$trace" || { echo "::error::Installer readiness was falsely reported"; exit 1; }
+                ;;
+              recovery)
+                grep -Fq '[RECV] Recovery initramfs and manifest accepted' "$trace" || { echo "::error::Recovery menu did not hand off recovery modules"; tail -100 "$smoke/target-recovery-serial.log" || true; exit 1; }
+                grep -Fq 'Recovery userspace NOT READY' "$trace" || { echo "::error::Recovery readiness was falsely reported"; exit 1; }
+                ;;
+            esac
+          done
+          cp "$original_cfg" boot/iso/dist/iso/boot/grub/grub.cfg
+          cp "$original_cfg" boot/iso/dist/iso/boot/jasper/grub.cfg
+          cp "$original_jasper_cfg" boot/iso/dist/iso/boot/jasper/jasper.cfg
+          cp "$original_install_cfg" boot/iso/dist/iso/boot/installation/menu.cfg
+          cp "$original_jasper_install_cfg" boot/iso/dist/iso/boot/jasper/install.cfg
+      - name: Upload full ISO QEMU traces and staged boot contract
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: octavianos-full-iso-qemu-trace
-          path: vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+          name: octavianos-full-iso-qemu-traces
+          path: |
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-*
+            vendor/chimera-ii-os/source/build/qemu-smoke/staged-grub.cfg
+            vendor/chimera-ii-os/source/build/qemu-smoke/OVMF_VARS.fd
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
