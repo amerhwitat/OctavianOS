@@ -77,6 +77,9 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip
+      - name: Test vendored SS64 command paths in /bin and /sbin
+        working-directory: vendor/chimera-ii-os/source
+        run: python3 -m unittest tools.commands.test_ss64_rootfs_mapping -v
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
