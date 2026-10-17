@@ -10,7 +10,7 @@ Usage:
 
 Options:
   -h, --help    Show this help and exit successfully.
-  --refresh-online-catalogs  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
+  --refresh-online-catalogs, --refresh-isa-catalog  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
@@ -200,7 +200,7 @@ DOS_FETCH_ON_BUILD="${CHIMERA_DOS_FETCH_ON_BUILD:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh-online-catalogs) REFRESH_ONLINE_CATALOGS=1; shift;;
+    --refresh-online-catalogs|--refresh-isa-catalog) REFRESH_ONLINE_CATALOGS=1; shift;;
     --sync-dos-payloads) DOS_FETCH_ON_BUILD=1; shift;;
     --docker-only) BUILD_ISO=0; shift;;
     --iso-only) BUILD_DOCKER=0; shift;;
@@ -1293,8 +1293,19 @@ rows=d.get("commands",[])
 names=[str(x.get("name","")).casefold() for x in rows]
 if not rows or len(names)!=len(set(names)): raise SystemExit("Command manifest empty or contains duplicate names")
 if any(not x.get("mode") or not x.get("provider") for x in rows): raise SystemExit("Command missing runtime/provider classification")
-if d.get("mode_counts",{}).get("native") != 15: raise SystemExit("Native command count differs from compiled multicall contract")
-print(f"[COMMANDS] catalogued={len(rows)} native={d['mode_counts'].get('native',0)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
+expected_native = {"pwd", "echo", "ls", "cp", "mv", "touch", "mkdir", "rm", "cat", "clear", "whoami", "hostname", "date", "true", "false"}
+actual_native = {str(x.get("name", "")).casefold() for x in rows if x.get("mode") == "native"}
+if actual_native != expected_native:
+    missing = sorted(expected_native - actual_native)
+    extra = sorted(actual_native - expected_native)
+    raise SystemExit(
+        "Native multicall contract mismatch: "
+        f"expected={len(expected_native)} actual={len(actual_native)} "
+        f"missing={missing} extra={extra}"
+    )
+if d.get("mode_counts",{}).get("native") != len(expected_native):
+    raise SystemExit("Native command mode_counts does not match the compiled multicall contract")
+print(f"[COMMANDS] catalogued={len(rows)} native={len(actual_native)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
 PYCOMMANDS
 }
 build_command_runtime(){

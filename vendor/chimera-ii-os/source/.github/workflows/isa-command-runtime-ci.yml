@@ -27,10 +27,10 @@ on:
       - 'tools/validate_isa_catalog.py'
       - 'tools/commands/generate_runtime_manifest.py'
       - 'tools/commands/chimera-run'
-      - 'tools/commands/chimera-cpu-mode.py'
-      - 'tools/commands/chimera-cpu-mode'
-      - 'tools/commands/test-chimera-cpu-mode.py'
-      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
+      - 'tools/commands/install-command-providers.sh'
+      - 'tools/commands/os-command-runtime.json'
+      - 'tools/commands/test-cross-os-runtime.py'
+      - 'tools/commands/README-cross-os-runtime.md'
       - 'tools/commands/chimera-dos-adapter.py'
       - 'tools/commands/test-chimera-dos-adapter.py'
       - 'tools/commands/DOS-COMPATIBILITY.md'
@@ -38,13 +38,13 @@ on:
       - 'tools/commands/dos-payload-builder.py'
       - 'tools/commands/test-dos-payload-builder.py'
       - 'tools/commands/DOS-ONLINE-PAYLOADS.md'
-      - 'tools/commands/install-command-providers.sh'
       - 'boot/iso/prepare-layout.sh'
-      - 'tools/commands/os-command-runtime.json'
-      - 'tools/commands/test-cross-os-runtime.py'
-      - 'tools/commands/README-cross-os-runtime.md'
       - 'build-chimera-iso.sh'
       - 'tools/commands/chimera-run'
+      - 'tools/commands/chimera-cpu-mode.py'
+      - 'tools/commands/chimera-cpu-mode'
+      - 'tools/commands/test-chimera-cpu-mode.py'
+      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
       - 'tools/commands/os-command-runtime.json'
       - 'tools/commands/test-cross-os-runtime.py'
       - 'tools/commands/README-cross-os-runtime.md'
@@ -74,6 +74,21 @@ on:
       - 'tools/isa/validate_isa_coverage.py'
       - 'tools/validate_isa_catalog.py'
       - 'tools/commands/generate_runtime_manifest.py'
+      - 'tools/commands/chimera-run'
+      - 'tools/commands/chimera-cpu-mode.py'
+      - 'tools/commands/chimera-cpu-mode'
+      - 'tools/commands/test-chimera-cpu-mode.py'
+      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
+      - 'tools/commands/os-command-runtime.json'
+      - 'tools/commands/test-cross-os-runtime.py'
+      - 'tools/commands/chimera-dos-adapter.py'
+      - 'tools/commands/test-chimera-dos-adapter.py'
+      - 'tools/commands/DOS-COMPATIBILITY.md'
+      - 'tools/commands/dos-legacy-payload-manifest.json'
+      - 'tools/commands/dos-payload-builder.py'
+      - 'tools/commands/test-dos-payload-builder.py'
+      - 'tools/commands/DOS-ONLINE-PAYLOADS.md'
+      - 'boot/iso/prepare-layout.sh'
       - 'system/commands/chimera-command-list.json'
       - 'system/commands/ss64-command-catalog.ar.json'
       - 'system/commands/ss64-command-catalog.json'
@@ -97,6 +112,7 @@ jobs:
         run: |
           bash -n build-chimera-iso.sh
           bash -n tools/build-chimera-command-compat.sh
+          bash -n tools/commands/install-command-providers.sh
       - name: Test RV32I encoder, decoder, and interpreter subset
         run: |
           python3 -m unittest tools/isa/test_riscv_codec.py -v
@@ -125,17 +141,17 @@ jobs:
       - name: Validate cross-OS command registry and runtime dispatcher
         run: |
           python3 -m json.tool tools/commands/os-command-runtime.json >/dev/null
-          python3 -m py_compile tools/commands/chimera-run tools/commands/generate_runtime_manifest.py tools/commands/test-cross-os-runtime.py
-          python3 -m py_compile tools/commands/chimera-cpu-mode.py tools/commands/test-chimera-cpu-mode.py
+          python3 -m py_compile tools/commands/chimera-run tools/commands/chimera-dos-adapter.py tools/commands/test-chimera-dos-adapter.py tools/commands/generate_runtime_manifest.py tools/commands/test-cross-os-runtime.py
           python3 tools/commands/test-cross-os-runtime.py -v
-          python3 tools/commands/test-chimera-cpu-mode.py -v
-          python3 -m py_compile tools/commands/chimera-dos-adapter.py tools/commands/test-chimera-dos-adapter.py tools/commands/dos-payload-builder.py tools/commands/test-dos-payload-builder.py
           python3 tools/commands/test-chimera-dos-adapter.py -v
-          python3 tools/commands/test-dos-payload-builder.py -v
-          python3 -m json.tool tools/commands/dos-legacy-payload-manifest.json >/dev/null
-          bash -n tools/commands/install-command-providers.sh boot/iso/prepare-layout.sh build-chimera-iso.sh
+          python3 -m py_compile tools/commands/chimera-cpu-mode.py tools/commands/test-chimera-cpu-mode.py
+          python3 tools/commands/test-chimera-cpu-mode.py -v
           cmp -s tools/commands/chimera-cpu-mode.py rootfs/usr/share/chimera/commands/chimera-cpu-mode.py
           bash -n rootfs/usr/sbin/chimera-cpu-mode
+          python3 -m json.tool tools/commands/dos-legacy-payload-manifest.json >/dev/null
+          python3 -m py_compile tools/commands/dos-payload-builder.py tools/commands/test-dos-payload-builder.py
+          python3 tools/commands/test-dos-payload-builder.py -v
+          bash -n boot/iso/prepare-layout.sh
       - name: Validate generated command capability manifest
         run: |
           python3 tools/commands/generate_runtime_manifest.py
