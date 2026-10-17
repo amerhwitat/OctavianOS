@@ -18,11 +18,15 @@ class SS64RootfsMappingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "usr/bin").mkdir(parents=True)
-            (root / "usr/bin/ls").write_text("provider", encoding="utf-8")
+            for name in ("ls", "grep", "Get-Process"):
+                (root / "usr/bin" / name).write_text("provider", encoding="utf-8")
             counts = MODULE.install_command_path_aliases(
                 root, ["ls", "grep", "Get-Process", "bad/name", "../escape", ""]
             )
             self.assertEqual(counts, {"bin": 3, "sbin": 3})
+            self.assertEqual(MODULE.validate_command_path_aliases(
+                root, ["ls", "grep", "Get-Process", "bad/name", "../escape", ""]
+            ), 3)
             for directory in ("bin", "sbin"):
                 for name in ("ls", "grep", "Get-Process"):
                     link = root / directory / name
@@ -31,6 +35,46 @@ class SS64RootfsMappingTests(unittest.TestCase):
                     self.assertEqual(link.resolve(), (root / "usr/bin" / name).resolve())
                 self.assertFalse((root / directory / "bad/name").exists())
                 self.assertFalse((root / directory / "../escape").exists())
+
+    def test_all_catalogued_linux_bash_names_are_reachable_from_bin_and_sbin(self):
+        # Exercise every valid Linux/Bash command mapped from the checked-in
+        # SS64 catalog, not just a small hand-picked sample.
+        repo_root = Path(__file__).resolve().parents[2]
+        catalog_path = repo_root / "system/commands/ss64-command-catalog.json"
+        if not catalog_path.is_file() or catalog_path.stat().st_size == 0:
+            self.skipTest("SS64 catalog is a generated build artifact and is not populated in this checkout")
+        import json
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        names = []
+        for platform in catalog.get("platforms", {}).values():
+            names.extend(row.get("name", "") for row in platform.get("commands", [])
+                         if row.get("platform") == "linux_bash")
+        names = sorted({name for name in names
+                        if isinstance(name, str) and
+                        __import__("re").fullmatch(r"[A-Za-z0-9_.+-]+", name)})
+        self.assertTrue(names, "SS64 catalog yielded no valid Linux/Bash command names")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "usr/bin").mkdir(parents=True)
+            for name in names:
+                (root / "usr/bin" / name).write_text("dispatcher", encoding="utf-8")
+            counts = MODULE.install_command_path_aliases(root, names)
+            self.assertEqual(counts, {"bin": len(names), "sbin": len(names)})
+            for name in names:
+                for directory in ("bin", "sbin"):
+                    path = root / directory / name
+                    self.assertTrue(path.exists() or path.is_symlink(), f"{directory}/{name}")
+                    self.assertEqual(path.resolve(), (root / "usr/bin" / name).resolve(),
+                                     f"incorrect {directory}/{name} target")
+
+    def test_validator_rejects_missing_or_dangling_command_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "bin").mkdir()
+            (root / "sbin").mkdir()
+            (root / "bin/missing").symlink_to("../usr/bin/missing")
+            with self.assertRaisesRegex(RuntimeError, "SS64 command paths missing or dangling"):
+                MODULE.validate_command_path_aliases(root, ["missing"])
 
     def test_preserves_existing_files_and_links(self):
         with tempfile.TemporaryDirectory() as temp:
