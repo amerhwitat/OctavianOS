@@ -46,11 +46,8 @@ class SS64RootfsMappingTests(unittest.TestCase):
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
         names = []
         for platform in catalog.get("platforms", {}).values():
-            if platform.get("index", "").rstrip("/").endswith("linux"):
-                names.extend(row.get("name", "") for row in platform.get("commands", []))
-            elif any(row.get("platform") == "linux_bash" for row in platform.get("commands", [])):
-                names.extend(row.get("name", "") for row in platform.get("commands", [])
-                             if row.get("platform") == "linux_bash")
+            names.extend(row.get("name", "") for row in platform.get("commands", [])
+                         if row.get("platform") == "linux_bash")
         names = sorted({name for name in names
                         if isinstance(name, str) and
                         __import__("re").fullmatch(r"[A-Za-z0-9_.+-]+", name)})
