@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - "runtime/commands/**"
+      - "runtime/isa/**"
+      - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
@@ -12,6 +15,9 @@ on:
   pull_request:
     paths:
       - "runtime/commands/**"
+      - "runtime/isa/**"
+      - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
@@ -39,6 +45,8 @@ jobs:
           python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
           python3 -m unittest discover -s tests/runtime -p test_command_candidates.py -v
+          python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/isa -p test_isa_candidate_router.py -v
+          python3 runtime/isa/isa_candidate_router.py "riscv add" --limit 10
           python3 runtime/commands/command_candidate_router.py "list files" --limit 10
           python3 - <<'PY'
           import json
