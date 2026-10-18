@@ -79,3 +79,12 @@ claim that the missing ELF loader, user address-space setup, or context-switch
 path has been implemented or that the ISO has been rebuilt and boot-tested.
 The exact log-emitting call site must be located before the success message can
 be safely corrected in code.
+
+
+## Follow-up implementation and acceptance gate (2026-10-18)
+
+- Kernel diagnostics now explicitly withhold userspace-ready status while process admission remains load-plan-only. Live and Installer paths report an unverified handoff rather than equating a queued module with an executing process.
+- Multiboot2 parsing now recognizes Recovery initramfs and manifest module kinds, and CI compiles a host regression test for Live/Recovery/Installer module classification.
+- The GRUB Install menu routes through Jasper's installer contract checks instead of selecting the Live initramfs under an Install label.
+- Native ISO CI requires the exact `USERSPACE READY: target=live init_pid=` marker before release publication. The current kernel intentionally does not emit it: a real address-space, saved-context, and ring-3 entry acknowledgement is still missing. A built ISO can remain a review artifact, but it must not be published as an accepted userspace release until this gate passes.
+- Next implementation remains page-table/address-space integration, PT_LOAD mapping/BSS, user stack, GDT/TSS and saved context, architecture-controlled ring-3 entry, and a real init acknowledgement. Installer and Recovery then need independent executed-userspace tests, including a real repair operation.
