@@ -58,7 +58,8 @@ jobs:
           PYTHONPATH: vendor/chimera-ii-os/source
         run: |
           python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
-          python3 -m py_compile vendor/chimera-ii-os/source/tools/cognition/local_llm.py vendor/chimera-ii-os/source/tools/cognition/test_local_llm.py vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py
+          python3 -m py_compile vendor/chimera-ii-os/source/tools/cognition/local_llm.py vendor/chimera-ii-os/source/tools/cognition/test_local_llm.py vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py
+          (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_trainable_rnn_lm -v)
           (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_local_llm -v)
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_command_candidate_router.py -v
@@ -66,6 +67,7 @@ jobs:
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/isa -p test_isa_candidate_router.py -v
           python3 vendor/chimera-ii-os/source/tools/isa/validate_rv32_machine_tested_subset.py
           python3 runtime/isa/isa_candidate_router.py "riscv add" --limit 10
+          python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
           python3 -m py_compile tools/runtime/stage_native_command_runtime.py tests/runtime/test_stage_native_command_runtime.py
           python3 -m unittest discover -s tests/runtime -p test_stage_native_command_runtime.py -v
           python3 runtime/commands/command_candidate_router.py "list files" --limit 10
