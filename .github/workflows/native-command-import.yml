@@ -51,7 +51,7 @@ jobs:
         run: python3 runtime/commands/import_candidates.py
       - name: Import source-backed ISA records for Octavian
         run: |
-          python3 vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py --output runtime/isa/riscv-opcodes.json --max-files 500
+          python3 vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py --output runtime/isa/riscv-opcodes.json --max-files 500 --allow-cached
           python3 vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py --database vendor/chimera-ii-os/source/isa/isa_database.json --input runtime/isa/riscv-opcodes.json --output runtime/isa/universal-instruction-catalog.json
       - name: Validate command safety and RNN fallback
         env:
