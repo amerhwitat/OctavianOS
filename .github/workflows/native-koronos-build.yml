@@ -208,6 +208,8 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # Kernel readiness is not userspace acceptance. Do not publish a release until a real init process reports its PID.
+          grep -Fq 'USERSPACE READY: target=live init_pid=' "$smoke/full-iso-debugcon.log" || { echo "::error::Koronos is ready but real Live userspace entry is NOT VERIFIED; refusing release publication."; exit 1; }
       - name: Upload full ISO QEMU trace
         if: always()
         uses: actions/upload-artifact@v4
