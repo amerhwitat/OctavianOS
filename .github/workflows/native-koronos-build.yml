@@ -170,7 +170,7 @@ jobs:
           m=d["metadata"]
           assert d["model_type"] == "trained-character-level-vanilla-RNN"
           assert m["training_sequences"] >= 100 and m["command_rows"] >= 1000 and m["isa_rows"] >= 1000
-          assert m["loss_first"] >= 0 and m["loss_last"] >= 0
+          assert m["loss_first"] >= 0 and m["loss_last"] >= 0 and m["loss_last"] < m["loss_first"], "training loss did not improve"
           print("RNN model metadata validated:", {k:m[k] for k in ("training_sequences","command_rows","isa_rows","epochs","loss_first","loss_last","corpus_sha256")})
           PY
       - name: Upload trained catalog RNN model
