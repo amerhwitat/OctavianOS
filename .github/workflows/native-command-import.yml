@@ -70,6 +70,10 @@ jobs:
           python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
           python3 -m py_compile tools/runtime/stage_native_command_runtime.py tests/runtime/test_stage_native_command_runtime.py
           python3 -m unittest discover -s tests/runtime -p test_stage_native_command_runtime.py -v
+          OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command "list files" --limit 5 --queue /tmp/octavian-command-pending.jsonl > /tmp/octavian-command-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/octavian-command-rnn.json
+          OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa "riscv add" --limit 5 --queue /tmp/octavian-isa-pending.jsonl > /tmp/octavian-isa-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/octavian-isa-rnn.json
           python3 runtime/commands/command_candidate_router.py "list files" --limit 10
           python3 - <<'PY'
           import json
