@@ -1,0 +1,945 @@
+{
+  "schema": "OCTAVIAN-NATIVE-COMMAND-CANDIDATES-1",
+  "policy": "Bootstrap catalog; CI imports the full source catalogs. Only the native allowlist is executable.",
+  "native_allowlist": [
+    "pwd",
+    "echo",
+    "ls",
+    "cp",
+    "mv",
+    "touch",
+    "mkdir",
+    "rm",
+    "cat",
+    "clear",
+    "whoami",
+    "hostname",
+    "date",
+    "true",
+    "false"
+  ],
+  "common_candidates": [
+    "printf",
+    "grep",
+    "find",
+    "head",
+    "tail",
+    "sort",
+    "wc",
+    "cut",
+    "tr",
+    "env",
+    "uname",
+    "id",
+    "ps",
+    "kill",
+    "chmod",
+    "chown",
+    "df",
+    "du",
+    "mount",
+    "umount",
+    "tar",
+    "gzip",
+    "sha256sum",
+    "curl",
+    "wget",
+    "git",
+    "python3",
+    "sh",
+    "bash",
+    "test",
+    "help",
+    "man",
+    "history",
+    "cd",
+    "exit",
+    "read",
+    "export",
+    "alias",
+    "which",
+    "command"
+  ],
+  "counts": {
+    "total": 55,
+    "native_implemented": 15,
+    "candidate_only": 40
+  },
+  "commands": [
+    {
+      "name": "alias",
+      "normalized_name": "alias",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "bash",
+      "normalized_name": "bash",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "cat",
+      "normalized_name": "cat",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "cd",
+      "normalized_name": "cd",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "chmod",
+      "normalized_name": "chmod",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "chown",
+      "normalized_name": "chown",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "clear",
+      "normalized_name": "clear",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "command",
+      "normalized_name": "command",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "cp",
+      "normalized_name": "cp",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "curl",
+      "normalized_name": "curl",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "cut",
+      "normalized_name": "cut",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "date",
+      "normalized_name": "date",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "df",
+      "normalized_name": "df",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "du",
+      "normalized_name": "du",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "echo",
+      "normalized_name": "echo",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "env",
+      "normalized_name": "env",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "exit",
+      "normalized_name": "exit",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "export",
+      "normalized_name": "export",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "false",
+      "normalized_name": "false",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "find",
+      "normalized_name": "find",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "git",
+      "normalized_name": "git",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "grep",
+      "normalized_name": "grep",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "gzip",
+      "normalized_name": "gzip",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "head",
+      "normalized_name": "head",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "help",
+      "normalized_name": "help",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "history",
+      "normalized_name": "history",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "hostname",
+      "normalized_name": "hostname",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "id",
+      "normalized_name": "id",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "kill",
+      "normalized_name": "kill",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "ls",
+      "normalized_name": "ls",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "man",
+      "normalized_name": "man",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "mkdir",
+      "normalized_name": "mkdir",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "mount",
+      "normalized_name": "mount",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "mv",
+      "normalized_name": "mv",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "printf",
+      "normalized_name": "printf",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "ps",
+      "normalized_name": "ps",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "pwd",
+      "normalized_name": "pwd",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "python3",
+      "normalized_name": "python3",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "read",
+      "normalized_name": "read",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "rm",
+      "normalized_name": "rm",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "sh",
+      "normalized_name": "sh",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "sha256sum",
+      "normalized_name": "sha256sum",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "sort",
+      "normalized_name": "sort",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "tail",
+      "normalized_name": "tail",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "tar",
+      "normalized_name": "tar",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "test",
+      "normalized_name": "test",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "touch",
+      "normalized_name": "touch",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "tr",
+      "normalized_name": "tr",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "true",
+      "normalized_name": "true",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    },
+    {
+      "name": "umount",
+      "normalized_name": "umount",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "uname",
+      "normalized_name": "uname",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "wc",
+      "normalized_name": "wc",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "wget",
+      "normalized_name": "wget",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "which",
+      "normalized_name": "which",
+      "status": "candidate-only",
+      "dispatch": "defer-to-runtime-learning",
+      "execution_allowed": false,
+      "platforms": [
+        "common-command-candidate"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": {
+        "state": "unresolved",
+        "queue": "octavian-runtime-rnn-command-candidates",
+        "policy": "RNN ranks evidence and proposes tests only; unknown commands are never executed."
+      }
+    },
+    {
+      "name": "whoami",
+      "normalized_name": "whoami",
+      "status": "native-implemented",
+      "dispatch": "octavian-native",
+      "execution_allowed": true,
+      "platforms": [
+        "octavian-native-implemented"
+      ],
+      "source_urls": [],
+      "arabic_label": null,
+      "learning": null
+    }
+  ]
+}
