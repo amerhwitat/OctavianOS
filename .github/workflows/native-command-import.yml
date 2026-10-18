@@ -56,6 +56,8 @@ jobs:
           PYTHONPATH: vendor/chimera-ii-os/source
         run: |
           python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
+          python3 -m py_compile vendor/chimera-ii-os/source/tools/cognition/local_llm.py vendor/chimera-ii-os/source/tools/cognition/test_local_llm.py vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py
+          (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_local_llm -v)
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_command_candidate_router.py -v
           python3 -m unittest discover -s tests/runtime -p test_command_candidates.py -v
