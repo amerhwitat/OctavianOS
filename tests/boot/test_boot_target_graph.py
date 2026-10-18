@@ -48,8 +48,10 @@ def main():
     require(aurora_block and "/boot/live/desktop-sessions.json" in aurora_block.group(1), "Aurora session manifest must be required and passed to Koronos")
     require(marine_block and "/boot/live/desktop-sessions.json" in marine_block.group(1), "Marine session manifest must be required and passed to Koronos")
     require("module2 /boot/live/desktop-sessions.json octavian-desktop-sessions" in grub, "top-level Live entries do not pass desktop-selection contract")
-    require("configfile /boot/jasper/install.cfg" in grub, "GRUB Install must route to the dedicated Jasper installer")
-    require("chimera-live-initramfs.img" not in re.search(r'menuentry[^\n]*--id install\s*\{(.*?)\n\}', grub, re.S).group(1), "Install menu must not substitute the live initramfs")
+    install_block = re.search(r'menuentry[^\n]*--id install\s*\{(.*?)\n\}', grub, re.S).group(1)
+    require("multiboot2 /boot/koronos/koronos.elf" in install_block, "GRUB Install must boot Koronos directly")
+    require("module2 /install/installer/installation.img chimera-installation-image" in install_block, "GRUB Install must pass the installer image")
+    require("chimera-live-initramfs.img" not in install_block, "Install menu must not substitute the live initramfs")
 
     for item in ("chm.desktop=aurora", "chm.desktop=marine"):
         require(item in live, f"Live menu is missing desktop profile {item}")
