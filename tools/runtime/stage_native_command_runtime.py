@@ -19,6 +19,7 @@ def stage(target):
  copy(VENDOR/"tools/cognition/local_llm.py",target/"usr/share/octavian/commands/local_llm.py")
  copy(VENDOR/"tools/cognition/trainable_rnn_lm.py",target/"usr/share/octavian/commands/trainable_rnn_lm.py")
  copy(ROOT/"runtime/cognition/trained-command-isa-rnn.json",target/"usr/share/octavian/cognition/trained-command-isa-rnn.json")
+ copy(ROOT/"runtime/cognition/runtime-capabilities.json",target/"usr/share/octavian/cognition/runtime-capabilities.json")
  copy(ROOT/"runtime/isa/universal-instruction-catalog.json",target/"usr/share/octavian/isa/universal-instruction-catalog.json")
  copy(VENDOR/"tools/isa/isa_candidate_router.py",target/"usr/share/octavian/isa/isa_candidate_router.py")
  copy(VENDOR/"tools/cognition/chimera_rnn.py",target/"usr/share/octavian/isa/chimera_rnn.py")
