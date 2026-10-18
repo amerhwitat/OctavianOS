@@ -148,6 +148,23 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/koronos-smoke.iso
           if-no-files-found: ignore
           retention-days: 7
+      - name: Train and validate catalog-grounded RNN language model
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/runtime/train_runtime_rnn.py vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py
+          python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json | tee /tmp/octavian-rnn-training.json
+          grep -q '"status": "trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json || grep -q '"status":"trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json
+          test -s runtime/cognition/trained-command-isa-rnn.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("runtime/cognition/trained-command-isa-rnn.json").read_text())
+          m=d["metadata"]
+          assert d["model_type"] == "trained-character-level-vanilla-RNN"
+          assert m["training_sequences"] >= 100 and m["command_rows"] >= 1000 and m["isa_rows"] >= 1000
+          assert m["loss_first"] >= 0 and m["loss_last"] >= 0
+          print("RNN model metadata validated:", {k:m[k] for k in ("training_sequences","command_rows","isa_rows","epochs","loss_first","loss_last","corpus_sha256")})
+          PY
       - name: Stage Octavian command and ISA learning runtime into native rootfs
         run: |
           set -euo pipefail
