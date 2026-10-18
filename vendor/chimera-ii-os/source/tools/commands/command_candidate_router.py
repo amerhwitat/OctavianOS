@@ -8,9 +8,11 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 try:
  from tools.cognition.chimera_rnn import RecurrentState
+ from tools.cognition.local_llm import rerank as local_llm_rerank
 except ModuleNotFoundError:
  sys.path.insert(0,str(Path(__file__).resolve().parent))
  from chimera_rnn import RecurrentState
+ from local_llm import rerank as local_llm_rerank
 CATALOG=Path(__file__).resolve().with_name("native-command-candidates.json")
 def rank(query,catalog,limit=10):
  tokens=set(re.findall(r"[a-z0-9_+.-]+",query.casefold()));out=[]
@@ -33,8 +35,12 @@ def queue_unresolved(query,catalog,queue_path):
  with queue_path.open("a",encoding="utf-8") as stream:stream.write(json.dumps(record,ensure_ascii=False)+"\n")
  return str(queue_path)
 def main():
- p=argparse.ArgumentParser();p.add_argument("query");p.add_argument("--limit",type=int,default=10);p.add_argument("--catalog",type=Path,default=CATALOG);p.add_argument("--queue",type=Path,default=Path.home()/".local/state/octavian/command-candidates.jsonl");a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument("query");p.add_argument("--limit",type=int,default=10);p.add_argument("--catalog",type=Path,default=CATALOG);p.add_argument("--queue",type=Path,default=Path.home()/".local/state/octavian/command-candidates.jsonl");p.add_argument("--llm",action="store_true",help="use a separately configured loopback local LLM to rerank candidates");a=p.parse_args()
  if not 1<=a.limit<=100:raise SystemExit("--limit must be 1..100")
- d=json.loads(a.catalog.read_text(encoding="utf-8"));queued=queue_unresolved(a.query,d,a.queue)
- print(json.dumps({"schema":"OCTAVIAN-RNN-COMMAND-ROUTER-1","engine":"deterministic recurrent-state ranker; not a trained LLM","query":a.query,"results":rank(a.query,d,a.limit),"queued_for_later":bool(queued),"queue_file":queued,"safety":"No command execution, downloads, privilege escalation, or invented implementation claims."},ensure_ascii=False,indent=2))
+ d=json.loads(a.catalog.read_text(encoding="utf-8"));results=rank(a.query,d,max(a.limit,min(100,len(d.get("commands",[])))));llm_meta={"mode":"deterministic-rnn","validated":False}
+ if a.llm:
+  candidates=[{"id":r["name"],"label":r["name"]+" | "+r["status"]} for r in results];ordered,llm_meta=local_llm_rerank(a.query,candidates,a.limit);by_name={r["name"]:r for r in results};results=[by_name[c["id"]] for c in ordered if c["id"] in by_name][:a.limit]
+ else:results=results[:a.limit]
+ queued=queue_unresolved(a.query,d,a.queue)
+ print(json.dumps({"schema":"OCTAVIAN-RNN-COMMAND-ROUTER-1","engine":"deterministic recurrent-state retrieval"+(" with constrained local LLM reranking" if a.llm else ""),"llm":llm_meta,"query":a.query,"results":results,"queued_for_later":bool(queued),"queue_file":queued,"safety":"No command execution, downloads, privilege escalation, or invented implementation claims."},ensure_ascii=False,indent=2))
 if __name__=="__main__":main()
