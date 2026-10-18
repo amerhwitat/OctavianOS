@@ -105,5 +105,6 @@ jobs:
             runtime/commands/native-command-candidates.json
             runtime/isa/riscv-opcodes.json
             runtime/isa/universal-instruction-catalog.json
+            runtime/cognition/trained-command-isa-rnn.json
           if-no-files-found: error
           retention-days: 30
