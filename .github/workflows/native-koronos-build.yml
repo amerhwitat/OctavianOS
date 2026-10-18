@@ -163,6 +163,7 @@ jobs:
           python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json | tee /tmp/octavian-rnn-training.json
           grep -q '"status": "trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json || grep -q '"status":"trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json
           test -s runtime/cognition/trained-command-isa-rnn.json
+          test -s runtime/cognition/runtime-capabilities.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -177,7 +178,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Octavian-Trained-Command-ISA-RNN-${{ github.sha }}
-          path: runtime/cognition/trained-command-isa-rnn.json
+          path: |
+            runtime/cognition/trained-command-isa-rnn.json
+            runtime/cognition/runtime-capabilities.json
           if-no-files-found: error
           retention-days: 30
       - name: Stage Octavian command and ISA learning runtime into native rootfs
@@ -212,6 +215,7 @@ jobs:
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/command_candidate_router.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/local_llm.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/cognition/trained-command-isa-rnn.json
+          test -s build/live-boot/initramfs/root/usr/share/octavian/cognition/runtime-capabilities.json
           test -s build/live-boot/initramfs/root/usr/share/octavian/isa/trainable_rnn_lm.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/isa/isa_candidate_router.py
           test -x build/live-boot/initramfs/root/usr/bin/octavian-learn-command
