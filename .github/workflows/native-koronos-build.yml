@@ -370,14 +370,15 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
-          # Kernel readiness is not userspace acceptance. Do not publish a release until a real init process reports its PID.
-          grep -Fq 'USERSPACE READY: target=live init_pid=' "$smoke/full-iso-debugcon.log" || { echo "::error::Koronos is ready but real Live userspace entry is NOT VERIFIED; refusing release publication."; exit 1; }
-      - name: Upload full ISO QEMU trace
+      - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: octavianos-full-iso-qemu-trace
-          path: vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+          path: |
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -401,38 +402,50 @@ jobs:
             vendor/chimera-ii-os/source/build/koronos/x86_64/symbols.txt
           if-no-files-found: error
           retention-days: 14
-      - name: Require actual userspace readiness for Live, Installer, and Recovery
-        if: always()
+
+  verify-userspace-handoff:
+    name: Verify real Live, Installer, and Recovery userspace
+    needs: build-koronos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OctavianOS verifier
+        uses: actions/checkout@v4
+      - name: Download Live, Installer, and Recovery QEMU traces
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-full-iso-qemu-trace
+          path: trace
+      - name: Require actual user-mode init acknowledgement for every target
         run: |
           set -euo pipefail
-          python3 tests/migration/verify-userspace-handoff.py live vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
-          python3 tests/migration/verify-userspace-handoff.py installer vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
-          python3 tests/migration/verify-userspace-handoff.py recovery vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
-      - name: Publish OctavianOS native ISO candidate to Releases
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log
+          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log
+          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log
+
+  publish-native-iso:
+    name: Publish prerelease only after userspace acceptance
+    needs: [build-koronos, verify-userspace-handoff]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download reviewed native ISO candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify checksum and publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
-        working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
-          iso=boot/iso/dist/output.iso
-          (cd boot/iso/dist && sha256sum -c output.iso.sha256)
+          cd dist
+          sha256sum -c output.iso.sha256
           tag="native-iso-${GITHUB_SHA::12}"
-          assets=(
-            "$iso"
-            "$iso.sha256"
-            boot/iso/dist/ISO-BOOT-REPORT-CI.txt
-          )
-          notes="Native x86_64 BIOS/UEFI ISO candidate built from OctavianOS commit $GITHUB_SHA and its vendored Chimera II OS source snapshot. CI validates the ISO boot records, checksum, and Koronos kernel readiness under QEMU. This is a development prerelease; it does not claim that Aurora desktop, installer completion, or all userspace services are fully validated."
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "${assets[@]}" --clobber
-            gh release edit "$tag" --draft=false --prerelease \
-              --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" \
-              --notes "$notes"
+            gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           else
-            gh release create "$tag" "${assets[@]}" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" \
-              --notes "$notes"
+            gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi
