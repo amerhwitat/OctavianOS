@@ -151,7 +151,8 @@ jobs:
       - name: Train and validate catalog-grounded RNN language model
         run: |
           set -euo pipefail
-          python3 -m py_compile tools/runtime/train_runtime_rnn.py vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py
+          python3 -m py_compile tools/runtime/train_runtime_rnn.py vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py tests/runtime/test_train_runtime_rnn.py
+          python3 -m unittest discover -s tests/runtime -p "test_train_runtime_rnn.py" -v
           python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json | tee /tmp/octavian-rnn-training.json
           grep -q '"status": "trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json || grep -q '"status":"trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json
           test -s runtime/cognition/trained-command-isa-rnn.json
@@ -172,6 +173,10 @@ jobs:
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/native-command-candidates.json
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/command_candidate_router.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/local_llm.py
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/trainable_rnn_lm.py
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/cognition/trained-command-isa-rnn.json
+          grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
+          grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/local_llm.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/universal-instruction-catalog.json
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
@@ -188,6 +193,8 @@ jobs:
           test -s "$recovery"
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/command_candidate_router.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/local_llm.py
+          test -s build/live-boot/initramfs/root/usr/share/octavian/cognition/trained-command-isa-rnn.json
+          test -s build/live-boot/initramfs/root/usr/share/octavian/isa/trainable_rnn_lm.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/isa/isa_candidate_router.py
           test -x build/live-boot/initramfs/root/usr/bin/octavian-learn-command
           test -s build/live-boot/initramfs/recovery/usr/share/octavian/commands/command_candidate_router.py
