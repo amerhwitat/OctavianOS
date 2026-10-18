@@ -179,10 +179,13 @@ jobs:
           bash boot/iso/build-iso.sh
           iso=boot/iso/dist/output.iso
           test -s "$iso"
+          test -s boot/iso/dist/iso/boot/koronos/user-init-live.elf
+          test -s boot/iso/dist/iso/boot/koronos/user-init-installer.elf
+          test -s boot/iso/dist/iso/boot/koronos/user-init-recovery.elf
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
-      - name: Boot the complete ISO and require Koronos readiness
+      - name: Boot the complete ISO and require real Live userspace readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
@@ -195,6 +198,10 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; echo "---- GRUB / serial trace ----"; cat "$smoke/full-iso-serial.log" || true; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          grep -Fq 'USERSPACE READY: live init pid=1' "$smoke/full-iso-debugcon.log" || { echo "::error::Koronos reached kernel readiness but real Live userspace was not dispatched (QEMU exit $qemu_status)"; exit 1; }
+          grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/full-iso-debugcon.log"
+          grep -Fq '[MM  ] Process page-table self-test passed' "$smoke/full-iso-debugcon.log"
+          grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$smoke/full-iso-debugcon.log"
       - name: Upload full ISO QEMU trace
         if: always()
         uses: actions/upload-artifact@v4
