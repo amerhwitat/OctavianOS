@@ -202,6 +202,31 @@ jobs:
           grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/full-iso-debugcon.log"
           grep -Fq '[MM  ] Process page-table self-test passed' "$smoke/full-iso-debugcon.log"
           grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$smoke/full-iso-debugcon.log"
+      - name: Boot Installer and Recovery entries from the full ISO tree
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          for target in installer recovery; do
+            tree="$smoke/iso-$target"
+            mkdir -p "$tree"
+            cp -a boot/iso/dist/iso/. "$tree/"
+            sed -i "s/^set default=0$/set default=$target/" "$tree/boot/grub/grub.cfg"
+            grep -q "^set default=$target$" "$tree/boot/grub/grub.cfg"
+            iso="$smoke/full-iso-$target.iso"
+            grub-mkrescue -o "$iso" "$tree"
+            log="$smoke/full-iso-$target-debugcon.log"
+            set +e
+            timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9
+            qemu_status=$?
+            set -e
+            cat "$log"
+            grep -Fq '[KRN ] KORONOS READY' "$log"
+            grep -Fq "USERSPACE READY: $target init pid=1" "$log" || { echo "::error::$target init handoff missing from full ISO (QEMU exit $qemu_status)"; exit 1; }
+            grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$log"
+            grep -Fq '[MM  ] Process page-table self-test passed' "$log"
+            grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$log"
+          done
       - name: Upload full ISO QEMU trace
         if: always()
         uses: actions/upload-artifact@v4
@@ -210,6 +235,8 @@ jobs:
           path: |
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-serial.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-installer-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-recovery-debugcon.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
