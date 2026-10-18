@@ -52,6 +52,13 @@ test -s "$KORONOS_ELF"
 command -v grub-file >/dev/null || { echo "grub-file is required." >&2; exit 2; }
 grub-file --is-x86-multiboot2 "$KORONOS_ELF"
 
+
+printf '%s\n' '[2/7] Build and link Spit Fire native stages'
+bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
+
+printf '%s\n' '[3/7] Prepare ISO tree'
+bash "$ISO_ROOT/prepare-layout.sh"
+
 # Stage target-specific ET_EXEC user-init probes built with this kernel.
 USER_INIT_DIR="$ROOT/build/koronos/x86_64"
 for target in live installer recovery; do
@@ -60,12 +67,6 @@ for target in live installer recovery; do
   readelf -h "$user_init" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $user_init is not ET_EXEC" >&2; exit 2; }
   install -m 0644 "$user_init" "$ROOT/boot/iso/dist/iso/boot/koronos/user-init-$target.elf"
 done
-
-printf '%s\n' '[2/7] Build and link Spit Fire native stages'
-bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
-
-printf '%s\n' '[3/7] Prepare ISO tree'
-bash "$ISO_ROOT/prepare-layout.sh"
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
