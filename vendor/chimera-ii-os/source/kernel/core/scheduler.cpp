@@ -103,12 +103,18 @@ extern "C" uint32_t chimera_sched_run_once(uint32_t cpu){
     unlock();
     return 1;
 }
-extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t cpu_count){
-    if(first_cpu>=cpus || cpu_count==0) return 0;
-    uint32_t end=first_cpu+cpu_count; if(end>cpus) end=cpus;
-    uint32_t ran=0;
-    for(uint32_t cpu=first_cpu;cpu<end;cpu++) ran+=chimera_sched_run_once(cpu);
+extern "C" uint32_t chimera_sched_run_serial_range(uint32_t first_cpu,uint32_t n){
+    lock();uint32_t total=cpus;unlock();
+    if(first_cpu>=total||n==0)return 0;
+    uint32_t end=first_cpu+n;if(end<first_cpu||end>total)end=total;
+    uint32_t ran=0;for(uint32_t cpu=first_cpu;cpu<end;cpu++)ran+=chimera_sched_run_once(cpu);
     return ran;
+}
+/* No architecture AP workers are online yet; do not disguise a serial loop
+ * as simultaneous execution on multiple CPUs. */
+extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
+    (void)first_cpu;(void)n;
+    return 0;
 }
 extern "C" void chimera_sched_yield(void){
     for(uint32_t cpu=0;cpu<cpus;cpu++){ lock(); int32_t i=current_index[cpu];
