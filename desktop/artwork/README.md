@@ -19,3 +19,7 @@ Both source pages identify the photos as free to use under the [Unsplash License
 Remote wallpapers require an internet connection and may be unavailable, changed, or rate-limited. For offline installer/live media, fetch the original image from its source page during a controlled asset-import step, verify the file and license, record its SHA-256 and attribution, and store it under the existing artwork contract. Do not reintroduce the obsolete aurora-background.jpg convention. The current change leaves the kernel/bootloader artwork pipeline untouched.
 
 Use responsive cover positioning and a dark translucent overlay so desktop icons remain legible. Provide a local fallback gradient when remote loading fails.
+
+## Original OctavianOS artwork
+
+The Aurora Wayland Glass Desktop prototype now uses the repository-local `../aurora/assets/octavian-octopus-aurora.svg` wallpaper instead of requiring a remote Unsplash image for its default background. The SVG is original project artwork; see `desktop/aurora/assets/octavian-artwork-manifest.json`. The Marine Desktop prototype's separate artwork remains unchanged.
