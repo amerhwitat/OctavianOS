@@ -19,6 +19,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
 
 
 
@@ -370,6 +371,13 @@ jobs:
             vendor/chimera-ii-os/source/build/koronos/x86_64/symbols.txt
           if-no-files-found: error
           retention-days: 14
+      - name: Require actual userspace readiness for Live, Installer, and Recovery
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 tests/migration/verify-userspace-handoff.py live vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+          python3 tests/migration/verify-userspace-handoff.py installer vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
+          python3 tests/migration/verify-userspace-handoff.py recovery vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
       - name: Publish OctavianOS native ISO candidate to Releases
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
