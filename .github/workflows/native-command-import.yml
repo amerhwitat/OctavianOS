@@ -12,6 +12,7 @@ on:
       - "vendor/chimera-ii-os/source/tools/isa/validate_rv32_machine_tested_subset.py"
       - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py"
+      - "vendor/chimera-ii-os/source/tests/isa/test_import_riscv_opcodes.py"
       - "vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
@@ -59,6 +60,7 @@ jobs:
         run: |
           python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
           python3 -m py_compile vendor/chimera-ii-os/source/tools/cognition/local_llm.py vendor/chimera-ii-os/source/tools/cognition/test_local_llm.py vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py
+          python3 -m unittest discover -s vendor/chimera-ii-os/source/tests/isa -p test_import_riscv_opcodes.py -v
           (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_trainable_rnn_lm -v)
           (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_local_llm -v)
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
