@@ -25,8 +25,8 @@ def stage(target):
  copy(VENDOR/"tools/cognition/local_llm.py",target/"usr/share/octavian/isa/local_llm.py")
  copy(VENDOR/"tools/cognition/trainable_rnn_lm.py",target/"usr/share/octavian/isa/trainable_rnn_lm.py")
  bindir=target/"usr/bin";bindir.mkdir(parents=True,exist_ok=True)
- (bindir/"octavian-learn-command").write_text("#!/bin/sh\nset -eu\ncommand -v python3 >/dev/null 2>&1 || { echo \"octavian-learn-command: Python 3 userspace runtime is not installed\" >&2; exit 127; }\nexec python3 /usr/share/octavian/commands/command_candidate_router.py \"$@\" --catalog /usr/share/octavian/commands/native-command-candidates.json\n",encoding="utf-8")
- (bindir/"octavian-learn-isa").write_text("#!/bin/sh\nset -eu\ncommand -v python3 >/dev/null 2>&1 || { echo \"octavian-learn-isa: Python 3 userspace runtime is not installed\" >&2; exit 127; }\nexec python3 /usr/share/octavian/isa/isa_candidate_router.py \"$@\" --catalog /usr/share/octavian/isa/universal-instruction-catalog.json\n",encoding="utf-8")
+ (bindir/"octavian-learn-command").write_text("#!/bin/sh\nset -eu\ncommand -v python3 >/dev/null 2>&1 || { echo \"octavian-learn-command: Python 3 userspace runtime is not installed\" >&2; exit 127; }\nexec python3 /usr/share/octavian/commands/command_candidate_router.py \"$@\" --catalog /usr/share/octavian/commands/native-command-candidates.json --rnn-model /usr/share/octavian/cognition/trained-command-isa-rnn.json\n",encoding="utf-8")
+ (bindir/"octavian-learn-isa").write_text("#!/bin/sh\nset -eu\ncommand -v python3 >/dev/null 2>&1 || { echo \"octavian-learn-isa: Python 3 userspace runtime is not installed\" >&2; exit 127; }\nexec python3 /usr/share/octavian/isa/isa_candidate_router.py \"$@\" --catalog /usr/share/octavian/isa/universal-instruction-catalog.json --rnn-model /usr/share/octavian/cognition/trained-command-isa-rnn.json\n",encoding="utf-8")
  (bindir/"octavian-learn-command").chmod(0o755);(bindir/"octavian-learn-isa").chmod(0o755)
 def main():
  for target in TARGETS:stage(target)
