@@ -418,10 +418,12 @@ jobs:
           path: trace
       - name: Require actual user-mode init acknowledgement for every target
         run: |
-          set -euo pipefail
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log
+          set -uo pipefail
+          result=0
+          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          exit "$result"
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
