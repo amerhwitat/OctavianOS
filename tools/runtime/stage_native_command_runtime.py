@@ -2,7 +2,7 @@
 """Stage Octavian's own command/ISA candidate catalogs and advisory RNN tools in rootfs."""
 from pathlib import Path
 import shutil
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 VENDOR=ROOT/"vendor/chimera-ii-os/source"
 ROOTFS=VENDOR/"rootfs"
 def copy(src,dst):
