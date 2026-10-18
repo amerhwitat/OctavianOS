@@ -1,0 +1,87 @@
+name: Octavian Native Desktop Suite Build
+
+on:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'boot/live/desktop-sessions.json'
+      - 'vendor/chimera-ii-os/source/desktop/**'
+      - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
+      - '.github/workflows/native-desktop-suite.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'boot/live/desktop-sessions.json'
+      - 'vendor/chimera-ii-os/source/desktop/**'
+      - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
+      - '.github/workflows/native-desktop-suite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-native-components:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3
+      - name: Validate Aurora and Marine session-selection contract
+        run: |
+          set -euo pipefail
+          python3 -m json.tool boot/live/desktop-sessions.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("boot/live/desktop-sessions.json").read_text())
+          assert data["default"] == "aurora"
+          sessions = {item["id"]: item for item in data["sessions"]}
+          assert sessions["aurora"]["name"] == "Aurora Wayland Glass Desktop"
+          assert sessions["marine"]["name"] == "Marine Desktop"
+          # Keep the UI honest until a real kernel userspace session launcher exists.
+          assert sessions["aurora"]["status"] == "prototype"
+          assert sessions["marine"]["status"] == "prototype"
+          for path in (
+              "desktop/aurora-wayland-glass/index.html",
+              "desktop/marine/index.html",
+              "desktop/aurora/assets/octavian-octopus-aurora.svg",
+              "desktop/aurora/assets/octavian-artwork-manifest.json",
+          ):
+              assert Path(path).is_file(), f"missing desktop source: {path}"
+          print("Desktop contracts valid; native session launch is not claimed.")
+          PY
+      - name: Compile shared native Aurora components from imported Chimera source
+        working-directory: vendor/chimera-ii-os/source
+        env:
+          CHIMERA_DESKTOP_BUILD_DIR: ${{ runner.temp }}/octavian-desktop
+        run: |
+          set -euo pipefail
+          bash tools/build-desktop-binaries.sh
+          out="$CHIMERA_DESKTOP_BUILD_DIR"
+          test -s "$out/bin/chm-utf8"
+          test -x "$out/bin/chm-utf8"
+          test -s "$out/bin/aurora-utf-selftest"
+          test -x "$out/bin/aurora-utf-selftest"
+          test -s "$out/aurora_input.o"
+          test -s "$out/aurora_input_router.o"
+          test -s "$out/aurora_locale.o"
+          test -s "$out/aurora_utf.o"
+          test -s "$out/aurora_emoji.o"
+          test -s "$out/chimera_icons.o"
+          "$out/bin/aurora-utf-selftest"
+          python3 -m json.tool "$out/manifests/desktop-build-manifest.json" >/dev/null
+      - name: Compile imported shell and desktop application targets
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          cmake -S . -B "${{ runner.temp }}/octavian-cmake" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 -j2
+      - name: Publish compiled native component bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-native-desktop-components
+          path: ${{ runner.temp }}/octavian-desktop/
+          if-no-files-found: error
+          retention-days: 14
