@@ -98,6 +98,12 @@ jobs:
           nm -a --defined-only build/koronos/x86_64/koronos.elf > build/koronos/x86_64/symbols.txt
           grep -q 'chimera_process_admit_elf' build/koronos/x86_64/symbols.txt
           grep -q 'chimera_sched_run_parallel' build/koronos/x86_64/symbols.txt
+      - name: Compile and run Multiboot2 live/recovery module classification tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/octavian-multiboot-modules-test
+          /tmp/octavian-multiboot-modules-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
         run: |
