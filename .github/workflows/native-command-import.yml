@@ -56,6 +56,7 @@ jobs:
         run: |
           python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
+          python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_command_candidate_router.py -v
           python3 -m unittest discover -s tests/runtime -p test_command_candidates.py -v
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/isa -p test_isa_candidate_router.py -v
           python3 runtime/isa/isa_candidate_router.py "riscv add" --limit 10
