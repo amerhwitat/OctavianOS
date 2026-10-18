@@ -7,6 +7,7 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
+      - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
@@ -156,6 +157,7 @@ jobs:
           python3 -m unittest discover -s tests/runtime -p "test_train_runtime_rnn.py" -v
           python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
           (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_trainable_rnn_lm -v && python3 -m unittest tools.isa.test_rv32i_execution_vectors -v)
+          (cd vendor/chimera-ii-os/source && python3 -m unittest tests/isa/test_import_riscv_opcodes.py -v)
           (cd vendor/chimera-ii-os/source && python3 tools/isa/validate_rv32_machine_tested_subset.py)
           python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json | tee /tmp/octavian-rnn-training.json
           grep -q '"status": "trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json || grep -q '"status":"trained-and-roundtrip-validated"' /tmp/octavian-rnn-training.json
