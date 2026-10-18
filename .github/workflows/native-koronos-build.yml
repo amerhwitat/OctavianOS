@@ -6,7 +6,7 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
-      - 'vendor/chimera-ii-os/source/tools/isa/**'
+      - 'vendor/chimera-ii-os/source/tools/isa/**'\n      - 'vendor/chimera-ii-os/source/tools/cognition/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
@@ -138,7 +138,7 @@ jobs:
           set -euo pipefail
           python3 tools/runtime/stage_native_command_runtime.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/native-command-candidates.json
-          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/command_candidate_router.py
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/command_candidate_router.py\n          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/local_llm.py\n          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/local_llm.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/universal-instruction-catalog.json
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
