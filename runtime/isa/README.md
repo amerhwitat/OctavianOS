@@ -9,3 +9,8 @@ The import workflow creates and commits:
 The advisory routers use the vendored deterministic recurrent-state research module to rank candidates. It is **not a trained LLM**. It does not invent opcode semantics, mark forms executable, install providers, or run unknown commands. The native ISO build stages the catalog and routers into `/usr/share/octavian/{commands,isa}` and adds `octavian-learn-command` and `octavian-learn-isa` entry points.
 
 Current acceptance separates catalog presence, encoding-source validation, decoder/interpreter support, conformance, native execution, and successful OS userspace boot. A successful catalog-import workflow is not proof that the full ISO reaches userspace-ready state.
+
+
+## Optional trained local LLM inference
+
+Both candidate routers accept `--llm`. This invokes an independently installed OpenAI-compatible model server only when explicitly requested. Set `CHIMERA_LLM_BASE_URL=http://127.0.0.1:8080/v1` and `CHIMERA_LLM_MODEL=<installed-model-id>`. The endpoint is restricted to loopback; remote URLs are rejected. Returned IDs are validated against the candidate allowlist and can only reorder results. Malformed output or an unavailable model falls back to deterministic retrieval. No model weights are bundled or claimed to be trained by this repository, and no candidate can become executable from LLM output alone.
