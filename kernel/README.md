@@ -47,3 +47,12 @@ Upstream: https://github.com/amerhwitat/ChimeraIIOS
 Use the dedicated `OCTAVIANOS_IMPORT_TOKEN` Actions secret only for the history
 importer. Do not place credentials in source or logs. Port code with provenance
 and license metadata; do not flatten all source repositories into one tree.
+
+
+## Architecture execution status — explicitly NOT VERIFIED (2026-10-18)
+
+The source-integration workflow passed, but it validates the vendored-source integration and host-side gates, not real ring-3 execution: https://github.com/amerhwitat/OctavianOS/actions/runs/39126424369
+
+Open implementation blockers inherited from the current Koronos source include hardware page-table enforcement for user/supervisor, RW, NX and W^X; process-owned address spaces and saved CPU contexts; user GDT selectors and TSS/RSP0; a validated CPL-3 syscall entry/return path; kernel-owned PID lookup and real exit/cleanup semantics; and architecture-level process scheduling. A passing verifier test cannot substitute for any of these.
+
+Do not mark the destination kernel as a native OctavianOS port merely because CI builds the vendored Chimera snapshot. Do not publish a release ISO until independent QEMU Live, Installer and Recovery runs demonstrate real init execution and target-specific behavior. Keep SMP and direct Koronos GUI claims separately gated.
