@@ -1,0 +1,58 @@
+name: Native command import and RNN candidate routing
+on:
+  push:
+    paths:
+      - "runtime/commands/**"
+      - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
+      - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
+      - "vendor/chimera-ii-os/source/system/commands/**"
+      - "tests/runtime/**"
+      - ".github/workflows/native-command-import.yml"
+  pull_request:
+    paths:
+      - "runtime/commands/**"
+      - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
+      - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
+      - "vendor/chimera-ii-os/source/system/commands/**"
+      - "tests/runtime/**"
+      - ".github/workflows/native-command-import.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  import-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Import all vendored command candidates into Octavian native registry
+        run: python3 runtime/commands/import_candidates.py
+      - name: Validate command safety and RNN fallback
+        env:
+          PYTHONPATH: vendor/chimera-ii-os/source
+        run: |
+          python3 -m py_compile runtime/commands/import_candidates.py runtime/commands/command_candidate_router.py vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py
+          python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_import_command_candidates.py -v
+          python3 -m unittest discover -s tests/runtime -p test_command_candidates.py -v
+          python3 runtime/commands/command_candidate_router.py "list files" --limit 10
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("runtime/commands/native-command-candidates.json").read_text(encoding="utf-8"))
+          assert d["counts"]["total"] == len(d["commands"])
+          assert d["counts"]["native_implemented"] == 15
+          assert d["counts"]["candidate_only"] > 1000
+          assert all(not x["execution_allowed"] for x in d["commands"] if x["status"] == "candidate-only")
+          print("Octavian native/candidate registry:", d["counts"])
+          PY
+      - name: Upload Octavian native command registry
+        uses: actions/upload-artifact@v4
+        with:
+          name: Octavian-Native-Command-Candidates-${{ github.sha }}
+          path: runtime/commands/native-command-candidates.json
+          if-no-files-found: error
+          retention-days: 30
