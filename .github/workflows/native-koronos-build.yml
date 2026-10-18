@@ -201,6 +201,38 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: QEMU recovery target routing smoke test (no repair claim)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke/recovery-tree/boot/grub"
+          cp -a boot/iso/dist/iso/. "$smoke/recovery-tree/"
+          sed -i 's/^set default=0$/set default=recovery/' "$smoke/recovery-tree/boot/grub/grub.cfg"
+          grub-mkrescue -o "$smoke/recovery-smoke.iso" "$smoke/recovery-tree"
+          set +e
+          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
+          grep -Fq '[REC ] Recovery initramfs module accepted' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
+          grep -Fq 'USERSPACE HANDOFF NOT VERIFIED' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+      - name: QEMU installer target routing smoke test (no disk writes)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke/installer-tree/boot/grub"
+          cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
+          sed -i 's/^set default=0$/set default=install/' "$smoke/installer-tree/boot/grub/grub.cfg"
+          grub-mkrescue -o "$smoke/installer-smoke.iso" "$smoke/installer-tree"
+          set +e
+          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
+          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
+          grep -Fq 'USERSPACE HANDOFF NOT VERIFIED' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
