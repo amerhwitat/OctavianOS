@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test fail-closed userspace handoff evidence verifier
+        run: python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
       - name: Install GRUB parser
         run: |
           sudo apt-get update
