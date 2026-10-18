@@ -46,10 +46,21 @@ def main():
   "model_scope":"small trained character-level RNN language model; not an LLM-scale model; advisory ranking only"}
  a.output.parent.mkdir(parents=True,exist_ok=True)
  model.save(a.output,metadata)
+ report={"schema":"OCTAVIAN-RUNTIME-COGNITION-CAPABILITIES-1","status":"staged-host-smoke-only",
+  "model_type":"trained-character-level-vanilla-RNN","model_file":a.output.name,"model_trained":True,
+  "training_sequences":len(rows),"command_rows":metadata["command_rows"],"isa_rows":metadata["isa_rows"],
+  "epochs":len(losses),"loss_first":losses[0],"loss_last":losses[-1],"corpus_sha256":digest,
+  "host_router_smoke_tested_in_ci":False,"in_os_execution_verified":False,"python3_required":True,
+  "kernel_userspace_ready_verified":False,
+  "blockers":["Koronos must provide a verified user process address space and ring-3 transition.",
+   "The target userspace must provide Python 3 or a native port of the RNN scorer.",
+   "Live, Installer, and Recovery each need an actual nonzero init PID readiness marker."],
+  "safety":"Advisory scoring only; model output never authorizes command execution or ISA conformance."}
+ (a.output.parent/"runtime-capabilities.json").write_text(json.dumps(report,indent=2)+"\\n",encoding="utf-8")
  loaded=CharRNN.load(a.output)
  if abs(loaded.score(rows[0])-model.score(rows[0]))>1e-8: raise SystemExit("trained model round-trip validation failed")
  print(json.dumps({"status":"trained-and-roundtrip-validated","model_type":"trained-character-level-vanilla-RNN",
   "training_sequences":len(rows),"command_rows":metadata["command_rows"],"isa_rows":metadata["isa_rows"],
   "vocabulary":len(chars),"hidden_size":a.hidden,"epochs":len(losses),"loss_first":losses[0],"loss_last":losses[-1],
-  "corpus_sha256":digest,"model":str(a.output)},ensure_ascii=False))
+  "corpus_sha256":digest,"model":str(a.output),"capabilities_report":str(a.output.parent/"runtime-capabilities.json")},ensure_ascii=False))
 if __name__=="__main__":main()
