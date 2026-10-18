@@ -238,10 +238,10 @@ jobs:
             test -s "$out" || { echo "ERROR: final ISO missing $path" >&2; exit 2; }
           done
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/visual/aurora-boot.png"
-          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/stages/spitfire/aurora-boot.png"
-          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/stages/jasper/aurora-boot.png"
-          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/stages/grub/aurora-boot.png"
-          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/stages/koronos/aurora-boot.png"
+          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/spitfire/aurora-boot.png"
+          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/jasper/aurora-boot.png"
+          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
+          cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
