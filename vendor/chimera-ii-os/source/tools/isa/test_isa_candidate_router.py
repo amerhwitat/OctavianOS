@@ -15,7 +15,9 @@ class ISACandidateRouterTests(unittest.TestCase):
    content=path.read_text(encoding="utf-8")
    row=json.loads(content.splitlines()[0])
    self.assertEqual(row["status"],"pending")
-   self.assertNotIn("private operand text",content)
+   self.assertNotIn("private",content)
+   self.assertNotIn("operand",content)
+   self.assertEqual(row["candidate_hint"],"z80")
  def test_known_riscv_candidate_is_not_queued(self):
   data={"instructions":[{"architecture":"riscv32/riscv64","mnemonic":"ADD","form_id":"fixture"}]}
   with tempfile.TemporaryDirectory() as tmp:
