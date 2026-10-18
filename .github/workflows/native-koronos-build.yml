@@ -15,6 +15,10 @@ on:
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
+      - 'vendor/chimera-ii-os/source/boot/iso/**'
+      - 'vendor/chimera-ii-os/source/boot/jasper/**'
+      - 'vendor/chimera-ii-os/source/boot/installation/**'
+      - 'tests/boot/**'
 
 
 
@@ -49,6 +53,10 @@ on:
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
+      - 'vendor/chimera-ii-os/source/boot/iso/**'
+      - 'vendor/chimera-ii-os/source/boot/jasper/**'
+      - 'vendor/chimera-ii-os/source/boot/installation/**'
+      - 'tests/boot/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
