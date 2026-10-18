@@ -24,7 +24,9 @@ class DesktopArtworkTests(unittest.TestCase):
         self.assertIn("Aurora Wayland Glass Desktop", page)
         self.assertIn("dockwrap", page)
         self.assertIn("global menu bar", page)
-        self.assertIn("images.unsplash.com/photo-1786335091902-eb0166246cbe", page)
+        self.assertIn("../aurora/assets/octavian-octopus-aurora.svg", page)
+        self.assertTrue((ROOT / "desktop/aurora/assets/octavian-octopus-aurora.svg").is_file())
+        self.assertTrue((ROOT / "desktop/aurora/assets/octavian-artwork-manifest.json").is_file())
 
     def test_marine_windows_style_layout_contract(self):
         page = (ROOT / "desktop/marine/index.html").read_text()
