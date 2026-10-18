@@ -11,13 +11,18 @@ from tools.cognition.trainable_rnn_lm import CharRNN
 def corpus_from(commands_path,isa_path):
  commands=json.loads(commands_path.read_text(encoding="utf-8"))
  isa=json.loads(isa_path.read_text(encoding="utf-8"))
- rows=[]
+ command_rows=[];isa_rows=[]
  for c in commands.get("commands",[]):
-  rows.append("command "+str(c.get("name",""))+" status "+str(c.get("status",""))+" provider "+str(c.get("provider",""))+" target "+str(c.get("target","")))
+  command_rows.append("command "+str(c.get("name",""))+" status "+str(c.get("status",""))+" provider "+str(c.get("provider",""))+" target "+str(c.get("target","")))
  for ins in isa.get("instructions",[]):
-  rows.append("instruction "+str(ins.get("architecture",""))+" "+str(ins.get("mnemonic",""))+" form "+str(ins.get("form_id",""))+" encoding "+str(ins.get("encoding_status",""))+" execution "+str(ins.get("execution_status","")))
- rows=[r[:160] for r in rows if len(r.strip())>=3]
- return rows,commands,isa
+  isa_rows.append("instruction "+str(ins.get("architecture",""))+" "+str(ins.get("mnemonic",""))+" form "+str(ins.get("form_id",""))+" encoding "+str(ins.get("encoding_status",""))+" execution "+str(ins.get("execution_status","")))
+ def sample(rows,limit=200):
+  rows=[r[:160] for r in rows if len(r.strip())>=3]
+  if len(rows)<=limit:return rows
+  return [rows[(i*(len(rows)-1))//(limit-1)] for i in range(limit)]
+ # Balanced, deterministic sample keeps CI training bounded while representing
+ # the full imported catalogs rather than training only on command rows.
+ return sample(command_rows)+sample(isa_rows),commands,isa
 
 def main():
  import argparse
