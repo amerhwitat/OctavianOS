@@ -177,6 +177,10 @@ jobs:
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/cognition/trained-command-isa-rnn.json
           grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
           grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
+          OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command "list files" --limit 5 --queue /tmp/octavian-command-pending.jsonl > /tmp/octavian-command-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/octavian-command-rnn.json
+          OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa "riscv add" --limit 5 --queue /tmp/octavian-isa-pending.jsonl > /tmp/octavian-isa-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/octavian-isa-rnn.json
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/local_llm.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/universal-instruction-catalog.json
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
