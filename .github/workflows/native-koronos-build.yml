@@ -32,6 +32,10 @@ on:
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/machine-code-pipeline-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-process-loader.yml'
+      - 'runtime/commands/**'
+      - 'runtime/isa/**'
+      - 'tools/runtime/**'
+      - 'tests/runtime/**'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
@@ -129,6 +133,15 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/koronos-smoke.iso
           if-no-files-found: ignore
           retention-days: 7
+      - name: Stage Octavian command and ISA learning runtime into native rootfs
+        run: |
+          set -euo pipefail
+          python3 tools/runtime/stage_native_command_runtime.py
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/native-command-candidates.json
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/command_candidate_router.py
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/universal-instruction-catalog.json
+          test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
+          test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
       - name: Build Live and Jasper recovery initramfs payloads
         working-directory: vendor/chimera-ii-os/source
         run: |
