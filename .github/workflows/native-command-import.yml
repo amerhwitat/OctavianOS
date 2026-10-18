@@ -8,6 +8,8 @@ on:
       - "tests/runtime/**"
       - "vendor/chimera-ii-os/source/tools/cognition/**"
       - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/isa/rv32-machine-tested-subset.json"
+      - "vendor/chimera-ii-os/source/tools/isa/validate_rv32_machine_tested_subset.py"
       - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py"
       - "vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py"
@@ -62,6 +64,7 @@ jobs:
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/commands -p test_command_candidate_router.py -v
           python3 -m unittest discover -s tests/runtime -p test_command_candidates.py -v
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/isa -p test_isa_candidate_router.py -v
+          python3 vendor/chimera-ii-os/source/tools/isa/validate_rv32_machine_tested_subset.py
           python3 runtime/isa/isa_candidate_router.py "riscv add" --limit 10
           python3 -m py_compile tools/runtime/stage_native_command_runtime.py tests/runtime/test_stage_native_command_runtime.py
           python3 -m unittest discover -s tests/runtime -p test_stage_native_command_runtime.py -v
