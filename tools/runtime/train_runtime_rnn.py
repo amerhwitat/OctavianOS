@@ -56,7 +56,7 @@ def main():
    "The target userspace must provide Python 3 or a native port of the RNN scorer.",
    "Live, Installer, and Recovery each need an actual nonzero init PID readiness marker."],
   "safety":"Advisory scoring only; model output never authorizes command execution or ISA conformance."}
- (a.output.parent/"runtime-capabilities.json").write_text(json.dumps(report,indent=2)+"\\n",encoding="utf-8")
+ (a.output.parent/"runtime-capabilities.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
  loaded=CharRNN.load(a.output)
  if abs(loaded.score(rows[0])-model.score(rows[0]))>1e-8: raise SystemExit("trained model round-trip validation failed")
  print(json.dumps({"status":"trained-and-roundtrip-validated","model_type":"trained-character-level-vanilla-RNN",
