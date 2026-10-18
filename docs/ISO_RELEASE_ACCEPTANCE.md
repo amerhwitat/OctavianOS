@@ -22,3 +22,15 @@ This checklist is fail-closed: source validation and a kernel-entry marker do no
 ## Current status
 
 The original Octopus Aurora SVG source and manifest are tracked in `desktop/aurora/assets/`. GRUB-stage rasterization and embedding of that artwork remain unverified by this source asset alone. Production Live/Aurora, Installer install/reboot, Recovery, installed-disk boot, and genuine SMP acceptance remain separate gates until real QEMU evidence is attached.
+
+
+## Firmware-stage artwork rendering
+
+The Octopus/Aurora SVG is the editable source artwork. Render a GRUB-friendly raster derivative with:
+
+```sh
+sudo apt-get install python3-cairosvg
+python3 tools/boot/render_boot_artwork.py --output build/boot-artwork/octavian-octopus-aurora.png
+```
+
+The `OctavianOS Boot Artwork` workflow validates the PNG signature and dimensions and uploads the generated file as a workflow artifact. This is only the rasterization step: a release builder must still copy the PNG to its boot-stage path, reference that path from the Jasper/GRUB configuration, and verify it exists in the extracted ISO. A workflow artifact or desktop SVG is not proof of ISO inclusion.
