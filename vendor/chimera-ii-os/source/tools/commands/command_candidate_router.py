@@ -30,7 +30,7 @@ def queue_unresolved(query,catalog,queue_path):
   "status":"pending","reason":"not an exact verified native command; provider/implementation evidence required",
   "created_at_utc":datetime.now(timezone.utc).isoformat()}
  queue_path.parent.mkdir(parents=True,exist_ok=True)
- with queue_path.open("a",encoding="utf-8") as stream:stream.write(json.dumps(record,ensure_ascii=False)+"\\n")
+ with queue_path.open("a",encoding="utf-8") as stream:stream.write(json.dumps(record,ensure_ascii=False)+"\n")
  return str(queue_path)
 def main():
  p=argparse.ArgumentParser();p.add_argument("query");p.add_argument("--limit",type=int,default=10);p.add_argument("--catalog",type=Path,default=CATALOG);p.add_argument("--queue",type=Path,default=Path.home()/".local/state/octavian/command-candidates.jsonl");a=p.parse_args()
