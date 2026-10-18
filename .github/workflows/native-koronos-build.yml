@@ -170,6 +170,13 @@ jobs:
           assert m["loss_first"] >= 0 and m["loss_last"] >= 0
           print("RNN model metadata validated:", {k:m[k] for k in ("training_sequences","command_rows","isa_rows","epochs","loss_first","loss_last","corpus_sha256")})
           PY
+      - name: Upload trained catalog RNN model
+        uses: actions/upload-artifact@v4
+        with:
+          name: Octavian-Trained-Command-ISA-RNN-${{ github.sha }}
+          path: runtime/cognition/trained-command-isa-rnn.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Stage Octavian command and ISA learning runtime into native rootfs
         run: |
           set -euo pipefail
