@@ -71,13 +71,16 @@ jobs:
           python3 vendor/chimera-ii-os/source/tools/isa/validate_rv32_machine_tested_subset.py
           python3 runtime/isa/isa_candidate_router.py "riscv add" --limit 10
           python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
-          python3 -m py_compile tools/runtime/stage_native_command_runtime.py tests/runtime/test_stage_native_command_runtime.py
+          python3 -m py_compile tools/runtime/stage_native_command_runtime.py tools/runtime/mark_runtime_smoke_tested.py tests/runtime/test_stage_native_command_runtime.py tests/runtime/test_mark_runtime_smoke_tested.py
           python3 -m unittest discover -s tests/runtime -p test_stage_native_command_runtime.py -v
+          python3 -m unittest discover -s tests/runtime -p test_mark_runtime_smoke_tested.py -v
           python3 tools/runtime/stage_native_command_runtime.py
           OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command "list files" --limit 5 --queue /tmp/octavian-command-pending.jsonl > /tmp/octavian-command-rnn.json
           grep -q '"mode": "trained-character-rnn"' /tmp/octavian-command-rnn.json
           OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa "riscv add" --limit 5 --queue /tmp/octavian-isa-pending.jsonl > /tmp/octavian-isa-rnn.json
           grep -q '"mode": "trained-character-rnn"' /tmp/octavian-isa-rnn.json
+          python3 tools/runtime/mark_runtime_smoke_tested.py runtime/cognition/runtime-capabilities.json
+          python3 tools/runtime/stage_native_command_runtime.py
           python3 runtime/commands/command_candidate_router.py "list files" --limit 10
           python3 - <<'PY'
           import json
