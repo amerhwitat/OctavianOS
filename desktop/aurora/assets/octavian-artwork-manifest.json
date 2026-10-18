@@ -1,0 +1,21 @@
+{
+  "schema": "OCTAVIANOS-ARTWORK-1",
+  "artworks": [
+    {
+      "path": "desktop/aurora/assets/octavian-octopus-aurora.svg",
+      "role": "desktop-wallpaper",
+      "title": "OctavianOS — Octopus Aurora",
+      "motifs": [
+        "bioluminescent octopus",
+        "aurora ribbons",
+        "deep-ocean horizon",
+        "glass-like interface atmosphere"
+      ],
+      "format": "SVG",
+      "origin": "original project artwork",
+      "license": "CC0-1.0",
+      "boot_rasterization_required": true
+    }
+  ],
+  "runtime_note": "The SVG is a source artwork asset. GRUB firmware-stage display requires a PNG/JPEG raster derivative to be generated and embedded by the ISO builder; this manifest does not claim that derivative is present."
+}
