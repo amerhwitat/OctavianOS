@@ -29,6 +29,7 @@ on:
       - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py"
+      - "vendor/chimera-ii-os/source/tests/isa/test_import_riscv_opcodes.py"
       - "vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
