@@ -52,6 +52,15 @@ test -s "$KORONOS_ELF"
 command -v grub-file >/dev/null || { echo "grub-file is required." >&2; exit 2; }
 grub-file --is-x86-multiboot2 "$KORONOS_ELF"
 
+# Stage target-specific ET_EXEC user-init probes built with this kernel.
+USER_INIT_DIR="$ROOT/build/koronos/x86_64"
+for target in live installer recovery; do
+  user_init="$USER_INIT_DIR/user-init-$target.elf"
+  test -s "$user_init" || { echo "ERROR: missing target user init: $user_init" >&2; exit 2; }
+  readelf -h "$user_init" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $user_init is not ET_EXEC" >&2; exit 2; }
+  install -m 0644 "$user_init" "$ROOT/boot/iso/dist/iso/boot/koronos/user-init-$target.elf"
+done
+
 printf '%s\n' '[2/7] Build and link Spit Fire native stages'
 bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
@@ -140,6 +149,9 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/koronos/user-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/koronos/user-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/koronos/user-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/iso/grub.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
