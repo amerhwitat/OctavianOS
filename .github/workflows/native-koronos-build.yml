@@ -161,6 +161,13 @@ jobs:
           test -s "$live"
           test -s build/live-boot/boot/live/live-manifest.json
           test -s "$recovery"
+          test -s build/live-boot/initramfs/root/usr/share/octavian/commands/command_candidate_router.py
+          test -s build/live-boot/initramfs/root/usr/share/octavian/commands/local_llm.py
+          test -s build/live-boot/initramfs/root/usr/share/octavian/isa/isa_candidate_router.py
+          test -x build/live-boot/initramfs/root/usr/bin/octavian-learn-command
+          test -s build/live-boot/initramfs/recovery/usr/share/octavian/commands/command_candidate_router.py
+          test -s build/live-boot/initramfs/recovery/usr/share/octavian/isa/isa_candidate_router.py
+          test -x build/live-boot/initramfs/recovery/usr/bin/octavian-learn-isa
           test -s build/live-boot/boot/recovery/recovery-manifest.json
           gzip -t "$live"
           gzip -t "$recovery"
