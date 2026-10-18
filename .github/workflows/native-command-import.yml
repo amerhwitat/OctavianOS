@@ -6,6 +6,8 @@ on:
       - "runtime/isa/**"
       - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py"
+      - "vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
@@ -18,6 +20,8 @@ on:
       - "runtime/isa/**"
       - "vendor/chimera-ii-os/source/tools/isa/isa_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/isa/test_isa_candidate_router.py"
+      - "vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py"
+      - "vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py"
       - "vendor/chimera-ii-os/source/tools/commands/import_command_candidates.py"
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
@@ -38,6 +42,10 @@ jobs:
           python-version: "3.x"
       - name: Import all vendored command candidates into Octavian native registry
         run: python3 runtime/commands/import_candidates.py
+      - name: Import source-backed ISA records for Octavian
+        run: |
+          python3 vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py --output runtime/isa/riscv-opcodes.json --max-files 500
+          python3 vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py --database vendor/chimera-ii-os/source/isa/isa_database.json --input runtime/isa/riscv-opcodes.json --output runtime/isa/universal-instruction-catalog.json
       - name: Validate command safety and RNN fallback
         env:
           PYTHONPATH: vendor/chimera-ii-os/source
@@ -62,7 +70,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add runtime/commands/native-command-candidates.json
+          git add runtime/commands/native-command-candidates.json runtime/isa/riscv-opcodes.json runtime/isa/universal-instruction-catalog.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(runtime): persist imported command candidates [catalog-bot]"
             git push
@@ -73,6 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Octavian-Native-Command-Candidates-${{ github.sha }}
-          path: runtime/commands/native-command-candidates.json
+          path: |
+            runtime/commands/native-command-candidates.json
+            runtime/isa/riscv-opcodes.json
+            runtime/isa/universal-instruction-catalog.json
           if-no-files-found: error
           retention-days: 30
