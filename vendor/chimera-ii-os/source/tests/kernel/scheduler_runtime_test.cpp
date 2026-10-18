@@ -39,5 +39,12 @@ int main(){
     for(int i=0;i<6;i++) assert(chimera_sched_run_once(0)==1);
     assert(fair_runs[0]>=2&&fair_runs[1]>=2&&fair_runs[2]>=2);
 
+    chimera_sched_init(2);
+    int serial_runs = 0;
+    auto serial_task = [](void *arg) { ++*static_cast<int *>(arg); };
+    assert(chimera_sched_submit(serial_task,&serial_runs,10)>0);
+    assert(chimera_sched_submit(serial_task,&serial_runs,10)>0);
+    assert(chimera_sched_run_parallel(0,2)==0 && serial_runs==0);
+    assert(chimera_sched_run_serial_range(0,2)==2 && serial_runs==2);
     puts("Koronos scheduler runtime: PASS"); return 0;
 }

@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'desktop/**'
+      - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
       - 'vendor/chimera-ii-os/source/desktop/**'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
