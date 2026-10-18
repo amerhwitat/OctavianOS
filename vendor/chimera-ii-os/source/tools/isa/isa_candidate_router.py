@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RNN-assisted ISA retrieval; catalog rows never imply executable support."""
+"""RNN-assisted retrieval over ISA catalog rows; never infers execution semantics."""
 from __future__ import annotations
 import argparse,hashlib,json,re,sys
 from datetime import datetime,timezone
@@ -13,17 +13,21 @@ except ModuleNotFoundError:
  sys.path.insert(0,str(Path(__file__).resolve().parent))
  from chimera_rnn import RecurrentState
  from local_llm import rerank as local_llm_rerank
-DEFAULT=Path(__file__).resolve().with_name("universal-instruction-catalog.json")
-def tokens(value):return set(re.findall(r"[a-z0-9_+.-]+",str(value).casefold()))
+DEFAULT=ROOT/"isa/generated/universal-instruction-catalog.json"
+def tokens(value): return set(re.findall(r"[a-z0-9_+.-]+",str(value).casefold()))
 def rank(query,catalog,limit=10):
- q=tokens(query);out=[]
+ q=tokens(query); recurrent=RecurrentState(24); out=[]
  for row in catalog.get("instructions",[]):
-  t=tokens(" ".join(str(row.get(k,"")) for k in ("architecture","mnemonic","form_id","source_ref","extensions")))
-  overlap=len(q&t)/max(1,len(q|t));state=RecurrentState(24)
-  h=state.step([overlap,float(row.get("encoding_status")=="sourced-mask-verified"),float(row.get("execution_status")=="conformance-tested")])
-  score=overlap+0.02*sum(h[:4])/4;out.append((score,row))
+  text=" ".join(str(row.get(k,"")) for k in ("architecture","mnemonic","form_id","source_ref","extensions"))
+  t=tokens(text); overlap=len(q&t)/max(1,len(q|t))
+  h=recurrent.step([overlap,float(row.get("encoding_status")=="sourced-mask-verified"),float(row.get("execution_status")=="conformance-tested")])
+  score=overlap+0.02*sum(h[:4])/4
+  out.append((score,row))
  out.sort(key=lambda x:(-x[0],x[1].get("architecture",""),x[1].get("mnemonic",""),x[1].get("form_id","")))
- return [{"architecture":r.get("architecture"),"mnemonic":r.get("mnemonic"),"form_id":r.get("form_id"),"encoding_status":r.get("encoding_status"),"execution_status":r.get("execution_status"),"source_ref":r.get("source_ref"),"score":round(s,6),"execution_allowed":False,"next_step":"verify architecture manual and conformance vectors before implementation"} for s,r in out[:limit]]
+ return [{"architecture":r.get("architecture"),"mnemonic":r.get("mnemonic"),"form_id":r.get("form_id"),
+  "encoding_status":r.get("encoding_status"),"execution_status":r.get("execution_status"),
+  "source_ref":r.get("source_ref"),"score":round(s,6),"execution_allowed":False,
+  "next_step":"verify architecture manual and conformance vectors before implementation"} for s,r in out[:limit]]
 def queue_unresolved(query,catalog,queue_path):
  q=tokens(query)
  found=any(all(t in " ".join(str(row.get(k,"")) for k in ("architecture","mnemonic","form_id")).casefold() for t in q) for row in catalog.get("instructions",[]))
@@ -34,12 +38,21 @@ def queue_unresolved(query,catalog,queue_path):
  with queue_path.open("a",encoding="utf-8") as stream:stream.write(json.dumps(record,ensure_ascii=False)+"\n")
  return str(queue_path)
 def main():
- p=argparse.ArgumentParser();p.add_argument("query");p.add_argument("--limit",type=int,default=10);p.add_argument("--catalog",type=Path,default=DEFAULT);p.add_argument("--queue",type=Path,default=Path.home()/".local/state/octavian/isa-candidates.jsonl");p.add_argument("--llm",action="store_true",help="use a separately configured loopback local LLM to rerank candidates");a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument("query");p.add_argument("--limit",type=int,default=10);p.add_argument("--catalog",type=Path,default=DEFAULT);p.add_argument("--queue",type=Path,default=Path.home()/".local/state/octavian/isa-candidates.jsonl");p.add_argument("--llm",action="store_true",help="use a separately configured loopback local LLM to rerank candidates");p.add_argument("--rnn-model",type=Path,help="optional trained character-RNN JSON model for candidate ranking");a=p.parse_args()
  if not 1<=a.limit<=100:raise SystemExit("--limit must be 1..100")
- d=json.loads(a.catalog.read_text(encoding="utf-8"));results=rank(a.query,d,max(a.limit,min(100,len(d.get("instructions",[])))));llm_meta={"mode":"deterministic-rnn","validated":False}
+ data=json.loads(a.catalog.read_text(encoding="utf-8"));results=rank(a.query,data,max(a.limit,min(100,len(data.get("instructions",[])))));llm_meta={"mode":"deterministic-rnn","validated":False}
+ if a.rnn_model:
+  try:
+   from tools.cognition.trainable_rnn_lm import CharRNN
+  except ModuleNotFoundError:
+   from trainable_rnn_lm import CharRNN
+  trained=CharRNN.load(a.rnn_model)
+  results.sort(key=lambda r:(-trained.score(a.query+" "+str(r.get("architecture",""))+" "+str(r.get("mnemonic",""))+" "+str(r.get("form_id",""))),str(r.get("architecture","")),str(r.get("mnemonic",""))))
+  llm_meta={"mode":"trained-character-rnn","model":str(a.rnn_model),"validated":True,"llm_scale":False}
  if a.llm:
-  candidates=[{"id":str(r.get("architecture",""))+"|"+str(r.get("mnemonic",""))+"|"+str(r.get("form_id","")),"label":str(r.get("architecture",""))+" "+str(r.get("mnemonic",""))+" "+str(r.get("form_id",""))+" | "+str(r.get("encoding_status",""))+" | "+str(r.get("execution_status",""))} for r in results];ordered,llm_meta=local_llm_rerank(a.query,candidates,a.limit);by_id={str(r.get("architecture",""))+"|"+str(r.get("mnemonic",""))+"|"+str(r.get("form_id","")):r for r in results};results=[by_id[c["id"]] for c in ordered if c["id"] in by_id][:a.limit]
- else:results=results[:a.limit]
- queued=queue_unresolved(a.query,d,a.queue)
- print(json.dumps({"schema":"OCTAVIAN-RNN-ISA-CANDIDATE-ROUTER-1","engine":"deterministic recurrent-state retrieval"+(" with constrained local LLM reranking" if a.llm else ""),"llm":llm_meta,"query":a.query,"result_count":len(results),"results":results,"queued_for_later":bool(queued),"queue_file":queued,"safety":"Advisory only; no opcode, semantic, native mapping, or conformance fact is invented."},ensure_ascii=False,indent=2))
+  candidates=[{"id":str(r.get("architecture",""))+"|"+str(r.get("mnemonic",""))+"|"+str(r.get("form_id","")),"label":str(r.get("architecture",""))+" "+str(r.get("mnemonic",""))+" "+str(r.get("form_id",""))+" | "+str(r.get("encoding_status",""))+" | "+str(r.get("execution_status",""))} for r in results]
+  ordered,llm_meta=local_llm_rerank(a.query,candidates,a.limit);by_id={str(r.get("architecture",""))+"|"+str(r.get("mnemonic",""))+"|"+str(r.get("form_id","")):r for r in results};results=[by_id[c["id"]] for c in ordered if c["id"] in by_id][:a.limit]
+ else: results=results[:a.limit]
+ queued=queue_unresolved(a.query,data,a.queue)
+ print(json.dumps({"schema":"OCTAVIAN-RNN-ISA-CANDIDATE-ROUTER-1","engine":"deterministic recurrent-state retrieval"+(" with constrained local LLM reranking" if a.llm else "")+(" with trained character-RNN scoring" if a.rnn_model else ""),"llm":llm_meta,"query":a.query,"result_count":len(results),"results":results,"queued_for_later":bool(queued),"queue_file":queued,"safety":"Ranking is advisory. No opcode, semantic, native mapping, or conformance fact is invented."},ensure_ascii=False,indent=2))
 if __name__=="__main__":main()
