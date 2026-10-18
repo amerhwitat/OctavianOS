@@ -232,7 +232,8 @@ jobs:
           mkdir -p "$smoke/installer-tree/boot/grub"
           cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
           sed -i 's/^set timeout=.*/set timeout=0/; s/^set default=.*/set default=install/' "$smoke/installer-tree/boot/grub/grub.cfg"
-          sed -i '1i set timeout=0\nset default=0' "$smoke/installer-tree/boot/jasper/install.cfg"
+          sed -i '1i set default=0' "$smoke/installer-tree/boot/jasper/install.cfg"
+          sed -i '1i set timeout=0' "$smoke/installer-tree/boot/jasper/install.cfg"
           grub-mkrescue -o "$smoke/installer-smoke.iso" "$smoke/installer-tree"
           set +e
           timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
