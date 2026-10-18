@@ -175,15 +175,6 @@ jobs:
           assert m["loss_first"] >= 0 and m["loss_last"] >= 0 and m["loss_last"] < m["loss_first"], "training loss did not improve"
           print("RNN model metadata validated:", {k:m[k] for k in ("training_sequences","command_rows","isa_rows","epochs","loss_first","loss_last","corpus_sha256")})
           PY
-      - name: Upload trained catalog RNN model
-        uses: actions/upload-artifact@v4
-        with:
-          name: Octavian-Trained-Command-ISA-RNN-${{ github.sha }}
-          path: |
-            runtime/cognition/trained-command-isa-rnn.json
-            runtime/cognition/runtime-capabilities.json
-          if-no-files-found: error
-          retention-days: 30
       - name: Stage Octavian command and ISA learning runtime into native rootfs
         run: |
           set -euo pipefail
@@ -193,6 +184,7 @@ jobs:
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/local_llm.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/commands/trainable_rnn_lm.py
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/cognition/trained-command-isa-rnn.json
+          test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/cognition/runtime-capabilities.json
           grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
           grep -q -- "--rnn-model" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
           OCTAVIAN_ROOT_PREFIX="$PWD/vendor/chimera-ii-os/source/rootfs" vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command "list files" --limit 5 --queue /tmp/octavian-command-pending.jsonl > /tmp/octavian-command-rnn.json
@@ -205,6 +197,15 @@ jobs:
           test -s vendor/chimera-ii-os/source/rootfs/usr/share/octavian/isa/universal-instruction-catalog.json
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-command
           test -x vendor/chimera-ii-os/source/rootfs/usr/bin/octavian-learn-isa
+      - name: Upload trained catalog RNN model
+        uses: actions/upload-artifact@v4
+        with:
+          name: Octavian-Trained-Command-ISA-RNN-${{ github.sha }}
+          path: |
+            runtime/cognition/trained-command-isa-rnn.json
+            runtime/cognition/runtime-capabilities.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Build Live and Jasper recovery initramfs payloads
         working-directory: vendor/chimera-ii-os/source
         run: |
