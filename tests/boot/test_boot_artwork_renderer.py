@@ -4,8 +4,10 @@ from __future__ import annotations
 import struct
 import tempfile
 import unittest
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tools.boot.render_boot_artwork import DEFAULT_SOURCE, render
 
 
