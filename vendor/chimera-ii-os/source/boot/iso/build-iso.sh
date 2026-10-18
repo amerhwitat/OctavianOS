@@ -108,6 +108,9 @@ if [[ -f "$OCTAVIAN_ARTWORK" && -f "$OCTAVIAN_RENDERER" ]]; then
   OCTAVIAN_BOOT_PNG="$VISUAL_OUT/octavian-octopus-aurora.png"
   python3 "$OCTAVIAN_RENDERER" --source "$OCTAVIAN_ARTWORK" --output "$OCTAVIAN_BOOT_PNG"
   test -s "$OCTAVIAN_BOOT_PNG" || { echo "ERROR: OctavianOS boot artwork was not rendered." >&2; exit 2; }
+  # Make the Octavian artwork the actual GRUB background, while retaining the
+  # named source derivative and manifest for inspection.
+  cp -f "$OCTAVIAN_BOOT_PNG" "$VISUAL_OUT/aurora-boot.png"
   cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
 fi
 
@@ -116,10 +119,12 @@ fi
 for stage in spitfire jasper grub koronos; do
   mkdir -p "$DIST/iso/boot/$stage"
   cp -f "$MEDIA/Init.mp4" "$DIST/iso/boot/$stage/Init.mp4"
-  cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
   if [[ -s "$VISUAL_OUT/octavian-octopus-aurora.png" ]]; then
+    cp -f "$VISUAL_OUT/octavian-octopus-aurora.png" "$DIST/iso/boot/$stage/aurora-boot.png"
     cp -f "$VISUAL_OUT/octavian-octopus-aurora.png" "$DIST/iso/boot/$stage/octavian-octopus-aurora.png"
     cp -f "$VISUAL_OUT/octavian-artwork-manifest.json" "$DIST/iso/boot/$stage/"
+  else
+    cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
   fi
 done
 cp -f "$ROOT/boot/splash/spitfire_background.svg" "$DIST/iso/boot/spitfire/"
