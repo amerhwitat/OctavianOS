@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools ovmf qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -347,8 +347,8 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[REC ] Recovery initramfs module accepted' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq 'USERSPACE HANDOFF NOT VERIFIED' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
+          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -356,6 +356,17 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke/installer-tree/boot/grub"
           cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
+          # This is a routing-only fixture, not production installer media.
+          # The ISO tree is not guaranteed to contain installer payload modules,
+          # so stage explicit non-empty sentinels at every path referenced below.
+          # Kernel classification is based on each Multiboot2 module cmdline;
+          # the following test must still assert detection and fail-closed handoff.
+          mkdir -p "$smoke/installer-tree/install/installer"
+          printf '%s\n' 'routing-smoke installation image sentinel; not bootable media' > "$smoke/installer-tree/install/installer/installation.img"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installation-manifest.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installer-contract.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installation_phases.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installer_profiles.json"
           cat > "$smoke/installer-tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
@@ -377,7 +388,7 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq 'USERSPACE HANDOFF NOT VERIFIED' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer fail-closed handoff status missing"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -391,6 +402,8 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+      - name: Run six independent production target/firmware boots
+        run: bash tools/boot/run_six_case_production_matrix.sh
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -400,6 +413,7 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/production-matrix/*.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -436,14 +450,12 @@ jobs:
         with:
           name: octavianos-full-iso-qemu-trace
           path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+      - name: Require all six production target/firmware handoffs
         run: |
-          set -uo pipefail
-          result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
-          exit "$result"
+          set -euo pipefail
+          python3 -m py_compile tests/migration/verify-six-case-userspace-matrix.py tests/migration/test_six_case_userspace_matrix.py
+          python3 -m unittest discover -s tests/migration -p "test_six_case_userspace_matrix.py" -v
+          python3 tests/migration/verify-six-case-userspace-matrix.py trace/production-matrix
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
