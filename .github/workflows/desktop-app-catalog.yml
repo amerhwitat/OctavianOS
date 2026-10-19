@@ -55,10 +55,6 @@ jobs:
           node --check /tmp/sheet-desk.js
           node --check /tmp/file-toolkit.js
           node --check /tmp/code-workbench.js
-          node --check /tmp/vector-studio.js
-          node --check /tmp/sheet-desk.js
-          node --check /tmp/file-toolkit.js
-          node --check /tmp/code-workbench.js
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -96,6 +92,9 @@ jobs:
           vendor_ids = [app["id"] for app in vendor]
           manifest = Path("vendor/chimera-ii-os/source/iso/manifests/application-catalog.txt").read_text(encoding="utf-8").splitlines()
           assert ids == vendor_ids == manifest, "Octavian catalog, vendored Chimera catalog and ISO manifest must stay in sync"
+          runtime = json.loads(Path("vendor/chimera-ii-os/source/appcenter/runtime-support-manifest.json").read_text(encoding="utf-8"))
+          assert [app["id"] for app in runtime["apps"]] == ids, "runtime support manifest must match catalog order"
+          assert all(app["native_package"]["available"] is False for app in runtime["apps"]), "do not claim unverified native packages"
           print(f"validated {len(apps)} mirrored catalog entries, vendored catalog and browser discovery UI")
           PY
       - name: Compile vendored Application Center scripts
