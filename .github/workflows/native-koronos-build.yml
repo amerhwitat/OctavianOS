@@ -128,12 +128,15 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke/iso/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$smoke/iso/boot/koronos.elf"
+          # Scheduler/admission smoke fixture only; this sentinel is not an initramfs.
+          printf 'OCTAVIAN-KORONOS-SMOKE-SENTINEL-NOT-A-REAL-INITRAMFS\n' > "$smoke/iso/boot/live-initramfs.img"
           cat > "$smoke/iso/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
           terminal_output console
           menuentry "Koronos native kernel smoke test" {
-            multiboot2 /boot/koronos.elf
+            multiboot2 /boot/koronos.elf chimera.target=live
+            module2 /boot/live-initramfs.img live-initramfs.img
             boot
           }
           GRUB
