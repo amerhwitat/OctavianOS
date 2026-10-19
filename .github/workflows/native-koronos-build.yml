@@ -548,7 +548,7 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
-      - name: Download verified ISO candidate (probe matrix passed)
+      - name: Download ISO build artifact after probe-matrix job
         uses: actions/download-artifact@v4
         with:
           name: octavianos-native-iso-candidate
