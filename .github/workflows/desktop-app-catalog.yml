@@ -4,12 +4,20 @@ on:
     paths:
       - "apps/desktop-application-catalog.json"
       - "apps/application-center.html"
+      - "apps/paint-studio.html"
+      - "apps/media-deck.html"
+      - "apps/document-desk.html"
+      - "apps/snake-arcade.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   pull_request:
     paths:
       - "apps/desktop-application-catalog.json"
       - "apps/application-center.html"
+      - "apps/paint-studio.html"
+      - "apps/media-deck.html"
+      - "apps/document-desk.html"
+      - "apps/snake-arcade.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   workflow_dispatch:
@@ -20,6 +28,21 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Syntax-check Paint Studio and Media Deck scripts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for path in (Path("apps/paint-studio.html"), Path("apps/media-deck.html"), Path("apps/document-desk.html"), Path("apps/snake-arcade.html")):
+              text = path.read_text(encoding="utf-8")
+              scripts = re.findall(r"<script>(.*?)</script>", text, re.S)
+              assert scripts, f"missing inline script: {path}"
+              Path("/tmp/" + path.stem + ".js").write_text("\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/paint-studio.js
+          node --check /tmp/media-deck.js
+          node --check /tmp/document-desk.js
+          node --check /tmp/snake-arcade.js
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
