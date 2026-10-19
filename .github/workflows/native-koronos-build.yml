@@ -356,6 +356,17 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke/installer-tree/boot/grub"
           cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
+          # This is a routing-only fixture, not production installer media.
+          # The ISO tree is not guaranteed to contain installer payload modules,
+          # so stage explicit non-empty sentinels at every path referenced below.
+          # Kernel classification is based on each Multiboot2 module cmdline;
+          # the following test must still assert detection and fail-closed handoff.
+          mkdir -p "$smoke/installer-tree/install/installer"
+          printf '%s\n' 'routing-smoke installation image sentinel; not bootable media' > "$smoke/installer-tree/install/installer/installation.img"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installation-manifest.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installer-contract.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installation_phases.json"
+          printf '%s\n' '{"fixture":"routing-smoke","production_payload":false}' > "$smoke/installer-tree/install/installer/installer_profiles.json"
           cat > "$smoke/installer-tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
