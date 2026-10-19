@@ -125,3 +125,18 @@ The latest source inspection confirms why a successful ISO build still cannot sa
 - The ELF admission/load-plan APIs do not prove execution, and a passing kernel/ISO smoke test does not prove a user process reached CPL 3.
 
 No probe ELF, synthetic ready marker, or weakened verifier is an acceptable workaround. A real production init/runtime and its target-specific staging still need to be implemented and tested end to end. The current 0/6 result and release block remain unchanged.
+
+
+## Fresh source scan — syscall-fix branch — 2026-10-19
+
+Inspected branch `fix/mirror-fail-closed-process-syscalls` at candidate commit `acf56d69cb858e06c699e4735c07d622531e0287`, plus the failed verifier job from run [#39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140).
+
+- The native kernel build, Multiboot2 module-classification tests, QEMU kernel-readiness boot, initramfs builds, ISO candidate checks, and six independent target/firmware boots completed successfully.
+- The unchanged six-case matrix test harness passed its own contract tests, but each of the six production traces failed the unchanged production handoff verifier. The job log reports `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker` six times, then `PRODUCTION ACCEPTANCE FAIL: 6 of 6 cases failed or were missing`. Prerelease was skipped.
+- The native live/recovery builder, `tools/build-live-boot-binaries.sh`, writes a shell-script `/init` and links BusyBox applets. This is an initramfs shell payload, not the native target-specific ELF expected by `koronos_launch_selected_userspace()`.
+- The launch routine searches for exactly one `CHIMERA_MODULE_USER_INIT_ELF` and returns without launching when none is present. The audited ISO staging path does not extract/build a supported native init executable from the shell initramfs or stage a target-specific init ELF.
+- `kernel/core/syscall.cpp` deliberately rejects GETPID and EXIT/EXIT_GROUP in the compatibility dispatcher when there is no active process context. The native dispatcher depends on a validated active process and real CR3/ring-3 execution; logging helpers and admission state cannot replace that execution.
+
+This is a concrete integration/runtime blocker, not a CI retry problem. A correct fix must supply a real production-compatible native init/runtime (or implement and test the required shell/Linux ABI runtime), stage/select it separately for Live, Installer, and Recovery, and prove actual process entry and syscalls. Do not package a tiny marker-only probe, generate acceptance strings in kernel code, or weaken `tests/migration/verify-userspace-handoff.py` / `tests/migration/verify-six-case-userspace-matrix.py`.
+
+**Current result remains: 0/6; production release BLOCKED.** No new kernel/runtime implementation was established by this scan, so no passing rebuild or acceptance rerun is claimed.
