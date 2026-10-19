@@ -144,3 +144,10 @@ Latest release-gate evidence: native run #39274902857 again passed kernel/QEMU r
 | Production release | BLOCKED |
 
 Do not bypass the validator, promote smoke probes, or accept a marker-only init as production. Resume release work only after implementing the native userspace service contract and real target init programs, wiring them into the ISO and GRUB modules, and proving each target under both BIOS and UEFI. Keep release publication gated on the resulting runtime traces and operation-specific tests.
+
+
+## Native init ELF build and routing integration — 2026-10-19
+
+A freestanding target-specific ELF build/staging step is now wired into `boot/iso/build-iso.sh`; the three target payload paths are populated from a shared source compiled with distinct Live, Installer, and Recovery identities. Main GRUB and Jasper entries pass the appropriate ELF as `chimera-user-init-elf target=live|installer|recovery`.
+
+These are explicitly **fail-closed bootstrap ELFs**, not a completed production session manager. They request a kernel-owned PID, exercise console output, report that filesystem/process/device/graphics services are unavailable, and exit with status 78. They do not print a readiness marker. Consequently, ELF structural checks may pass while runtime acceptance must still fail; do not publish an ISO until the actual target service flows and all six full-ISO cases pass.
