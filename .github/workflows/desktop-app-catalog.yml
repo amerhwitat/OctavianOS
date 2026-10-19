@@ -36,6 +36,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install headless browser for app launch smoke tests
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Launch and exercise browser application prototypes
+        run: node apps/browser-smoke.mjs
       - name: Syntax-check Paint Studio and Media Deck scripts
         run: |
           python - <<'PY'
