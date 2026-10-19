@@ -12,6 +12,7 @@ on:
       - "apps/sheet-desk.html"
       - "apps/file-toolkit.html"
       - "apps/code-workbench.html"
+      - "apps/browser-smoke.mjs"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   pull_request:
@@ -26,6 +27,7 @@ on:
       - "apps/sheet-desk.html"
       - "apps/file-toolkit.html"
       - "apps/code-workbench.html"
+      - "apps/browser-smoke.mjs"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   workflow_dispatch:
