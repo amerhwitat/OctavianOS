@@ -6,9 +6,9 @@
 
 Use the best graphics mode actually advertised by the firmware/GRUB video backend, then fall back through common SVGA modes. Never assume every display supports 1920×1080 or 32-bit color. The candidate mode order is:
 
-`2560x1440x32,1920x1080x32,1600x900x32,1366x768x32,1280x1024x32,1024x768x32,800x600x32,640x480x32,auto`
+`3840x2160,2560x1440,1920x1200,1920x1080,1680x1050,1600x1200,1600x900,1440x900,1366x768,1280x1024,1280x720,1024x768,800x600,640x480,auto`
 
-The practical SVGA compatibility floor is 1024×768, with 640×480 as the final recovery mode. If the firmware/GRUB backend cannot establish a requested mode, GRUB must continue with a supported fallback rather than treating a mode request as proof that the kernel kept it.
+The practical SVGA compatibility floor is 1024×768, with 640×480 as the final recovery mode. Leaving color depth unspecified lets GRUB choose a supported depth for each resolution rather than rejecting an otherwise usable mode. If the firmware/GRUB backend cannot establish a requested mode, GRUB must continue with a supported fallback rather than treating a mode request as proof that the kernel kept it.
 
 ## GRUB configuration guidance
 
