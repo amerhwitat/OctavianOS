@@ -54,7 +54,7 @@ jobs:
           import struct
           for p in Path("build/boot-artwork").glob("*.png"):
               d=p.read_bytes()
-              assert d[:8] == b"\\x89PNG\\r\\n\\x1a\\n", f"invalid PNG: {p}"
+              assert d[:8] == b"\x89PNG\r\n\x1a\n", f"invalid PNG: {p}"
               w,h=struct.unpack(">II",d[16:24])
               assert (w,h)==(1920,1080), f"unexpected dimensions {w}x{h}: {p}"
               assert len(d)>1024, f"PNG too small: {p}"
