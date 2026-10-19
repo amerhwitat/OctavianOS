@@ -53,7 +53,13 @@ jobs:
           assert 'fetch("./desktop-application-catalog.json"' in page
           assert 'noopener noreferrer' in page
           assert "Application Center" in page
-          print(f"validated {len(apps)} catalog entries and the browser discovery UI")
+          vendor = json.loads(Path("vendor/chimera-ii-os/source/appcenter/catalog/apps.json").read_text(encoding="utf-8"))["apps"]
+          vendor_ids = [app["id"] for app in vendor]
+          manifest = Path("vendor/chimera-ii-os/source/iso/manifests/application-catalog.txt").read_text(encoding="utf-8").splitlines()
+          assert ids == vendor_ids == manifest, "Octavian catalog, vendored Chimera catalog and ISO manifest must stay in sync"
+          print(f"validated {len(apps)} mirrored catalog entries, vendored catalog and browser discovery UI")
           PY
+      - name: Compile vendored Application Center scripts
+        run: python -m py_compile vendor/chimera-ii-os/source/appcenter/cli/chimera-appctl.py vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py
       - name: Check HTML integration link
         run: grep -q 'apps/application-center.html' web/index.html
