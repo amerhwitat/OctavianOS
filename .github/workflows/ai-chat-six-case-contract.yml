@@ -30,6 +30,6 @@ jobs:
         with:
           python-version: '3.x'
       - name: Test chat adapter
-        run: python3 tests/ai_chat_test.py
+        run: PYTHONPATH=. python3 tests/ai_chat_test.py
       - name: Validate six-case evidence contract (not a boot test)
-        run: python3 tests/six_case_contract_test.py
+        run: PYTHONPATH=. python3 tests/six_case_contract_test.py
