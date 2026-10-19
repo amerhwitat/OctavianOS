@@ -62,3 +62,7 @@ The audited source still has a load-plan-only process API, no verified CPL3 tran
 The ring-3 runtime implementation already exercised by the OctavianOS test-only matrix has now been synchronized into ChimeraIIOS branch fix/production-init-elf-handoff-gate, including frame allocation/address spaces, native user-entry/TSS and syscall assembly, target-launch and module-routing code, interrupt/syscall integration, and build wiring. ChimeraIIOS now has its own six-case smoke-only workflow to validate that source parity; its results are pending and must be polled before claiming parity is tested there.
 
 This is not production acceptance. The latest OctavianOS smoke run #39272210956 passed all six test-only probes. Native build #39272211204 still failed closed because the three real production target init ELFs are absent. The smoke payloads under kernel/tests/user_init_smoke.c must not be copied into production ISO locations. Live-to-Aurora, actual installation/reboot, real Recovery operation, and AP-backed concurrent SMP remain unverified; prerelease publication remains blocked.
+
+## Chimera native build parity result — 2026-10-19
+
+ChimeraIIOS native Koronos build run #39274513564 completed successfully after the runtime parity sync: ELF64 build, protected-process admission, ELF validation, and unresolved-symbol checks passed. The six-case smoke matrix in Chimera is still queued at #39274699829. This confirms native compile/link parity but not ring-3 runtime acceptance in Chimera or production service readiness.
