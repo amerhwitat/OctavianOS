@@ -53,10 +53,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
+          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/user-init-live.elf build/iso-root/boot/installer/user-init-installer.elf build/iso-root/boot/recovery/user-init-recovery.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
           missing=0
           for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
-          if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
+          if (( missing )); then echo 'No ISO will be fabricated from placeholders. Build and stage the target-specific native init ELFs and real kernel/userspace, then rerun.'; exit 2; fi
       - name: Validate staged payloads
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
