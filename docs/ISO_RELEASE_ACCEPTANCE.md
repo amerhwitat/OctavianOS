@@ -75,3 +75,8 @@ Upstream full-ISO run [#1388](https://github.com/amerhwitat/ChimeraIIOS/actions/
 ## Latest gate status — 2026-10-19
 
 The upstream [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) has passed build/ISO composition, ISO artifact validation, target payload/offline artwork validation, headless Koronos boot smoke, and the actual Live/Installer/Recovery handoff verification step. The six-case BIOS/UEFI production userspace matrix is now in progress. Trace upload, ISO artifact publication, validated release publication, and the final fail-closed release gate remain pending. No artifacts exist yet; release remains BLOCKED pending results.
+
+
+## Six-case gate result — 2026-10-19
+
+The six-case BIOS/UEFI userspace matrix and target handoff verification steps in [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) have completed successfully. The `chimera-target-userspace-traces` artifact is uploaded (ID 12166193261). ISO artifact upload is in progress; validated release publication and the final fail-closed acceptance step remain pending. This is a pass for the defined QEMU CPL3 init syscall + matching nonzero PID handoff gate, not proof of every OS-level production requirement. Keep process cleanup, Aurora startup, install/reboot, recovery operation and AP-backed SMP unverified unless their independent evidence exists.
