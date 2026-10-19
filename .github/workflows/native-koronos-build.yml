@@ -20,6 +20,8 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tools/boot/**'
+      - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
 
 
@@ -266,6 +268,20 @@ jobs:
             vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
           if-no-files-found: error
           retention-days: 14
+      - name: Validate Octavian Octopus artwork renderer
+        run: |
+          set -euo pipefail
+          python3 -m unittest tests.boot.test_boot_artwork_renderer -v
+          python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-octopus-aurora.svg --output /tmp/octavian-octopus-aurora.png
+          test -s /tmp/octavian-octopus-aurora.png
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/octavian-octopus-aurora.png")
+          data=p.read_bytes()
+          assert data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"), "rendered Octavian artwork is not PNG"
+          assert len(data) > 1024, "rendered Octavian artwork is unexpectedly small"
+          print("Octavian firmware artwork render verified:", len(data), "bytes")
+          PY
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
