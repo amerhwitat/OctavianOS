@@ -437,6 +437,7 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[HW  ] Initializing hardware...");
     uint32_t modules = chimera_multiboot_scan(ctx->boot_info);
     console_write("[MB2 ] Scanned Multiboot2 modules");
+    debugcon_write("[TRACE] module scan complete");
     const int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
     if (frame_init == 0) {
         console_write("[MM  ] Physical frame allocator initialized; free 4 KiB frames: ");
@@ -445,11 +446,17 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
         console_write("[MM  ] ERROR: physical frame allocator initialization failed");
         console_write("[MM  ] User-image launch must remain disabled until memory ownership is valid");
     }
+    debugcon_write("[TRACE] frame allocator count printed");
     console_progress(15, "Multiboot2 modules scanned");
+    debugcon_write("[TRACE] progress 15 complete");
     console_write("[MB2 ] Count: ");
     console_u32(modules);
+    debugcon_write("[TRACE] before architecture initialization");
     koronos_arch_init(ctx);
+    debugcon_write("[TRACE] architecture initialization complete");
+    debugcon_write("[TRACE] before address-space initialization");
     const int address_space_init = (frame_init == 0) ? koronos_address_space_init() : -1;
+    debugcon_write("[TRACE] address-space initialization returned");
     const int address_space_test = (address_space_init == 0) ? koronos_address_space_self_test() : -1;
     const int user_entry_init = (address_space_test == 0) ? koronos_user_entry_init() : -1;
     if (address_space_test == 0 && user_entry_init == 0) {
