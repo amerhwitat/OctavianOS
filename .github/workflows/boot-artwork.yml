@@ -18,7 +18,14 @@ on:
     branches: [main]
     paths:
       - "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      - "desktop/aurora/assets/octavian-boot-nebula.svg"
+      - "desktop/aurora/assets/jasper-gates-boot.svg"
+      - "desktop/aurora/assets/aurora-diagnostics-backdrop.svg"
       - "desktop/aurora/assets/octavian-artwork-manifest.json"
+      - "vendor/chimera-ii-os/source/boot/iso/build-iso.sh"
+      - "vendor/chimera-ii-os/source/boot/iso/grub.cfg"
+      - "vendor/chimera-ii-os/source/boot/jasper/jasper.cfg"
+      - "vendor/chimera-ii-os/source/boot/jasper/graphics.cfg"
       - "tools/boot/render_boot_artwork.py"
       - "tests/boot/test_boot_artwork_renderer.py"
       - ".github/workflows/boot-artwork.yml"
