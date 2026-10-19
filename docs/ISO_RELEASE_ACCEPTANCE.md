@@ -105,3 +105,19 @@ The six-case BIOS/UEFI userspace matrix and target handoff verification steps in
 | Production ISO release | BLOCKED |
 
 Do not relax the validator or substitute smoke probes. The next required implementation is the real process execution/syscall lifecycle (address-space activation, GDT/TSS/RSP0, CPL3 entry/return, validated syscall ABI and kernel-owned PID/lifecycle), followed by target-specific service/init payloads and the full six-case ISO matrix plus independent end-to-end and SMP tests.
+
+## Runtime parity update — 2026-10-19
+
+The ring-3 launch foundation exercised by OctavianOS smoke probes has been synchronized to ChimeraIIOS source. Chimera's own six-case smoke workflow was added and is currently pending CI. This improves code parity but does not create production target services.
+
+| Gate | Current result |
+|---|---|
+| OctavianOS six ring-3 smoke probes | PASS — test-only, run #39272210956 |
+| ChimeraIIOS source-parity smoke matrix | Pending — run #39274332582 |
+| Production Live/Installer/Recovery init ELFs | MISSING |
+| Full-ISO Live/Installer/Recovery × BIOS/UEFI | NOT VERIFIED |
+| Aurora startup, installation/reboot, real recovery | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production ISO release | BLOCKED |
+
+The production release workflow remains fail-closed. Never substitute smoke-probe ELFs for the three production init payloads.
