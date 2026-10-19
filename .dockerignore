@@ -5,3 +5,7 @@
 !docker/iso-runner/
 !docker/iso-runner/Dockerfile
 !docker/iso-runner/entrypoint.sh
+!web/
+!web/**
+!desktop/
+!desktop/**
