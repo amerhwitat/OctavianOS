@@ -14,7 +14,7 @@ The build trains `CHIMERA-CHAR-RNN-LM-1`, a small character-level vanilla RNN, u
 
 The optional `--llm` mode calls a separately installed OpenAI-compatible model server on loopback only. The adapter only reorders candidate IDs supplied by the caller, rejects invented IDs, and falls back to deterministic ranking. It never grants command execution or ISA support. Both routers queue unresolved queries for later review.
 
-The trained model and runtime capability report are build artifacts and are staged into the Live/Recovery runtime. Python 3 is required for the current model scorer.
+The trained model and runtime capability report are build artifacts and are staged into the Live/Recovery runtime. [Download the latest validated model/catalog artifact](https://github.com/amerhwitat/OctavianOS/actions/runs/39183602614/artifacts/12156839246). Python 3 is required for the current model scorer.
 
 ## Real userspace readiness and release gate
 
