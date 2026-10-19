@@ -113,3 +113,15 @@ The final status of [run #1388](https://github.com/amerhwitat/ChimeraIIOS/action
 ## Desktop artwork update (web prototypes)
 
 The Aurora Wayland Glass and Marine Desktop web prototypes now share an interactive wallpaper picker and bundled local artwork. Marine uses `desktop/marine/assets/marine-desktop.svg`; Aurora uses `desktop/aurora/assets/octavian-octopus-aurora.svg`. The preference is persisted in browser local storage. These UI changes do not affect or satisfy the kernel userspace acceptance gate above.
+
+
+## ISO-to-production-init audit — 2026-10-19
+
+The latest source inspection confirms why a successful ISO build still cannot satisfy the production gate:
+
+- `vendor/chimera-ii-os/source/build-chimera-iso.sh` stages the Live and Recovery initramfs images, but the inspected ISO staging path does not build or stage a target-specific `CHIMERA_MODULE_USER_INIT_ELF`.
+- `vendor/chimera-ii-os/source/kernel/core/multiboot_modules.cpp` classifies a module as `USER_INIT_ELF` from its command-line/name. Classification does not create or extract an ELF executable.
+- `vendor/chimera-ii-os/source/kernel/core/target_launch.cpp` scans for exactly one bounded `USER_INIT_ELF`, then requires working address-space operations, process admission, ELF loading, a real CR3 root, and ring-3 entry. With no such module it returns without launching production init.
+- The ELF admission/load-plan APIs do not prove execution, and a passing kernel/ISO smoke test does not prove a user process reached CPL 3.
+
+No probe ELF, synthetic ready marker, or weakened verifier is an acceptable workaround. A real production init/runtime and its target-specific staging still need to be implemented and tested end to end. The current 0/6 result and release block remain unchanged.
