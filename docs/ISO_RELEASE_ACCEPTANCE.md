@@ -80,3 +80,8 @@ The upstream [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/
 ## Six-case gate result — 2026-10-19
 
 The six-case BIOS/UEFI userspace matrix and target handoff verification steps in [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) have completed successfully. The `chimera-target-userspace-traces` artifact is uploaded (ID 12166193261). ISO artifact upload is in progress; validated release publication and the final fail-closed acceptance step remain pending. This is a pass for the defined QEMU CPL3 init syscall + matching nonzero PID handoff gate, not proof of every OS-level production requirement. Keep process cleanup, Aurora startup, install/reboot, recovery operation and AP-backed SMP unverified unless their independent evidence exists.
+
+
+## Final result correction — 2026-10-19
+
+[Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) ended with FAILURE at the final fail-closed acceptance gate. All six target × firmware traces report missing user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness. Build/ISO composition, ISO validation, payload/artwork validation, Koronos boot smoke, ISO compression, and artifact uploads passed. The release publication step was skipped. Preserved artifacts: ISO ID 12166940637; target traces ID 12166193261. The intermediate matrix step reported a successful *step conclusion* while exporting `accepted=false`; do not interpret that as matrix pass. Production acceptance is NOT VERIFIED and release remains BLOCKED.
