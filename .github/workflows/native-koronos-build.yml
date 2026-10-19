@@ -451,7 +451,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile tests/migration/verify-six-case-userspace-matrix.py tests/migration/test_six_case_userspace_matrix.py
-          python3 -m unittest tests.migration.test_six_case_userspace_matrix -v
+          python3 -m unittest discover -s tests/migration -p "test_six_case_userspace_matrix.py" -v
           python3 tests/migration/verify-six-case-userspace-matrix.py trace
 
   publish-native-iso:
