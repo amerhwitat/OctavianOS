@@ -74,6 +74,7 @@ cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+cp -f "$ROOT/boot/jasper/graphics.cfg" "$DIST/iso/boot/jasper/graphics.cfg"
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
@@ -168,6 +169,7 @@ if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
     test -s "$DIST/iso/boot/visual/$art.png" || { echo "ERROR: OctavianOS $art PNG missing from ISO staging tree." >&2; exit 2; }
   done
   test -s "$DIST/iso/boot/jasper/artwork/jasper-gates-boot.png" || { echo "ERROR: Jasper menu PNG missing from ISO staging tree." >&2; exit 2; }
+  test -s "$DIST/iso/boot/jasper/graphics.cfg" || { echo "ERROR: Jasper graphics policy missing from ISO staging tree." >&2; exit 2; }
 fi
 for stage in spitfire jasper grub koronos; do
   test -s "$DIST/iso/boot/$stage/Init.mp4" || { echo "ERROR: Init.mp4 missing from $stage stage." >&2; exit 2; }
