@@ -14,10 +14,10 @@ A GitHub Actions importer is being staged to preserve the source repository's br
 
 ## Production userspace acceptance — currently blocked
 
-The current production Live/Installer/Recovery QEMU traces fail the fail-closed userspace handoff verifier. Kernel readiness and target-routing smoke tests are not proof that init executed at CPL 3. The production ISO must not be released until the real payload is selected and launched, the syscall acknowledgement and readiness markers match the same real PID, all six BIOS/UEFI × target cases pass, and the follow-on Aurora/installer/recovery gates are verified.
+The latest completed full-ISO production Live/Installer/Recovery QEMU run (workflow `39187330633`) fails the fail-closed userspace handoff verifier. The current syscall honesty correction is under review in [ChimeraIIOS PR #147](https://github.com/amerhwitat/ChimeraIIOS/pull/147) and mirrored here in [OctavianOS PR #68](https://github.com/amerhwitat/OctavianOS/pull/68); their CI runs are pending/in progress and neither PR proves ring-3 execution. Kernel readiness and target-routing smoke tests are not proof that init executed at CPL 3. The production ISO must not be released until the real payload is selected and launched, the syscall acknowledgement and readiness markers match the same real PID, all six BIOS/UEFI × target cases pass, and the follow-on Aurora/installer/recovery gates are verified.
 
 - [Production userspace handoff and acceptance contract](docs/PRODUCTION_USERSPACE_HANDOFF.md)
-- [Latest failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999)
+- [Latest failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39187330633)
 - [Tracking issue #47](https://github.com/amerhwitat/OctavianOS/issues/47)
 
 This documentation records the verified failure state; it does not claim the kernel execution path is fixed.
