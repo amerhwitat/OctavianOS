@@ -102,7 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static ovmf cpio ffmpeg imagemagick unzip python3-cairosvg
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -327,45 +327,42 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
-      - name: QEMU recovery target routing smoke test (no repair claim)
+      - name: Boot target-specific production payloads under BIOS and UEFI
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
           smoke=build/qemu-smoke
-          mkdir -p "$smoke/recovery-tree/boot/grub"
-          cp -a boot/iso/dist/iso/. "$smoke/recovery-tree/"
-          cat > "$smoke/recovery-tree/boot/grub/grub.cfg" <<'GRUB'
+          source_root=boot/iso/dist/iso
+          mkdir -p "$smoke"
+          for target in live installer recovery; do
+            tree="$smoke/production-$target-tree"
+            rm -rf "$tree"
+            mkdir -p "$tree/boot/grub"
+            cp -a "$source_root/." "$tree/"
+            case "$target" in
+              live)
+                cat > "$tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
           terminal_output console
-          menuentry "Recovery module smoke" --id recovery {
-            multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
-            module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+          menuentry "Production Live / Aurora" {
+            multiboot2 /boot/koronos/koronos.elf chm.log=verbose chm.progress=events chm.mode=live chm.desktop=aurora
+            module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs
+            module2 /boot/live/user-init-live.elf chimera-user-init-elf target=live
+            module2 /boot/live/live-manifest.json chimera-live-manifest
+            module2 /boot/live/desktop-sessions.json octavian-desktop-sessions
             boot
           }
           GRUB
-          grub-mkrescue -o "$smoke/recovery-smoke.iso" "$smoke/recovery-tree"
-          set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
-          set -e
-          test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
-      - name: QEMU installer target routing smoke test (no disk writes)
-        working-directory: vendor/chimera-ii-os/source
-        run: |
-          set -euo pipefail
-          smoke=build/qemu-smoke
-          mkdir -p "$smoke/installer-tree/boot/grub"
-          cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
-          cat > "$smoke/installer-tree/boot/grub/grub.cfg" <<'GRUB'
+                ;;
+              installer)
+                cat > "$tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
           terminal_output console
-          menuentry "Installer module smoke" --id install {
-            multiboot2 /boot/koronos/koronos.elf
+          menuentry "Production Installer" {
+            multiboot2 /boot/koronos/koronos.elf chm.mode=installer
+            module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
@@ -374,36 +371,67 @@ jobs:
             boot
           }
           GRUB
-          grub-mkrescue -o "$smoke/installer-smoke.iso" "$smoke/installer-tree"
-          set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
-          set -e
-          test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
-      - name: Boot the complete ISO and require Koronos readiness
-        working-directory: vendor/chimera-ii-os/source
-        run: |
-          set -euo pipefail
-          smoke=build/qemu-smoke
-          mkdir -p "$smoke"
-          set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
-          set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
-          cat "$smoke/full-iso-debugcon.log"
-          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+                ;;
+              recovery)
+                cat > "$tree/boot/grub/grub.cfg" <<'GRUB'
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Production Recovery" {
+            multiboot2 /boot/koronos/koronos.elf chm.mode=recovery
+            module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+            module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery
+            module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+            boot
+          }
+          GRUB
+                ;;
+            esac
+            iso="$smoke/production-$target.iso"
+            grub-mkrescue -o "$iso" "$tree"
+            test -s "$iso"
+            for firmware in bios uefi; do
+              log="$smoke/$target-$firmware-debugcon.log"
+              qemu=(qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
+              if [ "$firmware" = uefi ]; then
+                code=""
+                vars=""
+                for candidate in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
+                  if [ -f "$candidate" ]; then
+                    candidate_vars="${candidate/CODE/VARS}"
+                    if [ -f "$candidate_vars" ]; then code="$candidate"; vars="$candidate_vars"; break; fi
+                  fi
+                done
+                if [ -z "$code" ] || [ -z "$vars" ]; then
+                  echo "::error::Matching OVMF code/vars images are required for production UEFI acceptance"
+                  find /usr/share -iname 'OVMF_*.fd' -print >&2 || true
+                  exit 1
+                fi
+                vars_copy="$smoke/OVMF_VARS_$target.fd"
+                cp "$vars" "$vars_copy"
+                qemu+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$code" -drive "if=pflash,format=raw,unit=1,file=$vars_copy")
+              fi
+              set +e
+              timeout 18s "${qemu[@]}"
+              qemu_status=$?
+              set -e
+              test -s "$log" || { echo "::error::No $target/$firmware debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+              grep -Fq '[KRN ] KORONOS READY' "$log" || { cat "$log"; echo "::error::Koronos did not initialize for $target/$firmware (QEMU exit $qemu_status)"; exit 1; }
+              echo "Captured production payload trace target=$target firmware=$firmware qemu_exit=$qemu_status; userspace acceptance is checked in the dependent gate."
+            done
+          done
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: octavianos-full-iso-qemu-trace
           path: |
-            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
-            vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
-            vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/live-bios-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/live-uefi-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/installer-bios-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/installer-uefi-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/recovery-bios-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/recovery-uefi-debugcon.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -444,9 +472,11 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          for target in live installer recovery; do
+            for firmware in bios uefi; do
+              python3 tests/migration/verify-userspace-handoff.py "$target" "trace/$target-$firmware-debugcon.log" || result=1
+            done
+          done
           exit "$result"
 
   publish-native-iso:
