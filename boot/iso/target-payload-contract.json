@@ -13,6 +13,7 @@
     "live-aurora": {
       "required": [
         "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/user-init-live.elf",
         "/boot/live/live-manifest.json",
         "/boot/live/desktop-sessions.json"
       ],
@@ -33,6 +34,7 @@
     "installer": {
       "required": [
         "/install/installer/installation.img",
+        "/boot/installer/user-init-installer.elf",
         "/install/installer/installation-manifest.json",
         "/install/installer/installer-contract.json",
         "/install/installer/installation_phases.json",
@@ -43,6 +45,7 @@
     "recovery": {
       "required": [
         "/boot/recovery/chimera-recovery-initramfs.img",
+        "/boot/recovery/user-init-recovery.elf",
         "/boot/recovery/recovery-manifest.json"
       ],
       "mode": "chm.mode=recovery"
@@ -74,6 +77,7 @@
   },
   "packaging_rules": [
     "Every required target file must exist in the staged ISO before publishing it.",
+    "Each production target must include a target-specific native USER_INIT_ELF staged and passed as a Multiboot2 module; initramfs/manifest presence alone is not an executable init handoff.",
     "Verify SHA-256 hashes, size limits, format, and architecture for kernel and payloads.",
     "A required missing or invalid payload fails the build; optional targets must display their unavailable message.",
     "Never substitute Live payloads for installer, recovery, rollback, or retro payloads.",
