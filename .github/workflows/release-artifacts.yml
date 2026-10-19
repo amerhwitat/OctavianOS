@@ -49,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test production init ELF payload validator
+        run: python3 vendor/chimera-ii-os/source/tests/boot/test_production_init_elf_validator.py
       - name: Require imported kernel and userspace payloads
         shell: bash
         run: |
