@@ -1,6 +1,6 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED.** Last inspected production acceptance run: [OctavianOS Actions run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211). The freestanding kernel build, complete ISO smoke boot, and target-routing smoke tests passed, but the separate production userspace acceptance job failed for Live, Installer, and Recovery. Release publication was skipped.
+**Status: BLOCKED.** Latest inspected production acceptance run: [OctavianOS Actions run 39185798999](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999). The freestanding kernel build, complete ISO smoke boot, and target-routing smoke tests passed, but the separate production userspace acceptance job failed for Live, Installer, and Recovery. Release publication was skipped. The earlier [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211) failed the same three target checks.
 
 ## What the evidence means
 
