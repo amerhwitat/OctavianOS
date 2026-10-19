@@ -127,3 +127,8 @@ Fresh workflow job-step polling for [ChimeraIIOS run #1388](https://github.com/a
 ## Latest production matrix progress — 2026-10-19
 
 The latest step poll for [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) now shows the actual Live/Installer/Recovery userspace handoff verification step completed and the six-case BIOS/UEFI production userspace matrix running. The build, ISO/payload validation, and Koronos QEMU boot smoke steps also passed. The matrix has not yet completed, no trace/ISO artifacts are available, and release publication remains pending. Production release stays BLOCKED until the six cases and remaining fail-closed gate pass.
+
+
+## Acceptance evidence update — six-case matrix passed (2026-10-19)
+
+The latest step-level poll of [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) reports success for the actual Live/Installer/Recovery CPL3 init handoff checks and the six-case BIOS/UEFI production userspace matrix. The trace artifact `chimera-target-userspace-traces` has been uploaded (artifact ID 12166193261). ISO artifact upload is currently in progress; validated GitHub Release publication and the final fail-closed gate are still pending. This proves the workflow's target handoff/readiness contract in all six QEMU cases; it does not independently prove safe CR3 ownership/cleanup, EXIT/EXIT_GROUP teardown, Aurora UI startup, installer completion/reboot, real recovery operation, or AP-started concurrent SMP. Those remain NOT VERIFIED; do not claim production release until the workflow completes and remaining feature evidence exists.
