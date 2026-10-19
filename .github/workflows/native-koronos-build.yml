@@ -296,6 +296,96 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Verify six-case full-ISO target ELF probe matrix (test overlay only)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          base=build/iso-userspace-probes
+          mkdir -p "$base"
+          ovmf_code=""
+          ovmf_vars=""
+          for pair in \
+            "OVMF_CODE_4M.fd:OVMF_VARS_4M.fd" \
+            "OVMF_CODE.fd:OVMF_VARS.fd" \
+            "edk2-x86_64-code.fd:edk2-x86_64-vars.fd"; do
+            code_name="${pair%%:*}"
+            vars_name="${pair##*:}"
+            code_path="$(find /usr/share/OVMF /usr/share/ovmf /usr/share/qemu \( -type f -o -type l \) -name "$code_name" -print -quit 2>/dev/null || true)"
+            vars_path="$(find /usr/share/OVMF /usr/share/ovmf /usr/share/qemu \( -type f -o -type l \) -name "$vars_name" -print -quit 2>/dev/null || true)"
+            if [[ -n "$code_path" && -s "$code_path" && -n "$vars_path" && -s "$vars_path" ]]; then
+              ovmf_code="$code_path"
+              ovmf_vars="$vars_path"
+              break
+            fi
+          done
+          [[ -n "$ovmf_code" && -n "$ovmf_vars" ]] || { echo "::error::No matching OVMF CODE/VARS pair"; exit 1; }
+          for target in live installer recovery; do
+            case "$target" in
+              live) menu_id=aurora-live ;;
+              installer) menu_id=install ;;
+              recovery) menu_id=recovery ;;
+            esac
+            for firmware in bios uefi; do
+              tree="$base/$target-$firmware/tree"
+              mkdir -p "$tree/boot/koronos"
+              cp -a boot/iso/dist/iso/. "$tree/"
+              cp "build/koronos/x86_64/user-init-$target.elf" "$tree/boot/koronos/user-init-$target.elf"
+              python3 - "$tree/boot/grub/grub.cfg" "$target" <<'PY'
+import sys
+from pathlib import Path
+cfg = Path(sys.argv[1])
+target = sys.argv[2]
+text = cfg.read_text(encoding="utf-8")
+if target == "live":
+    needle = "module2 /boot/live/live-manifest.json chimera-live-manifest\n"
+elif target == "installer":
+    needle = "module2 /install/installer/installer_profiles.json chimera-installer-profiles\n"
+else:
+    needle = "module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest\n"
+module = f"module2 /boot/koronos/user-init-{target}.elf chimera-user-init-elf target={target} probe=1\n"
+if needle not in text:
+    raise SystemExit(f"target menu contract not found for {target}: {needle.strip()}")
+text = text.replace(needle, needle + module)
+cfg.write_text(text, encoding="utf-8")
+PY
+              sed -i "s/^set default=0$/set default=$menu_id/" "$tree/boot/grub/grub.cfg"
+              grep -q "^set default=$menu_id$" "$tree/boot/grub/grub.cfg"
+              iso="$base/$target-$firmware.iso"
+              log="$base/$target-$firmware-debugcon.log"
+              grub-mkrescue -o "$iso" "$tree"
+              qemu=(qemu-system-x86_64 -machine q35 -m 1024 -smp 2 -accel tcg -cdrom "$iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
+              if [[ "$firmware" == uefi ]]; then
+                vars_copy="$base/$target-OVMF_VARS.fd"
+                cp "$ovmf_vars" "$vars_copy"
+                qemu+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$ovmf_code"
+                       -drive "if=pflash,format=raw,unit=1,file=$vars_copy")
+              fi
+              set +e
+              timeout 45s "${qemu[@]}"
+              qemu_rc=$?
+              set -e
+              cat "$log"
+              grep -Fq '[KRN ] KORONOS READY' "$log"
+              ready_line="$(grep -Eo "USERSPACE PROBE READY: ${target} init pid=[1-9][0-9]*" "$log" | tail -n 1)"
+              ack_line="$(grep -Eo "USER INIT SYSCALL: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
+              test -n "$ready_line"
+              test -n "$ack_line"
+              test "${ready_line##*=}" = "${ack_line##*=}"
+              grep -Fq 'USERSPACE PROBE SYSCALL RETURNED TO RING3' "$log"
+              grep -Fq '[PROBE] Target ring-3 ELF probe emitted its own readiness handshake and exited cleanly' "$log"
+              grep -Fq '[MM  ] Process page-table self-test passed' "$log"
+              echo "PASS: full ISO target ELF probe target=$target firmware=$firmware qemu_exit=$qemu_rc"
+            done
+          done
+      - name: Upload six-case full-ISO probe traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-full-iso-six-case-probes
+          path: |
+            vendor/chimera-ii-os/source/build/iso-userspace-probes/*-debugcon.log
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
         run: |
