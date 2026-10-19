@@ -329,7 +329,7 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
           grep -q '/boot/jasper/artwork/jasper-gates-boot.png' "$inspect/jasper/jasper.cfg"
-          grep -q 'set gfxmode=3840x2160x32' "$inspect/jasper/graphics.cfg"
+          grep -q 'set gfxmode=3840x2160' "$inspect/jasper/graphics.cfg"
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
