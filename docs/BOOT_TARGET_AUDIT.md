@@ -33,3 +33,13 @@ The OctavianOS tree now has explicit GRUB/Jasper configfiles for Live Aurora, Li
 - ISA conformance: separate test track; cataloged instructions are not necessarily executable or conformant.
 
 Never infer boot success from labels, progress messages, a passing source-level routing test, or a successful ISO build alone.
+
+## Production userspace acceptance update (2026-10-19)
+
+The latest inspected complete ISO workflow is [run 39185798999](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999). Its native Koronos build, Multiboot2/target-routing smoke tests, full ISO kernel-readiness smoke, and candidate artifact upload completed successfully. The separate **Verify real Live, Installer, and Recovery userspace** job failed for all three target traces with the same failure previously seen in [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211):
+
+`FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`
+
+The prerelease publication job was skipped. Thus this run proves kernel readiness and target routing, but not actual production init execution. It does not establish separate BIOS and UEFI PASS/FAIL results for each target; those six cases remain NOT VERIFIED. Aurora after real Live init, installer completion/installed boot, and an actual Recovery action also remain NOT VERIFIED.
+
+See [PRODUCTION_USERSPACE_HANDOFF.md](PRODUCTION_USERSPACE_HANDOFF.md) for the required payload extraction, target selection, page-table and TSS setup, ring-3/syscall path, PID/exit semantics, and acceptance sequence. Do not weaken `tests/migration/verify-userspace-handoff.py` or synthesize readiness markers to make the gate green.

@@ -12,6 +12,16 @@ A GitHub Actions importer is being staged to preserve the source repository's br
 - Installer and recovery acceptance requires observable userspace execution in QEMU, not just payload classification.
 - ISA status must distinguish documented, cataloged, encoded/decoded, executed, and conformance-tested.
 
+## Production userspace acceptance — currently blocked
+
+The current production Live/Installer/Recovery QEMU traces fail the fail-closed userspace handoff verifier. Kernel readiness and target-routing smoke tests are not proof that init executed at CPL 3. The production ISO must not be released until the real payload is selected and launched, the syscall acknowledgement and readiness markers match the same real PID, all six BIOS/UEFI × target cases pass, and the follow-on Aurora/installer/recovery gates are verified.
+
+- [Production userspace handoff and acceptance contract](docs/PRODUCTION_USERSPACE_HANDOFF.md)
+- [Latest failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999)
+- [Tracking issue #47](https://github.com/amerhwitat/OctavianOS/issues/47)
+
+This documentation records the verified failure state; it does not claim the kernel execution path is fixed.
+
 ## Runnable Chimera hosted runtime
 
 The vendored Chimera II hosted user-mode bridge is exposed through an OctavianOS entry point:
