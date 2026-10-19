@@ -1333,6 +1333,118 @@
         "macOS"
       ],
       "compatibility_note": "Host availability does not imply native support on ChimeraIIOS or OctavianOS. Use a verified native build, trusted package provider, web app, VM, or compatibility layer as appropriate."
+    },
+    {
+      "id": "vector-studio",
+      "name": "Vector Studio",
+      "version": "web-prototype",
+      "category": "graphics",
+      "license": "MIT",
+      "provider": "web",
+      "architectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "homepage": "https://github.com/amerhwitat/OctavianOS/blob/main/apps/vector-studio.html",
+      "sandbox": "browser",
+      "install": "web",
+      "availability": "catalog-only",
+      "note": "Browser SVG editor prototype; not a native graphics application.",
+      "integration_status": "catalog-only",
+      "platform_targets": [
+        "ChimeraIIOS",
+        "OctavianOS"
+      ],
+      "host_platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "compatibility_note": "A browser prototype is available in the web preview; this is not native OS support and does not prove bare-metal launch."
+    },
+    {
+      "id": "sheet-desk",
+      "name": "Sheet Desk",
+      "version": "web-prototype",
+      "category": "office",
+      "license": "MIT",
+      "provider": "web",
+      "architectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "homepage": "https://github.com/amerhwitat/OctavianOS/blob/main/apps/sheet-desk.html",
+      "sandbox": "browser",
+      "install": "web",
+      "availability": "catalog-only",
+      "note": "Browser CSV grid prototype; no XLSX, formulas, macros, or native spreadsheet runtime.",
+      "integration_status": "catalog-only",
+      "platform_targets": [
+        "ChimeraIIOS",
+        "OctavianOS"
+      ],
+      "host_platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "compatibility_note": "A browser prototype is available in the web preview; this is not native OS support and does not prove bare-metal launch."
+    },
+    {
+      "id": "file-toolkit",
+      "name": "File Toolkit",
+      "version": "web-prototype",
+      "category": "utilities",
+      "license": "MIT",
+      "provider": "web",
+      "architectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "homepage": "https://github.com/amerhwitat/OctavianOS/blob/main/apps/file-toolkit.html",
+      "sandbox": "browser",
+      "install": "web",
+      "availability": "catalog-only",
+      "note": "Browser-local file metadata and SHA-256 tool; filesystem access is limited to user-selected files.",
+      "integration_status": "catalog-only",
+      "platform_targets": [
+        "ChimeraIIOS",
+        "OctavianOS"
+      ],
+      "host_platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "compatibility_note": "A browser prototype is available in the web preview; this is not native OS support and does not prove bare-metal launch."
+    },
+    {
+      "id": "code-workbench",
+      "name": "Code Workbench",
+      "version": "web-prototype",
+      "category": "development",
+      "license": "MIT",
+      "provider": "web",
+      "architectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "homepage": "https://github.com/amerhwitat/OctavianOS/blob/main/apps/code-workbench.html",
+      "sandbox": "browser",
+      "install": "web",
+      "availability": "catalog-only",
+      "note": "Browser HTML/CSS/JS editor with sandboxed preview; not a native compiler or debugger.",
+      "integration_status": "catalog-only",
+      "platform_targets": [
+        "ChimeraIIOS",
+        "OctavianOS"
+      ],
+      "host_platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "compatibility_note": "A browser prototype is available in the web preview; this is not native OS support and does not prove bare-metal launch."
     }
   ]
 }
