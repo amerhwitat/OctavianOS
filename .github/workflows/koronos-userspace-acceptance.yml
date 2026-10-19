@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Smoke Probes (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -15,9 +15,11 @@ on:
 permissions:
   contents: read
 
+# This matrix exercises the kernel's ring-3 launch path using test-only probe ELFs.
+# It is deliberately not the production Live/Installer/Recovery acceptance gate.
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: ${{ matrix.target }} / ${{ matrix.firmware }} ring-3 smoke probe
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
