@@ -140,3 +140,12 @@ Inspected branch `fix/mirror-fail-closed-process-syscalls` at candidate commit `
 This is a concrete integration/runtime blocker, not a CI retry problem. A correct fix must supply a real production-compatible native init/runtime (or implement and test the required shell/Linux ABI runtime), stage/select it separately for Live, Installer, and Recovery, and prove actual process entry and syscalls. Do not package a tiny marker-only probe, generate acceptance strings in kernel code, or weaken `tests/migration/verify-userspace-handoff.py` / `tests/migration/verify-six-case-userspace-matrix.py`.
 
 **Current result remains: 0/6; production release BLOCKED.** No new kernel/runtime implementation was established by this scan, so no passing rebuild or acceptance rerun is claimed.
+
+
+## Chimera six-case candidate import — 2026-10-19
+
+OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) imports the upstream ChimeraIIOS ring-3 candidate at [source commit 506c76b](https://github.com/amerhwitat/ChimeraIIOS/commit/506c76baafcc45fc08dd14fad5b1723f2d0fd24b) into the vendored Koronos source and adds a Live/Installer/Recovery × BIOS/UEFI probe workflow.
+
+**Status: imported candidate, not accepted.** The upstream PR #125's recorded results include Live BIOS and Live UEFI probe failures; its passing Installer/Recovery probes do not constitute a six-case pass. The candidate workflow uses standalone freestanding ELF probes. It does not yet prove that the production shell-based initramfs payload is selected, extracted and launched, and it does not prove Aurora startup, installer completion/reboot, a real recovery action, or AP-backed concurrent SMP.
+
+The OctavianOS PR must pass the integrated native kernel build and its six candidate probe cases before merging. Keep the unchanged tests/migration/verify-userspace-handoff.py fail-closed. If any candidate case fails, fix the underlying source and rerun; never synthesize the readiness or syscall acknowledgement markers. Production release remains blocked until all six real production target/firmware cases and the separate end-to-end operations pass.
