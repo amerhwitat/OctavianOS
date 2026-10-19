@@ -1,6 +1,6 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED.** Latest inspected production acceptance run: [OctavianOS Actions run 39185798999](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999). The freestanding kernel build, complete ISO smoke boot, and target-routing smoke tests passed, but the separate production userspace acceptance job failed for Live, Installer, and Recovery. Release publication was skipped. The earlier [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211) failed the same three target checks.
+**Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
 
 ## What the evidence means
 
@@ -10,7 +10,7 @@ The acceptance job ran the existing verifier unchanged against these traces:
 - `trace/installer-debugcon.log` for Installer
 - `trace/recovery-debugcon.log` for Recovery
 
-All three failed because they lack both a user-originated init syscall acknowledgement proving CPL 3 and a subsequent target-specific readiness marker carrying the same real, nonzero init PID. The verifier is intentionally fail-closed; do not weaken it or manufacture these markers from kernel code.
+All six target/firmware attempts failed because they lack both a user-originated init syscall acknowledgement proving CPL 3 and a subsequent target-specific readiness marker carrying the same real, nonzero init PID. The verifier is intentionally fail-closed; do not weaken it or manufacture these markers from kernel code.
 
 ## Source-level integration gaps
 
@@ -108,3 +108,8 @@ Current job-step evidence for [ChimeraIIOS run #1388](https://github.com/amerhwi
 ## Corrected final verifier result — 2026-10-19
 
 The final status of [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) is FAILURE. The logs explicitly show `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker` for Live, Installer and Recovery under both BIOS and UEFI. The step wrappers completed but exported `accepted=false`; the final fail-closed release gate failed as intended. Therefore neither target handoff acceptance nor the six-case production matrix passed. Build/ISO and QEMU boot-smoke checks did pass, and artifacts were uploaded: `chimera-target-userspace-traces` ID 12166193261 and `chimera-ii-os-live-installer` ID 12166940637. GitHub Release publication was skipped. Keep every production runtime acceptance requirement NOT VERIFIED until real user-originated CPL3 syscall and matching PID evidence pass all cases.
+
+
+## Desktop artwork update (web prototypes)
+
+The Aurora Wayland Glass and Marine Desktop web prototypes now share an interactive wallpaper picker and bundled local artwork. Marine uses `desktop/marine/assets/marine-desktop.svg`; Aurora uses `desktop/aurora/assets/octavian-octopus-aurora.svg`. The preference is persisted in browser local storage. These UI changes do not affect or satisfy the kernel userspace acceptance gate above.
