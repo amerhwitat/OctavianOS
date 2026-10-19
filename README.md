@@ -122,3 +122,8 @@ The latest poll of upstream full-ISO run [#1388](https://github.com/amerhwitat/C
 ## Production acceptance live progress — 2026-10-19
 
 Fresh workflow job-step polling for [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) confirms the ASM/C/C++ build and ISO composition, ISO artifact validation, target-payload/offline-artwork validation, and headless Koronos QEMU boot smoke test have all completed successfully. The job is currently running **Verify actual Live, Installer, and Recovery userspace handoff**. The six-case BIOS/UEFI matrix has not started; trace/ISO artifact upload and release steps remain pending, and the run currently has no artifacts. This is a successful compile/ISO/smoke-test stage, not production userspace acceptance. The release remains BLOCKED until the real handoff and six-case matrix pass.
+
+
+## Latest production matrix progress — 2026-10-19
+
+The latest step poll for [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) now shows the actual Live/Installer/Recovery userspace handoff verification step completed and the six-case BIOS/UEFI production userspace matrix running. The build, ISO/payload validation, and Koronos QEMU boot smoke steps also passed. The matrix has not yet completed, no trace/ISO artifacts are available, and release publication remains pending. Production release stays BLOCKED until the six cases and remaining fail-closed gate pass.
