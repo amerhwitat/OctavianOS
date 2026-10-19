@@ -70,3 +70,23 @@ ChimeraIIOS native Koronos build run #39274513564 completed successfully after t
 ### Latest native ISO attempt — 2026-10-19
 
 Native Koronos build run #39274902857 again passed kernel compilation, Multiboot2 validation, QEMU kernel readiness, and Live/Recovery initramfs generation, then failed closed at production init ELF validation. The same three files are absent: boot/live/user-init-live.elf, boot/installer/user-init-installer.elf, and boot/recovery/user-init-recovery.elf. Full-ISO tests and prerelease were skipped. A newer docs-triggered native run #39275375884 is pending; do not infer success from it until completed.
+
+
+## Root-cause audit — 2026-10-19 (native ISO run #39275559014)
+
+The latest native build still fails at the production payload gate: [run #39275559014](https://github.com/amerhwitat/OctavianOS/actions/runs/39275559014). Kernel compile/link, Multiboot2 checks, QEMU kernel-ready probe, Live/Recovery initramfs generation, and six **test-only** ring-3 probes passed. The ISO builder then refused to continue because all three required files were absent. Full-ISO boot and the real-userspace verifier were skipped; no ISO candidate was produced.
+
+The audit found the missing ELF problem is not just a path typo:
+
+- `boot/iso/build-iso.sh` calls `verify-production-init-elfs.py` immediately after `prepare-layout.sh`, but there is no preceding production-init compiler/staging step.
+- The GRUB Live/Normal/Recovery entries pass initramfs and JSON manifests, not a `chimera-user-init-elf` module. The Installer entry passes installer data/contracts but no target init ELF. The kernel's Multiboot classifier recognizes the init-ELF module kind, but the shipping menus do not currently provide it.
+- The native user syscall surface currently covers GETPID, YIELD, TIME_TICKS, WRITE, EXIT and EXIT_GROUP. It does not provide the file read/open, mount/root-switch, exec/wait, device, or graphics/session interfaces needed to unpack/use the existing initramfs and start Aurora or perform a real installer/recovery workflow from ring 3.
+- The existing shell `/init` scripts run inside cpio initramfs payloads; they are not the native ELF images the kernel's selected-user launcher consumes. Converting smoke probes or marker-only programs into these three files would create false production evidence.
+
+Therefore the next implementation milestone is a coherent userspace ABI and service/runtime path (or a deliberately supported initramfs execution model), plus target-specific init sources/build/link rules and GRUB module routing. It must be followed by real QEMU traces for Live→Aurora, disposable-disk install→reboot, Recovery actions, and BIOS/UEFI × target acceptance. Until then the payload validator and prerelease gate must remain fail-closed.
+
+Current verified boundary:
+- Native kernel build and test-only ring-3 matrix: PASS.
+- Production init ELF generation and routing: MISSING.
+- Live→Aurora, install/reboot, Recovery operation, AP-backed SMP, six-case full production acceptance: NOT VERIFIED.
+- ISO release: BLOCKED.
