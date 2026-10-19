@@ -3,7 +3,13 @@ on:
   pull_request:
     paths:
       - "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      - "desktop/aurora/assets/octavian-boot-nebula.svg"
+      - "desktop/aurora/assets/jasper-gates-boot.svg"
+      - "desktop/aurora/assets/aurora-diagnostics-backdrop.svg"
       - "desktop/aurora/assets/octavian-artwork-manifest.json"
+      - "vendor/chimera-ii-os/source/boot/iso/build-iso.sh"
+      - "vendor/chimera-ii-os/source/boot/iso/grub.cfg"
+      - "vendor/chimera-ii-os/source/boot/jasper/jasper.cfg"
       - "tools/boot/render_boot_artwork.py"
       - "tests/boot/test_boot_artwork_renderer.py"
       - ".github/workflows/boot-artwork.yml"
@@ -24,13 +30,32 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install SVG renderer
         run: sudo apt-get update && sudo apt-get install -y python3-cairosvg
-      - name: Render firmware-stage PNG
-        run: python3 tools/boot/render_boot_artwork.py --output build/boot-artwork/octavian-octopus-aurora.png
+      - name: Render firmware-stage PNGs
+        run: |
+          set -euo pipefail
+          python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-octopus-aurora.svg --output build/boot-artwork/octavian-octopus-aurora.png
+          python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/jasper-gates-boot.svg --output build/boot-artwork/jasper-gates-boot.png
+          python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-boot-nebula.svg --output build/boot-artwork/octavian-boot-nebula.png
+          python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/aurora-diagnostics-backdrop.svg --output build/boot-artwork/aurora-diagnostics-backdrop.png
       - name: Test renderer and PNG dimensions
-        run: python3 -m unittest tests/boot/test_boot_artwork_renderer.py -v
+        run: |
+          set -euo pipefail
+          python3 -m unittest tests/boot/test_boot_artwork_renderer.py -v
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          for p in Path("build/boot-artwork").glob("*.png"):
+              d=p.read_bytes()
+              assert d[:8] == b"\\x89PNG\\r\\n\\x1a\\n", f"invalid PNG: {p}"
+              w,h=struct.unpack(">II",d[16:24])
+              assert (w,h)==(1920,1080), f"unexpected dimensions {w}x{h}: {p}"
+              assert len(d)>1024, f"PNG too small: {p}"
+              print(f"{p}: {w}x{h}, {len(d)} bytes")
+          assert len(list(Path("build/boot-artwork").glob("*.png"))) == 4
+          PY
       - name: Upload rendered artwork for ISO-builder integration
         uses: actions/upload-artifact@v4
         with:
           name: octavianos-boot-artwork
-          path: build/boot-artwork/octavian-octopus-aurora.png
+          path: build/boot-artwork/*.png
           if-no-files-found: error
