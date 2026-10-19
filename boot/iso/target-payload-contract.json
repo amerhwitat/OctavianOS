@@ -60,6 +60,7 @@
     "safe-mode": {
       "required": [
         "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/user-init-live.elf",
         "/boot/live/live-manifest.json"
       ],
       "mode": "chm.mode=safe chm.graphics=basic"
