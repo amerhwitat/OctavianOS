@@ -282,7 +282,7 @@ jobs:
           from pathlib import Path
           p=Path("/tmp/octavian-octopus-aurora.png")
           data=p.read_bytes()
-          assert data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"), "rendered Octavian artwork is not PNG"
+          assert data.startswith(b"\x89PNG\r\n\x1a\n"), "rendered Octavian artwork is not PNG"
           assert len(data) > 1024, "rendered Octavian artwork is unexpectedly small"
           print("Octavian firmware artwork render verified:", len(data), "bytes")
           PY
