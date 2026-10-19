@@ -7,7 +7,8 @@ QEMU BOOT PROVENANCE: target=<live|installer|recovery> firmware=<bios|uefi>
 The harness must write this line only after starting a fresh QEMU instance
 with the named target and firmware. Hash uniqueness rejects copied/relabelled
 traces. The production verifier remains authoritative for the CPL-3 syscall
-and matching-PID readiness handshake. Missing or ambiguous evidence fails.
+and matching-PID readiness handshake. Missing traces are failures, not skips;
+missing or ambiguous evidence always fails closed.
 """
 from __future__ import annotations
 
