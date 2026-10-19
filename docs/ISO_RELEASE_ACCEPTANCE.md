@@ -113,7 +113,7 @@ The ring-3 launch foundation exercised by OctavianOS smoke probes has been synch
 | Gate | Current result |
 |---|---|
 | OctavianOS six ring-3 smoke probes | PASS — test-only, run #39272210956 |
-| ChimeraIIOS source-parity smoke matrix | Re-run pending after fixing workflow root path and exporting bootstrap PML4 symbol — run #39274513629 |
+| ChimeraIIOS source-parity smoke matrix | PASS — six test-only probes, run #39274699829; production acceptance separate |
 | Production Live/Installer/Recovery init ELFs | MISSING |
 | Full-ISO Live/Installer/Recovery × BIOS/UEFI | NOT VERIFIED |
 | Aurora startup, installation/reboot, real recovery | NOT VERIFIED |
@@ -122,4 +122,4 @@ The ring-3 launch foundation exercised by OctavianOS smoke probes has been synch
 
 The production release workflow remains fail-closed. Never substitute smoke-probe ELFs for the three production init payloads.
 
-CI update: ChimeraIIOS native Koronos build #39274513564 now PASSes after the runtime parity sync. The Chimera six-case smoke workflow #39274699829 remains queued, so runtime parity is not yet verified there. Production target init ELFs remain missing; full-ISO production acceptance and release are still BLOCKED.
+CI update: ChimeraIIOS native Koronos build #39274513564 now PASSes after the runtime parity sync. The Chimera six-case smoke workflow #39274699829 completed successfully across all six test-only probes; source-level runtime parity is now smoke-tested. Production target init ELFs remain missing. Production target init ELFs remain missing; full-ISO production acceptance and release are still BLOCKED.
