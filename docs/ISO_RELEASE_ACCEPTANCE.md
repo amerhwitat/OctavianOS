@@ -70,3 +70,8 @@ Upstream full-ISO run [#1388](https://github.com/amerhwitat/ChimeraIIOS/actions/
 ## Current ISO gate progress — 2026-10-19
 
 [Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) has completed the ASM/C/C++ build and ISO composition, ISO artifact validation, target payload/offline artwork validation, and headless Koronos QEMU boot smoke test successfully. Actual Live, Installer, and Recovery userspace handoff verification is currently in progress. The six-case BIOS/UEFI matrix, trace and ISO artifact upload, and validated release publication have not run yet; the artifacts endpoint is empty. This is not a production release pass. Keep release BLOCKED until the unchanged fail-closed acceptance gate passes.
+
+
+## Latest gate status — 2026-10-19
+
+The upstream [run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) has passed build/ISO composition, ISO artifact validation, target payload/offline artwork validation, headless Koronos boot smoke, and the actual Live/Installer/Recovery handoff verification step. The six-case BIOS/UEFI production userspace matrix is now in progress. Trace upload, ISO artifact publication, validated release publication, and the final fail-closed release gate remain pending. No artifacts exist yet; release remains BLOCKED pending results.
