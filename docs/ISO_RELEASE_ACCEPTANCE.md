@@ -85,3 +85,23 @@ The six-case BIOS/UEFI userspace matrix and target handoff verification steps in
 ## Final result correction — 2026-10-19
 
 [Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) ended with FAILURE at the final fail-closed acceptance gate. All six target × firmware traces report missing user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness. Build/ISO composition, ISO validation, payload/artwork validation, Koronos boot smoke, ISO compression, and artifact uploads passed. The release publication step was skipped. Preserved artifacts: ISO ID 12166940637; target traces ID 12166193261. The intermediate matrix step reported a successful *step conclusion* while exporting `accepted=false`; do not interpret that as matrix pass. Production acceptance is NOT VERIFIED and release remains BLOCKED.
+
+
+## Status refresh — 2026-10-19 (run 39271192234)
+
+**Release remains BLOCKED.** [Six ring-3 smoke probes](https://github.com/amerhwitat/OctavianOS/actions/runs/39271188845) passed as test-only probes. [Native build #39271192234](https://github.com/amerhwitat/OctavianOS/actions/runs/39271192234) built the kernel and support payloads but failed production-init validation because the Live, Installer and Recovery init ELF files were absent. The full-ISO boot/routing checks and real-userspace acceptance jobs were skipped. No ISO artifact was produced; only the kernel ELF artifact was uploaded.
+
+| Gate | Current status |
+|---|---|
+| ELF loader hardening/regressions | Implemented; smoke CI passed |
+| Six ring-3 smoke probes | PASS — test-only, not production acceptance |
+| Production Live init ELF | MISSING |
+| Production Installer init ELF | MISSING |
+| Production Recovery init ELF | MISSING |
+| Live init → Aurora | NOT VERIFIED |
+| Real install → reboot → installed boot | NOT VERIFIED |
+| Real Recovery operation | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production ISO release | BLOCKED |
+
+Do not relax the validator or substitute smoke probes. The next required implementation is the real process execution/syscall lifecycle (address-space activation, GDT/TSS/RSP0, CPL3 entry/return, validated syscall ABI and kernel-owned PID/lifecycle), followed by target-specific service/init payloads and the full six-case ISO matrix plus independent end-to-end and SMP tests.
