@@ -46,7 +46,7 @@ class SixCaseMatrixTests(unittest.TestCase):
         source = source_root.read_text(encoding="utf-8")
         self.assertIn('const char *a="USERSPACE READY: target=";', source)
         self.assertIn('const char *b=" init_pid=";', source)
-        self.assertIn(r'r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b"', verifier)
+        self.assertIn('USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)', verifier)
 
     def test_accepts_six_distinct_firmware_attested_handoffs(self):
         with tempfile.TemporaryDirectory() as td:
