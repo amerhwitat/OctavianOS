@@ -447,14 +447,11 @@ jobs:
         with:
           name: octavianos-full-iso-qemu-trace
           path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+      - name: Require all six production target/firmware handoffs
         run: |
-          set -uo pipefail
-          result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
-          exit "$result"
+          set -euo pipefail
+          python3 -m py_compile tests/migration/verify-six-case-userspace-matrix.py
+          python3 tests/migration/verify-six-case-userspace-matrix.py trace
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
