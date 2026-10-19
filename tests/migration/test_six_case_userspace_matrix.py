@@ -28,15 +28,22 @@ class SixCaseMatrixTests(unittest.TestCase):
             text=True,
         )
 
+    def populate(self, root, wrong_live_bios=False):
+        for i, target in enumerate(TARGETS):
+            for j, firmware in enumerate(FIRMWARES):
+                actual_firmware = (
+                    "uefi" if wrong_live_bios and target == "live" and firmware == "bios"
+                    else firmware
+                )
+                (root / f"{target}-{firmware}.log").write_text(
+                    trace_text(target, actual_firmware, i * 2 + j + 1),
+                    encoding="utf-8",
+                )
+
     def test_accepts_six_distinct_firmware_attested_handoffs(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            for i, target in enumerate(TARGETS):
-                for j, firmware in enumerate(FIRMWARES):
-                    (root / f"{target}-{firmware}.log").write_text(
-                        trace_text(target, firmware, i * 2 + j + 1),
-                        encoding="utf-8",
-                    )
+            self.populate(root)
             result = self.run_matrix(root)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("all six independent target/firmware cases verified", result.stdout)
@@ -44,13 +51,7 @@ class SixCaseMatrixTests(unittest.TestCase):
     def test_rejects_wrong_firmware_provenance(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            for target in TARGETS:
-                for firmware in FIRMWARES:
-                    provenance_firmware = "uefi" if target == "live" and firmware == "bios" else firmware
-                    (root / f"{target}-{firmware}.log").write_text(
-                        trace_text(target, provenance_firmware, 1),
-                        encoding="utf-8",
-                    )
+            self.populate(root, wrong_live_bios=True)
             result = self.run_matrix(root)
             self.assertEqual(result.returncode, 1)
             self.assertIn("expected harness provenance line", result.stdout)
@@ -58,14 +59,8 @@ class SixCaseMatrixTests(unittest.TestCase):
     def test_rejects_byte_identical_copied_trace(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            for target in TARGETS:
-                for firmware in FIRMWARES:
-                    (root / f"{target}-{firmware}.log").write_text(
-                        trace_text(target, firmware, 1),
-                        encoding="utf-8",
-                    )
-            source = root / "live-bios.log"
-            (root / "live-uefi.log").write_bytes(source.read_bytes())
+            self.populate(root)
+            (root / "live-uefi.log").write_bytes((root / "live-bios.log").read_bytes())
             result = self.run_matrix(root)
             self.assertEqual(result.returncode, 1)
             self.assertIn("byte-identical", result.stdout)
