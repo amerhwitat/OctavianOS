@@ -8,6 +8,16 @@ The expanded [application catalog](catalog/apps.json) covers common desktop work
 
 **Cataloged does not mean installed, bundled, ported, or verified.** Added entries use `availability: catalog-only` until packaging, license/provenance review, dependency resolution, target-specific build and actual launch tests are complete. Host versions of Windows/macOS/Linux applications are not automatically runnable on the bare-metal Chimera kernel. Use official providers or explicitly identified web, VM, emulation, or compatibility routes where appropriate.
 
+## Working browser application prototype
+
+[Paint Studio](paint-studio.html) is a dependency-free browser canvas editor with pen, line, rectangle, ellipse, eraser, undo, image import and PNG export. It runs in a modern browser and keeps edits in the page until exported. **This is a browser app prototype, not a native Koronos executable or a claim of OS-level file/graphics integration.**
+
+[Media Deck](media-deck.html) is a dependency-free local browser audio/video player with queue controls, volume, playback speed and keyboard play/pause. Browser codec support applies; this is not a native media backend.
+
+[Document Desk](document-desk.html) provides local text/Markdown editing, text export, and browser-native PDF preview. [Snake Arcade](snake-arcade.html) is a small playable canvas game with keyboard/touch controls. These are browser prototypes; neither supplies native office-suite, PDF engine, graphics driver, or native game-runtime support.
+
+Additional working browser prototypes are available: [Vector Studio](vector-studio.html) for SVG drawing/export, [Sheet Desk](sheet-desk.html) for editable CSV import/export, [File Toolkit](file-toolkit.html) for local file metadata and SHA-256 checksums, and [Code Workbench](code-workbench.html) for HTML editing with a sandboxed preview. These are browser applications; they do not imply native vector/rendering, spreadsheet formula, filesystem, compiler, debugger, or SDK support.
+
 ## Policy
 
 The ISO contains open-source core components and metadata/source references. Proprietary binaries are not copied into the repository merely because an application is popular. The application manager opens or invokes an official distribution mechanism when a license or store policy requires it. Untrusted post-install scripts are not run implicitly.
@@ -16,6 +26,7 @@ The ISO contains open-source core components and metadata/source references. Pro
 
 ```text
 python3 appcenter/cli/chimera-appctl.py validate
+python3 appcenter/cli/chimera-appctl.py runtime-status
 python3 appcenter/cli/chimera-appctl.py list
 python3 appcenter/cli/chimera-appctl.py categories --count
 python3 appcenter/cli/chimera-appctl.py search media
@@ -39,3 +50,7 @@ chimera-pkg databases
 ```
 
 When provider is `auto`, failed read-only package searches may retry another installed provider. Install, remove and update operations never silently switch providers. Build dependency installation is disabled by default; explicitly opt in with `./build-chimera-iso.sh --install-build-deps` to let the builder try available host package managers when required build tools are missing. This may install system packages and therefore requires root or sudo. It does not bypass Docker daemon readiness checks or run remote installer scripts.
+
+## Native package contract
+
+See [PACKAGING.md](PACKAGING.md), [package-manifest.schema.json](package-manifest.schema.json), and [runtime-support-manifest.json](runtime-support-manifest.json) for required dependency, permission, sandbox, signing, lifecycle and launch-test evidence. Native package availability remains false until these gates pass. `runtime-status` prints per-entry support and native launch-test state.
