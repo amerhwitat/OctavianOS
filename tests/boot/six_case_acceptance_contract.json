@@ -1,0 +1,90 @@
+{
+  "schema": "CHM-OS-PRODUCTION-SIX-CASE-1",
+  "status": "contract-only",
+  "cases": [
+    {
+      "id": "live-bios",
+      "target": "live",
+      "firmware": "bios",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    },
+    {
+      "id": "installer-bios",
+      "target": "installer",
+      "firmware": "bios",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    },
+    {
+      "id": "recovery-bios",
+      "target": "recovery",
+      "firmware": "bios",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    },
+    {
+      "id": "live-uefi",
+      "target": "live",
+      "firmware": "uefi",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    },
+    {
+      "id": "installer-uefi",
+      "target": "installer",
+      "firmware": "uefi",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    },
+    {
+      "id": "recovery-uefi",
+      "target": "recovery",
+      "firmware": "uefi",
+      "status": "NOT_RUN",
+      "evidence": {
+        "iso_sha256": null,
+        "kernel_sha": null,
+        "init_pid": null,
+        "syscall_cpl": null,
+        "syscall_log": null,
+        "ready_log": null
+      }
+    }
+  ]
+}
