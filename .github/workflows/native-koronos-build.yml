@@ -22,6 +22,8 @@ on:
       - 'tests/boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
+      - 'tools/boot/**'
+      - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
 
 
@@ -62,6 +64,8 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tools/boot/**'
+      - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -271,7 +275,7 @@ jobs:
       - name: Validate Octavian Octopus artwork renderer
         run: |
           set -euo pipefail
-          python3 -m unittest tests.boot.test_boot_artwork_renderer -v
+          python3 -m unittest discover -s tests/boot -p test_boot_artwork_renderer.py -v
           python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-octopus-aurora.svg --output /tmp/octavian-octopus-aurora.png
           test -s /tmp/octavian-octopus-aurora.png
           python3 - <<'PY'
