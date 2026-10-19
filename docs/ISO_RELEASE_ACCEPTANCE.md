@@ -125,3 +125,22 @@ The production release workflow remains fail-closed. Never substitute smoke-prob
 CI update: ChimeraIIOS native Koronos build #39274513564 now PASSes after the runtime parity sync. The Chimera six-case smoke workflow #39274699829 completed successfully across all six test-only probes; source-level runtime parity is now smoke-tested. Production target init ELFs remain missing. Production target init ELFs remain missing; full-ISO production acceptance and release are still BLOCKED.
 
 Latest release-gate evidence: native run #39274902857 again passed kernel/QEMU readiness and generated Live/Recovery initramfs payloads, but failed closed because all three production init ELFs remain missing. Full-ISO checks and prerelease were skipped. A newer native run #39275375884 is pending; production ISO publication remains BLOCKED.
+
+
+## Production-init ELF root cause — 2026-10-19 (run #39275559014)
+
+[Latest native ISO run #39275559014](https://github.com/amerhwitat/OctavianOS/actions/runs/39275559014) failed at the production init ELF validator. The builder has no compile/stage rule before validation, and the shipping GRUB Live/Normal/Recovery/Installer entries do not pass a target-specific `chimera-user-init-elf` module. The current syscall ABI also lacks the filesystem/process/device/graphics services needed to turn the shell initramfs payloads into an actual Aurora, installer, or recovery session. These are implementation gaps, not missing files that can safely be filled with smoke binaries.
+
+| Gate | Verified status |
+|---|---|
+| Kernel build + kernel QEMU readiness | PASS |
+| Ring-3 smoke probes (six target/firmware combinations) | PASS — test-only |
+| Production init ELF source/build/staging/routing | MISSING |
+| Full ISO build and full-ISO target verification | SKIPPED after fail-closed payload check |
+| Live→Aurora | NOT VERIFIED |
+| Installer → safe disk install → reboot → installed boot | NOT VERIFIED |
+| Recovery action | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production release | BLOCKED |
+
+Do not bypass the validator, promote smoke probes, or accept a marker-only init as production. Resume release work only after implementing the native userspace service contract and real target init programs, wiring them into the ISO and GRUB modules, and proving each target under both BIOS and UEFI. Keep release publication gated on the resulting runtime traces and operation-specific tests.
