@@ -59,7 +59,7 @@ jobs:
           if (( missing )); then echo 'No ISO will be fabricated from placeholders. Build and stage the target-specific native init ELFs and real kernel/userspace, then rerun.'; exit 2; fi
       - name: Validate production init ELF format and checksums
         run: |
-          python3 tools/boot/verify-production-init-elfs.py build/iso-root --write-manifest build/iso-root/boot/production-init-elfs.json
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-production-init-elfs.py build/iso-root --write-manifest build/iso-root/boot/production-init-elfs.json
       - name: Validate staged payloads
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
