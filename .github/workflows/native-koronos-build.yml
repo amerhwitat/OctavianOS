@@ -537,9 +537,36 @@ jobs:
           exit "$result"
 
 
+  validate-iso-runner-candidate:
+    name: Build QEMU ISO runner image (no publication)
+    needs: [build-koronos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout OctavianOS
+        uses: actions/checkout@v4
+      - name: Download ISO build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify candidate ISO checksum
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso
+          test -s dist/output.iso.sha256
+          expected="$(awk '{print $1}' dist/output.iso.sha256)"
+          actual="$(sha256sum dist/output.iso | awk '{print $1}')"
+          test "$expected" = "$actual"
+          printf '%s  output.iso\n' "$expected" > dist/output.iso.sha256
+          (cd dist && sha256sum -c output.iso.sha256)
+      - name: Build runner image without publishing
+        run: docker build --file docker/iso-runner/Dockerfile --tag octavianos-iso-runner:candidate .
+
   publish-iso-runner-candidate:
     name: Publish QEMU ISO runner candidate to GHCR
-    needs: [build-koronos]
+    needs: [validate-iso-runner-candidate]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -548,16 +575,20 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
-      - name: Download ISO build artifact after probe-matrix job
+      - name: Download ISO build artifact
         uses: actions/download-artifact@v4
         with:
           name: octavianos-native-iso-candidate
           path: dist
-      - name: Verify candidate ISO and checksum
+      - name: Verify candidate ISO checksum
         run: |
           set -euo pipefail
           test -s dist/output.iso
           test -s dist/output.iso.sha256
+          expected="$(awk '{print $1}' dist/output.iso.sha256)"
+          actual="$(sha256sum dist/output.iso | awk '{print $1}')"
+          test "$expected" = "$actual"
+          printf '%s  output.iso\n' "$expected" > dist/output.iso.sha256
           (cd dist && sha256sum -c output.iso.sha256)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
