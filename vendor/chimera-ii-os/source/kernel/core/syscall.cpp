@@ -44,8 +44,12 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
 
     switch (id.canonical) {
         case CHM_SYS_GETPID:
-            *return_value = 1u;
-            return 0;
+            // There is not yet a process-context binding from the x86_64
+            // syscall entry path. Returning a constant PID would fabricate
+            // successful userspace identity and make acceptance traces lie.
+            *return_value = error_value();
+            ++g_rejected;
+            return -1;
         case CHM_SYS_YIELD:
             chimera_sched_yield();
             *return_value = 0;
@@ -55,11 +59,13 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
             return 0;
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
-            /* Process teardown is deliberately owned by the process manager;
-             * this early dispatcher only acknowledges the semantic operation. */
+            // Do not acknowledge exit until dispatch is attached to a live
+            // process and the process manager can reap it and release its
+            // address space. A success return here would be false semantics.
             (void)args;
-            *return_value = 0;
-            return 0;
+            *return_value = error_value();
+            ++g_rejected;
+            return -1;
         default:
             ++g_rejected;
             *return_value = error_value();

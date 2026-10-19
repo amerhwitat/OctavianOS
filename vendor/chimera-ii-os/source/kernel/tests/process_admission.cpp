@@ -7,7 +7,7 @@ static void make_elf(uint8_t* b,bool wx){
   std::memset(b,0,4096);
   auto* h=(koronos_elf64_ehdr*)b;
   h->e_ident[0]=0x7f; h->e_ident[1]='E'; h->e_ident[2]='L'; h->e_ident[3]='F';
-  h->e_ident[4]=2; h->e_ident[5]=1; h->e_type=KORONOS_ET_DYN; h->e_machine=KORONOS_EM_X86_64;
+  h->e_ident[4]=2; h->e_ident[5]=1; h->e_type=KORONOS_ET_EXEC; h->e_machine=KORONOS_EM_X86_64;
   h->e_version=1; h->e_entry=0x400100; h->e_ehsize=sizeof(*h); h->e_phoff=sizeof(*h);
   h->e_phentsize=sizeof(koronos_elf64_phdr); h->e_phnum=1;
   auto* p=(koronos_elf64_phdr*)(b+h->e_phoff);
@@ -27,6 +27,22 @@ int main(){
   chimera_process_image q{};
   assert(chimera_process_get(pid,&q)==0 && q.state==CHIMERA_PROCESS_READY);
   make_elf(image,true);
+  assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
+
+  // Reject truncated/out-of-bounds program-header tables before dereferencing.
+  make_elf(image,false);
+  auto *h = (koronos_elf64_ehdr*)image;
+  h->e_phoff = UINT64_MAX - 8u;
+  assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
+  make_elf(image,false);
+  h = (koronos_elf64_ehdr*)image;
+  h->e_phentsize = 1;
+  assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
+
+  // A non-executable PT_LOAD may not supply the entry point.
+  make_elf(image,false);
+  auto *ph = (koronos_elf64_phdr*)(image + sizeof(koronos_elf64_ehdr));
+  ph->p_flags = 4;
   assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
   return 0;
 }
