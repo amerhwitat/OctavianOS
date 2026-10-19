@@ -6,6 +6,14 @@
 #error CHIMERA_INIT_TARGET_NAME must be set by the target build
 #endif
 
+#define CHIMERA_STRINGIFY_INNER(value) #value
+#define CHIMERA_STRINGIFY(value) CHIMERA_STRINGIFY_INNER(value)
+
+/* Build identity for packaging diagnostics only; this fail-closed bootstrap
+ * is not a production init and is rejected by the release gate. */
+__attribute__((used)) static const char target_identity[] =
+    "CHIMERA_PRODUCTION_INIT_TARGET=" CHIMERA_STRINGIFY(CHIMERA_INIT_TARGET);
+
 static long call0(long number) {
   register long rax __asm__("rax") = number;
   __asm__ volatile("syscall" : "+a"(rax) : : "rcx", "r11", "memory");
