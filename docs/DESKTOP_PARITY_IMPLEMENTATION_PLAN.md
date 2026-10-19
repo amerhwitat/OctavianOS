@@ -46,3 +46,15 @@ Treat the upstream catalog as a list of references, not a license to copy. Revie
 ## Current result
 
 This change adds a shared machine-readable reference inventory and a mirrored implementation/acceptance contract. It does **not** implement a full compositor, port every desktop environment, build either OS, execute desktop tests, merge changes, or publish releases. Capability entries remain `planned` until real implementation and evidence exist.
+
+
+## Portfolio GUI migration coordination
+
+The public portfolio's cross-repository inventory and staged acceptance guidance are maintained alongside the website:
+- [Portfolio GUI Migration Dashboard](https://amerhwitat.github.io/apps/portfolio-migration/)
+- [Migration architecture and acceptance guide](https://github.com/amerhwitat/amerhwitat.github.io/blob/main/docs/PORTFOLIO_GUI_MIGRATION.md)
+- [Desktop Evolution Lab](https://amerhwitat.github.io/apps/desktop-evolution/)
+
+Keep Aurora Wayland Glass Desktop and Marine Desktop as distinct user-facing personalities with shared, testable behavior contracts. Treat Angular/TypeScript and Next.js/TypeScript as alternative web targets selected per app; do not rewrite every project into both frameworks by default. Spring Boot services require separate JVM hosting, while JavaFX/Swing, Python GUI and native programs need explicit browser ports or secured service/WASM bridges.
+
+Acceptance states must remain separate: inventoried, ported, build verified, browser verified, published, and native verified. The web catalog is not evidence of a native compositor, successful ISO boot, actual Live/Installer/Recovery handoff, or genuine SMP. Do not mark capabilities complete until the exact implementation and corresponding tests provide evidence.
