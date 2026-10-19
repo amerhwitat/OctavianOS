@@ -10,6 +10,7 @@ on:
       - "vendor/chimera-ii-os/source/boot/iso/build-iso.sh"
       - "vendor/chimera-ii-os/source/boot/iso/grub.cfg"
       - "vendor/chimera-ii-os/source/boot/jasper/jasper.cfg"
+      - "vendor/chimera-ii-os/source/boot/jasper/graphics.cfg"
       - "tools/boot/render_boot_artwork.py"
       - "tests/boot/test_boot_artwork_renderer.py"
       - ".github/workflows/boot-artwork.yml"
