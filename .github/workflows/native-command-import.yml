@@ -93,6 +93,7 @@ jobs:
           print("Octavian native/candidate registry:", d["counts"])
           PY
       - name: Persist generated Octavian command registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -104,6 +105,7 @@ jobs:
             echo "Octavian command registry is already current."
           fi
       - name: Upload Octavian native command registry
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Octavian-Native-Command-Candidates-${{ github.sha }}
