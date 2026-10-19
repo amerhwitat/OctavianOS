@@ -40,6 +40,11 @@ if [[ "$missing_init" -ne 0 ]]; then
   echo "ERROR: refusing to run a six-case matrix without all three production init ELFs; test probes do not satisfy this contract." >&2
   exit 2
 fi
+python3 "$ROOT/tools/boot/validate_production_init.py"
+
+# A multi-vCPU QEMU setting is useful coverage, but does not itself prove AP
+# startup or concurrent execution. Those require independent kernel/runtime
+# evidence and remain a separate release criterion.
 
 for target in live installer recovery; do
   tree="$matrix/${target}-tree"
@@ -61,8 +66,14 @@ menuentry "Production acceptance ${target}" {
 GRUB
   case "$target" in
     live)
-      [[ ! -s "$tree/boot/live/chimera-live-initramfs.img" ]] || echo '  module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs' >> "$tree/boot/grub/grub.cfg"
-      [[ ! -s "$tree/boot/live/live-manifest.json" ]] || echo '  module2 /boot/live/live-manifest.json chimera-live-manifest' >> "$tree/boot/grub/grub.cfg"
+      for spec in \
+        "boot/live/chimera-live-initramfs.img:chimera-live-initramfs" \
+        "boot/live/live-manifest.json:chimera-live-manifest"; do
+        rel="${spec%%:*}"
+        label="${spec##*:}"
+        test -s "$tree/$rel" || { echo "ERROR: required Live payload missing: $tree/$rel" >&2; exit 1; }
+        echo "  module2 /$rel $label" >> "$tree/boot/grub/grub.cfg"
+      done
       ;;
     installer)
       for spec in \
@@ -73,12 +84,19 @@ GRUB
         "install/installer/installer_profiles.json:chimera-installer-profiles"; do
         rel="${spec%%:*}"
         label="${spec##*:}"
-        [[ ! -s "$tree/$rel" ]] || echo "  module2 /$rel $label" >> "$tree/boot/grub/grub.cfg"
+        test -s "$tree/$rel" || { echo "ERROR: required Installer payload missing: $tree/$rel" >&2; exit 1; }
+        echo "  module2 /$rel $label" >> "$tree/boot/grub/grub.cfg"
       done
       ;;
     recovery)
-      [[ ! -s "$tree/boot/recovery/chimera-recovery-initramfs.img" ]] || echo '  module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs' >> "$tree/boot/grub/grub.cfg"
-      [[ ! -s "$tree/boot/recovery/recovery-manifest.json" ]] || echo '  module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest' >> "$tree/boot/grub/grub.cfg"
+      for spec in \
+        "boot/recovery/chimera-recovery-initramfs.img:chimera-recovery-initramfs" \
+        "boot/recovery/recovery-manifest.json:chimera-recovery-manifest"; do
+        rel="${spec%%:*}"
+        label="${spec##*:}"
+        test -s "$tree/$rel" || { echo "ERROR: required Recovery payload missing: $tree/$rel" >&2; exit 1; }
+        echo "  module2 /$rel $label" >> "$tree/boot/grub/grub.cfg"
+      done
       ;;
   esac
   cat >> "$tree/boot/grub/grub.cfg" <<'GRUB'
@@ -90,7 +108,7 @@ GRUB
     raw="$matrix/${target}-${firmware}.raw.log"
     trace="$matrix/${target}-${firmware}.log"
     rm -f "$raw" "$trace"
-    qemu_args=(-machine q35 -m 1024 -smp 2 -accel tcg -cdrom "$test_iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$raw" -global isa-debugcon.iobase=0xe9)
+    qemu_args=(-machine q35 -m 2048 -smp 4 -accel tcg -cdrom "$test_iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$raw" -global isa-debugcon.iobase=0xe9)
     if [[ "$firmware" == "uefi" ]]; then
       vars_copy="$matrix/${target}-OVMF_VARS.fd"
       cp "$ovmf_vars" "$vars_copy"
