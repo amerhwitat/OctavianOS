@@ -121,7 +121,6 @@ if [[ -f "$OCTAVIAN_ARTWORK" && -f "$OCTAVIAN_RENDERER" ]]; then
   done
   mkdir -p "$DIST/iso/boot/jasper/artwork"
   cp -f "$VISUAL_OUT/jasper-gates-boot.png" "$DIST/iso/boot/jasper/artwork/jasper-gates-boot.png"
-  cp -f "$VISUAL_OUT/octavian-boot-nebula.png" "$VISUAL_OUT/aurora-diagnostics-backdrop.png" "$DIST/iso/boot/visual/"
   cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$DIST/iso/boot/jasper/artwork/octavian-artwork-manifest.json"
 fi
 
