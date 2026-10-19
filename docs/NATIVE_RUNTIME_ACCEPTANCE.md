@@ -42,3 +42,17 @@ The release job depends on all three checks and remains blocked if any target fa
 - [Native ISO build run](https://github.com/amerhwitat/OctavianOS/actions/runs/39183873609): the kernel build, RNN training/staging, Live/Recovery payload build, Octopus artwork render, final-ISO artwork inspection, recovery and installer routing smoke tests, full-ISO Koronos boot, and candidate artifact upload all passed.
 - [Download the ISO candidate artifact](https://github.com/amerhwitat/OctavianOS/actions/runs/39183873609/artifacts/12157078393). This is an Actions artifact for review, not a published GitHub Release.
 - The separate userspace gate failed closed for Live, Installer, and Recovery because their traces lacked both a user-originated init syscall acknowledgement and an actual init PID readiness marker. The prerelease job was skipped as intended.
+
+
+## Status refresh — 2026-10-19 (run 39271192234)
+
+The latest smoke matrix [#39271188845](https://github.com/amerhwitat/OctavianOS/actions/runs/39271188845) completed successfully for all six test-only ring-3 probe jobs. This is not production target acceptance.
+
+The latest native build [#39271192234](https://github.com/amerhwitat/OctavianOS/actions/runs/39271192234) compiled Koronos, validated the Multiboot2 contract, passed module-classification tests and built Live/Recovery support payloads. It then failed closed because all required production init ELFs were missing from the staged ISO tree:
+- `boot/live/user-init-live.elf`
+- `boot/installer/user-init-installer.elf`
+- `boot/recovery/user-init-recovery.elf`
+
+The production validation step exited nonzero. Full-ISO boot/routing checks and real-userspace verification were skipped, and no ISO candidate was uploaded. Only the kernel ELF artifact was uploaded.
+
+The audited source still has a load-plan-only process API, no verified CPL3 transition/TSS-backed kernel stack path, no user-originated syscall entry/return path, placeholder PID dispatch, and no AP startup. Therefore the missing ELFs must not be filled with smoke probes or marker-only stubs. Live→Aurora, install/reboot, real Recovery and AP-backed SMP remain NOT VERIFIED. Release remains BLOCKED.
