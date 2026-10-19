@@ -15,7 +15,7 @@ ENTRY_RE = re.compile(
     r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
 READY_RE = re.compile(
-    r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
+    r"USERSPACE READY: (?:target=(?P<target_canonical>live|installer|recovery) init_pid=|(?P<target_runtime>live|installer|recovery) init pid=)(?P<pid>[1-9][0-9]*)\b"
 )
 
 
