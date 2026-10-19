@@ -1,6 +1,6 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED.** Latest inspected production acceptance run: [OctavianOS Actions run 39185798999](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999). The freestanding kernel build, complete ISO smoke boot, and target-routing smoke tests passed, but the separate production userspace acceptance job failed for Live, Installer, and Recovery. Release publication was skipped. The earlier [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211) failed the same three target checks.
+**Status: BLOCKED.** Latest inspected native production acceptance run: [OctavianOS workflow #315](https://github.com/amerhwitat/OctavianOS/actions/runs/39189161691). The Koronos build job passed, but the unchanged real-userspace verifier failed for Live, Installer, and Recovery because each trace lacks a user-originated CPL 3 init syscall acknowledgement and a subsequent readiness marker carrying the same real PID. The prerelease job was skipped as intended. The syscall-honesty correction in [PR #68](https://github.com/amerhwitat/OctavianOS/pull/68) and its passing source-integration CI do not establish ring-3 execution; production release remains blocked. The PR #68 integration workflow passed in [run 39190245764](https://github.com/amerhwitat/OctavianOS/actions/runs/39190245764), but it is not the production userspace acceptance gate.
 
 ## What the evidence means
 
