@@ -103,6 +103,18 @@ jobs:
           assert all(app["native_package"]["available"] is False for app in runtime["apps"]), "do not claim unverified native packages"
           print(f"validated {len(apps)} mirrored catalog entries, vendored catalog and browser discovery UI")
           PY
+      - name: Validate vendored native package contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("vendor/chimera-ii-os/source/appcenter")
+          schema = json.loads((root / "package-manifest.schema.json").read_text(encoding="utf-8"))
+          runtime = json.loads((root / "runtime-support-manifest.json").read_text(encoding="utf-8"))
+          assert schema["schema"] if "schema" in schema else schema["$schema"]
+          assert all(app["native_package"]["available"] is False for app in runtime["apps"])
+          print("native package schema and fail-closed runtime manifest validated")
+          PY
       - name: Compile vendored Application Center scripts
         run: python -m py_compile vendor/chimera-ii-os/source/appcenter/cli/chimera-appctl.py vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py
       - name: Check HTML integration link
