@@ -60,3 +60,8 @@ The UEFI QEMU argument-expansion/console-diagnostic change in commit 43759a3 is 
 | Production release | BLOCKED |
 
 Next: poll run #1388, inspect all six trace/QEMU logs, implement and test the real process execution and syscall lifecycle, stage/route the actual target-specific init payload, and rerun the unchanged verifier. Then run separate Aurora, disposable-disk installation/reboot, Recovery-action, and AP-concurrency acceptance tests. Do not claim a local canonical ISO build unless `./build-chimera-iso.sh --clean-state --storage-auto` was actually run against the candidate.
+
+
+## Live workflow status refresh — 2026-10-19
+
+Upstream full-ISO run [#1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) currently reports `in_progress`. Routing/artwork validation and fail-closed verifier unit tests passed; the ASM/C/C++ build and ISO composition step remains active. Subsequent ISO integrity/payload checks, QEMU, target-specific userspace handoff, six-case BIOS/UEFI matrix, trace/ISO artifacts, and release steps remain pending. The artifacts endpoint currently returns none. This status is not a pass: production acceptance is NOT VERIFIED and release is BLOCKED until real evidence clears the unchanged gate.
