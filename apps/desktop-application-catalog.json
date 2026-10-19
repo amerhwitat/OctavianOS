@@ -1,0 +1,121 @@
+{
+  "schema": "cross-platform-desktop-app-catalog/v1",
+  "purpose": "Discoverable application inventory for Aurora Wayland Glass Desktop and Marine Desktop, informed by common Windows, Linux and macOS desktop workflows.",
+  "policy": {
+    "catalog_is_not_installation": true,
+    "catalog_is_not_compatibility_proof": true,
+    "no_proprietary_binaries_without_redistribution_rights": true,
+    "verify_upstream_license_and_source_revision_before_import": true,
+    "install_only_through_trusted_provider": true,
+    "sandbox_untrusted_apps": true,
+    "status_values": [
+      "catalog-only",
+      "source-reviewed",
+      "imported",
+      "build-verified",
+      "launch-verified",
+      "supported",
+      "blocked"
+    ]
+  },
+  "integration_targets": {
+    "windows_style": [
+      "paint-and-image-editing",
+      "media-playback",
+      "office",
+      "file-management",
+      "gaming",
+      "system-utilities"
+    ],
+    "linux_style": [
+      "native-packages",
+      "flatpak",
+      "appimage",
+      "open-source-desktop-apps",
+      "developer-tools",
+      "emulation"
+    ],
+    "macos_style": [
+      "creative-tools",
+      "media-production",
+      "productivity",
+      "accessibility",
+      "multi-display-and-window-workflows"
+    ]
+  },
+  "categories": {
+    "graphics": [
+      "pinta",
+      "krita",
+      "gimp",
+      "inkscape",
+      "blender"
+    ],
+    "photo": [
+      "darktable",
+      "rawtherapee"
+    ],
+    "media": [
+      "vlc",
+      "mpv",
+      "jellyfin-media-player"
+    ],
+    "media-production": [
+      "obs-studio",
+      "audacity",
+      "ardour",
+      "kdenlive",
+      "shotcut",
+      "handbrake"
+    ],
+    "office": [
+      "libreoffice"
+    ],
+    "documents": [
+      "okular",
+      "calibre"
+    ],
+    "communication": [
+      "thunderbird",
+      "element",
+      "telegram",
+      "signal",
+      "discord"
+    ],
+    "network": [
+      "filezilla",
+      "qbittorrent"
+    ],
+    "security": [
+      "keepassxc"
+    ],
+    "engineering": [
+      "freecad",
+      "openscad",
+      "kicad"
+    ],
+    "games": [
+      "steam",
+      "lutris",
+      "heroic",
+      "super-tux-kart",
+      "xonotic",
+      "0ad"
+    ],
+    "emulation": [
+      "retroarch"
+    ],
+    "development": [
+      "godot",
+      "geany",
+      "vscodium",
+      "vscode"
+    ],
+    "utilities": [
+      "file-roller",
+      "gnome-calculator"
+    ]
+  },
+  "source_of_truth": "https://github.com/amerhwitat/ChimeraIIOS/blob/main/appcenter/catalog/apps.json",
+  "status": "inventory-only; each entry requires target-specific packaging, dependency resolution, launch and runtime verification before it may be called supported"
+}
