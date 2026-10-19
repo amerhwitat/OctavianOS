@@ -8,6 +8,10 @@ on:
       - "apps/media-deck.html"
       - "apps/document-desk.html"
       - "apps/snake-arcade.html"
+      - "apps/vector-studio.html"
+      - "apps/sheet-desk.html"
+      - "apps/file-toolkit.html"
+      - "apps/code-workbench.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   pull_request:
@@ -18,6 +22,10 @@ on:
       - "apps/media-deck.html"
       - "apps/document-desk.html"
       - "apps/snake-arcade.html"
+      - "apps/vector-studio.html"
+      - "apps/sheet-desk.html"
+      - "apps/file-toolkit.html"
+      - "apps/code-workbench.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   workflow_dispatch:
@@ -43,6 +51,10 @@ jobs:
           node --check /tmp/media-deck.js
           node --check /tmp/document-desk.js
           node --check /tmp/snake-arcade.js
+          node --check /tmp/vector-studio.js
+          node --check /tmp/sheet-desk.js
+          node --check /tmp/file-toolkit.js
+          node --check /tmp/code-workbench.js
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
