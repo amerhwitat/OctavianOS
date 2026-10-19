@@ -79,6 +79,32 @@ jobs:
           missing=0
           for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
           if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
+          # Production init payloads must be independent, native x86-64 ET_EXEC
+          # programs with an explicit target identity. Presence-only checks can
+          # accidentally admit the ring-3 smoke probes or one ELF copied 3 times.
+          inits=(
+            "build/iso-root/boot/live/user-init-live.elf:live"
+            "build/iso-root/install/installer/user-init-installer.elf:installer"
+            "build/iso-root/boot/recovery/user-init-recovery.elf:recovery"
+          )
+          init_hashes=()
+          for item in "${inits[@]}"; do
+            elf="${item%%:*}"
+            target="${item##*:}"
+            header="$(readelf -h "$elf")"
+            grep -Eq 'Class:[[:space:]]+ELF64' <<<"$header" || { echo "::error::Production init is not ELF64: $elf"; exit 2; }
+            grep -Eq 'Type:[[:space:]]+EXEC' <<<"$header" || { echo "::error::Production init is not ET_EXEC: $elf"; exit 2; }
+            grep -Eq 'Machine:[[:space:]]+Advanced Micro Devices X86-64' <<<"$header" || { echo "::error::Production init is not x86-64: $elf"; exit 2; }
+            strings -a "$elf" | grep -Fxq "CHIMERA_PRODUCTION_INIT_TARGET=$target" || { echo "::error::Missing production target identity '$target' in $elf"; exit 2; }
+            if strings -a "$elf" | grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3'; then
+              echo "::error::Acceptance probe was staged as production init: $elf"
+              exit 2
+            fi
+            init_hashes+=("$(sha256sum "$elf" | awk '{print $1}')")
+          done
+          [[ "${init_hashes[0]}" != "${init_hashes[1]}" && "${init_hashes[0]}" != "${init_hashes[2]}" && "${init_hashes[1]}" != "${init_hashes[2]}" ]] || {
+            echo "::error::Live, Installer, and Recovery init ELFs must be distinct binaries"; exit 2;
+          }
       - name: Validate staged payloads
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
