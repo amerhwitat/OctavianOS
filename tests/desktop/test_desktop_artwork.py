@@ -33,7 +33,12 @@ class DesktopArtworkTests(unittest.TestCase):
         self.assertIn("Marine Desktop", page)
         self.assertIn("startmenu", page)
         self.assertIn("taskbar", page)
-        self.assertIn("images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2", page)
+        self.assertIn('url("assets/marine-desktop.svg")', page)
+        self.assertIn('data-wallpaper="marine"', page)
+        self.assertIn('data-wallpaper="aurora"', page)
+        self.assertIn('wallpaperPicker', page)
+        self.assertNotIn("images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2", page)
+        self.assertTrue((ROOT / "desktop/marine/assets/marine-desktop.svg").is_file())
         self.assertIn("no session launched", page)
 
     def test_no_obsolete_aurora_background_scheme(self):
