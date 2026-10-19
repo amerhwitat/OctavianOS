@@ -83,6 +83,9 @@ The staged ISO payload validator is [tools/boot/validate_iso_payloads.py](tools/
 
 ## Original OctavianOS artwork
 
+Boot/desktop artwork is expanded with Eventide Nebula, Jasper — The Seven Gates, and Deep Signal diagnostic backgrounds. See [Jasper graphics and artwork integration](boot/jasper/GRAPHICS_AND_ARTWORK.md), the [rasterization helper](tools/artwork/prepare-boot-artwork.sh), and [artwork manifest](desktop/aurora/assets/octavian-artwork-manifest.json). The GRUB graphics include is a candidate fragment and still must be connected to the actual generated GRUB config and verified in BIOS/UEFI ISO boots; resolution and artwork acceptance are not yet claimed.
+
+
 `desktop/aurora/assets/octavian-octopus-aurora.svg` is original project artwork for the Aurora desktop: a bioluminescent octopus beneath aurora ribbons over a deep-ocean horizon. Its metadata is in `desktop/aurora/assets/octavian-artwork-manifest.json`. It is a desktop SVG source asset; GRUB firmware-stage display is not claimed until the ISO builder generates and embeds a PNG/JPEG derivative and validates it inside the ISO.
 
 ISO release policy and required QEMU evidence are documented in [docs/ISO_RELEASE_ACCEPTANCE.md](docs/ISO_RELEASE_ACCEPTANCE.md). A successful source build or kernel-entry marker is not production acceptance.
