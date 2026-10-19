@@ -23,8 +23,5 @@ build_one() {
 }
 build_one live live boot/live/user-init-live.elf
 build_one installer installer boot/installer/user-init-installer.elf
-# Keep the installer package namespace in sync with the boot-time init path.
-mkdir -p "$STAGE/install/installer"
-install -m 0644 "$STAGE/boot/installer/user-init-installer.elf" "$STAGE/boot/installer/user-init-installer.elf"
 build_one recovery recovery boot/recovery/user-init-recovery.elf
-sha256sum "$STAGE/boot/live/user-init-live.elf" "$STAGE/boot/installer/user-init-installer.elf" "$STAGE/install/installer/user-init-installer.elf" "$STAGE/boot/recovery/user-init-recovery.elf" > "$OUT/SHA256SUMS"
+sha256sum "$STAGE/boot/live/user-init-live.elf" "$STAGE/boot/installer/user-init-installer.elf" "$STAGE/boot/recovery/user-init-recovery.elf" > "$OUT/SHA256SUMS"
