@@ -24,6 +24,7 @@
     "live-marine": {
       "required": [
         "/boot/live/chimera-live-initramfs.img",
+        "/boot/live/user-init-live.elf",
         "/boot/live/live-manifest.json",
         "/boot/live/desktop-sessions.json"
       ],
@@ -53,6 +54,7 @@
     "diagnostics": {
       "required": [
         "/boot/recovery/chimera-recovery-initramfs.img",
+        "/boot/recovery/user-init-recovery.elf",
         "/boot/recovery/recovery-manifest.json"
       ],
       "mode": "chm.mode=diagnostics"
