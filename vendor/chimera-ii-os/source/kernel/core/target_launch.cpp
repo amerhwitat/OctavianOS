@@ -69,10 +69,13 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     const char *name = target_name(target);
     char prefix[80];
     uint64_t p=0;
-    const char *a="USERSPACE READY: ";
+    /* Keep the kernel-side acceptance predicate byte-for-byte aligned with
+       tests/migration/verify-userspace-handoff.py. A mismatched marker would
+       reject a genuinely ready process or tempt the harness to fake evidence. */
+    const char *a="USERSPACE READY: target=";
     while (*a) prefix[p++]=*a++;
     while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
+    const char *b=" init_pid=";
     while (*b) prefix[p++]=*b++;
     if (length < p+2u) return false;
     bool found=false;
