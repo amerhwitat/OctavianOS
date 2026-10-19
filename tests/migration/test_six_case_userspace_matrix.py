@@ -40,6 +40,14 @@ class SixCaseMatrixTests(unittest.TestCase):
                     encoding="utf-8",
                 )
 
+    def test_kernel_readiness_parser_matches_verifier_contract(self):
+        source_root = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/target_launch.cpp"
+        verifier = Path(__file__).with_name("verify-userspace-handoff.py").read_text(encoding="utf-8")
+        source = source_root.read_text(encoding="utf-8")
+        self.assertIn('const char *a="USERSPACE READY: target=";', source)
+        self.assertIn('const char *b=" init_pid=";', source)
+        self.assertIn(r'r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b"', verifier)
+
     def test_accepts_six_distinct_firmware_attested_handoffs(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
