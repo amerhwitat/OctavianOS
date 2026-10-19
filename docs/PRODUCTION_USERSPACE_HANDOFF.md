@@ -151,3 +151,12 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+
+## BIOS/UEFI probe isolation — 2026-10-19
+
+OctavianOS PR [#83](https://github.com/amerhwitat/OctavianOS/pull/83) adds a second six-case matrix using a temporary overlay of the full ISO staging tree. It injects one target-specific ring-3 test ELF only into each temporary acceptance ISO. The production ISO staging tree and default boot menus do not receive these test ELFs.
+
+The test-only module uses `probe=1` and emits `USERSPACE PROBE READY` / `USERSPACE PROBE SYSCALL RETURNED TO RING3`. The kernel logs a `[PROBE]` completion marker for that path. The production verifier still requires `USERSPACE READY` plus the matching user-originated CPL3 syscall/PID evidence, so passing the probe matrix cannot satisfy production acceptance.
+
+This addresses a test-fixture failure mode without disguising the actual production blocker. The six-case overlay matrix must pass under BIOS and UEFI, but the real production verifier must remain red until a production init/runtime is staged and executed. The QEMU Docker runner is likewise tagged as a development candidate, not a stable OS release.
