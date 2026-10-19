@@ -25,6 +25,6 @@ Both source pages identify the photos as free to use under the [Unsplash License
 
 ## Offline packaging
 
-Remote wallpapers require internet and may be unavailable or rate-limited. Prefer local assets for boot/live/installer/recovery media. Run `tools/artwork/prepare-boot-artwork.sh` in the ISO build environment to create PNG derivatives. The current source addition does not prove the production ISO build invokes that script or embeds the resulting files; wire it into the actual ISO builder and validate both BIOS and UEFI media before claiming boot-menu artwork is active. Do not reintroduce the obsolete `aurora-background.jpg` convention.
+Remote wallpapers require internet and may be unavailable or rate-limited. Prefer local assets for boot/live/installer/recovery media. Run `tools/artwork/prepare-boot-artwork.sh` in the ISO build environment to create PNG derivatives. The current source addition does not prove the production ISO build invokes that script or embeds the resulting files; wire it into the actual ISO builder and validate both BIOS and UEFI media before claiming boot-menu artwork is active. Do not reintroduce the obsolete aurora-background.jpg convention; keep its absence covered by the desktop artwork regression test.
 
 For menu and log legibility, preserve a dark translucent overlay and do not bake essential status text into the image. Use a local fallback gradient when remote desktop images fail to load.
