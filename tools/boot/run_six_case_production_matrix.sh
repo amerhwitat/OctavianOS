@@ -24,6 +24,23 @@ if [[ -z "$ovmf_code" || -z "$ovmf_vars" ]]; then
   dpkg -L ovmf 2>/dev/null | grep -E '\\.(fd|bin)$' || true
   exit 1
 fi
+# Production acceptance must execute the real target-specific init ELF. The
+# smoke ELF under kernel/tests is intentionally not an acceptable substitute.
+# Fail before any QEMU attempts if one of the three release payloads is absent.
+user_init_dir="$SOURCE/build/koronos/userspace"
+missing_init=0
+for required_target in live installer recovery; do
+  required_init="$user_init_dir/${required_target}-init.elf"
+  if [[ ! -s "$required_init" ]]; then
+    echo "NOT RUN: missing production ${required_target} init ELF: $required_init" >&2
+    missing_init=1
+  fi
+done
+if [[ "$missing_init" -ne 0 ]]; then
+  echo "ERROR: refusing to run a six-case matrix without all three production init ELFs; test probes do not satisfy this contract." >&2
+  exit 2
+fi
+
 for target in live installer recovery; do
   tree="$matrix/${target}-tree"
   test_iso="$matrix/${target}.iso"
@@ -31,12 +48,16 @@ for target in live installer recovery; do
   mkdir -p "$tree/boot/grub"
   cp -a boot/iso/dist/iso/. "$tree/"
   test -s "$tree/boot/koronos/koronos.elf" || { echo "ERROR: ISO tree lacks Koronos ELF" >&2; exit 1; }
+  mkdir -p "$tree/boot/user-init"
+  cp -f "$user_init_dir/${target}-init.elf" "$tree/boot/user-init/${target}-init.elf"
+  test -s "$tree/boot/user-init/${target}-init.elf" || { echo "ERROR: failed to stage ${target} production init ELF" >&2; exit 1; }
   cat > "$tree/boot/grub/grub.cfg" <<GRUB
 set timeout=0
 set default=0
 terminal_output console
 menuentry "Production acceptance ${target}" {
   multiboot2 /boot/koronos/koronos.elf chimera.target=${target} chm.log=verbose chm.progress=events
+  module2 /boot/user-init/${target}-init.elf chimera-user-init-elf target=${target}
 GRUB
   case "$target" in
     live)
