@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.dockerignore'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
@@ -51,6 +52,7 @@ on:
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
+      - '.dockerignore'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
