@@ -56,3 +56,9 @@ The latest native build [#39271192234](https://github.com/amerhwitat/OctavianOS/
 The production validation step exited nonzero. Full-ISO boot/routing checks and real-userspace verification were skipped, and no ISO candidate was uploaded. Only the kernel ELF artifact was uploaded.
 
 The audited source still has a load-plan-only process API, no verified CPL3 transition/TSS-backed kernel stack path, no user-originated syscall entry/return path, placeholder PID dispatch, and no AP startup. Therefore the missing ELFs must not be filled with smoke probes or marker-only stubs. Live→Aurora, install/reboot, real Recovery and AP-backed SMP remain NOT VERIFIED. Release remains BLOCKED.
+
+## Cross-repository runtime parity update — 2026-10-19
+
+The ring-3 runtime implementation already exercised by the OctavianOS test-only matrix has now been synchronized into ChimeraIIOS branch fix/production-init-elf-handoff-gate, including frame allocation/address spaces, native user-entry/TSS and syscall assembly, target-launch and module-routing code, interrupt/syscall integration, and build wiring. ChimeraIIOS now has its own six-case smoke-only workflow to validate that source parity; its results are pending and must be polled before claiming parity is tested there.
+
+This is not production acceptance. The latest OctavianOS smoke run #39272210956 passed all six test-only probes. Native build #39272211204 still failed closed because the three real production target init ELFs are absent. The smoke payloads under kernel/tests/user_init_smoke.c must not be copied into production ISO locations. Live-to-Aurora, actual installation/reboot, real Recovery operation, and AP-backed concurrent SMP remain unverified; prerelease publication remains blocked.
