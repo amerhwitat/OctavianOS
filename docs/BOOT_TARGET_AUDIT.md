@@ -36,7 +36,7 @@ Never infer boot success from labels, progress messages, a passing source-level 
 
 ## Production userspace acceptance update (2026-10-19)
 
-The latest inspected complete ISO workflow is [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211). Its native Koronos build, Multiboot2/target-routing smoke tests, full ISO kernel-readiness smoke, and candidate artifact upload completed successfully. The separate **Verify real Live, Installer, and Recovery userspace** job failed for all three target traces with:
+The latest inspected complete ISO workflow is [run 39185798999](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999). Its native Koronos build, Multiboot2/target-routing smoke tests, full ISO kernel-readiness smoke, and candidate artifact upload completed successfully. The separate **Verify real Live, Installer, and Recovery userspace** job failed for all three target traces with the same failure previously seen in [run 39183883211](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211):
 
 `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`
 
