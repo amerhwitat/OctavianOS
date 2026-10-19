@@ -33,7 +33,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
-        run: bash kernel/build-koronos.sh
+        run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
