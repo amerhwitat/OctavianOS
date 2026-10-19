@@ -65,4 +65,4 @@ This is not production acceptance. The latest OctavianOS smoke run #39272210956 
 
 ## Chimera native build parity result — 2026-10-19
 
-ChimeraIIOS native Koronos build run #39274513564 completed successfully after the runtime parity sync: ELF64 build, protected-process admission, ELF validation, and unresolved-symbol checks passed. The six-case smoke matrix in Chimera is still queued at #39274699829. This confirms native compile/link parity but not ring-3 runtime acceptance in Chimera or production service readiness.
+ChimeraIIOS native Koronos build run #39274513564 completed successfully after the runtime parity sync: ELF64 build, protected-process admission, ELF validation, and unresolved-symbol checks passed. The six-case smoke matrix in Chimera completed successfully at #39274699829; all six test-only probes passed. This is not production acceptance. This confirms native compile/link parity but not ring-3 runtime acceptance in Chimera or production service readiness.
