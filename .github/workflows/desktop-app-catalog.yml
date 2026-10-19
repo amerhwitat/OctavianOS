@@ -1,0 +1,65 @@
+name: Desktop Application Catalog
+on:
+  push:
+    paths:
+      - "apps/desktop-application-catalog.json"
+      - "apps/application-center.html"
+      - "web/index.html"
+      - ".github/workflows/desktop-app-catalog.yml"
+  pull_request:
+    paths:
+      - "apps/desktop-application-catalog.json"
+      - "apps/application-center.html"
+      - "web/index.html"
+      - ".github/workflows/desktop-app-catalog.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate catalog schema, IDs, URLs and safety status
+        run: |
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+          p = Path("apps/desktop-application-catalog.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          assert data.get("schema") == "cross-platform-desktop-app-catalog/v1"
+          apps = data.get("apps")
+          assert isinstance(apps, list) and apps, "apps must be a non-empty array"
+          ids = []
+          for app in apps:
+              assert re.fullmatch(r"[a-z0-9][a-z0-9._-]+", app.get("id", "")), app
+              assert app.get("name") and app.get("category") and app.get("license")
+              assert app.get("provider") and app.get("install")
+              assert isinstance(app.get("architectures"), list) and app["architectures"]
+              assert app.get("integration_status") in {"catalog-only", "source-reviewed", "imported", "build-verified", "launch-verified", "supported", "blocked"}
+              assert app.get("platform_targets") == ["ChimeraIIOS", "OctavianOS"]
+              assert app.get("host_platforms") == ["Linux", "Windows", "macOS"]
+              for field in ("homepage", "source"):
+                  if app.get(field):
+                      from urllib.parse import urlparse
+                      u = urlparse(app[field])
+                      assert u.scheme == "https" and u.netloc, (app["id"], field, app[field])
+              ids.append(app["id"])
+          assert len(ids) == len(set(ids)), "duplicate app IDs"
+          page = Path("apps/application-center.html").read_text(encoding="utf-8")
+          assert 'fetch("./desktop-application-catalog.json"' in page
+          assert 'noopener noreferrer' in page
+          assert "Application Center" in page
+          vendor = json.loads(Path("vendor/chimera-ii-os/source/appcenter/catalog/apps.json").read_text(encoding="utf-8"))["apps"]
+          vendor_ids = [app["id"] for app in vendor]
+          manifest = Path("vendor/chimera-ii-os/source/iso/manifests/application-catalog.txt").read_text(encoding="utf-8").splitlines()
+          assert ids == vendor_ids == manifest, "Octavian catalog, vendored Chimera catalog and ISO manifest must stay in sync"
+          print(f"validated {len(apps)} mirrored catalog entries, vendored catalog and browser discovery UI")
+          PY
+      - name: Compile vendored Application Center scripts
+        run: python -m py_compile vendor/chimera-ii-os/source/appcenter/cli/chimera-appctl.py vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py
+      - name: Check HTML integration link
+        run: grep -q 'apps/application-center.html' web/index.html

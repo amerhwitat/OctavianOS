@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07172b">
+<title>OctavianOS Application Center</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#06162b;color:#effaff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% 0,#0b526b 0,transparent 45%),linear-gradient(145deg,#07152b,#061a32 60%,#020813);min-height:100vh}
+header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 22px;background:#06182de8;border-bottom:1px solid #8ce8f033;backdrop-filter:blur(16px)}
+header strong{letter-spacing:.12em}header a{color:#b6f7fa;text-decoration:none}
+main{max-width:1200px;margin:auto;padding:36px 22px}h1{font-size:clamp(30px,5vw,52px);margin:0 0 10px}
+p{color:#c4d7e9;line-height:1.6}.notice{border:1px solid #e9c46a55;background:#e9c46a12;border-radius:12px;padding:12px 15px;color:#f7e5b4}
+.filters{display:grid;grid-template-columns:1fr minmax(170px,250px);gap:12px;margin:24px 0}
+input,select{width:100%;padding:12px;border:1px solid #9beef055;border-radius:10px;background:#0c2946;color:#effaff;font:inherit}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
+.card{padding:18px;border:1px solid #9beef033;background:#0c2946bb;border-radius:16px;display:flex;flex-direction:column;min-height:210px}
+.card h2{font-size:18px;margin:0 0 6px}.meta{font-size:12px;color:#9ce5eb}.card p{font-size:13px;flex:1}
+a.open{display:inline-flex;align-self:flex-start;padding:9px 12px;border:1px solid #a5f5f555;border-radius:9px;color:#f5ffff;text-decoration:none;background:#58cbd52a}
+a.open:hover{background:#58cbd54a}.count{font-size:13px;color:#9eb5cb;margin:12px 0}
+footer{margin-top:38px;padding-top:18px;border-top:1px solid #8ce8f033;color:#9eb5cb;font-size:12px}
+@media(max-width:620px){.filters{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header><strong>◈ OCTAVIANOS</strong><a href="../web/index.html">Back to desktop preview</a></header>
+<main>
+<span class="meta">DESKTOP SOFTWARE DISCOVERY</span>
+<h1>Application Center</h1>
+<p>Browse applications for common Windows, Linux and macOS desktop workflows. The catalog is a discovery index; it does not install software or imply that an application has been ported to the native Koronos runtime.</p>
+<div class="notice"><strong>Safety and compatibility:</strong> listings are catalog-only until a target-specific package and actual launch tests are verified. Official websites open in a new tab. Never download or run untrusted scripts from catalog entries.</div>
+<div class="filters"><input id="search" type="search" placeholder="Search apps, categories, providers…" aria-label="Search applications"><select id="category" aria-label="Filter by category"><option value="">All categories</option></select></div>
+<div class="count" id="count" aria-live="polite">Loading catalog…</div>
+<section class="grid" id="apps" aria-label="Application catalog"></section>
+<footer>OctavianOS research preview · Source and license terms belong to each upstream project. Proprietary applications must use authorized vendor distribution routes.</footer>
+</main>
+<script>
+const appRoot = document.getElementById("apps");
+const searchBox = document.getElementById("search");
+const categoryBox = document.getElementById("category");
+const count = document.getElementById("count");
+let entries = [];
+function safeHttps(value){try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}}
+function render(){
+ const q=searchBox.value.trim().toLocaleLowerCase();
+ const cat=categoryBox.value;
+ const shown=entries.filter(a=>{
+  const hay=[a.id,a.name,a.category,a.license,a.provider,a.homepage,a.description].join(" ").toLocaleLowerCase();
+  return (!q||hay.includes(q))&&(!cat||a.category===cat);
+ });
+ appRoot.replaceChildren();
+ for(const app of shown){
+  const card=document.createElement("article");card.className="card";
+  const title=document.createElement("h2");title.textContent=app.name||app.id;
+  const meta=document.createElement("div");meta.className="meta";meta.textContent=(app.category||"Other")+" · "+(app.provider||"unknown")+" · "+(app.integration_status||app.availability||"catalog-only");
+  const desc=document.createElement("p");desc.textContent=app.compatibility_note||app.description||"Catalog entry only; target-specific compatibility has not been verified.";
+  card.append(title,meta,desc);
+  const url=safeHttps(app.homepage||app.source||"");
+  if(url){const link=document.createElement("a");link.className="open";link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Official website";card.append(link)}
+  appRoot.append(card);
+ }
+ count.textContent=shown.length+" of "+entries.length+" catalog entries";
+}
+async function init(){
+ try{
+  const response=await fetch("./desktop-application-catalog.json",{cache:"no-store"});
+  if(!response.ok)throw new Error("Catalog HTTP "+response.status);
+  const data=await response.json();entries=Array.isArray(data.apps)?data.apps:[];
+  const categories=[...new Set(entries.map(a=>a.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  for(const category of categories){const option=document.createElement("option");option.value=category;option.textContent=category;categoryBox.append(option)}
+  render();
+ }catch(error){count.textContent="Catalog could not be loaded: "+error.message;const p=document.createElement("p");p.textContent="Check that desktop-application-catalog.json is published beside this page.";appRoot.append(p)}
+}
+searchBox.addEventListener("input",render);categoryBox.addEventListener("change",render);init();
+</script>
+</body></html>
