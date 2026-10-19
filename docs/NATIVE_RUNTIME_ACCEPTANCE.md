@@ -66,3 +66,7 @@ This is not production acceptance. The latest OctavianOS smoke run #39272210956 
 ## Chimera native build parity result — 2026-10-19
 
 ChimeraIIOS native Koronos build run #39274513564 completed successfully after the runtime parity sync: ELF64 build, protected-process admission, ELF validation, and unresolved-symbol checks passed. The six-case smoke matrix in Chimera completed successfully at #39274699829; all six test-only probes passed. This is not production acceptance. This confirms native compile/link parity but not ring-3 runtime acceptance in Chimera or production service readiness.
+
+### Latest native ISO attempt — 2026-10-19
+
+Native Koronos build run #39274902857 again passed kernel compilation, Multiboot2 validation, QEMU kernel readiness, and Live/Recovery initramfs generation, then failed closed at production init ELF validation. The same three files are absent: boot/live/user-init-live.elf, boot/installer/user-init-installer.elf, and boot/recovery/user-init-recovery.elf. Full-ISO tests and prerelease were skipped. A newer docs-triggered native run #39275375884 is pending; do not infer success from it until completed.
