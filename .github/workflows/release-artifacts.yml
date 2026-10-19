@@ -96,6 +96,13 @@ jobs:
             grep -Eq 'Type:[[:space:]]+EXEC' <<<"$header" || { echo "::error::Production init is not ET_EXEC: $elf"; exit 2; }
             grep -Eq 'Machine:[[:space:]]+Advanced Micro Devices X86-64' <<<"$header" || { echo "::error::Production init is not x86-64: $elf"; exit 2; }
             strings -a "$elf" | grep -Fxq "CHIMERA_PRODUCTION_INIT_TARGET=$target" || { echo "::error::Missing production target identity '$target' in $elf"; exit 2; }
+            # Reject the currently checked-in fail-closed bootstrap as well as
+            # ring-3 smoke probes. A target string and distinct ELF hashes do not
+            # prove the init can perform production work.
+            if strings -a "$elf" | grep -Fq 'NATIVE INIT BLOCKED: required native filesystem, process, device and graphics services are not available'; then
+              echo "::error::Fail-closed bootstrap was staged as production init: $elf"
+              exit 2
+            fi
             if strings -a "$elf" | grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3'; then
               echo "::error::Acceptance probe was staged as production init: $elf"
               exit 2
