@@ -35,3 +35,10 @@ The release job depends on all three checks and remains blocked if any target fa
 - ISO visual assets: native ISO job now validates the Octopus SVG renderer and checks the generated PNG in the final ISO.
 - Live/Installer/Recovery module routing: boot-target smoke checks exist, but they do not establish actual userspace execution.
 - Full application-by-application Python and Java conversion, GUI parity, and Windows executable packaging remain separate backlog items. Kernel, bootloader, and architecture-specific code remains native.
+
+
+## Latest native ISO gate result
+
+- [Native ISO build run](https://github.com/amerhwitat/OctavianOS/actions/runs/39183873609): the kernel build, RNN training/staging, Live/Recovery payload build, Octopus artwork render, final-ISO artwork inspection, recovery and installer routing smoke tests, full-ISO Koronos boot, and candidate artifact upload all passed.
+- [Download the ISO candidate artifact](https://github.com/amerhwitat/OctavianOS/actions/runs/39183873609/artifacts/12157078393). This is an Actions artifact for review, not a published GitHub Release.
+- The separate userspace gate failed closed for Live, Installer, and Recovery because their traces lacked both a user-originated init syscall acknowledgement and an actual init PID readiness marker. The prerelease job was skipped as intended.
