@@ -434,6 +434,7 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/production-matrix/*.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -475,7 +476,7 @@ jobs:
           set -euo pipefail
           python3 -m py_compile tests/migration/verify-six-case-userspace-matrix.py tests/migration/test_six_case_userspace_matrix.py
           python3 -m unittest discover -s tests/migration -p "test_six_case_userspace_matrix.py" -v
-          python3 tests/migration/verify-six-case-userspace-matrix.py trace
+          python3 tests/migration/verify-six-case-userspace-matrix.py trace/production-matrix
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
