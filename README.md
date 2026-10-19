@@ -17,7 +17,7 @@ A GitHub Actions importer is being staged to preserve the source repository's br
 The current production Live/Installer/Recovery QEMU traces fail the fail-closed userspace handoff verifier. Kernel readiness and target-routing smoke tests are not proof that init executed at CPL 3. The production ISO must not be released until the real payload is selected and launched, the syscall acknowledgement and readiness markers match the same real PID, all six BIOS/UEFI × target cases pass, and the follow-on Aurora/installer/recovery gates are verified.
 
 - [Production userspace handoff and acceptance contract](docs/PRODUCTION_USERSPACE_HANDOFF.md)
-- [Current failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39183883211)
+- [Latest failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999)
 - [Tracking issue #47](https://github.com/amerhwitat/OctavianOS/issues/47)
 
 This documentation records the verified failure state; it does not claim the kernel execution path is fixed.
