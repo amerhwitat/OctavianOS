@@ -1,6 +1,6 @@
 # Jasper / GRUB graphics and artwork integration
 
-**Status: source assets and configuration guidance added; ISO integration and runtime resolution remain unverified.**
+**Status: source assets and ISO rasterization/staging are wired. The current PR is rerunning the native ISO build and embedded-artwork checks; actual BIOS/UEFI mode selection and framebuffer retention through Koronos remain unverified.**
 
 ## Display contract
 
@@ -12,7 +12,7 @@ The practical SVGA compatibility floor is 1024×768, with 640×480 as the final 
 
 ## GRUB configuration guidance
 
-The actual Jasper/GRUB configuration generator should set `gfxterm`, try the mode list above in `gfxmode`, and set `gfxpayload=keep` only where the selected boot protocol and Koronos framebuffer handoff preserve and validate the framebuffer. Include a text-console recovery entry. Do not hardcode an unsupported resolution and do not silently hide serial/debugcon output.
+The tracked top-level GRUB and Jasper configs now set `gfxterm`, try the mode list above in `gfxmode`, and request `gfxpayload=keep`. This is a mode request, not proof that the selected boot protocol and Koronos framebuffer handoff preserve and validate the framebuffer. Include a text-console recovery entry. Do not hardcode an unsupported resolution and do not silently hide serial/debugcon output.
 
 GRUB backgrounds must be a supported raster format (PNG, TGA, JPEG); SVG is source artwork only. Generate a PNG derivative during the ISO build, verify the file is readable by GRUB, and include it in both BIOS and UEFI media. A desktop/browser SVG loading successfully does not prove the bootloader can display it.
 
