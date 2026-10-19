@@ -104,3 +104,7 @@ Added a reproducible freestanding x86-64 build path:
 **Important: these are fail-closed native init bootstraps, not complete production userspace.** They verify a real ring-3 process identity and exercise the console syscall, then explicitly report the missing native filesystem/process/device/graphics services and exit with status 78. They do not emit `USERSPACE READY`, do not claim Aurora/installer/recovery is operational, and are not acceptable release payloads. This change advances ELF compilation, staging, and boot routing while preserving the runtime gate's ability to reject the incomplete system.
 
 Verification status pending CI for the latest commit. Even if ELF structural validation and ISO composition pass, full production acceptance remains blocked until the required service layer and target operations are implemented and the six full-ISO cases pass.
+
+
+### Build validation note
+A local freestanding compile/link check initially exposed 32-bit absolute relocations at the 4 GiB user-image base. The build flags now explicitly use `-mcmodel=large`; a repeated compile/link check produced all three ELF64 ET_EXEC files with one RX PT_LOAD segment at `0x100000000`. This is compile/link evidence only, not QEMU runtime or production acceptance. Repository CI for the branch is queued at the last status check.
