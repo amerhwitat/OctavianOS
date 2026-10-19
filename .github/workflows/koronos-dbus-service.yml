@@ -31,6 +31,6 @@ jobs:
         run: |
           test -f tools/dbus/install-koronos-dbus.sh
           sh -n tools/dbus/install-koronos-dbus.sh
-          test -f services/dbus/chimera-dbus.service
-          test -f services/dbus/org.chimera.OS.conf
-          test -f services/dbus/org.chimera.OS.service
+          test -f services/dbus/octavian-dbus.service
+          test -f services/dbus/org.octavian.OS.conf
+          test -f services/dbus/org.octavian.OS.service
