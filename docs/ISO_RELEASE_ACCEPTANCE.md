@@ -113,7 +113,7 @@ The ring-3 launch foundation exercised by OctavianOS smoke probes has been synch
 | Gate | Current result |
 |---|---|
 | OctavianOS six ring-3 smoke probes | PASS — test-only, run #39272210956 |
-| ChimeraIIOS source-parity smoke matrix | Pending — run #39274332582 |
+| ChimeraIIOS source-parity smoke matrix | Re-run pending after fixing workflow root path and exporting bootstrap PML4 symbol — run #39274513629 |
 | Production Live/Installer/Recovery init ELFs | MISSING |
 | Full-ISO Live/Installer/Recovery × BIOS/UEFI | NOT VERIFIED |
 | Aurora startup, installation/reboot, real recovery | NOT VERIFIED |
