@@ -90,3 +90,17 @@ Current verified boundary:
 - Production init ELF generation and routing: MISSING.
 - Live→Aurora, install/reboot, Recovery operation, AP-backed SMP, six-case full production acceptance: NOT VERIFIED.
 - ISO release: BLOCKED.
+
+
+## Native target init ELF build/integration update — 2026-10-19
+
+Added a reproducible freestanding x86-64 build path:
+- `kernel/userspace/native_init.c` and `kernel/userspace/native_init.ld` define a target-parameterized ELF bootstrap with a separate RX PT_LOAD segment.
+- `tools/build-production-init-elfs.sh` compiles Live, Installer, and Recovery variants and stages them at the exact paths consumed by the ISO validator.
+- `boot/iso/build-iso.sh` runs that build after preparing the ISO tree and before the structural validator.
+- Main GRUB and Jasper Live/Installer/Recovery entries now pass one target-specific `chimera-user-init-elf target=<target>` module to Koronos.
+- The native build workflow now triggers for these sources and the build script.
+
+**Important: these are fail-closed native init bootstraps, not complete production userspace.** They verify a real ring-3 process identity and exercise the console syscall, then explicitly report the missing native filesystem/process/device/graphics services and exit with status 78. They do not emit `USERSPACE READY`, do not claim Aurora/installer/recovery is operational, and are not acceptable release payloads. This change advances ELF compilation, staging, and boot routing while preserving the runtime gate's ability to reject the incomplete system.
+
+Verification status pending CI for the latest commit. Even if ELF structural validation and ISO composition pass, full production acceptance remains blocked until the required service layer and target operations are implemented and the six full-ISO cases pass.
