@@ -307,6 +307,10 @@ jobs:
             "/boot/visual/octavian-octopus-aurora.png" \
             "/boot/visual/octavian-artwork-manifest.json" \
             "/boot/visual/aurora-boot.png" \
+            "/boot/visual/octavian-boot-nebula.png" \
+            "/boot/visual/aurora-diagnostics-backdrop.png" \
+            "/boot/jasper/artwork/jasper-gates-boot.png" \
+            "/boot/jasper/jasper.cfg" \
             "/boot/grub/grub.cfg" \
             "/boot/spitfire/aurora-boot.png" \
             "/boot/jasper/aurora-boot.png" \
@@ -323,6 +327,7 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+          grep -q '/boot/jasper/artwork/jasper-gates-boot.png' "$inspect/jasper/jasper.cfg"
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
