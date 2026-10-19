@@ -51,6 +51,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test production init ELF payload validator
         run: python3 tests/boot/test_production_init_elf_validator.py
+      - name: Build native kernel and stage actual ISO root
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+          bash vendor/chimera-ii-os/source/boot/iso/build-iso.sh
+          source_root="vendor/chimera-ii-os/source/boot/iso/dist/iso"
+          test -d "$source_root"
+          mkdir -p build/iso-root
+          cp -a "$source_root/." build/iso-root/
       - name: Require imported kernel and userspace payloads
         shell: bash
         run: |
