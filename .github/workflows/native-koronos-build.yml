@@ -367,7 +367,7 @@ jobs:
               set -e
               cat "$log"
               grep -Fq '[KRN ] KORONOS READY' "$log"
-              ready_line="$(grep -Eo "USERSPACE PROBE READY: ${target} init pid=[1-9][0-9]*" "$log" | tail -n 1)"
+              ready_line="$(grep -Eo "USERSPACE PROBE READY: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
               ack_line="$(grep -Eo "USER INIT SYSCALL: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
               test -n "$ready_line"
               test -n "$ack_line"
