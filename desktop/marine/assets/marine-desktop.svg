@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160" width="3840" height="2160" role="img" aria-labelledby="title desc">
+<title id="title">Marine Desktop — Ocean Glass Horizon</title><desc id="desc">Original deep-ocean desktop artwork with turquoise aurora ribbons, layered waves, distant islands, translucent glass forms and luminous marine particles.</desc>
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#04182f"/><stop offset=".42" stop-color="#07506d"/><stop offset="1" stop-color="#071d36"/></linearGradient>
+ <linearGradient id="sea" x2="0" y2="1"><stop stop-color="#21c7c4" stop-opacity=".9"/><stop offset=".45" stop-color="#0a718e" stop-opacity=".95"/><stop offset="1" stop-color="#031a32"/></linearGradient>
+ <linearGradient id="ribbon"><stop stop-color="#78f8e4" stop-opacity="0"/><stop offset=".46" stop-color="#67f1e4" stop-opacity=".8"/><stop offset="1" stop-color="#65baff" stop-opacity="0"/></linearGradient>
+ <linearGradient id="glass" x2="1" y2="1"><stop stop-color="#e2ffff" stop-opacity=".42"/><stop offset=".5" stop-color="#7ad9ed" stop-opacity=".08"/><stop offset="1" stop-color="#8ed8ff" stop-opacity=".23"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#7af8e8" stop-opacity=".7"/><stop offset="1" stop-color="#7af8e8" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
+</defs>
+<rect width="3840" height="2160" fill="url(#sky)"/>
+<circle cx="2650" cy="620" r="690" fill="url(#glow)" opacity=".7"/>
+<path d="M-100 750 C600 310 900 940 1580 590 S2600 240 3970 540 L3970 1050 C3100 680 2540 1180 1780 900 S550 1130 -100 950Z" fill="url(#ribbon)" filter="url(#blur)"/>
+<path d="M-120 870 C500 430 940 990 1650 680 S2840 400 3950 720" fill="none" stroke="#9bfff1" stroke-opacity=".44" stroke-width="7"/>
+<path d="M-100 1000 C700 650 1110 1120 1920 800 S3100 730 3950 880" fill="none" stroke="#7cbaff" stroke-opacity=".3" stroke-width="4"/>
+<g fill="#b8fff8" opacity=".7"><circle cx="500" cy="360" r="4"/><circle cx="780" cy="510" r="3"/><circle cx="1140" cy="260" r="5"/><circle cx="1950" cy="420" r="3"/><circle cx="2320" cy="280" r="4"/><circle cx="3120" cy="390" r="5"/><circle cx="3420" cy="690" r="3"/><circle cx="2910" cy="810" r="3"/><circle cx="900" cy="780" r="4"/></g>
+<path d="M0 1120 L0 980 360 880 690 990 1010 850 1300 1000 1610 870 1960 1010 2260 890 2600 1030 2920 900 3220 1010 3500 880 3840 1000 3840 2160 0 2160Z" fill="#092f4b" opacity=".88"/>
+<path d="M0 1210 Q420 1080 820 1190 T1620 1190 T2440 1180 T3240 1185 T3840 1150 L3840 2160 0 2160Z" fill="url(#sea)"/>
+<path d="M0 1310 Q520 1180 1020 1310 T2000 1300 T2990 1280 T3840 1270" fill="none" stroke="#85fff0" stroke-opacity=".58" stroke-width="8"/>
+<path d="M0 1480 Q540 1370 1060 1490 T2110 1480 T3160 1460 T3840 1480" fill="none" stroke="#a5f7ff" stroke-opacity=".23" stroke-width="5"/>
+<path d="M0 1700 Q600 1580 1210 1700 T2430 1680 T3840 1690" fill="none" stroke="#4cc8e2" stroke-opacity=".32" stroke-width="7"/>
+<g stroke="#c7ffff" stroke-opacity=".42" stroke-width="5" fill="url(#glass)">
+ <path d="M2630 850 l180 -90 180 105 -175 120Z"/><path d="M2810 760 v215 l180 -95 V655Z"/><path d="M2630 850 v210 l180 -85 V760Z"/>
+ <path d="M3020 1070 l115 -60 120 70 -115 75Z"/><path d="M3135 1010 v145 l120 -75 V1080Z"/>
+</g>
+<g fill="none" stroke="#9fffea" stroke-opacity=".23" stroke-width="3"><path d="M0 1850 Q600 1750 1300 1850 T2600 1840 T3840 1820"/><path d="M0 1980 Q650 1910 1300 1980 T2600 1960 T3840 1980"/><path d="M180 2070 Q700 2010 1200 2070 T2500 2060 T3650 2050"/></g>
+<g fill="#b9fff5" opacity=".55"><circle cx="540" cy="1370" r="5"/><circle cx="780" cy="1540" r="3"/><circle cx="1300" cy="1430" r="4"/><circle cx="1900" cy="1600" r="3"/><circle cx="2240" cy="1380" r="5"/><circle cx="2750" cy="1530" r="4"/><circle cx="3320" cy="1420" r="3"/><circle cx="3500" cy="1770" r="5"/></g>
+<rect width="3840" height="2160" fill="none" stroke="#b9ffff" stroke-opacity=".08" stroke-width="24"/>
+</svg>
