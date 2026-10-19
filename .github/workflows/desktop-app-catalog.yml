@@ -33,6 +33,8 @@ jobs:
           PY
           node --check /tmp/paint-studio.js
           node --check /tmp/media-deck.js
+          node --check /tmp/document-desk.js
+          node --check /tmp/snake-arcade.js
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
