@@ -85,7 +85,7 @@ permissions:
 
 concurrency:
   group: native-koronos-build-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-koronos:
@@ -139,7 +139,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/koronos-smoke.iso" "$smoke/iso"
           set +e
-          timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout --kill-after=5s 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           # A running idle kernel is intentionally stopped by timeout (124).
@@ -307,6 +307,11 @@ jobs:
             "/boot/visual/octavian-octopus-aurora.png" \
             "/boot/visual/octavian-artwork-manifest.json" \
             "/boot/visual/aurora-boot.png" \
+            "/boot/visual/octavian-boot-nebula.png" \
+            "/boot/visual/aurora-diagnostics-backdrop.png" \
+            "/boot/jasper/artwork/jasper-gates-boot.png" \
+            "/boot/jasper/graphics.cfg" \
+            "/boot/jasper/jasper.cfg" \
             "/boot/grub/grub.cfg" \
             "/boot/spitfire/aurora-boot.png" \
             "/boot/jasper/aurora-boot.png" \
@@ -323,6 +328,8 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+          grep -q '/boot/jasper/artwork/jasper-gates-boot.png' "$inspect/jasper/jasper.cfg"
+          grep -q 'set gfxmode=3840x2160' "$inspect/jasper/graphics.cfg"
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -343,7 +350,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/recovery-smoke.iso" "$smoke/recovery-tree"
           set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout --kill-after=5s 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
@@ -372,7 +379,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/installer-smoke.iso" "$smoke/installer-tree"
           set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout --kill-after=5s 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
@@ -385,7 +392,7 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout --kill-after=5s 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }

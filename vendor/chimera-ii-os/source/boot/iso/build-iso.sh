@@ -74,6 +74,7 @@ cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+cp -f "$ROOT/boot/jasper/graphics.cfg" "$DIST/iso/boot/jasper/graphics.cfg"
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
@@ -112,6 +113,16 @@ if [[ -f "$OCTAVIAN_ARTWORK" && -f "$OCTAVIAN_RENDERER" ]]; then
   # named source derivative and manifest for inspection.
   cp -f "$OCTAVIAN_BOOT_PNG" "$VISUAL_OUT/aurora-boot.png"
   cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
+  # Render original Jasper/Aurora backgrounds through the checked CairoSVG renderer.
+  for art in jasper-gates-boot octavian-boot-nebula aurora-diagnostics-backdrop; do
+    source_svg="$OCTAVIAN_ROOT/desktop/aurora/assets/$art.svg"
+    test -s "$source_svg" || { echo "ERROR: OctavianOS artwork source missing: $source_svg" >&2; exit 2; }
+    python3 "$OCTAVIAN_RENDERER" --source "$source_svg" --output "$VISUAL_OUT/$art.png"
+    test -s "$VISUAL_OUT/$art.png" || { echo "ERROR: failed to render $art PNG" >&2; exit 2; }
+  done
+  mkdir -p "$DIST/iso/boot/jasper/artwork"
+  cp -f "$VISUAL_OUT/jasper-gates-boot.png" "$DIST/iso/boot/jasper/artwork/jasper-gates-boot.png"
+  cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$DIST/iso/boot/jasper/artwork/octavian-artwork-manifest.json"
 fi
 
 # Hard-stage the same deterministic artwork/media in every native boot namespace.
@@ -154,6 +165,11 @@ test -s "$DIST/iso/boot/visual/aurora-media/manifest.json"
 if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
   test -s "$DIST/iso/boot/visual/octavian-octopus-aurora.png" || { echo "ERROR: OctavianOS Octopus Aurora PNG missing from ISO staging tree." >&2; exit 2; }
   test -s "$DIST/iso/boot/visual/octavian-artwork-manifest.json" || { echo "ERROR: OctavianOS artwork manifest missing from ISO staging tree." >&2; exit 2; }
+  for art in jasper-gates-boot octavian-boot-nebula aurora-diagnostics-backdrop; do
+    test -s "$DIST/iso/boot/visual/$art.png" || { echo "ERROR: OctavianOS $art PNG missing from ISO staging tree." >&2; exit 2; }
+  done
+  test -s "$DIST/iso/boot/jasper/artwork/jasper-gates-boot.png" || { echo "ERROR: Jasper menu PNG missing from ISO staging tree." >&2; exit 2; }
+  test -s "$DIST/iso/boot/jasper/graphics.cfg" || { echo "ERROR: Jasper graphics policy missing from ISO staging tree." >&2; exit 2; }
 fi
 for stage in spitfire jasper grub koronos; do
   test -s "$DIST/iso/boot/$stage/Init.mp4" || { echo "ERROR: Init.mp4 missing from $stage stage." >&2; exit 2; }

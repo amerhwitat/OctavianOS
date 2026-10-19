@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" aria-labelledby="t d">
+<title id="t">OctavianOS — Eventide Nebula</title><desc id="d">Original cinematic science-fiction background: a dark blue nebula, luminous teal and violet orbital arcs, a crystalline horizon, and an open central field for boot status text.</desc>
+<defs>
+ <linearGradient id="night" x2="0.15" y2="1"><stop stop-color="#030817"/><stop offset=".55" stop-color="#10183a"/><stop offset="1" stop-color="#030b18"/></linearGradient>
+ <radialGradient id="neb"><stop stop-color="#2a6c9e" stop-opacity=".58"/><stop offset=".48" stop-color="#6041a2" stop-opacity=".25"/><stop offset="1" stop-color="#071022" stop-opacity="0"/></radialGradient>
+ <linearGradient id="arc"><stop stop-color="#5dffe1" stop-opacity="0"/><stop offset=".48" stop-color="#5dffe1" stop-opacity=".82"/><stop offset=".72" stop-color="#9d8bff" stop-opacity=".7"/><stop offset="1" stop-color="#ff86d7" stop-opacity="0"/></linearGradient>
+ <linearGradient id="horizon" x2="0" y2="1"><stop stop-color="#4fffe0" stop-opacity=".25"/><stop offset="1" stop-color="#17234a" stop-opacity=".04"/></linearGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="34"/></filter>
+ <pattern id="stars" width="181" height="139" patternUnits="userSpaceOnUse"><circle cx="20" cy="17" r="1.5" fill="#d9fff9"/><circle cx="92" cy="68" r=".9" fill="#fff" opacity=".7"/><circle cx="157" cy="110" r="1.2" fill="#a8c9ff"/><circle cx="46" cy="123" r=".7" fill="#fff"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="url(#night)"/><ellipse cx="1010" cy="365" rx="740" ry="430" fill="url(#neb)"/><ellipse cx="1000" cy="360" rx="500" ry="170" fill="#245c8b" opacity=".16" filter="url(#blur)"/>
+<rect width="1920" height="790" fill="url(#stars)" opacity=".88"/>
+<g fill="none" stroke="url(#arc)" stroke-width="3"><path d="M-150 510 C210 50 620 40 960 310 S1570 790 2070 240"/><path d="M-80 590 C290 130 650 130 980 370 S1600 790 2040 350" stroke-width="1.5"/><path d="M160 160 C520 500 890 600 1210 350 S1680 90 1930 270" stroke-width="2"/></g>
+<g opacity=".6" fill="none" stroke="#70ffe5"><circle cx="960" cy="410" r="215" stroke-opacity=".12"/><circle cx="960" cy="410" r="270" stroke-opacity=".08"/><path d="M960 90V735M625 410H1295" stroke-opacity=".08" stroke-dasharray="4 18"/></g>
+<path d="M0 805 Q330 745 640 805 T1280 790 T1920 805 V1080 H0Z" fill="url(#horizon)"/><path d="M0 830 Q330 770 640 830 T1280 815 T1920 830" fill="none" stroke="#64ffe4" stroke-opacity=".24" stroke-width="2"/>
+<g fill="#d5fff9" opacity=".55"><circle cx="330" cy="265" r="2"/><circle cx="1450" cy="210" r="2"/><circle cx="1580" cy="490" r="1.5"/><circle cx="510" cy="520" r="1.5"/></g>
+<rect x="80" y="80" width="1760" height="920" rx="30" fill="none" stroke="#a3fff3" stroke-opacity=".1"/>
+</svg>
