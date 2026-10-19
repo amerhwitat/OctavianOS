@@ -4,7 +4,7 @@ This directory is the integration target for applications migrated from owned re
 
 ## Cross-platform desktop application inventory
 
-See [desktop-application-catalog.json](desktop-application-catalog.json). It indexes common desktop workflows and candidate applications across graphics/paint, photo editing, 3D, media playback and production, office/documents, communications, security, networking, engineering/CAD, games, emulation, development, and utilities. The inventory is intended to cover common user needs seen on Windows, Linux and macOS desktops without copying proprietary operating-system components.
+See [desktop-application-catalog.json](desktop-application-catalog.json) and the [searchable Application Center](application-center.html), linked from the web desktop preview. It indexes common desktop workflows and candidate applications across graphics/paint, photo editing, 3D, media playback and production, office/documents, communications, security, networking, engineering/CAD, games, emulation, development, and utilities. The inventory is intended to cover common user needs seen on Windows, Linux and macOS desktops without copying proprietary operating-system components.
 
 **Catalog entries are not installed apps.** Every entry is currently `catalog-only` unless separately proven otherwise. An application is not considered integrated until source and license are reviewed, target architecture and dependencies are resolved, a reproducible package is built, permissions are reviewed, and launch/runtime tests pass on the intended target. Host-platform availability does not imply native bare-metal support.
 
