@@ -364,10 +364,28 @@ jobs:
                        -drive "if=pflash,format=raw,unit=1,file=$vars_copy")
               fi
               set +e
-              timeout 45s "${qemu[@]}"
-              qemu_rc=$?
+              "${qemu[@]}" &
+              qemu_pid=$!
+              probe_seen=0
+              for attempt in $(seq 1 300); do
+                if grep -Fq '[PROBE] Target ring-3 ELF probe emitted its own readiness handshake and exited cleanly' "$log" 2>/dev/null; then
+                  probe_seen=1
+                  break
+                fi
+                if ! kill -0 "$qemu_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.1
+              done
+              if kill -0 "$qemu_pid" 2>/dev/null; then
+                kill "$qemu_pid" 2>/dev/null || true
+              fi
+              wait "$qemu_pid"
+              qemu_wait_rc=$?
               set -e
+              if [[ "$probe_seen" == "1" ]]; then qemu_rc=0; else qemu_rc=$qemu_wait_rc; fi
               cat "$log"
+              [[ "$probe_seen" == "1" ]] || { echo "::error::$target/$firmware did not complete the ring-3 probe within 30 seconds (QEMU exit $qemu_rc)"; exit 1; }
               grep -Fq '[KRN ] KORONOS READY' "$log"
               ready_line="$(grep -Eo "USERSPACE PROBE READY: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
               ack_line="$(grep -Eo "USER INIT SYSCALL: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
