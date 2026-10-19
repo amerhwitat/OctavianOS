@@ -25,6 +25,7 @@ on:
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
+      - 'docker/iso-runner/**'
 
 
 
@@ -534,6 +535,52 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
+
+
+  publish-iso-runner-candidate:
+    name: Publish QEMU ISO runner candidate to GHCR
+    needs: [build-koronos]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout OctavianOS
+        uses: actions/checkout@v4
+      - name: Download verified ISO candidate (probe matrix passed)
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify candidate ISO and checksum
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso
+          test -s dist/output.iso.sha256
+          (cd dist && sha256sum -c output.iso.sha256)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate candidate image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/amerhwitat/octavianos-iso-runner
+          tags: |
+            type=raw,value=candidate
+            type=sha,prefix=sha-
+      - name: Build and publish candidate ISO runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/iso-runner/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
