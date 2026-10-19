@@ -65,3 +65,8 @@ Next: poll run #1388, inspect all six trace/QEMU logs, implement and test the re
 ## Live workflow status refresh — 2026-10-19
 
 Upstream full-ISO run [#1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) currently reports `in_progress`. Routing/artwork validation and fail-closed verifier unit tests passed; the ASM/C/C++ build and ISO composition step remains active. Subsequent ISO integrity/payload checks, QEMU, target-specific userspace handoff, six-case BIOS/UEFI matrix, trace/ISO artifacts, and release steps remain pending. The artifacts endpoint currently returns none. This status is not a pass: production acceptance is NOT VERIFIED and release is BLOCKED until real evidence clears the unchanged gate.
+
+
+## Current ISO gate progress — 2026-10-19
+
+[Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) has completed the ASM/C/C++ build and ISO composition, ISO artifact validation, target payload/offline artwork validation, and headless Koronos QEMU boot smoke test successfully. Actual Live, Installer, and Recovery userspace handoff verification is currently in progress. The six-case BIOS/UEFI matrix, trace and ISO artifact upload, and validated release publication have not run yet; the artifacts endpoint is empty. This is not a production release pass. Keep release BLOCKED until the unchanged fail-closed acceptance gate passes.
