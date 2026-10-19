@@ -347,8 +347,8 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[REC ] Recovery initramfs module accepted' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq 'USERSPACE HANDOFF NOT VERIFIED' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
+          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
