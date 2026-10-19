@@ -4,12 +4,20 @@ on:
     paths:
       - "apps/desktop-application-catalog.json"
       - "apps/application-center.html"
+      - "apps/paint-studio.html"
+      - "apps/media-deck.html"
+      - "apps/document-desk.html"
+      - "apps/snake-arcade.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   pull_request:
     paths:
       - "apps/desktop-application-catalog.json"
       - "apps/application-center.html"
+      - "apps/paint-studio.html"
+      - "apps/media-deck.html"
+      - "apps/document-desk.html"
+      - "apps/snake-arcade.html"
       - "web/index.html"
       - ".github/workflows/desktop-app-catalog.yml"
   workflow_dispatch:
