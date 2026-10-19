@@ -23,3 +23,8 @@ Use responsive cover positioning and a dark translucent overlay so desktop icons
 ## Original OctavianOS artwork
 
 The Aurora Wayland Glass Desktop prototype now uses the repository-local `../aurora/assets/octavian-octopus-aurora.svg` wallpaper instead of requiring a remote Unsplash image for its default background. The SVG is original project artwork; see `desktop/aurora/assets/octavian-artwork-manifest.json`. The Marine Desktop prototype's separate artwork remains unchanged.
+
+
+## Bundled desktop artwork update
+
+The Marine Desktop prototype now uses the original vector artwork at `desktop/marine/assets/marine-desktop.svg`; it does not fetch a remote Unsplash image at runtime. Aurora Wayland Glass continues to use `desktop/aurora/assets/octavian-octopus-aurora.svg`. Both prototypes offer a background picker that switches between these tracked assets and persists the choice in browser local storage. This improves offline design-preview reliability; ISO staging still needs explicit asset packaging and checksum validation.

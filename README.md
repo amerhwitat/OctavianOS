@@ -67,12 +67,13 @@ The top-level GRUB installer menu now routes to `/boot/jasper/install.cfg` rathe
 
 ## Desktop environments and artwork
 
-- [Aurora Wayland Glass Desktop prototype](desktop/aurora-wayland-glass/index.html) — macOS-inspired global menu bar, glass windows and centered dock. Aurora's product name and existing artwork contract remain unchanged.
-- [Marine Desktop prototype](desktop/marine/index.html) — Windows-style centered taskbar, Start menu, desktop shortcuts and ocean wallpaper.
-- [Wallpaper catalog and license notes](desktop/artwork/README.md) — remote Unsplash image sources, attribution, license references and offline packaging requirements.
+- [Aurora Wayland Glass Desktop prototype](desktop/aurora-wayland-glass/index.html) — macOS-inspired global menu bar, glass windows and centered dock, with a live background picker for included Octopus Aurora and Marine artwork.
+- [Marine Desktop prototype](desktop/marine/index.html) — Windows-inspired centered taskbar, Start menu, desktop shortcuts, searchable app launcher, and a live background picker.
+- [Bundled Marine artwork](desktop/marine/assets/marine-desktop.svg) — original ocean-glass vector wallpaper shared with the web UI.
+- [Wallpaper catalog and license notes](desktop/artwork/README.md) — source/attribution and offline packaging requirements.
 - [Desktop layout and session contract](docs/DESKTOP_ENVIRONMENTS.md) — native/compatibility/VM/remote session boundaries.
 
-These HTML pages are interactive design prototypes, not native Wayland compositors or proof that session launch works. The current wallpapers are remotely hosted; offline ISO packaging must import, checksum, and stage approved assets through the existing artwork contract. Static contract tests are in `tests/desktop/` and run through the Desktop artwork and layout contracts workflow.
+The two desktop prototypes now share a persistent wallpaper choice and can switch between bundled Marine Ocean Glass and Octopus Aurora artwork without a network image dependency. They remain interactive web design prototypes, not native Wayland compositors or proof that session launch works. Native ISO packaging must checksum and stage approved assets through the existing artwork contract. Static contract tests are in `tests/desktop/` and run through the Desktop artwork and layout contracts workflow.
 
 
 ## Boot target trace
