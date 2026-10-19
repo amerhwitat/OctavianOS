@@ -123,3 +123,5 @@ The ring-3 launch foundation exercised by OctavianOS smoke probes has been synch
 The production release workflow remains fail-closed. Never substitute smoke-probe ELFs for the three production init payloads.
 
 CI update: ChimeraIIOS native Koronos build #39274513564 now PASSes after the runtime parity sync. The Chimera six-case smoke workflow #39274699829 completed successfully across all six test-only probes; source-level runtime parity is now smoke-tested. Production target init ELFs remain missing. Production target init ELFs remain missing; full-ISO production acceptance and release are still BLOCKED.
+
+Latest release-gate evidence: native run #39274902857 again passed kernel/QEMU readiness and generated Live/Recovery initramfs payloads, but failed closed because all three production init ELFs remain missing. Full-ISO checks and prerelease were skipped. A newer native run #39275375884 is pending; production ISO publication remains BLOCKED.
