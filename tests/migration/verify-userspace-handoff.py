@@ -37,7 +37,13 @@ def main() -> int:
         missing.append("user-originated init syscall acknowledgement (CPL 3)")
     ready = list(READY_RE.finditer(trace))
     if not ready:
-        missing.append("actual init PID readiness marker")
+        # Keep the release gate fail-closed, but distinguish a missing ring-3
+        # launch from an init that actually ran and explicitly refused to claim
+        # readiness because required production services are unavailable.
+        if "NATIVE INIT BLOCKED:" in trace:
+            missing.append("production service readiness (init explicitly reported NATIVE INIT BLOCKED)")
+        else:
+            missing.append("actual init PID readiness marker")
     if missing:
         print("FAIL: missing " + ", ".join(missing))
         return 1
