@@ -27,7 +27,7 @@ CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-prote
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
 # Host-side parser regression runs before freestanding kernel compilation.
-"$CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" \
+"${HOST_CXX:-g++}" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" \
   "$ROOT/kernel/tests/multiboot_modules_test.cpp" \
   "$ROOT/kernel/core/multiboot_modules.cpp" -o "$BUILD/multiboot-modules-test"
 "$BUILD/multiboot-modules-test"
