@@ -8,7 +8,7 @@ The source-level cause was not a generic `is_production_initramfs` conditional. 
 
 A fail-closed diagnostic correction was applied on branch `fix/native-init-elf-contract-guard-20261020`: Live, Installer, and Recovery invoke the common launcher when their target payload is present, and missing `USER_INIT_ELF` is an explicit negative launch result. The canonical ISO now carries target-specific bootstrap ELFs; custom QEMU routing smokes intentionally omit them to verify the missing-module failure path. This does not make the bootstrap service-complete and does not satisfy the production verifier.
 
-The proposed `stage_production_init()` snippet was not copied as-is. Instead, the branch now builds target-specific native bootstrap ELFs from `kernel/userspace/native_init.c` and stages/routes them through the ISO pipeline. These ELFs deliberately report `NATIVE INIT BLOCKED` and exit with status 78 because native filesystem, process, device, and graphics services are unavailable. They are useful for testing real ring-3 dispatch, but are not complete production init implementations and must not emit readiness.
+The proposed `stage_production_init()` snippet was not copied as-is. Instead, the branch now builds target-specific native bootstrap ELFs from `kernel/userspace/native_init.c` and stages/routes them through the ISO pipeline. These ELFs query the kernel-owned PID with GETPID, emit a matching `NATIVE INIT PID: target=... pid=...` diagnostic, then report `NATIVE INIT BLOCKED` and exit with status 78 because native filesystem, process, device, and graphics services are unavailable. They are useful for testing real ring-3 dispatch, but are not complete production init implementations and must not emit readiness.
 
 ## What the evidence means
 
