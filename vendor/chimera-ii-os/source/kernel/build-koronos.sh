@@ -41,6 +41,14 @@ VFS_TEST="$BUILD/vfs-cpio-test"
   -o "$VFS_TEST"
 "$VFS_TEST"
 rm -f "$VFS_TEST"
+SYSCALL_TEST="$BUILD/syscall-backend-honesty-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/compat.cpp" "$ROOT/kernel/core/syscall.cpp" \
+  "$ROOT/kernel/tests/syscall_backend_honesty_test.cpp" -o "$SYSCALL_TEST"
+"$SYSCALL_TEST"
+rm -f "$SYSCALL_TEST"
+python3 "$ROOT/tools/tests/test_native_init_syscall_abi.py"
+python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
