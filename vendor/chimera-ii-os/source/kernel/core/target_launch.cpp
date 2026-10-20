@@ -198,10 +198,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
-    /* Bind the selected target's root archive before entering ring 3. A
-       malformed or missing archive is a boot failure, never an empty rootfs. */
-    const uint32_t rootfs_kind = target==TARGET_LIVE ? CHIMERA_MODULE_LIVE_INITRAMFS :
-        (target==TARGET_INSTALLER ? CHIMERA_MODULE_INSTALL_IMAGE : CHIMERA_MODULE_RECOVERY_INITRAMFS);
+    /* Bind a validated read-only root archive before entering ring 3.
+       Installer currently shares the live bootstrap rootfs: INSTALL_IMAGE is
+       a disk/install payload, not a CPIO filesystem, and must never be mounted
+       as one. A dedicated installer initramfs can replace this mapping once
+       the ISO builder actually packages and classifies it. */
+    const uint32_t rootfs_kind = target==TARGET_RECOVERY ?
+        CHIMERA_MODULE_RECOVERY_INITRAMFS : CHIMERA_MODULE_LIVE_INITRAMFS;
     const int rootfs_rc = chimera_vfs_mount_boot_module(rootfs_kind);
     if (rootfs_rc != 0) {
         koronos_target_log("[VFS ] ERROR: selected target rootfs missing, malformed, or already mounted");
