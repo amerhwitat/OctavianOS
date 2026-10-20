@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "validate-native-init-elf.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "validate-native-init-elf.py"
 SPEC = importlib.util.spec_from_file_location("validate_native_init_elf", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -46,7 +46,7 @@ class NativeInitElfContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "init.elf"
             path.write_bytes(make_elf(flags=7))
-            with self.assertRaisesRegex(ValueError, "W\^X"):
+            with self.assertRaisesRegex(ValueError, r"W\^X"):
                 MODULE.validate(path, "live")
 
     def test_rejects_entry_outside_executable_segment(self):
