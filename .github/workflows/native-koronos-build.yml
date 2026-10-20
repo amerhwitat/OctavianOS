@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.dockerignore'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
@@ -25,6 +26,7 @@ on:
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
+      - 'docker/iso-runner/**'
 
 
 
@@ -50,6 +52,7 @@ on:
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
+      - '.dockerignore'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
@@ -85,7 +88,7 @@ permissions:
 
 concurrency:
   group: native-koronos-build-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-koronos:
@@ -296,6 +299,125 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Verify six-case full-ISO target ELF probe matrix (test overlay only)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          base=build/iso-userspace-probes
+          mkdir -p "$base"
+          ovmf_code=""
+          ovmf_vars=""
+          for pair in \
+            "OVMF_CODE_4M.fd:OVMF_VARS_4M.fd" \
+            "OVMF_CODE.fd:OVMF_VARS.fd" \
+            "edk2-x86_64-code.fd:edk2-x86_64-vars.fd"; do
+            code_name="${pair%%:*}"
+            vars_name="${pair##*:}"
+            code_path="$(find /usr/share/OVMF /usr/share/ovmf /usr/share/qemu \( -type f -o -type l \) -name "$code_name" -print -quit 2>/dev/null || true)"
+            vars_path="$(find /usr/share/OVMF /usr/share/ovmf /usr/share/qemu \( -type f -o -type l \) -name "$vars_name" -print -quit 2>/dev/null || true)"
+            if [[ -n "$code_path" && -s "$code_path" && -n "$vars_path" && -s "$vars_path" ]]; then
+              ovmf_code="$code_path"
+              ovmf_vars="$vars_path"
+              break
+            fi
+          done
+          [[ -n "$ovmf_code" && -n "$ovmf_vars" ]] || { echo "::error::No matching OVMF CODE/VARS pair"; exit 1; }
+          for target in live installer recovery; do
+            case "$target" in
+              live) menu_id=aurora-live ;;
+              installer) menu_id=install ;;
+              recovery) menu_id=recovery ;;
+            esac
+            for firmware in bios uefi; do
+              tree="$base/$target-$firmware/tree"
+              mkdir -p "$tree/boot/koronos"
+              cp -a boot/iso/dist/iso/. "$tree/"
+              cp "build/koronos/x86_64/user-init-$target.elf" "$tree/boot/koronos/user-init-$target.elf"
+              python3 - "$tree/boot/grub/grub.cfg" "$target" <<'PY'
+          import re, sys
+          from pathlib import Path
+          cfg = Path(sys.argv[1])
+          target = sys.argv[2]
+          text = cfg.read_text(encoding="utf-8")
+          if target == "live":
+              needle = "module2 /boot/live/live-manifest.json chimera-live-manifest\n"
+              menu_prefix = 'menuentry "Chimera II OS — Live Aurora / Koronos'
+          elif target == "installer":
+              needle = "module2 /install/installer/installer_profiles.json chimera-installer-profiles\n"
+              menu_prefix = 'menuentry "Chimera II OS — Install / Installer Environment'
+          else:
+              needle = "module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest\n"
+              menu_prefix = 'menuentry "Chimera II OS — Repair Terminal / Recovery'
+          module = f"module2 /boot/koronos/user-init-{target}.elf chimera-user-init-elf target={target} probe=1\n"
+          if needle not in text:
+              raise SystemExit(f"target module contract not found for {target}: {needle.strip()}")
+          text = text.replace(needle, needle + module)
+          lines = text.splitlines()
+          target_line = next((i for i, line in enumerate(lines) if line.startswith(menu_prefix)), None)
+          if target_line is None:
+              raise SystemExit(f"target menu entry not found for {target}: {menu_prefix}")
+          top_level = [i for i, line in enumerate(lines) if line.startswith("menuentry ") or line.startswith("submenu ")]
+          menu_index = sum(1 for i in top_level if i < target_line)
+          text, count = re.subn(r"(?m)^set default=.*$", f"set default={menu_index}", text, count=1)
+          if count != 1:
+              raise SystemExit("expected exactly one top-level set default directive")
+          cfg.write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+          print(f"[probe] target={target} selected top-level GRUB index {menu_index}")
+          PY
+              iso="$base/$target-$firmware.iso"
+              log="$base/$target-$firmware-debugcon.log"
+              grub-mkrescue -o "$iso" "$tree"
+              qemu=(qemu-system-x86_64 -machine q35 -m 1024 -smp 2 -accel tcg -cdrom "$iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
+              if [[ "$firmware" == uefi ]]; then
+                vars_copy="$base/$target-OVMF_VARS.fd"
+                cp "$ovmf_vars" "$vars_copy"
+                qemu+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$ovmf_code"
+                       -drive "if=pflash,format=raw,unit=1,file=$vars_copy")
+              fi
+              set +e
+              "${qemu[@]}" &
+              qemu_pid=$!
+              probe_seen=0
+              for attempt in $(seq 1 300); do
+                if grep -Fq '[PROBE] Target ring-3 ELF probe emitted its own readiness handshake and exited cleanly' "$log" 2>/dev/null; then
+                  probe_seen=1
+                  break
+                fi
+                if ! kill -0 "$qemu_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.1
+              done
+              if kill -0 "$qemu_pid" 2>/dev/null; then
+                kill "$qemu_pid" 2>/dev/null || true
+              fi
+              wait "$qemu_pid"
+              qemu_wait_rc=$?
+              set -e
+              if [[ "$probe_seen" == "1" ]]; then qemu_rc=0; else qemu_rc=$qemu_wait_rc; fi
+              cat "$log"
+              [[ "$probe_seen" == "1" ]] || { echo "::error::$target/$firmware did not complete the ring-3 probe within 30 seconds (QEMU exit $qemu_rc)"; exit 1; }
+              grep -Fq '[KRN ] KORONOS READY' "$log"
+              ready_line="$(grep -Eo "USERSPACE PROBE READY: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
+              ack_line="$(grep -Eo "USER INIT SYSCALL: target=${target} init_pid=[1-9][0-9]*" "$log" | tail -n 1)"
+              test -n "$ready_line"
+              test -n "$ack_line"
+              test "${ready_line##*=}" = "${ack_line##*=}"
+              grep -Fq 'USERSPACE PROBE SYSCALL RETURNED TO RING3' "$log"
+              grep -Fq '[PROBE] Target ring-3 ELF probe emitted its own readiness handshake and exited cleanly' "$log"
+              grep -Fq '[MM  ] Process page-table self-test passed' "$log"
+              echo "PASS: full ISO target ELF probe target=$target firmware=$firmware qemu_exit=$qemu_rc"
+            done
+          done
+      - name: Upload six-case full-ISO probe traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-full-iso-six-case-probes
+          path: |
+            vendor/chimera-ii-os/source/build/iso-userspace-probes/*-debugcon.log
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -444,6 +566,86 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
+
+
+  validate-iso-runner-candidate:
+    name: Build QEMU ISO runner image (no publication)
+    needs: [build-koronos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout OctavianOS
+        uses: actions/checkout@v4
+      - name: Download ISO build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify candidate ISO checksum
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso
+          test -s dist/output.iso.sha256
+          expected="$(awk '{print $1}' dist/output.iso.sha256)"
+          actual="$(sha256sum dist/output.iso | awk '{print $1}')"
+          test "$expected" = "$actual"
+          printf '%s  output.iso\n' "$expected" > dist/output.iso.sha256
+          (cd dist && sha256sum -c output.iso.sha256)
+      - name: Build runner image without publishing
+        run: docker build --file docker/iso-runner/Dockerfile --tag octavianos-iso-runner:candidate .
+
+  publish-iso-runner-candidate:
+    name: Publish QEMU ISO runner candidate to GHCR
+    needs: [validate-iso-runner-candidate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout OctavianOS
+        uses: actions/checkout@v4
+      - name: Download ISO build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify candidate ISO checksum
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso
+          test -s dist/output.iso.sha256
+          expected="$(awk '{print $1}' dist/output.iso.sha256)"
+          actual="$(sha256sum dist/output.iso | awk '{print $1}')"
+          test "$expected" = "$actual"
+          printf '%s  output.iso\n' "$expected" > dist/output.iso.sha256
+          (cd dist && sha256sum -c output.iso.sha256)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate candidate image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/amerhwitat/octavianos-iso-runner
+          tags: |
+            type=raw,value=candidate
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=OctavianOS ISO Runner Candidate
+            org.opencontainers.image.description=QEMU wrapper for development ISO; not a production OS release
+      - name: Build and publish candidate ISO runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/iso-runner/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
