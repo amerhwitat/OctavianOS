@@ -36,6 +36,10 @@ Supplementary source view available in this run: Linux upstream `init/initramfs.
 
 `vendor/chimera-ii-os/source/kernel/core/initramfs.cpp` now parses CPIO `c_mode` and `c_nlink` for validation, rejects zero link counts, requires the `TRAILER!!!` record to have the expected NUL-terminated name and zero data size, and only accepts a regular-file inode as the candidate ELF. This is intentionally a narrow fail-closed hardening change. It does **not** add gzip support or implement the full Linux-like handoff.
 
+## Parser regression coverage added
+
+`vendor/chimera-ii-os/source/kernel/tests/initramfs_parser_test.cpp` builds small CPIO fixtures and exercises valid ELF extraction plus rejection of symlink entries, zero link count, malformed trailer data, a bad CRC checksum, gzip input without a decoder, truncated archives, and path traversal. `kernel/build-koronos.sh` now compiles and runs this host-side test before the freestanding kernel build. The test is committed but remains **unverified until the corresponding CI job completes**.
+
 ## Mandatory next steps / evidence gate
 
 - Implement or port a small freestanding inflater only after auditing the exact Linux v7.2.2 decompressor/inflater code and its license/dependencies. Enforce input/output/work limits and gzip flags, CRC32 and ISIZE; test truncated, malformed, concatenated, and oversized streams.
