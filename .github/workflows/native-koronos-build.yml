@@ -99,6 +99,12 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+      - name: Validate target-native init packaging and ELF contracts
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tools/tests/test_validate_native_init_elf.py
+          python3 tools/tests/test_native_init_packaging_contract.py
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -309,7 +315,7 @@ jobs:
           set -euo pipefail
           iso=boot/iso/dist/output.iso
           inspect=build/iso-artwork-inspect
-          mkdir -p "$inspect/visual" "$inspect/grub" "$inspect/stages"
+          mkdir -p "$inspect/visual" "$inspect/grub" "$inspect/stages" "$inspect/init"
           for path in \
             "/boot/visual/octavian-octopus-aurora.png" \
             "/boot/visual/octavian-artwork-manifest.json" \
@@ -330,6 +336,15 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+          # Prove all three target-native init ELFs survived ISO mastering; source staging alone is insufficient.
+          for spec in "live:/boot/live/user-init-live.elf" "installer:/boot/installer/user-init-installer.elf" "recovery:/boot/recovery/user-init-recovery.elf"; do
+            target="${spec%%:*}"
+            path="${spec#*:}"
+            out="$inspect/init/user-init-$target.elf"
+            xorriso -osirrox on -indev "$iso" -extract "$path" "$out" >/dev/null
+            test -s "$out" || { echo "ERROR: final ISO missing native init ELF $path" >&2; exit 2; }
+            python3 tools/validate-native-init-elf.py --target "$target" "$out"
+          done
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -345,6 +360,7 @@ jobs:
             multiboot2 /boot/koronos/koronos.elf
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+            module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery
             boot
           }
           GRUB
@@ -356,9 +372,10 @@ jobs:
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
           grep -Fq '[REC ] Recovery payload is staged; native recovery operation still requires its init service' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload status missing"; exit 1; }
-          # This is a routing/payload smoke, not production userspace acceptance.
-          # Gzip initramfs decompression and a native recovery init ELF remain separate gates.
-          grep -Eq '\[RUN \] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder|\[RUN \] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery did not report its current native-init blocker"; exit 1; }
+          # This is a target-init launch smoke, not production userspace acceptance.
+          # Require real CPL3-originated init activity, but do not accept readiness from this fail-closed bootstrap.
+          grep -Fq '[RUN ] Selected target-matched native init ELF alongside production payload' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init ELF was not selected"; exit 1; }
+          grep -Eq 'USER INIT SYSCALL: target=recovery init_pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native init did not enter ring 3 and issue its syscall"; exit 1; }
           if grep -Eq 'PANIC|Triple fault' "$smoke/recovery-debugcon.log"; then echo "::error::Recovery boot panicked or triple-faulted"; exit 1; fi
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
@@ -378,6 +395,7 @@ jobs:
             module2 /install/installer/installer-contract.json chimera-installer-contract
             module2 /install/installer/installation_phases.json chimera-install-phases
             module2 /install/installer/installer_profiles.json chimera-installer-profiles
+            module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer
             boot
           }
           GRUB
@@ -388,9 +406,10 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          # The installer image is not a CPIO archive; this smoke checks target routing
-          # and verifies the kernel refuses to execute the disk image as an ELF init.
-          grep -Fq '[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer did not fail closed on its unsupported image format"; exit 1; }
+          # The installer image is not an executable. This smoke verifies that the separate
+          # target-specific init ELF is launched; it does not claim disk-write/install support.
+          grep -Fq '[RUN ] Selected target-matched native init ELF alongside production payload' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init ELF was not selected"; exit 1; }
+          grep -Eq 'USER INIT SYSCALL: target=installer init_pid=[1-9][0-9]*' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init did not enter ring 3 and issue its syscall"; exit 1; }
           if grep -Eq 'PANIC|Triple fault' "$smoke/installer-debugcon.log"; then echo "::error::Installer routing boot panicked or triple-faulted"; exit 1; fi
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
@@ -405,6 +424,11 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # The default ISO entry must be Live and its real native init must issue a CPL3 syscall.
+          # The current backend-unavailable result is expected here; production readiness is gated separately.
+          grep -Fq '[MB2 ] type=LIVE INITRAMFS' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Default ISO entry did not select the Live payload"; exit 1; }
+          grep -Eq 'USER INIT SYSCALL: target=live init_pid=[1-9][0-9]*' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Default Live init did not enter ring 3 and issue its syscall"; exit 1; }
+          grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Live init did not report the unavailable service backend"; exit 1; }
           # Production init readiness is enforced by verify-userspace-handoff below.
           # Keep this build smoke responsible for booting the ISO to Koronos and preserving
           # launch errors in its artifact, so the dedicated acceptance job can report them.
