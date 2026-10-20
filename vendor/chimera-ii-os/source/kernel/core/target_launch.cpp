@@ -182,6 +182,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const bool has_target_payload =
             chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS) != nullptr ||
             chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS) != nullptr ||
             chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) != nullptr;
         if (!has_target_payload) return 0;
         koronos_target_log("[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied");
