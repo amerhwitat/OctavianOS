@@ -242,36 +242,33 @@ static void task_modules(void *) {
 }
 
 static void task_live(void *) {
-    if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
-        const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
-        if (m) {
-            console_write("[LIVE] Live initramfs module recognized");
-            console_write("[USER] Handoff withheld: production initramfs requires a supported native init ELF/runtime; no process was launched");
-            chimera_sched_block();
-        } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE)) {
-            console_write("[LIVE] No live initramfs module; live service idle");
-            chimera_sched_block();
-        } else {
-            // Installer media is handled by task_installer. There is no live
-            // payload to poll for, so the live service must block as well.
-            console_write("[LIVE] Installer target detected; live service idle");
-            chimera_sched_block();
-        }
+    if (live_task_runs++ != 0) {
+        chimera_sched_block();
+        return;
     }
+    const bool has_selected_payload =
+        chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF) ||
+        chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS) ||
+        chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS) ||
+        chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
+    if (has_selected_payload) {
+        /* One target launch path handles the single payload selected by GRUB.
+           It extracts /init or /sbin/init from supported newc cpio payloads;
+           unsupported disk-image formats fail closed without a fake marker. */
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0)
+            console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
+    } else {
+        console_write("[LIVE] No native init payload selected; userspace launch skipped");
+    }
+    chimera_sched_block();
 }
 
 static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        console_write("[REC ] Recovery payload is staged; native recovery operation still requires its init service");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -317,7 +314,7 @@ static void task_installer(void *) {
             break;
         case 4:
             console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
+            console_write("[INST] Installer payload processing is not equivalent to a completed installation transaction");
             chimera_sched_block();
             break;
         default:
