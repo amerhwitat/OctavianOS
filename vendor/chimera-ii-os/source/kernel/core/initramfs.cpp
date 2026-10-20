@@ -35,6 +35,8 @@ static bool same_path(const char *name, uint32_t name_size, const char *wanted) 
 extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_size,
                                            const char *path, const void **elf_out,
                                            uint64_t *elf_size_out) {
+    if (elf_out) *elf_out = nullptr;
+    if (elf_size_out) *elf_size_out = 0;
     if (archive && archive_size >= 2u) {
         const uint8_t *probe = static_cast<const uint8_t *>(archive);
         /* The current kernel build has no bounded DEFLATE backend. Identify
