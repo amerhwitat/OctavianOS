@@ -52,6 +52,7 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
         bool ok = true;
         const uint32_t file_size = hex8(h + 54, &ok);
         const uint32_t name_size = hex8(h + 94, &ok);
+        const uint32_t expected_check = hex8(h + 102, &ok);
         if (!ok || name_size < 1u || name_size > 4096u) return -3;
         uint64_t name_start;
         if (!add_ok(off, 110u, archive_size, &name_start)) return -4;
@@ -70,6 +71,14 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
         if (!add_ok(data_start, file_size, archive_size, &data_end)) return -4;
         uint64_t next = (data_end + 3u) & ~3ull;
         if (next < data_end || next > archive_size) return -4;
+        if (h[5] == '2') {
+            uint32_t checksum = 0;
+            for (uint64_t i = data_start; i < data_end; ++i)
+                checksum += bytes[i];
+            if (checksum != expected_check) return -11;
+        } else if (expected_check != 0u) {
+            return -12;
+        }
         if (same_path(reinterpret_cast<const char *>(bytes + name_start), name_size, "TRAILER!!!")) {
             trailer_seen = true;
             break;
