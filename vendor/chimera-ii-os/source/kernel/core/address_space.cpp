@@ -21,7 +21,7 @@ constexpr uint64_t SPACE_MAGIC = 0x43484D4153504143ull; // "CHMASPAC"
 
 
 
-struct FrameBlock { uint64_t physical; uint32_t pages; };
+struct FrameBlock { uint64_t physical; uint32_t pages; uint64_t virtual_base; uint32_t elf_flags; };
 struct AddressSpace {
     uint64_t magic;
     uint64_t root_physical;
@@ -217,6 +217,8 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
     FrameBlock &block = space->mapped[space->mapped_count++];
     block.physical = physical;
     block.pages = static_cast<uint32_t>(pages64);
+    block.virtual_base = virtual_base;
+    block.elf_flags = elf_flags;
     space->user_pages += pages64;
     const uint64_t leaf_flags = ENTRY_PRESENT | ENTRY_USER |
         ((elf_flags & 2u) ? ENTRY_WRITE : 0u) |
@@ -235,6 +237,39 @@ static void destroy_address_space(void *, void *opaque) {
     lock_backend();
     if (space_valid(space)) destroy_locked(space);
     unlock_backend();
+}
+static int clone_address_space(void *, void *opaque, void **out) {
+    if (!out) return -1;
+    *out = nullptr;
+    const AddressSpace *source = static_cast<const AddressSpace *>(opaque);
+    if (!space_valid(source)) return -2;
+
+    // Clone into a fresh PML4 and independently allocate every user-mapped
+    // block. Supervisor bootstrap mappings retain their kernel physical backing.
+    AddressSpace *child = static_cast<AddressSpace *>(create_address_space(nullptr));
+    if (!child) return -3;
+    for (uint32_t i = 0; i < source->mapped_count; ++i) {
+        const FrameBlock &src = source->mapped[i];
+        if (!src.physical || !src.pages || !src.virtual_base) {
+            destroy_address_space(nullptr, child);
+            return -4;
+        }
+        const uint64_t bytes = static_cast<uint64_t>(src.pages) * PAGE_SIZE;
+        void *child_alias = nullptr;
+        if (map_pages(nullptr, child, src.virtual_base, bytes, src.elf_flags, &child_alias) != 0 ||
+            !child_alias) {
+            destroy_address_space(nullptr, child);
+            return -5;
+        }
+        copy_bytes(child_alias,
+                   reinterpret_cast<const void *>(static_cast<uintptr_t>(src.physical)),
+                   static_cast<size_t>(bytes));
+    }
+    *out = child;
+    return 0;
+}
+static void destroy_address_space_public(void *, void *opaque) {
+    destroy_address_space(nullptr, opaque);
 }
 static bool user_page_access(uint64_t root_physical, uint64_t va, bool write_access) {
     uint64_t *root = table_ptr(root_physical & ENTRY_ADDRESS_MASK);
@@ -272,6 +307,32 @@ static bool address_space_self_test() {
         ? map_pages(nullptr, space, 0x00007FFFFFFFE000ull, PAGE_SIZE, 6u, &stack_alias)
         : -1;
     bool ok = code_rc == 0 && stack_rc == 0 && code_alias && stack_alias;
+    if (ok) {
+        static_cast<uint8_t *>(code_alias)[0] = 0x41;
+        static_cast<uint8_t *>(stack_alias)[0] = 0x52;
+        void *clone_opaque = nullptr;
+        ok = clone_address_space(nullptr, space, &clone_opaque) == 0 && clone_opaque;
+        AddressSpace *clone = static_cast<AddressSpace *>(clone_opaque);
+        if (ok) {
+            void *clone_code = nullptr;
+            void *clone_stack = nullptr;
+            for (uint32_t i = 0; i < clone->mapped_count; ++i) {
+                if (clone->mapped[i].virtual_base == KORONOS_USER_VIRTUAL_MIN)
+                    clone_code = reinterpret_cast<void *>(static_cast<uintptr_t>(clone->mapped[i].physical));
+                if (clone->mapped[i].virtual_base == 0x00007FFFFFFFE000ull)
+                    clone_stack = reinterpret_cast<void *>(static_cast<uintptr_t>(clone->mapped[i].physical));
+            }
+            ok = clone->root_physical != space->root_physical && clone_code && clone_stack &&
+                 clone_code != code_alias && clone_stack != stack_alias &&
+                 static_cast<uint8_t *>(clone_code)[0] == 0x41 &&
+                 static_cast<uint8_t *>(clone_stack)[0] == 0x52;
+            if (ok) {
+                static_cast<uint8_t *>(clone_stack)[0] = 0x63;
+                ok = static_cast<uint8_t *>(stack_alias)[0] == 0x52;
+            }
+        }
+        if (clone_opaque) destroy_address_space(nullptr, clone_opaque);
+    }
     if (ok) {
         uint64_t *code_pte = ensure_pte(space, KORONOS_USER_VIRTUAL_MIN);
         uint64_t *stack_pte = ensure_pte(space, 0x00007FFFFFFFE000ull);
@@ -351,5 +412,12 @@ extern "C" int koronos_address_space_validate_user_range(uint64_t root_physical,
         page += PAGE_SIZE;
     }
     return 0;
+}
+extern "C" int koronos_address_space_clone(const void *source, void **out_child) {
+    if (!backend_ready) return -1;
+    return clone_address_space(nullptr, const_cast<void *>(source), out_child);
+}
+extern "C" void koronos_address_space_destroy(void *opaque) {
+    destroy_address_space_public(nullptr, opaque);
 }
 extern "C" uint64_t koronos_address_space_count(void) { return created_spaces; }
