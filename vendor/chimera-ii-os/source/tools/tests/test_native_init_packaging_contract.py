@@ -56,6 +56,8 @@ def main() -> int:
     if "chimera-user-init-elf target=installer" not in install_text:
         return fail("Jasper Installer config does not dispatch the Installer init ELF")
 
+    if "call0(2)" not in init_text or "NATIVE INIT PID: target=" not in init_text:
+        return fail("init must report the actual GETPID syscall result")
     if "NATIVE INIT BLOCKED:" not in init_text:
         return fail("init must report unavailable services honestly")
     if "USERSPACE READY:" in init_text:
