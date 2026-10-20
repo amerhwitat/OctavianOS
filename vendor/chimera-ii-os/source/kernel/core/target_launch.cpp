@@ -226,14 +226,11 @@ extern "C" int koronos_launch_selected_userspace(void) {
             archive_size=decoded_size;
             koronos_target_log("[RUN ] Bounded gzip decompression and integrity checks passed");
         }
-        int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
+        int find_rc=chimera_initramfs_find_elf(archive,archive_size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
-            find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
+            find_rc=chimera_initramfs_find_elf(archive,archive_size,"sbin/init",&init_elf,&init_elf_size);
         if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
-            if (find_rc==-13)
-                koronos_target_log("[RUN ] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder before ELF extraction");
-            else
-                koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
+            koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
             return -4;
         }
         selected=payload;
