@@ -1,6 +1,6 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
+**Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39406419376](https://github.com/amerhwitat/OctavianOS/actions/runs/39406419376) (2026-10-20). The native Koronos build and ISO candidate, ELF/Multiboot2 checks, module-classification tests, syscall ABI regression guard, QEMU kernel/ISO boot-to-Koronos checks, and process page-table self-test passed. The separate production verifier job failed for Live, Installer, and Recovery: all three traces lack the required user-originated CPL3 init syscall acknowledgement and matching nonzero kernel-owned PID readiness marker. Installer and Recovery logs explicitly say handoff is withheld because no supported production init ELF/runtime is wired to the payloads. The prerelease job was skipped. This is a successful kernel/ISO smoke build, not production userspace acceptance.
 
 ## What the evidence means
 
