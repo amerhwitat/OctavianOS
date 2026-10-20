@@ -243,13 +243,9 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
+        // Only the Live task may launch the Live target. Installer and Recovery
+        // also carry USER_INIT_ELF modules, but those belong to their own task
+        // paths below; dispatching the first ELF found here steals their launch.
         const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
         if (m) {
             console_write("[LIVE] Live initramfs module recognized");
