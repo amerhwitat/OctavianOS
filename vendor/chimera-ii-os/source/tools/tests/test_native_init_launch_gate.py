@@ -66,6 +66,14 @@ def main() -> int:
         if required not in zero_branch:
             return fail(f"zero-module production failure contract missing: {required}")
 
+    installer_task = bootstrap.split("static void task_installer(void *)", 1)[1].split(
+        "static const char *task_state_name", 1
+    )[0]
+    recognized = installer_task.find('console_write("[INST] Installer target detected")')
+    launch = installer_task.find("koronos_launch_selected_userspace()")
+    if recognized < 0 or launch < 0 or recognized > launch:
+        return fail("installer module recognition must be logged before user-init launch can fail closed")
+
     for target, marker in (
         ("live", "CHIMERA_MODULE_LIVE_INITRAMFS"),
         ("recovery", "CHIMERA_MODULE_RECOVERY_INITRAMFS"),
