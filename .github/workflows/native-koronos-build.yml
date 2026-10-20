@@ -68,6 +68,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
