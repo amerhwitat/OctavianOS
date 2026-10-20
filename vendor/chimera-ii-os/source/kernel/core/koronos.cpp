@@ -292,17 +292,13 @@ static void task_installer(void *) {
         return;
     }
 
-    if (image) {
-        const int launch_rc = koronos_launch_selected_userspace();
-        if (launch_rc != 0) {
-            console_write("[RUN ] Installer target init failed before readiness; failing closed");
-            chimera_sched_block();
-            return;
-        }
-    }
-
-    switch (installer_phase++) {
+    const uint32_t phase = installer_phase++;
+    switch (phase) {
         case 0:
+            // Log classification/metadata before entering user mode. The
+            // launcher can return an expected fail-closed error when the
+            // production services are unavailable; that must not hide the
+            // fact that the installer image was correctly recognized.
             console_write("[INST] Installer target detected");
             if (image) console_write("[INST] Installation image accepted");
             else console_write("[INST] ERROR: installation image module missing");
@@ -331,7 +327,21 @@ static void task_installer(void *) {
             break;
         default:
             chimera_sched_block();
-            break;
+            return;
+    }
+
+    // The target-specific init owns the installer session. Attempt launch
+    // once, after reporting module recognition; never continue into synthetic
+    // service scaffolding after a launch/readiness failure.
+    if (image && phase == 0) {
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0) {
+            console_write("[RUN ] Installer target init failed before readiness; failing closed");
+            chimera_sched_block();
+            return;
+        }
+        chimera_sched_block();
+        return;
     }
 }
 
