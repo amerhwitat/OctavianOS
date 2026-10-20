@@ -376,6 +376,7 @@ jobs:
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=recovery init_pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init never acknowledged a CPL3 syscall"; exit 1; }
           grep -Fq 'NATIVE INIT PID: target=recovery pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not report the kernel-returned PID"; exit 1; }
+          grep -Fq 'NATIVE INIT ROOTFS VERIFIED: target=recovery' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native init did not successfully OPEN/READ/CLOSE its target marker"; exit 1; }
           grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native services did not fail closed"; exit 1; }
           grep -Fq '[RUN ] ERROR: userspace init exited before its target-specific USERSPACE READY handshake' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not report fail-closed readiness rejection"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
@@ -411,6 +412,7 @@ jobs:
           grep -Fq '[INST] Installation image accepted' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer image payload was not accepted"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init did not execute a CPL3 syscall"; exit 1; }
           grep -Fq 'NATIVE INIT PID: target=installer pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init did not report kernel-returned PID"; exit 1; }
+          grep -Fq 'NATIVE INIT ROOTFS VERIFIED: target=installer' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init did not successfully OPEN/READ/CLOSE its target marker"; exit 1; }
           grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init did not fail closed on unavailable services"; exit 1; }
           grep -Fq '[RUN ] ERROR: userspace init exited before its target-specific USERSPACE READY handshake' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not fail closed before readiness"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init never acknowledged a CPL3 syscall"; exit 1; }
