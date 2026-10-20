@@ -141,7 +141,7 @@ extern "C" int chimera_gzip_decompress_bounded(const void *input,uint64_t input_
     if(!input||!output||!output_size||input_size<18u) return -1;
     const uint8_t *in=static_cast<const uint8_t *>(input);
     if(in[0]!=0x1f||in[1]!=0x8b||in[2]!=8u) return -2;
-    const uint8_t flags=in[3]; if(flags&0xe0u) return -2;
+    const uint8_t flags=in[3]; if(flags&0xe2u) return -2; /* Reserved bits and FHCRC are not accepted until header CRC16 is implemented. */
     uint64_t pos=10;
     if(flags&4u) { if(pos+2u>input_size-8u) return -1; uint32_t n=in[pos]|(static_cast<uint32_t>(in[pos+1])<<8); pos+=2; if(n>input_size-8u-pos) return -1; pos+=n; }
     for(uint8_t bit=8u;bit<=16u;bit<<=1) if(flags&bit) {
@@ -152,6 +152,8 @@ extern "C" int chimera_gzip_decompress_bounded(const void *input,uint64_t input_
     Bits b{in+pos,input_size-pos-8u,0,0,0};
     uint64_t produced=0; int rc=inflate(&b,static_cast<uint8_t *>(output),capacity,&produced);
     if(rc) return rc;
+    /* Accept exactly one complete member: reject trailing/concatenated DEFLATE bytes. */
+    if(b.pos!=b.n) return -5;
     const uint64_t trailer=input_size-8u;
     {
         uint32_t crc=0xffffffffu;
