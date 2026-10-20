@@ -28,7 +28,7 @@ class UserspaceMarkerContractTests(unittest.TestCase):
 
     def test_production_verifier_uses_same_target_and_pid_names(self):
         verifier = VERIFY.read_text(encoding="utf-8")
-        self.assertIn(r'USERSPACE READY: target=(live|installer|recovery) init_pid=', verifier)
+        self.assertIn('target=(?P<target_canonical>live|installer|recovery) init_pid=', verifier)
 
 
 if __name__ == "__main__":
