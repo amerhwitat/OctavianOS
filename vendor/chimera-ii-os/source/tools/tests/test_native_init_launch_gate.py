@@ -43,6 +43,15 @@ def main() -> int:
 
     if "if (count==0)" not in launch:
         return fail("missing explicit zero-USER_INIT_ELF branch")
+    if "if (attempted) return 0;" in launch:
+        return fail("duplicate target launch must not be reported as success")
+    live_task = bootstrap.split("static void task_live(void *)", 1)[1].split(
+        "static void task_recovery(void *)", 1
+    )[0]
+    if "chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)" in live_task:
+        return fail("Live task must not steal Installer/Recovery init ELF dispatch")
+    if "chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS)" not in live_task:
+        return fail("Live launch must be gated by a Live initramfs payload")
     zero_branch = launch.split("if (count==0)", 1)[1].split(
         "if (count!=1", 1
     )[0]
