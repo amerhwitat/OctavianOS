@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso qemu-system-x86
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86
 
       - name: Build kernel and target-specific ring-3 probes
         working-directory: vendor/chimera-ii-os/source
