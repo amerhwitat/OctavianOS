@@ -194,6 +194,38 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
         uint64_t archive_size=payload->size;
         TemporaryFrames decompressed{};
+        const uint8_t *compressed=static_cast<const uint8_t *>(archive);
+        if (archive_size>=2u && compressed[0]==0x1fu && compressed[1]==0x8bu) {
+            if (archive_size<18u) {
+                koronos_target_log("[RUN ] ERROR: truncated gzip initramfs header/trailer");
+                return -15;
+            }
+            const uint64_t expected_size=read_le32(compressed+archive_size-4u);
+            if (expected_size==0 || expected_size>MAX_INIT_IMAGE) {
+                koronos_target_log("[RUN ] ERROR: gzip initramfs ISIZE exceeds the bounded output limit");
+                return -16;
+            }
+            const uint64_t page_count=(expected_size+KORONOS_FRAME_SIZE-1u)/KORONOS_FRAME_SIZE;
+            decompressed.pages=static_cast<uint32_t>(page_count);
+            decompressed.base=koronos_frame_alloc_contiguous(decompressed.pages);
+            if (!decompressed.base) {
+                decompressed.pages=0;
+                koronos_target_log("[RUN ] ERROR: unable to reserve decompression frames");
+                return -18;
+            }
+            uint64_t decoded_size=0;
+            const int gzip_rc=chimera_gzip_decompress_bounded(
+                archive,archive_size,
+                reinterpret_cast<void *>(static_cast<uintptr_t>(decompressed.base)),
+                expected_size,&decoded_size);
+            if (gzip_rc!=0 || decoded_size!=expected_size) {
+                koronos_target_log("[RUN ] ERROR: gzip decode or CRC32/ISIZE validation failed");
+                return -19;
+            }
+            archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(decompressed.base));
+            archive_size=decoded_size;
+            koronos_target_log("[RUN ] Bounded gzip decompression and integrity checks passed");
+        }
         int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
             find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
