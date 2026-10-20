@@ -26,7 +26,7 @@ static bool normalize(const uint8_t*p,uint64_t n,uint64_t *start,uint64_t *len){
 static bool entry_at(const uint8_t*b,uint64_t size,uint64_t off,Entry*out){
  if(!b||!out||off>size||size-off<HEADER)return false;
  const uint8_t*h=b+off;
- if(!((h[0]=='0'&&h[1]=='7'&&h[2]=='0'&&h[3]=='7'&&h[4]=='0'&&(h[5]=='1'||h[5]=='2'))))return false;
+ if(!((h[0]=='0'&&h[1]=='7'&&h[2]=='0'&&h[3]=='7'&&h[4]=='0'&&h[5]=='1')))return false;
  uint32_t mode=0,filesize=0,namesize=0;
  if(hex8(h+14,&mode)||hex8(h+54,&filesize)||hex8(h+94,&namesize)||!namesize||namesize>CHIMERA_CPIO_MAX_NAME+1u)return false;
  uint64_t nameoff,aftername,dataoff,end,afterdata,next;
@@ -69,6 +69,7 @@ extern "C" int chimera_cpio_validate(chimera_cpio_archive*a,const void*bytes,uin
   if(cur.next<=off)return CHIMERA_CPIO_INVALID;off=cur.next;
  }
  if(!trailer)return CHIMERA_CPIO_INVALID;
+ for(uint64_t i=off;i<size;i++)if(b[i]!=0)return CHIMERA_CPIO_INVALID;
  a->bytes=b;a->size=size;a->validated=CHIMERA_CPIO_ABI;return CHIMERA_CPIO_OK;
 }
 extern "C" int chimera_cpio_find(const chimera_cpio_archive*a,const char*path,chimera_cpio_file*out){
