@@ -67,12 +67,13 @@ static void log_user_init_syscall(Target target, uint32_t pid) {
     koronos_target_log(message);
 }
 static bool parse_target_pid_line(const char *bytes, uint64_t length, const char *label,
-                                  Target target, uint32_t pid) {
+                                  const char *suffix, Target target, uint32_t pid) {
     const char *name = target_name(target);
     char prefix[80];
     uint64_t p=0;
     while (*label) prefix[p++]=*label++;
     while (*name) prefix[p++]=*name++;
+    while (*suffix) prefix[p++]=*suffix++;
     if (length < p+2u) return false;
     for (uint64_t i=0; i+p<length; ++i) {
         uint64_t j=0;
@@ -92,10 +93,10 @@ static bool parse_target_pid_line(const char *bytes, uint64_t length, const char
     return false;
 }
 static bool target_pid_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
-    return parse_target_pid_line(bytes,length,"NATIVE INIT PID: target=",target,pid);
+    return parse_target_pid_line(bytes,length,"NATIVE INIT PID: target="," pid=",target,pid);
 }
 static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
-    return parse_target_pid_line(bytes,length,"USERSPACE READY: target=",target,pid);
+    return parse_target_pid_line(bytes,length,"USERSPACE READY: target="," init_pid=",target,pid);
 }
 }
 
