@@ -9,6 +9,7 @@
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
 #include "chimera/initramfs.h"
+#include "chimera/gzip.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -21,6 +22,19 @@ static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
+struct TemporaryFrames {
+    uint64_t base = 0;
+    uint32_t pages = 0;
+    ~TemporaryFrames() {
+        if (base && pages) (void)koronos_frame_free_contiguous(base, pages);
+    }
+};
+static uint32_t read_le32(const uint8_t *p) {
+    return static_cast<uint32_t>(p[0]) |
+           (static_cast<uint32_t>(p[1]) << 8) |
+           (static_cast<uint32_t>(p[2]) << 16) |
+           (static_cast<uint32_t>(p[3]) << 24);
+}
 
 extern "C" void koronos_target_log(const char *message);
 
@@ -178,14 +192,45 @@ extern "C" int koronos_launch_selected_userspace(void) {
             return -14;
         }
         const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
-        int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
+        uint64_t archive_size=payload->size;
+        TemporaryFrames decompressed{};
+        const uint8_t *compressed=static_cast<const uint8_t *>(archive);
+        if (archive_size>=2u && compressed[0]==0x1fu && compressed[1]==0x8bu) {
+            if (archive_size<18u) {
+                koronos_target_log("[RUN ] ERROR: truncated gzip initramfs header/trailer");
+                return -15;
+            }
+            const uint64_t expected_size=read_le32(compressed+archive_size-4u);
+            if (expected_size==0 || expected_size>MAX_INIT_IMAGE) {
+                koronos_target_log("[RUN ] ERROR: gzip initramfs ISIZE exceeds the bounded output limit");
+                return -16;
+            }
+            const uint64_t page_count=(expected_size+KORONOS_FRAME_SIZE-1u)/KORONOS_FRAME_SIZE;
+            decompressed.pages=static_cast<uint32_t>(page_count);
+            decompressed.base=koronos_frame_alloc_contiguous(decompressed.pages);
+            if (!decompressed.base) {
+                decompressed.pages=0;
+                koronos_target_log("[RUN ] ERROR: unable to reserve decompression frames");
+                return -18;
+            }
+            uint64_t decoded_size=0;
+            const int gzip_rc=chimera_gzip_decompress_bounded(
+                archive,archive_size,
+                reinterpret_cast<void *>(static_cast<uintptr_t>(decompressed.base)),
+                expected_size,&decoded_size);
+            if (gzip_rc!=0 || decoded_size!=expected_size) {
+                koronos_target_log("[RUN ] ERROR: gzip decode or CRC32/ISIZE validation failed");
+                return -19;
+            }
+            archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(decompressed.base));
+            archive_size=decoded_size;
+            koronos_target_log("[RUN ] Bounded gzip decompression and integrity checks passed");
+        }
+        int find_rc=chimera_initramfs_find_elf(archive,archive_size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
-            find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
+            find_rc=chimera_initramfs_find_elf(archive,archive_size,"sbin/init",&init_elf,&init_elf_size);
         if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
-            if (find_rc==-13)
-                koronos_target_log("[RUN ] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder before ELF extraction");
-            else
-                koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
+            koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
             return -4;
         }
         selected=payload;
