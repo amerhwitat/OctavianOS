@@ -35,6 +35,14 @@ static bool same_path(const char *name, uint32_t name_size, const char *wanted) 
 extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_size,
                                            const char *path, const void **elf_out,
                                            uint64_t *elf_size_out) {
+    if (archive && archive_size >= 2u) {
+        const uint8_t *probe = static_cast<const uint8_t *>(archive);
+        /* The current kernel build has no bounded DEFLATE backend. Identify
+           gzip explicitly so callers and diagnostics can distinguish it from
+           malformed/truncated CPIO; never pass compressed bytes to the CPIO
+           walker as though they were an archive. */
+        if (probe[0] == 0x1fu && probe[1] == 0x8bu) return -13;
+    }
     if (!archive || !path || !elf_out || !elf_size_out || archive_size < 110u ||
         archive_size > 64ull * 1024ull * 1024ull) return -1;
     *elf_out = nullptr;
