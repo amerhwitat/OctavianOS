@@ -116,7 +116,7 @@ chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || tru
 mkdir -p "$INIT/etc/chimera"
 printf '%s\n' 'live' > "$INIT/etc/chimera/target"
 (cd "$INIT" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/live/chimera-live-initramfs.cpio"
-gzip -9 -c "$OUT/boot/live/chimera-live-initramfs.cpio" > "$OUT/boot/live/chimera-live-initramfs.img"
+(cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.cpio" > "$OUT/boot/live/chimera-live-initramfs.cpio.sha256"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
@@ -161,7 +161,7 @@ chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
 mkdir -p "$REC/etc/chimera"
 printf '%s\n' 'recovery' > "$REC/etc/chimera/target"
 (cd "$REC" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio"
-gzip -9 -c "$OUT/boot/recovery/chimera-recovery-initramfs.cpio" > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
+(cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.cpio" > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio.sha256"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
 
@@ -188,7 +188,7 @@ exec /bin/sh
 EOF
 chmod +x "$INST/init"
 (cd "$INST" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/installer/chimera-installer-initramfs.cpio"
-gzip -9 -c "$OUT/boot/installer/chimera-installer-initramfs.cpio" > "$OUT/boot/installer/chimera-installer-initramfs.img"
+(cd "$INST" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/installer/chimera-installer-initramfs.img"
 sha256sum "$OUT/boot/installer/chimera-installer-initramfs.cpio" > "$OUT/boot/installer/chimera-installer-initramfs.cpio.sha256"
 sha256sum "$OUT/boot/installer/chimera-installer-initramfs.img" > "$OUT/boot/installer/chimera-installer-initramfs.img.sha256"
 
