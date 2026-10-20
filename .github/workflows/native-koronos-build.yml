@@ -355,8 +355,9 @@ jobs:
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
           grep -Fq '[REC ] Recovery payload is staged; native recovery operation still requires its init service' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload status missing"; exit 1; }
-          grep -Eq '\[RUN \] (Extracted target init ELF from selected production cpio archive|ERROR: selected production payload)' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Production payload launcher neither accepted nor explicitly rejected the selected recovery payload"; exit 1; }
-          if grep -Eq 'USERSPACE READY: recovery init pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log"; then echo "::error::Routing smoke must not manufacture production userspace readiness"; exit 1; fi
+          grep -Fq '[RUN ] Extracted target init ELF from selected production cpio archive' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload did not yield a native init ELF"; exit 1; }
+          grep -Eq 'USERSPACE READY: recovery init pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery userspace did not emit a kernel-validated readiness handshake"; exit 1; }
+          if grep -Eq '\[RUN \] ERROR:|PANIC|Triple fault' "$smoke/recovery-debugcon.log"; then echo "::error::Recovery boot reported a launch error, panic, or triple fault"; exit 1; fi
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -385,8 +386,9 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Eq '\[RUN \] (Extracted target init ELF from selected production cpio archive|ERROR: selected production payload)' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Production installer payload was neither accepted nor explicitly rejected"; exit 1; }
-          if grep -Eq 'USERSPACE READY: installer init pid=[1-9][0-9]*' "$smoke/installer-debugcon.log"; then echo "::error::Routing smoke must not manufacture production userspace readiness"; exit 1; fi
+          grep -Fq '[RUN ] Extracted target init ELF from selected production cpio archive' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer payload did not yield a native init ELF"; exit 1; }
+          grep -Eq 'USERSPACE READY: installer init pid=[1-9][0-9]*' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer userspace did not emit a kernel-validated readiness handshake"; exit 1; }
+          if grep -Eq '\[RUN \] ERROR:|PANIC|Triple fault' "$smoke/installer-debugcon.log"; then echo "::error::Installer boot reported a launch error, panic, or triple fault"; exit 1; fi
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
