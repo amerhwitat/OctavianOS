@@ -135,6 +135,14 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             koronos_user_exit_code = frame->rdi & 0xFFu;
             koronos_target_log("[SYSC] userspace exit syscall received");
             return KORONOS_USER_SYSCALL_EXIT_SENTINEL;
+        case CHM_SYS_FORK:
+        case CHM_SYS_EXECVE:
+        case CHM_SYS_WAITPID:
+            // ABI numbers are reserved, but these operations must remain
+            // explicitly unavailable until resumable process contexts, safe
+            // address-space ownership transfer, and exit/reap are integrated.
+            // Returning ENOSYS is safer than creating a fake PID or task.
+            return static_cast<uint64_t>(-38ll);
         default:
             return static_cast<uint64_t>(-38ll);
     }
