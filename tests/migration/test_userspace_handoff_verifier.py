@@ -7,7 +7,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("verify-userspace-handoff.py")
 KERNEL = "[KRN ] KORONOS READY\n"
 ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
-READY = "USERSPACE READY: target={target} init_pid={pid}\n"
+PID = "NATIVE INIT PID: target={target} pid={pid}\n"\nREADY = "USERSPACE READY: target={target} init_pid={pid}\n"
 
 
 def run(target, trace):
@@ -29,37 +29,37 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("user-originated init syscall acknowledgement", result.stdout)
 
     def test_requires_matching_target(self):
-        trace = KERNEL + ENTRY.format(target="live", pid=1) + READY.format(target="live", pid=1)
+        trace = KERNEL + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + READY.format(target="live", pid=1)
         result = run("installer", trace)
         self.assertEqual(result.returncode, 1)
         self.assertIn("ordered kernel-ready -> user-originated init syscall", result.stdout)
 
     def test_requires_same_pid_for_entry_and_ready(self):
-        trace = KERNEL + ENTRY.format(target="live", pid=1) + READY.format(target="live", pid=2)
+        trace = KERNEL + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + READY.format(target="live", pid=2)
         self.assertEqual(run("live", trace).returncode, 1)
 
     def test_requires_ordered_markers(self):
-        trace = READY.format(target="live", pid=1) + ENTRY.format(target="live", pid=1) + KERNEL
+        trace = READY.format(target="live", pid=1) + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + KERNEL
         self.assertEqual(run("live", trace).returncode, 1)
 
     def test_accepts_live_with_user_originated_syscall_and_matching_pid(self):
-        trace = KERNEL + ENTRY.format(target="live", pid=1) + READY.format(target="live", pid=1)
+        trace = KERNEL + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + READY.format(target="live", pid=1)
         self.assertEqual(run("live", trace).returncode, 0)
 
     def test_rejects_zero_or_mismatched_pid(self):
-        self.assertEqual(run("recovery", KERNEL + ENTRY.format(target="live", pid=1) + READY.format(target="live", pid=1)).returncode, 1)
+        self.assertEqual(run("recovery", KERNEL + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + READY.format(target="live", pid=1)).returncode, 1)
         self.assertEqual(run("recovery", KERNEL + ENTRY.format(target="recovery", pid=0) + READY.format(target="recovery", pid=0)).returncode, 1)
 
     def test_accepts_runtime_readiness_format_with_nonzero_pid(self):
-        trace = KERNEL + ENTRY.format(target="live", pid=7) + "USERSPACE READY: live init pid=7\n"
+        trace = KERNEL + ENTRY.format(target="live", pid=7) + PID.format(target="live", pid=7) + "USERSPACE READY: live init pid=7\n"
         self.assertEqual(run("live", trace).returncode, 0)
 
     def test_rejects_runtime_readiness_when_pid_differs(self):
-        trace = KERNEL + ENTRY.format(target="live", pid=7) + "USERSPACE READY: live init pid=8\n"
+        trace = KERNEL + ENTRY.format(target="live", pid=7) + PID.format(target="live", pid=7) + "USERSPACE READY: live init pid=8\n"
         self.assertEqual(run("live", trace).returncode, 1)
 
     def test_accepts_recovery_with_nonzero_pid(self):
-        trace = KERNEL + ENTRY.format(target="recovery", pid=2) + READY.format(target="recovery", pid=2)
+        trace = KERNEL + ENTRY.format(target="recovery", pid=2) + PID.format(target="recovery", pid=2) + READY.format(target="recovery", pid=2)
         self.assertEqual(run("recovery", trace).returncode, 0)
 
 
