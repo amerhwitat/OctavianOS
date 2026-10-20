@@ -148,7 +148,7 @@ jobs:
           cat "$LOG"
           grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
           grep -Fq "[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed" "$LOG"
-          ! grep -Fq "USERSPACE READY: live" "$LOG"
+          ! grep -Fq "USERSPACE READY: target=live init_pid=" "$LOG"
           echo "Accepted in-kernel non-cooperative timeout (outer QEMU exit=$qemu_rc)"
 
       - name: Upload boot diagnostics
