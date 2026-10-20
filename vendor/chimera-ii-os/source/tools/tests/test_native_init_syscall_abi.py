@@ -51,6 +51,8 @@ def main() -> int:
         "CHM_SYS_FORK": 17,
         "CHM_SYS_EXECVE": 18,
         "CHM_SYS_WAITPID": 19,
+        "CHM_SYS_OPEN": 20,
+        "CHM_SYS_CLOSE": 21,
     }
     if entries != expected:
         return fail(f"native syscall table changed unexpectedly: {entries!r}")
