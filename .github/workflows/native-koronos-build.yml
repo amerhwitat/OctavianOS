@@ -232,9 +232,11 @@ jobs:
           live_cpio=build/live-boot/boot/live/chimera-live-initramfs.cpio
           recovery=build/live-boot/boot/recovery/chimera-recovery-initramfs.img
           recovery_cpio=build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio
+          installer=build/live-boot/boot/installer/chimera-installer-initramfs.img
           installer_cpio=build/live-boot/boot/installer/chimera-installer-initramfs.cpio
           test -s "$live_cpio"
           test -s "$recovery_cpio"
+          test -s "$installer"
           test -s "$installer_cpio"
           python3 - "$live_cpio" "$recovery_cpio" "$installer_cpio" <<'PY'
           import sys
@@ -263,6 +265,7 @@ jobs:
           test -s build/live-boot/boot/recovery/recovery-manifest.json
           gzip -t "$live"
           gzip -t "$recovery"
+          gzip -t "$installer"
           python3 - <<'PY'
           import json
           from pathlib import Path
