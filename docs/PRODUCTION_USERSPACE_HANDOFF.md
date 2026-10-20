@@ -235,3 +235,8 @@ Required implementation sequence:
 The native init regression test now guards against treating syscall 10 as mount and preserves status-78/no-readiness behavior while the mount ABI is absent. When a real VFS syscall is implemented, replace that guard with tests of the actual ABI and runtime behavior; do not weaken fail-closed readiness.
 
 **Production remains BLOCKED.** Do not claim any of the six Live/Installer/Recovery × BIOS/UEFI production cases, desktop handoff, disk-writing installation, recovery repair, or AP-backed SMP as passed until the corresponding runtime tests succeed. No release/prerelease is authorized.
+
+
+## Linux application compatibility and N-bit execution audit — 2026-10-20
+
+The cross-repository implementation plan is recorded in [`KORONOS_LINUX_KERNEL_PARITY_AND_NBIT_ARCHITECTURE.md`](KORONOS_LINUX_KERNEL_PARITY_AND_NBIT_ARCHITECTURE.md). ChimeraIIOS [PR #174](https://github.com/amerhwitat/ChimeraIIOS/pull/174) proposes a safe syscall translation correction and a host-side ABI regression test. It must pass CI before acceptance. This is not full Linux application support: process-personality binding, actual GETPID/exit/wait lifecycle, process-owned page tables, VFS and file descriptors, service processes, graphics and destination-specific runtime acceptance remain incomplete. N-bit build variants remain metadata/build profiles unless a functioning interpreter/JIT/emulator supplies the defined virtual CPU semantics. Production release remains BLOCKED.
