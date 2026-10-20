@@ -166,7 +166,7 @@ rm -rf "$INST"
 mkdir -p "$INST"
 cp -a "$INIT/." "$INST/"
 mkdir -p "$INST/etc/chimera"
-printf '%s\\n' 'installer' > "$INST/etc/chimera/target"
+printf '%s\n' 'installer' > "$INST/etc/chimera/target"
 cat > "$INST/init" <<'EOF'
 #!/bin/sh
 set -eu
@@ -175,7 +175,7 @@ mount -t sysfs sysfs /sys 2>/dev/null || true
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mount -t tmpfs tmpfs /run 2>/dev/null || true
 mkdir -p /run/chimera /var/log/mesgs
-printf '%s\\n' '[INSTALLER] Diagnostic fallback only; native service-backed installer acceptance has not been established.' > /dev/console 2>/dev/null || true
+printf '%s\n' '[INSTALLER] Diagnostic fallback only; native service-backed installer acceptance has not been established.' > /dev/console 2>/dev/null || true
 exec /bin/sh
 EOF
 chmod +x "$INST/init"
