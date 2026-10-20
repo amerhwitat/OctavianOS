@@ -22,6 +22,19 @@ static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
+struct TemporaryFrames {
+    uint64_t base = 0;
+    uint32_t pages = 0;
+    ~TemporaryFrames() {
+        if (base && pages) (void)koronos_frame_free_contiguous(base, pages);
+    }
+};
+static uint32_t read_le32(const uint8_t *p) {
+    return static_cast<uint32_t>(p[0]) |
+           (static_cast<uint32_t>(p[1]) << 8) |
+           (static_cast<uint32_t>(p[2]) << 16) |
+           (static_cast<uint32_t>(p[3]) << 24);
+}
 
 extern "C" void koronos_target_log(const char *message);
 
