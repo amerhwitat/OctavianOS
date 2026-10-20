@@ -151,3 +151,14 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+
+## Current verification refresh — 2026-10-20 (run #39404402300)
+
+**Release decision remains BLOCKED.** The native Koronos build job passed, but the unchanged production verifier failed for Live, Installer, and Recovery. The verifier reported missing user-originated init syscall acknowledgement (CPL 3) and actual init PID readiness evidence in each of the three aggregate traces. The prerelease job was skipped. See [run #39404402300](https://github.com/amerhwitat/OctavianOS/actions/runs/39404402300).
+
+The separate [ring-3 probe matrix #39404402308](https://github.com/amerhwitat/OctavianOS/actions/runs/39404402308) passed all six probe jobs (Live/Installer/Recovery × BIOS/UEFI), but the workflow explicitly labels them **not production acceptance**. Passing those probes does not establish that production init ELFs are staged in the ISO or that target services start.
+
+The ordered kernel handshake has been hardened on branch `fix/native-init-elf-contract-guard-20261020`: a verified CPL3 syscall acknowledgement must precede a target/PID diagnostic matching the kernel-owned PID, and only then can a matching target readiness line be recognized. The ring-3 smoke payload now exercises that order. This is a contract/probe change only; it is not a service implementation and must not be used to relabel the probe payload as production init.
+
+The key unresolved integration failure is still end-to-end production execution: the actual production payload path must stage and select a real target init ELF, enter it at CPL3, and let it initialize target services before it emits readiness. VFS/filesystem/device services, Aurora handoff, installer transaction/reboot, recovery repair, and AP-backed SMP remain NOT VERIFIED. Keep `tests/migration/verify-userspace-handoff.py` unchanged. Do not synthesize acknowledgements, PIDs, or readiness; keep prerelease publication gated on real production verifier passes and follow-up functional acceptance.
