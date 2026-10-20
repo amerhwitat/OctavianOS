@@ -123,7 +123,7 @@ static int inflate(Bits *b,uint8_t *out,uint64_t cap,uint64_t *used) {
             if(s<257||s>285) return -2;
             uint32_t li=static_cast<uint32_t>(s-257), ex=0;
             if(len_extra[li] && !b->get(len_extra[li],&ex)) return -1;
-            uint32_t length=len_base[li]+ex, ds=0;
+            uint32_t length=len_base[li]+ex;
             int d=symbol(b,&dist); if(d<0||d>=30) return -2;
             ex=0; if(dist_extra[d]&&!b->get(dist_extra[d],&ex)) return -1;
             uint32_t distance=dist_base[d]+ex;
@@ -153,7 +153,7 @@ extern "C" int chimera_gzip_decompress_bounded(const void *input,uint64_t input_
     uint64_t produced=0; int rc=inflate(&b,static_cast<uint8_t *>(output),capacity,&produced);
     if(rc) return rc;
     const uint64_t trailer=input_size-8u;
-    if(le32(in+trailer)!=0xffffffffu) {
+    {
         uint32_t crc=0xffffffffu;
         const uint8_t *out=static_cast<const uint8_t *>(output);
         for(uint64_t i=0;i<produced;++i) crc=crc32_byte(crc,out[i]);
