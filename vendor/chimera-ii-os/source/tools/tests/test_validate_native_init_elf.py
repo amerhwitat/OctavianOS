@@ -11,14 +11,14 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def make_elf(*, machine=62, e_type=2, flags=5, entry=0x100000100):
+def make_elf(*, machine=62, e_type=2, flags=5, entry=0x100000001):
     ident = b"\x7fELF" + bytes([2, 1, 1]) + bytes(9)
     ehdr = MODULE.ELF_HEADER.pack(
         ident, e_type, machine, 1, entry, MODULE.ELF_HEADER.size, 0, 0,
         MODULE.ELF_HEADER.size, MODULE.PROGRAM_HEADER.size, 1, 0, 0, 0
     )
     phdr = MODULE.PROGRAM_HEADER.pack(1, flags, 0x100, 0x100000000, 0, 4, 4, 0x1000)
-    return ehdr + bytes(0x100 - len(ehdr) - len(phdr)) + phdr + b"CODE"
+    return ehdr + phdr + bytes(0x100 - len(ehdr) - len(phdr)) + b"CODE"
 
 
 class NativeInitElfContractTests(unittest.TestCase):
