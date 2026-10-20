@@ -43,12 +43,22 @@ HOST_CXX="${HOST_CXX:-g++}"
   "$ROOT/kernel/core/service.cpp" "$ROOT/kernel/tests/service_bootstrap_honesty_test.cpp" \
   -o "$BUILD/service-bootstrap-honesty-test"
 "$BUILD/service-bootstrap-honesty-test"
+# Bounded CPIO VFS and process lifecycle metadata regressions run hosted before
+# the freestanding kernel compile. waitpid_poll is intentionally non-blocking.
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/vfs_cpio.cpp" "$ROOT/kernel/tests/vfs_cpio_test.cpp" \
+  -o "$BUILD/vfs-cpio-test"
+"$BUILD/vfs-cpio-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/process.cpp" "$ROOT/kernel/tests/process_lifecycle_test.cpp" \
+  -o "$BUILD/process-lifecycle-test"
+"$BUILD/process-lifecycle-test"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space target_launch)
+sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 vfs_cpio platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space target_launch)
 for src in "${sources[@]}"; do
   "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
 done
