@@ -26,7 +26,7 @@ static bool same_path(const char *name, uint32_t name_size, const char *wanted) 
     while (wanted[n]) ++n;
     uint32_t start = (name_size && name[0] == '/') ? 1u : 0u;
     if (name_size && name[name_size - 1u] == 0) --name_size;
-    if (name_size - start != n) return false;
+    if (name_size < start || name_size - start != n) return false;
     for (uint32_t i = 0; i < n; ++i) if (name[start + i] != wanted[i]) return false;
     return true;
 }
@@ -42,6 +42,7 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
     const uint8_t *bytes = static_cast<const uint8_t *>(archive);
     uint64_t off = 0;
     bool found = false;
+    bool trailer_seen = false;
     const void *candidate = nullptr;
     uint64_t candidate_size = 0;
     while (off <= archive_size && archive_size - off >= 110u) {
@@ -70,6 +71,7 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
         uint64_t next = (data_end + 3u) & ~3ull;
         if (next < data_end || next > archive_size) return -4;
         if (same_path(reinterpret_cast<const char *>(bytes + name_start), name_size, "TRAILER!!!")) {
+            trailer_seen = true;
             break;
         }
         if (same_path(reinterpret_cast<const char *>(bytes + name_start), name_size, path)) {
@@ -82,6 +84,7 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
         }
         off = next;
     }
+    if (!trailer_seen) return -10;
     if (!found) return -9;
     *elf_out = candidate;
     *elf_size_out = candidate_size;
