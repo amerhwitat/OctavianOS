@@ -54,6 +54,16 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
+          # These bytes are a classification marker only, not a production
+          # initramfs/install image. The probe matrix verifies ring-3 entry;
+          # real target payload acceptance is covered by the separate gate.
+          printf 'probe-only marker; not a bootable production payload\\n' > "$ISO_ROOT/boot/target-probe.marker"
+          case "$TARGET" in
+            live) TARGET_MODULE="chimera-live-initramfs" ;;
+            installer) TARGET_MODULE="chimera-installation-image" ;;
+            recovery) TARGET_MODULE="chimera-recovery-initramfs" ;;
+            *) echo "ERROR: unsupported probe target $TARGET" >&2; exit 1 ;;
+          esac
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
           set timeout=0
           set default=0
@@ -61,6 +71,7 @@ jobs:
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
             module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/target-probe.marker $TARGET_MODULE
             boot
           }
           EOF
@@ -129,6 +140,9 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
+          # Classification-only marker lets the Live target reach the timeout
+          # probe. It is deliberately not represented as a production payload.
+          printf 'probe-only marker; not a bootable production payload\\n' > "$ISO_ROOT/boot/target-probe.marker"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
           set timeout=0
           set default=0
@@ -136,6 +150,7 @@ jobs:
           menuentry "Koronos in-kernel timeout probe" {
             multiboot2 /boot/koronos.elf
             module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
+            module2 /boot/target-probe.marker chimera-live-initramfs
             boot
           }
           EOF
