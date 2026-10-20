@@ -169,12 +169,23 @@ extern "C" int koronos_launch_selected_userspace(void) {
             koronos_target_log("[RUN ] ERROR: selected production payload is outside bounded physical memory");
             return -3;
         }
+        /* The installer image is a disk/image container, not a CPIO initramfs.
+           Never reinterpret it as one; installer init must be staged as a
+           separately typed native USER_INIT_ELF module until the installer
+           image format has a real in-kernel mount/exec path. */
+        if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
+            koronos_target_log("[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged");
+            return -14;
+        }
         const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
         int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
             find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
         if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
-            koronos_target_log("[RUN ] ERROR: selected production payload is not supported newc initramfs or contains no valid /init or /sbin/init ELF");
+            if (find_rc==-13)
+                koronos_target_log("[RUN ] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder before ELF extraction");
+            else
+                koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
             return -4;
         }
         selected=payload;
