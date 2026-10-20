@@ -162,3 +162,29 @@ The separate [ring-3 probe matrix #39404402308](https://github.com/amerhwitat/Oc
 The ordered kernel handshake has been hardened on branch `fix/native-init-elf-contract-guard-20261020`: a verified CPL3 syscall acknowledgement must precede a target/PID diagnostic matching the kernel-owned PID, and only then can a matching target readiness line be recognized. The ring-3 smoke payload now exercises that order. This is a contract/probe change only; it is not a service implementation and must not be used to relabel the probe payload as production init.
 
 The key unresolved integration failure is still end-to-end production execution: the actual production payload path must stage and select a real target init ELF, enter it at CPL3, and let it initialize target services before it emits readiness. VFS/filesystem/device services, Aurora handoff, installer transaction/reboot, recovery repair, and AP-backed SMP remain NOT VERIFIED. Keep `tests/migration/verify-userspace-handoff.py` unchanged. Do not synthesize acknowledgements, PIDs, or readiness; keep prerelease publication gated on real production verifier passes and follow-up functional acceptance.
+
+
+## Linux-inspired target-init proposal audit — 2026-10-20
+
+**Decision: do not promote the proposed `target_init.c` sample to production or stage it as a production init.** The architectural direction (one PID-1-style target supervisor with target-specific service startup and readiness only after success) is sound, but the supplied implementation currently reports success without initializing those services.
+
+Concrete ABI/source findings on branch `fix/native-init-elf-contract-guard-20261020`:
+
+- `kernel/core/syscall.cpp` implements the process-bound native syscall path for GETPID, WRITE, EXIT and a few basic operations. FORK/EXECVE/WAITPID return ENOSYS; there is no implemented mount syscall or device-control syscall in the native dispatcher. The compatibility dispatcher intentionally rejects GETPID and EXIT without process context.
+- Therefore the proposed `CHM_SYS_MOUNT=10` and `CHM_SYS_DEVCTL=11` are placeholders, not supported ABI calls. Calling them and returning success locally would not mount `/proc`, `/sys`, or `/dev`, initialize a device manager, launch Aurora, run an installer transaction, or repair a system.
+- The sample's `init_virtual_filesystems()`, `init_device_subsystem()`, and `execute_target_payload()` return zero unconditionally. Its `sleep(5)` and hosted headers also assume a libc/POSIX runtime that the freestanding native-init build does not currently provide.
+- The production ISO build does not currently extract and stage a native production init ELF from each shell-based initramfs. The current `build-koronos.sh` outputs `user-init-live/installer/recovery.elf` from `kernel/tests/user_init_smoke.c`; the source and comments correctly designate these as probes. Reusing those artifacts as production init would only turn a probe into a mislabeled probe.
+- The kernel launch path calls the user image and then expects it to return after readiness. A real PID-1 supervisor must remain alive, which requires a safe scheduler/process lifecycle and a defined post-readiness handoff; an infinite loop cannot simply be dropped into the current one-shot launch path without proving timer/interrupt behavior, process ownership, and control flow.
+
+The latest integrated native build [run #39405093270](https://github.com/amerhwitat/OctavianOS/actions/runs/39405093270) confirms the kernel/ISO candidate job passes, while the unchanged production verifier fails Live, Installer, and Recovery with missing CPL3-origin acknowledgement and matching actual-PID readiness evidence. The six-case probe matrix [run #39405093493](https://github.com/amerhwitat/OctavianOS/actions/runs/39405093493) passed as a probe workflow only; it is explicitly not production acceptance.
+
+### Required implementation order
+
+1. Define and implement a real kernel ABI for the operations actually needed (or a native service IPC/capability interface). Do not reserve syscall numbers by assumption; document and test dispatch, argument validation, user-memory access, errors, and process identity.
+2. Implement real target service backends and observable success/failure results: VFS/rootfs and required mounts, device enumeration/console/input/display, and service lifecycle. Until a backend exists, init must fail closed and must not print readiness.
+3. Build a freestanding native init against the supported ABI (not hosted `unistd.h`/libc assumptions); include target-specific service plans, bounded startup, diagnostic error codes, and a supervisor lifecycle compatible with the kernel scheduler.
+4. Extract or build the real target init for each Live/Installer/Recovery payload, validate archive paths and ELF bounds, stage it as exactly one target-matched `CHIMERA_MODULE_USER_INIT_ELF`, and verify the final ISO contents.
+5. Add host-side tests for target selection, missing/duplicate modules, unsupported syscall errors, startup failure, PID formatting/overflow, and readiness ordering. Keep `tests/migration/verify-userspace-handoff.py` unchanged.
+6. Prove six actual production boots, then separately verify Live-to-Aurora, installer disk transaction/reboot, a real recovery operation, and AP-backed concurrent SMP. Release remains blocked until all required gates pass.
+
+**Current result:** no production-init implementation or new boot success is claimed by this audit. The proposal is retained as an architecture direction, not accepted as working code. Release stays BLOCKED; no prerelease should be published.
