@@ -73,7 +73,7 @@ Production acceptance remains **FAIL** and prerelease publication remains blocke
 
 The current branch now contains the first code slice:
 
-- `kernel/core/vfs_cpio.cpp` and `kernel/include/chimera/vfs_cpio.h`: bounded `070701`/`070702` reader, overflow-checked offsets and alignment, bounded hexadecimal fields and names, normalized absolute/relative paths, traversal/duplicate rejection, trailer requirement, regular-file read views, and range-checked partial reads. It intentionally rejects unsupported entry types rather than pretending to implement symlink/device semantics. Archive storage remains owned by the boot module and must outlive every view.
+- `kernel/core/vfs_cpio.cpp` and `kernel/include/chimera/vfs_cpio.h`: bounded `070701` reader (CRC variant `070702` is rejected until its checksum is verified), overflow-checked offsets and alignment, bounded hexadecimal fields and names, normalized absolute/relative paths, traversal/duplicate rejection, trailer requirement, regular-file read views, and range-checked partial reads. It intentionally rejects unsupported entry types rather than pretending to implement symlink/device semantics. Archive storage remains owned by the boot module and must outlive every view.
 - `kernel/tests/vfs_cpio_test.cpp`: hosted cases for valid lookup/read, EOF, missing paths, truncation, duplicate paths, traversal and malformed magic.
 - `kernel/core/process.cpp` / `kernel/include/chimera/process.h`: process-owned descriptor slots for read-only CPIO files, sequential reads, close, exit status, parent association, and reap-once polling. Process ABI is versioned to 2 because the process record grew.
 - `kernel/tests/process_lifecycle_test.cpp`: lifecycle and descriptor tests, including exit-time descriptor cleanup.
