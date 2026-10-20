@@ -28,6 +28,14 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("user-originated init syscall acknowledgement", result.stdout)
 
+    def test_explicit_native_init_blocked_is_reported_as_service_readiness_failure(self):
+        trace = KERNEL + ENTRY.format(target="installer", pid=1) + "NATIVE INIT BLOCKED: filesystem service unavailable\\n"
+        result = run("installer", trace)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("production service readiness", result.stdout)
+        self.assertIn("NATIVE INIT BLOCKED", result.stdout)
+        self.assertNotIn("actual init PID readiness marker", result.stdout)
+
     def test_requires_matching_target(self):
         trace = KERNEL + ENTRY.format(target="live", pid=1) + READY.format(target="live", pid=1)
         result = run("installer", trace)
