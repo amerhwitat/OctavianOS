@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "chimera/vfs_cpio.h"
-#include "chimera/process.h"
-#include "chimera/multiboot_modules.h"
 namespace {
 constexpr uint64_t HEADER=110;
 constexpr uint32_t S_IFMT=0170000, S_IFREG=0100000, S_IFDIR=0040000;
@@ -120,27 +118,9 @@ extern "C" int chimera_vfs_mount_readonly(const void *bytes, uint64_t size) {
     mount_unlock();
     return 0;
 }
-extern "C" int chimera_vfs_mount_boot_module(uint32_t module_kind) {
-    const chimera_boot_module *module = chimera_multiboot_find(module_kind);
-    if (!module || !module->base || !module->size ||
-        module->base > UINTPTR_MAX || module->size > UINTPTR_MAX - module->base)
-        return -1;
-    return chimera_vfs_mount_readonly(
-        reinterpret_cast<const void *>(static_cast<uintptr_t>(module->base)), module->size);
-}
 extern "C" int chimera_vfs_is_mounted(void) {
     return __atomic_load_n(&g_root_mounted, __ATOMIC_ACQUIRE) ? 1 : 0;
 }
-extern "C" int chimera_vfs_open_readonly(uint32_t pid, const char *path) {
-    if (!chimera_vfs_is_mounted()) return -19; // ENODEV
-    return chimera_process_open_readonly(pid, &g_root_archive, path);
-}
-extern "C" int chimera_vfs_read(uint32_t pid, int fd, void *kernel_buffer,
-                                  uint64_t capacity, uint64_t *read_count) {
-    if (!chimera_vfs_is_mounted()) return -19;
-    return chimera_process_read(pid, fd, kernel_buffer, capacity, read_count);
-}
-extern "C" int chimera_vfs_close(uint32_t pid, int fd) {
-    if (!chimera_vfs_is_mounted()) return -19;
-    return chimera_process_close(pid, fd);
+extern "C" const chimera_cpio_archive *chimera_vfs_root_archive(void) {
+    return chimera_vfs_is_mounted() ? &g_root_archive : nullptr;
 }
