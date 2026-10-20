@@ -314,7 +314,7 @@ jobs:
           set -euo pipefail
           iso=boot/iso/dist/output.iso
           inspect=build/iso-artwork-inspect
-          mkdir -p "$inspect/visual" "$inspect/grub" "$inspect/stages"
+          mkdir -p "$inspect/visual" "$inspect/grub" "$inspect/stages" "$inspect/init"
           for path in \
             "/boot/visual/octavian-octopus-aurora.png" \
             "/boot/visual/octavian-artwork-manifest.json" \
@@ -335,6 +335,15 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+          # Prove all three target-native init ELFs survived ISO mastering; source staging alone is insufficient.
+          for spec in "live:/boot/live/user-init-live.elf" "installer:/boot/installer/user-init-installer.elf" "recovery:/boot/recovery/user-init-recovery.elf"; do
+            target="${spec%%:*}"
+            path="${spec#*:}"
+            out="$inspect/init/user-init-$target.elf"
+            xorriso -osirrox on -indev "$iso" -extract "$path" "$out" >/dev/null
+            test -s "$out" || { echo "ERROR: final ISO missing native init ELF $path" >&2; exit 2; }
+            python3 tools/validate-native-init-elf.py --target "$target" "$out"
+          done
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
