@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/vfs_cpio.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -114,6 +115,19 @@ static uint32_t validate_active_user_context(uint64_t user_rip) {
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
     return validate_active_user_context(user_rip);
 }
+extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
+                                                    uint32_t write_access) {
+    if (!validate_active_user_context(address)) {
+        /* The pointer need not be executable; validate the active PID/CR3
+           separately and let the address-space backend check data mappings. */
+        if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+        uint64_t current_cr3 = 0;
+        __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
+        if ((current_cr3 & 0x000FFFFFFFFFF000ull) != active_root) return -1;
+    }
+    return koronos_address_space_validate_user_range(active_root, address, length,
+                                                       write_access);
+}
 extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs) {
     /* This acknowledgement is only reachable from the DPL3 INT 0x80 gate.
        The CPU-saved CS RPL, not an inferred user RIP, proves CPL3 origin. */
@@ -179,6 +193,16 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    /* Bind the selected target's root archive before entering ring 3. A
+       malformed or missing archive is a boot failure, never an empty rootfs. */
+    const uint32_t rootfs_kind = target==TARGET_LIVE ? CHIMERA_MODULE_LIVE_INITRAMFS :
+        (target==TARGET_INSTALLER ? CHIMERA_MODULE_INSTALL_IMAGE : CHIMERA_MODULE_RECOVERY_INITRAMFS);
+    const int rootfs_rc = chimera_vfs_mount_boot_module(rootfs_kind);
+    if (rootfs_rc != 0) {
+        koronos_target_log("[VFS ] ERROR: selected target rootfs missing, malformed, or already mounted");
+        return -14;
+    }
+    koronos_target_log("[VFS ] Selected target rootfs validated and mounted read-only");
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
