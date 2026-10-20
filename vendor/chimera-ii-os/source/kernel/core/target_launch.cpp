@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/initramfs.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -138,22 +139,61 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (attempted) return 0;
     attempted=true;
     const chimera_boot_module *selected=nullptr;
-    uint32_t count=0;
+    const chimera_boot_module *payload=nullptr;
+    uint32_t elf_count=0, payload_count=0;
     for (uint32_t i=0;i<chimera_multiboot_module_count();++i) {
         const chimera_boot_module *m=chimera_multiboot_module(i);
-        if (m && m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++count; }
+        if (!m) continue;
+        if (m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++elf_count; }
+        if (m->kind==CHIMERA_MODULE_LIVE_INITRAMFS ||
+            m->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS ||
+            m->kind==CHIMERA_MODULE_INSTALL_IMAGE) { payload=m; ++payload_count; }
     }
-    if (count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
-    if (count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
-        selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
-        selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
-        koronos_target_log("[RUN ] ERROR: expected exactly one bounded USER_INIT_ELF module");
-        return -1;
+    const void *init_elf=nullptr;
+    uint64_t init_elf_size=0;
+    Target target=TARGET_NONE;
+    /* Production payloads take precedence over injected probe ELFs. Refuse
+       mixed/ambiguous modules so a smoke ELF can never mask a missing init. */
+    if (payload_count) {
+        if (payload_count!=1 || elf_count!=0 || !payload) {
+            koronos_target_log("[RUN ] ERROR: ambiguous production payload/native init modules; refusing probe fallback");
+            return -1;
+        }
+        if (payload->kind==CHIMERA_MODULE_LIVE_INITRAMFS) target=TARGET_LIVE;
+        else if (payload->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS) target=TARGET_RECOVERY;
+        else if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) target=TARGET_INSTALLER;
+        if (target==TARGET_NONE) return -2;
+        if (!payload->base || payload->size<110u || payload->size>MAX_INIT_IMAGE ||
+            payload->base>=KORONOS_FRAME_PHYS_LIMIT ||
+            payload->size>KORONOS_FRAME_PHYS_LIMIT-payload->base) {
+            koronos_target_log("[RUN ] ERROR: selected production payload is outside bounded physical memory");
+            return -3;
+        }
+        const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
+        int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
+        if (find_rc!=0)
+            find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
+        if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
+            koronos_target_log("[RUN ] ERROR: selected production payload is not supported newc initramfs or contains no valid /init or /sbin/init ELF");
+            return -4;
+        }
+        selected=payload;
+        koronos_target_log("[RUN ] Extracted target init ELF from selected production cpio archive");
+    } else {
+        if (elf_count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+        if (elf_count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
+            selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
+            selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
+            koronos_target_log("[RUN ] ERROR: expected exactly one bounded USER_INIT_ELF module");
+            return -5;
+        }
+        target=parse_target(selected->cmdline);
+        init_elf=reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base));
+        init_elf_size=selected->size;
     }
-    const Target target=parse_target(selected->cmdline);
     if (target==TARGET_NONE) {
-        koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
-        return -2;
+        koronos_target_log("[RUN ] ERROR: target resolution failed; require exactly one explicit target or payload kind");
+        return -6;
     }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
@@ -166,15 +206,15 @@ extern "C" int koronos_launch_selected_userspace(void) {
     }
 
     chimera_process_image process{};
-    const int pid=chimera_process_admit_elf(reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),
-        selected->size,KORONOS_EM_X86_64,USER_STACK_TOP,&process);
+    const int pid=chimera_process_admit_elf(init_elf,
+        init_elf_size,KORONOS_EM_X86_64,USER_STACK_TOP,&process);
     if (pid<=0) {
         koronos_target_log("[RUN ] ERROR: selected user init failed protected-process admission");
         return -5;
     }
     chimera_loaded_elf loaded{};
     const int load_rc=chimera_elf_load_user_image(
-        reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),selected->size,
+        init_elf,init_elf_size,
         KORONOS_EM_X86_64,USER_STACK_TOP,USER_STACK_SIZE,ops,nullptr,&loaded);
     if (load_rc!=0) {
         (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
