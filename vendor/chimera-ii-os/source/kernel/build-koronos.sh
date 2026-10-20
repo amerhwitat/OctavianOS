@@ -21,6 +21,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
+
+# Run the bounded CPIO/ELF-admission parser against malformed and valid host
+# fixtures before producing the freestanding kernel. Keep HOST_CXX separate
+# from CXX so a configured cross-compiler is not accidentally used to create
+# a host executable.
+HOST_CXX="${HOST_CXX:-g++}"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror \
+  -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/initramfs.cpp" \
+  "$ROOT/kernel/tests/initramfs_parser_test.cpp" \
+  -o "$BUILD/initramfs-parser-test"
+"$BUILD/initramfs-parser-test"
+
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
