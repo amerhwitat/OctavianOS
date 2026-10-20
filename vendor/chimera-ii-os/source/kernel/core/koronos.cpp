@@ -199,6 +199,7 @@ static const char *module_kind_name(uint32_t k) {
         case CHIMERA_MODULE_LIVE_MANIFEST: return "LIVE MANIFEST";
         case CHIMERA_MODULE_RECOVERY_INITRAMFS: return "RECOVERY INITRAMFS";
         case CHIMERA_MODULE_RECOVERY_MANIFEST: return "RECOVERY MANIFEST";
+        case CHIMERA_MODULE_INSTALLER_INITRAMFS: return "INSTALLER INITRAMFS";
         case CHIMERA_MODULE_INSTALL_IMAGE: return "INSTALL IMAGE";
         case CHIMERA_MODULE_INSTALL_MANIFEST: return "INSTALL MANIFEST";
         case CHIMERA_MODULE_INSTALL_CONTRACT: return "INSTALL CONTRACT";
@@ -249,24 +250,18 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
         const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
         if (m) {
             console_write("[LIVE] Live initramfs module recognized");
-            console_write("[USER] Handoff withheld: production initramfs requires a supported native init ELF/runtime; no process was launched");
+            const int launch_rc = koronos_launch_selected_userspace();
+            if (launch_rc != 0)
+                console_write("[RUN ] Live target init failed before readiness; failing closed");
             chimera_sched_block();
-        } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE)) {
+        } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) &&
+                   !chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS)) {
             console_write("[LIVE] No live initramfs module; live service idle");
             chimera_sched_block();
         } else {
-            // Installer media is handled by task_installer. There is no live
-            // payload to poll for, so the live service must block as well.
             console_write("[LIVE] Installer target detected; live service idle");
             chimera_sched_block();
         }
@@ -277,7 +272,9 @@ static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0)
+            console_write("[RUN ] Recovery target init failed before readiness; failing closed");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -286,23 +283,27 @@ static void task_recovery(void *) {
 
 static void task_installer(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
+    const chimera_boot_module *initramfs = chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
     const chimera_boot_module *phases = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PHASES);
     const chimera_boot_module *profiles = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PROFILES);
 
-    if (!image && !manifest && !contract && !phases && !profiles) {
+    if (!image && !initramfs && !manifest && !contract && !phases && !profiles) {
         if (installer_phase++ == 0)
             console_write("[INST] Installer target not selected: no installer modules");
         chimera_sched_block();
         return;
     }
 
-    switch (installer_phase++) {
+    const uint32_t phase = installer_phase++;
+    switch (phase) {
         case 0:
             console_write("[INST] Installer target detected");
+            if (initramfs) console_write("[INST] Dedicated installer initramfs accepted");
+            else console_write("[INST] ERROR: installer initramfs module missing");
             if (image) console_write("[INST] Installation image accepted");
-            else console_write("[INST] ERROR: installation image module missing");
+            else console_write("[INST] Installation image unavailable; installer may diagnose but must not write disks");
             if (manifest) console_write("[INST] Installation manifest accepted");
             else console_write("[INST] WARNING: installation manifest module missing");
             if (contract) console_write("[INST] Installer contract accepted");
@@ -321,14 +322,21 @@ static void task_installer(void *) {
             if (profiles) console_write("[INST] Installer profiles loaded");
             console_write("[INST] Installer UI scaffolding initialized; graphical userspace is not running");
             break;
-        case 4:
-            console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
-            chimera_sched_block();
-            break;
         default:
             chimera_sched_block();
             break;
+    }
+    /* Start the installer init from its own rootfs; actual disk writes are
+       separately gated on the install image and a real storage backend. */
+    if (initramfs && phase == 0) {
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0) {
+            console_write("[RUN ] Installer target init failed before readiness; failing closed");
+            chimera_sched_block();
+            return;
+        }
+        chimera_sched_block();
+        return;
     }
 }
 
