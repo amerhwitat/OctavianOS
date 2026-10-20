@@ -29,7 +29,9 @@ enum chimera_native_syscall {
     CHM_SYS_EXIT_GROUP = 16,
     CHM_SYS_FORK = 17,
     CHM_SYS_EXECVE = 18,
-    CHM_SYS_WAITPID = 19
+    CHM_SYS_WAITPID = 19,
+    CHM_SYS_OPEN = 20,
+    CHM_SYS_CLOSE = 21
 };
 
 typedef struct chimera_syscall_frame {
