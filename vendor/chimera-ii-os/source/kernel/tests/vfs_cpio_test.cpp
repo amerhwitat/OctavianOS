@@ -35,5 +35,10 @@ int main(){
  auto bad=archive("etc/x","y");bad[0]='X';CHECK(chimera_cpio_validate(&a,bad.data(),bad.size())==CHIMERA_CPIO_INVALID);
  auto missing=archive("etc/x","y");missing.resize(missing.size()-124);
  CHECK(chimera_cpio_validate(&a,missing.data(),missing.size())==CHIMERA_CPIO_INVALID);
- std::puts("CPIO VFS bounded parser tests: PASS");return 0;
+ CHECK(chimera_vfs_mount_readonly(v.data(),v.size())==0);
+ CHECK(chimera_vfs_is_mounted()==1);
+ const chimera_cpio_archive *root=chimera_vfs_root_archive();CHECK(root&&root->validated==CHIMERA_CPIO_ABI);
+ CHECK(chimera_cpio_find(root,"etc/motd",&f)==CHIMERA_CPIO_OK);
+ CHECK(chimera_vfs_mount_readonly(v.data(),v.size())==-2); // Root mount is immutable.
+ std::puts("CPIO VFS bounded parser and root mount tests: PASS");return 0;
 }
