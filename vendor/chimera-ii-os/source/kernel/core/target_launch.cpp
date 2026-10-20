@@ -9,6 +9,7 @@
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
 #include "chimera/initramfs.h"
+#include "chimera/gzip.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
