@@ -5,3 +5,35 @@ extern "C" int chimera_process_admit_elf(const void*image,uint64_t size,uint16_t
 extern "C" int chimera_process_get(uint32_t pid,chimera_process_image*out){if(!out||!pid)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){*out=slots[i].image;return 0;}return -2;}
 extern "C" int chimera_process_set_state(uint32_t pid,chimera_process_state state){if(!pid||state<CHIMERA_PROCESS_ADMITTED||state>CHIMERA_PROCESS_FAULTED)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){slots[i].image.state=state;return 0;}return -2;}
 extern "C" uint32_t chimera_process_count(void){return count;}
+
+extern "C" int chimera_process_set_parent(uint32_t child_pid,uint32_t parent_pid){
+ if(!child_pid||!parent_pid||child_pid==parent_pid)return -1;
+ Slot*child=nullptr;bool parent=false;
+ for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used){
+  if(slots[i].image.pid==child_pid)child=&slots[i];
+  if(slots[i].image.pid==parent_pid)parent=true;
+ }
+ if(!child||!parent)return -2;
+ if(child->image.parent_pid||child->image.state==CHIMERA_PROCESS_EXITED||child->image.state==CHIMERA_PROCESS_FAULTED)return -3;
+ child->image.parent_pid=parent_pid;return 0;
+}
+extern "C" int chimera_process_exit(uint32_t pid,uint32_t code){
+ if(!pid)return -1;
+ for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){
+  if(slots[i].image.state==CHIMERA_PROCESS_EXITED||slots[i].image.state==CHIMERA_PROCESS_FAULTED)return -3;
+  slots[i].image.exit_code=code&0xFFu;slots[i].image.state=CHIMERA_PROCESS_EXITED;return 0;
+ }
+ return -2;
+}
+extern "C" int chimera_process_waitpid_poll(uint32_t parent,uint32_t child,uint32_t*code){
+ if(!parent||!child||parent==child||!code)return -1;
+ Slot*p=nullptr;Slot*c=nullptr;
+ for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used){
+  if(slots[i].image.pid==parent)p=&slots[i];
+  if(slots[i].image.pid==child)c=&slots[i];
+ }
+ if(!p||!c||c->image.parent_pid!=parent)return -2;
+ if(c->image.reaped)return -4;
+ if(c->image.state!=CHIMERA_PROCESS_EXITED&&c->image.state!=CHIMERA_PROCESS_FAULTED)return -3;
+ *code=c->image.exit_code;c->image.reaped=1;c->used=false;if(count)--count;return 0;
+}
