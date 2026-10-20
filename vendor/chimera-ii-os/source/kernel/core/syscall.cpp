@@ -4,6 +4,7 @@
 #include "chimera/compat.h"
 #include "chimera/scheduler.h"
 #include "chimera/timer.h"
+#include "chimera/vfs_cpio.h"
 
 namespace {
 static volatile uint32_t g_initialized = 0;
@@ -95,6 +96,28 @@ extern "C" uint32_t koronos_target_active_pid(void);
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip);
 extern "C" int64_t koronos_console_write_user(uint64_t address, uint64_t length);
 extern "C" void koronos_target_log(const char *message);
+extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
+                                                    uint32_t write_access);
+
+namespace {
+constexpr uint64_t USER_COPY_LIMIT = 4096u;
+static int copy_user_path(uint64_t address, char *out, uint64_t capacity) {
+    if (!address || !out || capacity < 2u || capacity > USER_COPY_LIMIT) return -22;
+    for (uint64_t i = 0; i < capacity; ++i) {
+        if (address > UINT64_MAX - i ||
+            koronos_target_validate_user_range(address + i, 1u, 0u) != 0) return -14;
+        const char c = *reinterpret_cast<const char *>(static_cast<uintptr_t>(address + i));
+        out[i] = c;
+        if (!c) return i ? 0 : -22;
+    }
+    out[capacity - 1u] = 0;
+    return -36; // ENAMETOOLONG
+}
+static void copy_to_user_validated(uint64_t address, const uint8_t *src, uint64_t length) {
+    volatile uint8_t *dst = reinterpret_cast<volatile uint8_t *>(static_cast<uintptr_t>(address));
+    for (uint64_t i = 0; i < length; ++i) dst[i] = src[i];
+}
+}
 
 extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_frame *frame) {
     if (!frame) return static_cast<uint64_t>(-22ll);
@@ -127,8 +150,40 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             const uint64_t fd = frame->rdi;
             const uint64_t address = frame->rsi;
             const uint64_t length = frame->rdx;
-            if (fd > 2u || length > 4096u) return static_cast<uint64_t>(-22ll);
+            if (fd > 2u || length > USER_COPY_LIMIT) return static_cast<uint64_t>(-22ll);
             return static_cast<uint64_t>(koronos_console_write_user(address, length));
+        }
+        case CHM_SYS_OPEN: {
+            char path[USER_COPY_LIMIT];
+            const int copy_rc = copy_user_path(frame->rdi, path, sizeof(path));
+            if (copy_rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(copy_rc));
+            const uint32_t pid = koronos_target_active_pid();
+            if (!pid) return static_cast<uint64_t>(-3ll);
+            return static_cast<uint64_t>(static_cast<int64_t>(chimera_vfs_open_readonly(pid, path)));
+        }
+        case CHM_SYS_READ: {
+            const uint64_t fd = frame->rdi;
+            const uint64_t address = frame->rsi;
+            const uint64_t length = frame->rdx;
+            if (fd > INT32_MAX || length > USER_COPY_LIMIT) return static_cast<uint64_t>(-22ll);
+            if (length && koronos_target_validate_user_range(address, length, 1u) != 0)
+                return static_cast<uint64_t>(-14ll);
+            uint8_t buffer[USER_COPY_LIMIT];
+            uint64_t bytes_read = 0;
+            const uint32_t pid = koronos_target_active_pid();
+            if (!pid) return static_cast<uint64_t>(-3ll);
+            const int read_rc = chimera_vfs_read(pid, static_cast<int>(fd), buffer, length, &bytes_read);
+            if (read_rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(read_rc));
+            if (bytes_read > length) return static_cast<uint64_t>(-5ll);
+            if (bytes_read) copy_to_user_validated(address, buffer, bytes_read);
+            return bytes_read;
+        }
+        case CHM_SYS_CLOSE: {
+            if (frame->rdi > INT32_MAX) return static_cast<uint64_t>(-9ll);
+            const uint32_t pid = koronos_target_active_pid();
+            if (!pid) return static_cast<uint64_t>(-3ll);
+            return static_cast<uint64_t>(static_cast<int64_t>(
+                chimera_vfs_close(pid, static_cast<int>(frame->rdi))));
         }
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
