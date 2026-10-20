@@ -60,10 +60,14 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
         if (!((h[0]=='0' && h[1]=='7' && h[2]=='0' && h[3]=='7' &&
                h[4]=='0' && (h[5]=='1' || h[5]=='2')))) return -2;
         bool ok = true;
+        const uint32_t mode = hex8(h + 14, &ok);
+        const uint32_t nlink = hex8(h + 38, &ok);
         const uint32_t file_size = hex8(h + 54, &ok);
         const uint32_t name_size = hex8(h + 94, &ok);
         const uint32_t expected_check = hex8(h + 102, &ok);
-        if (!ok || name_size < 1u || name_size > 4096u) return -3;
+        /* newc numeric fields are fixed-width hexadecimal. Validate all fields
+           used for object classification before deriving any archive offsets. */
+        if (!ok || name_size < 1u || name_size > 4096u || nlink == 0u) return -3;
         uint64_t name_start;
         if (!add_ok(off, 110u, archive_size, &name_start)) return -4;
         uint64_t name_end;
@@ -90,12 +94,19 @@ extern "C" int chimera_initramfs_find_elf(const void *archive, uint64_t archive_
             return -12;
         }
         if (same_path(reinterpret_cast<const char *>(bytes + name_start), name_size, "TRAILER!!!")) {
+            /* The mandatory newc trailer is an empty regular archive record;
+               malformed trailers must not terminate parsing successfully. */
+            if (file_size != 0u || name_size != 11u) return -10;
             trailer_seen = true;
             break;
         }
         if (same_path(reinterpret_cast<const char *>(bytes + name_start), name_size, path)) {
             if (found) return -7;
-            if (file_size < 64u || bytes[data_start] != 0x7f || bytes[data_start+1] != 'E' ||
+            /* Only a regular file may be admitted as an executable. Do not
+               accept a directory, symlink, device node, or other inode type
+               merely because its data begins with ELF magic. */
+            if ((mode & 0170000u) != 0100000u || file_size < 64u ||
+                bytes[data_start] != 0x7f || bytes[data_start+1] != 'E' ||
                 bytes[data_start+2] != 'L' || bytes[data_start+3] != 'F') return -8;
             found = true;
             candidate = bytes + data_start;
