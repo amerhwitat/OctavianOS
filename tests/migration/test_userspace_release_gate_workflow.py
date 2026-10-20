@@ -14,14 +14,9 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
         self.assertIn("needs: build-koronos", self.text)
-        self.assertIn('for target in live installer recovery; do', self.text)
-        self.assertIn('for firmware in bios uefi; do', self.text)
-        for target in ("live", "installer", "recovery"):
-            for firmware in ("bios", "uefi"):
-                self.assertIn(
-                    f'python3 tests/migration/verify-userspace-handoff.py "$target" "trace/$target-$firmware-debugcon.log"',
-                    self.text,
-                )
+        self.assertIn("for target in live installer recovery; do", self.text)
+        self.assertIn("for firmware in bios uefi; do", self.text)
+        self.assertIn('python3 tests/migration/verify-userspace-handoff.py "$target" "trace/$target-$firmware-debugcon.log"', self.text)
 
     def test_release_depends_on_all_userspace_cases(self):
         section = self.text.split("  publish-native-iso:", 1)[1]
@@ -37,13 +32,18 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
             for firmware in ("bios", "uefi"):
                 self.assertIn(f"{target}-{firmware}-debugcon.log", section)
 
-    def test_production_gate_is_not_the_ring3_probe_workflow(self):
+    def test_production_payloads_are_distinct_from_smoke_probes(self):
+        for path in (
+            "/boot/live/user-init-live.elf",
+            "/boot/installer/user-init-installer.elf",
+            "/boot/recovery/user-init-recovery.elf",
+        ):
+            self.assertIn(path, self.text)
         probe_workflow = (ROOT / ".github/workflows/koronos-userspace-acceptance.yml").read_text(
             encoding="utf-8"
         )
         self.assertIn("not production acceptance", probe_workflow)
         self.assertIn("production payload acceptance remains separate", probe_workflow)
-        self.assertIn("native-init", self.text.lower() if "native-init" in self.text.lower() else "init")
 
 
 if __name__ == "__main__":
