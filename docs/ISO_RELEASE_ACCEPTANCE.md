@@ -85,3 +85,69 @@ The six-case BIOS/UEFI userspace matrix and target handoff verification steps in
 ## Final result correction — 2026-10-19
 
 [Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) ended with FAILURE at the final fail-closed acceptance gate. All six target × firmware traces report missing user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness. Build/ISO composition, ISO validation, payload/artwork validation, Koronos boot smoke, ISO compression, and artifact uploads passed. The release publication step was skipped. Preserved artifacts: ISO ID 12166940637; target traces ID 12166193261. The intermediate matrix step reported a successful *step conclusion* while exporting `accepted=false`; do not interpret that as matrix pass. Production acceptance is NOT VERIFIED and release remains BLOCKED.
+
+
+## Status refresh — 2026-10-19 (run 39271192234)
+
+**Release remains BLOCKED.** [Six ring-3 smoke probes](https://github.com/amerhwitat/OctavianOS/actions/runs/39271188845) passed as test-only probes. [Native build #39271192234](https://github.com/amerhwitat/OctavianOS/actions/runs/39271192234) built the kernel and support payloads but failed production-init validation because the Live, Installer and Recovery init ELF files were absent. The full-ISO boot/routing checks and real-userspace acceptance jobs were skipped. No ISO artifact was produced; only the kernel ELF artifact was uploaded.
+
+| Gate | Current status |
+|---|---|
+| ELF loader hardening/regressions | Implemented; smoke CI passed |
+| Six ring-3 smoke probes | PASS — test-only, not production acceptance |
+| Production Live init ELF | MISSING |
+| Production Installer init ELF | MISSING |
+| Production Recovery init ELF | MISSING |
+| Live init → Aurora | NOT VERIFIED |
+| Real install → reboot → installed boot | NOT VERIFIED |
+| Real Recovery operation | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production ISO release | BLOCKED |
+
+Do not relax the validator or substitute smoke probes. The next required implementation is the real process execution/syscall lifecycle (address-space activation, GDT/TSS/RSP0, CPL3 entry/return, validated syscall ABI and kernel-owned PID/lifecycle), followed by target-specific service/init payloads and the full six-case ISO matrix plus independent end-to-end and SMP tests.
+
+## Runtime parity update — 2026-10-19
+
+The ring-3 launch foundation exercised by OctavianOS smoke probes has been synchronized to ChimeraIIOS source. Chimera's own six-case smoke workflow was added and is currently pending CI. This improves code parity but does not create production target services.
+
+| Gate | Current result |
+|---|---|
+| OctavianOS six ring-3 smoke probes | PASS — test-only, run #39272210956 |
+| ChimeraIIOS source-parity smoke matrix | PASS — six test-only probes, run #39274699829; production acceptance separate |
+| Production Live/Installer/Recovery init ELFs | MISSING |
+| Full-ISO Live/Installer/Recovery × BIOS/UEFI | NOT VERIFIED |
+| Aurora startup, installation/reboot, real recovery | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production ISO release | BLOCKED |
+
+The production release workflow remains fail-closed. Never substitute smoke-probe ELFs for the three production init payloads.
+
+CI update: ChimeraIIOS native Koronos build #39274513564 now PASSes after the runtime parity sync. The Chimera six-case smoke workflow #39274699829 completed successfully across all six test-only probes; source-level runtime parity is now smoke-tested. Production target init ELFs remain missing. Production target init ELFs remain missing; full-ISO production acceptance and release are still BLOCKED.
+
+Latest release-gate evidence: native run #39274902857 again passed kernel/QEMU readiness and generated Live/Recovery initramfs payloads, but failed closed because all three production init ELFs remain missing. Full-ISO checks and prerelease were skipped. A newer native run #39275375884 is pending; production ISO publication remains BLOCKED.
+
+
+## Production-init ELF root cause — 2026-10-19 (run #39275559014)
+
+[Latest native ISO run #39275559014](https://github.com/amerhwitat/OctavianOS/actions/runs/39275559014) failed at the production init ELF validator. The builder has no compile/stage rule before validation, and the shipping GRUB Live/Normal/Recovery/Installer entries do not pass a target-specific `chimera-user-init-elf` module. The current syscall ABI also lacks the filesystem/process/device/graphics services needed to turn the shell initramfs payloads into an actual Aurora, installer, or recovery session. These are implementation gaps, not missing files that can safely be filled with smoke binaries.
+
+| Gate | Verified status |
+|---|---|
+| Kernel build + kernel QEMU readiness | PASS |
+| Ring-3 smoke probes (six target/firmware combinations) | PASS — test-only |
+| Production init ELF source/build/staging/routing | MISSING |
+| Full ISO build and full-ISO target verification | SKIPPED after fail-closed payload check |
+| Live→Aurora | NOT VERIFIED |
+| Installer → safe disk install → reboot → installed boot | NOT VERIFIED |
+| Recovery action | NOT VERIFIED |
+| AP-backed concurrent SMP | NOT VERIFIED |
+| Production release | BLOCKED |
+
+Do not bypass the validator, promote smoke probes, or accept a marker-only init as production. Resume release work only after implementing the native userspace service contract and real target init programs, wiring them into the ISO and GRUB modules, and proving each target under both BIOS and UEFI. Keep release publication gated on the resulting runtime traces and operation-specific tests.
+
+
+## Native init ELF build and routing integration — 2026-10-19
+
+A freestanding target-specific ELF build/staging step is now wired into `boot/iso/build-iso.sh`; the three target payload paths are populated from a shared source compiled with distinct Live, Installer, and Recovery identities. Main GRUB and Jasper entries pass the appropriate ELF as `chimera-user-init-elf target=live|installer|recovery`.
+
+These are explicitly **fail-closed bootstrap ELFs**, not a completed production session manager. They request a kernel-owned PID, exercise console output, report that filesystem/process/device/graphics services are unavailable, and exit with status 78. They do not print a readiness marker. Consequently, ELF structural checks may pass while runtime acceptance must still fail; do not publish an ISO until the actual target service flows and all six full-ISO cases pass.

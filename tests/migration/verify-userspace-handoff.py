@@ -14,8 +14,11 @@ KERNEL_MARKER = "[KRN ] KORONOS READY"
 ENTRY_RE = re.compile(
     r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
+PID_RE = re.compile(
+    r"NATIVE INIT PID: target=(live|installer|recovery) pid=([1-9][0-9]*)\b"
+)
 READY_RE = re.compile(
-    r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
+    r"USERSPACE READY: (?:target=(?P<target_canonical>live|installer|recovery) init_pid=|(?P<target_runtime>live|installer|recovery) init pid=)(?P<pid>[1-9][0-9]*)\b"
 )
 
 
@@ -35,6 +38,9 @@ def main() -> int:
     entries = list(ENTRY_RE.finditer(trace))
     if not entries:
         missing.append("user-originated init syscall acknowledgement (CPL 3)")
+    pid_lines = list(PID_RE.finditer(trace))
+    if not pid_lines:
+        missing.append("native init PID diagnostic (kernel-assigned PID)")
     ready = list(READY_RE.finditer(trace))
     if not ready:
         missing.append("actual init PID readiness marker")
@@ -44,12 +50,18 @@ def main() -> int:
     for entry in entries:
         if entry.group(1) != target or kernel_at >= entry.start():
             continue
-        for marker in ready:
-            if (marker.group(1) == target and marker.group(2) == entry.group(2)
-                    and entry.start() < marker.start()):
-                print(f"PASS: target={target} init entered user mode and reported readiness with a consistent PID")
-                return 0
-    print("FAIL: expected ordered kernel-ready -> user-originated init syscall -> userspace-ready markers for target=" + target + " with the same nonzero PID")
+        for pid_line in pid_lines:
+            if pid_line.group(1) != target or pid_line.group(2) != entry.group(2):
+                continue
+            if pid_line.start() <= entry.start():
+                continue
+            for marker in ready:
+                if ((marker.group("target_canonical") or marker.group("target_runtime")) == target
+                        and marker.group("pid") == entry.group(2)
+                        and pid_line.start() < marker.start()):
+                    print(f"PASS: target={target} init entered user mode, reported its kernel-assigned PID, and reached readiness with a consistent PID")
+                    return 0
+    print("FAIL: expected ordered kernel-ready -> user-originated init syscall -> matching native PID diagnostic -> userspace-ready markers for target=" + target + " with the same nonzero PID")
     return 1
 
 

@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Smoke Probes (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -15,9 +15,11 @@ on:
 permissions:
   contents: read
 
+# This matrix exercises the kernel's ring-3 launch path using test-only probe ELFs.
+# It is deliberately not the production Live/Installer/Recovery acceptance gate.
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: ${{ matrix.target }} / ${{ matrix.firmware }} ring-3 smoke probe
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -32,6 +34,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+      - name: Run strict ELF loader regression tests
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          bash kernel/tests/process-loader-unit.sh
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification

@@ -57,6 +57,17 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# Compile and stage target-specific freestanding native init ELFs. These
+# bootstraps prove ring-3 entry and explicitly fail closed until native
+# filesystem/process/device/graphics services are implemented; they do not
+# constitute production userspace acceptance.
+bash "$ROOT/tools/build-production-init-elfs.sh"
+
+# Fail closed unless all target-specific production init ELFs are structurally valid.
+# This payload check does not substitute for the six-case ring-3 runtime gate.
+python3 "$ROOT/tools/boot/verify-production-init-elfs.py" \
+    "$DIST/iso" --write-manifest "$DIST/iso/boot/production-init-elfs.json"
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
