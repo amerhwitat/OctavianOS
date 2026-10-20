@@ -18,6 +18,10 @@ uint32_t koronos_target_active_pid(void);
 uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs);
 /* Context validation for SYSCALL, which does not save the caller CS. */
 uint32_t koronos_target_validate_syscall_context(uint64_t user_rip);
+/* Validates a range in the currently active process mapping. write_access is
+   nonzero when the kernel will write into the user range. */
+int koronos_target_validate_user_range(uint64_t address, uint64_t length,
+                                       uint32_t write_access);
 
 #ifdef __cplusplus
 }

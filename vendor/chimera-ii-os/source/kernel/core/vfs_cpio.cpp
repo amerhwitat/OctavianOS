@@ -94,3 +94,33 @@ extern "C" int chimera_cpio_read(const chimera_cpio_file*f,uint64_t offset,void*
  uint8_t*d=static_cast<uint8_t*>(buffer);for(uint64_t i=0;i<n;i++)d[i]=f->data[offset+i];
  *read_count=n;return CHIMERA_CPIO_OK;
 }
+
+
+namespace {
+static chimera_cpio_archive g_root_archive{};
+static volatile uint32_t g_root_mounted = 0;
+static volatile uint32_t g_mount_lock = 0;
+static void mount_lock() { while (__sync_lock_test_and_set(&g_mount_lock, 1u)) {} }
+static void mount_unlock() { __sync_lock_release(&g_mount_lock); }
+}
+extern "C" int chimera_vfs_mount_readonly(const void *bytes, uint64_t size) {
+    chimera_cpio_archive candidate{};
+    const int rc = chimera_cpio_validate(&candidate, bytes, size);
+    if (rc != CHIMERA_CPIO_OK) return rc;
+    mount_lock();
+    if (g_root_mounted) {
+        mount_unlock();
+        return -2; // A root mount is immutable for the lifetime of this boot.
+    }
+    g_root_archive = candidate;
+    __sync_synchronize();
+    g_root_mounted = 1;
+    mount_unlock();
+    return 0;
+}
+extern "C" int chimera_vfs_is_mounted(void) {
+    return __atomic_load_n(&g_root_mounted, __ATOMIC_ACQUIRE) ? 1 : 0;
+}
+extern "C" const chimera_cpio_archive *chimera_vfs_root_archive(void) {
+    return chimera_vfs_is_mounted() ? &g_root_archive : nullptr;
+}

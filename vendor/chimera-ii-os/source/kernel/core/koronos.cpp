@@ -280,12 +280,13 @@ static void task_recovery(void *) {
 
 static void task_installer(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
+    const chimera_boot_module *initramfs = chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
     const chimera_boot_module *phases = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PHASES);
     const chimera_boot_module *profiles = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PROFILES);
 
-    if (!image && !manifest && !contract && !phases && !profiles) {
+    if (!image && !initramfs && !manifest && !contract && !phases && !profiles) {
         if (installer_phase++ == 0)
             console_write("[INST] Installer target not selected: no installer modules");
         chimera_sched_block();
@@ -300,8 +301,10 @@ static void task_installer(void *) {
             // production services are unavailable; that must not hide the
             // fact that the installer image was correctly recognized.
             console_write("[INST] Installer target detected");
+            if (initramfs) console_write("[INST] Dedicated installer initramfs accepted");
+            else console_write("[INST] ERROR: installer initramfs module missing");
             if (image) console_write("[INST] Installation image accepted");
-            else console_write("[INST] ERROR: installation image module missing");
+            else console_write("[INST] Installation image unavailable; installer may diagnose but must not write disks");
             if (manifest) console_write("[INST] Installation manifest accepted");
             else console_write("[INST] WARNING: installation manifest module missing");
             if (contract) console_write("[INST] Installer contract accepted");
@@ -333,7 +336,7 @@ static void task_installer(void *) {
     // The target-specific init owns the installer session. Attempt launch
     // once, after reporting module recognition; never continue into synthetic
     // service scaffolding after a launch/readiness failure.
-    if (image && phase == 0) {
+    if (initramfs && phase == 0) {
         const int launch_rc = koronos_launch_selected_userspace();
         if (launch_rc != 0) {
             console_write("[RUN ] Installer target init failed before readiness; failing closed");

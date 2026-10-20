@@ -57,6 +57,10 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+LIVE_BOOT="$ROOT/build/live-boot/boot/live"
+test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: native live CPIO root missing" >&2; exit 2; }
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio.sha256" "$DIST/iso/boot/live/"
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
@@ -72,8 +76,22 @@ test -s "$RECOVERY_BOOT/recovery-manifest.json" || { echo "ERROR: Jasper recover
 mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
+test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" || { echo "ERROR: native recovery CPIO root missing" >&2; exit 2; }
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" "$DIST/iso/boot/recovery/"
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio.sha256" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+
+# Stage the dedicated installer CPIO rootfs separately from the install disk
+# image and its contracts. Never infer a filesystem from installation.img.
+INSTALLER_BOOT="$ROOT/build/live-boot/boot/installer"
+test -s "$INSTALLER_BOOT/chimera-installer-initramfs.img" || { echo "ERROR: installer initramfs missing: $INSTALLER_BOOT/chimera-installer-initramfs.img" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/installer"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img" "$DIST/iso/boot/installer/"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img.sha256" "$DIST/iso/boot/installer/" 2>/dev/null || true
+test -s "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" || { echo "ERROR: native installer CPIO root missing" >&2; exit 2; }
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" "$DIST/iso/boot/installer/"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio.sha256" "$DIST/iso/boot/installer/"
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
@@ -168,13 +186,13 @@ grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
-test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/live/chimera-live-initramfs.cpio" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
-test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.cpio" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
-grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
+grep -q '/boot/live/chimera-live-initramfs.cpio' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/live/live-manifest.json' "$ROOT/boot/jasper/live.cfg"
-grep -q '/boot/recovery/chimera-recovery-initramfs.img' "$ROOT/boot/jasper/recovery.cfg"
+grep -q '/boot/recovery/chimera-recovery-initramfs.cpio' "$ROOT/boot/jasper/recovery.cfg"
 grep -q 'Recovery Terminal' "$ROOT/boot/jasper/recovery.cfg"
 
 for contract in \

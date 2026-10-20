@@ -51,6 +51,8 @@ def main() -> int:
         "CHM_SYS_FORK": 17,
         "CHM_SYS_EXECVE": 18,
         "CHM_SYS_WAITPID": 19,
+        "CHM_SYS_OPEN": 20,
+        "CHM_SYS_CLOSE": 21,
     }
     if entries != expected:
         return fail(f"native syscall table changed unexpectedly: {entries!r}")
@@ -68,7 +70,14 @@ def main() -> int:
     if "case CHM_SYS_MOUNT:" in native_dispatch or "case CHM_SYS_DEVCTL:" in native_dispatch:
         return fail("unsupported mount/devctl placeholder was added to the native dispatcher")
 
-    print("NATIVE SYSCALL ABI PASS: stable IDs preserved; no mount/devctl alias accepted")
+    native_init = (ROOT / "kernel/userspace/native_init.c").read_text(encoding="utf-8")
+    for required in ("call3(20,", "call3(8,", "call1(21,", '"/etc/chimera/target"', "NATIVE INIT BLOCKED:"):
+        if required not in native_init:
+            return fail(f"native init does not exercise fail-closed VFS contract: missing {required!r}")
+    if "USERSPACE READY:" in native_init:
+        return fail("native init must not manufacture readiness before service backends exist")
+
+    print("NATIVE SYSCALL ABI PASS: stable IDs preserved; read-only VFS path exercised; no fake readiness")
     return 0
 
 
