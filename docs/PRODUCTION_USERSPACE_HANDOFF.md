@@ -187,3 +187,51 @@ The run uploaded per-case diagnostics: [Live BIOS](https://github.com/amerhwitat
 6. Keep release publication fail-closed until all required gates pass. Do not fabricate CPL3/PID markers, loosen the verifier, or label smoke jobs as production acceptance.
 
 This update is an evidence/documentation refresh only. It does not claim a kernel source fix, successful production build, successful production boot, desktop launch, installer completion, recovery success, or SMP verification.
+
+
+## Acceptance and lifecycle audit refresh — 2026-10-20
+
+**Release decision remains BLOCKED (fail-closed).** This section supersedes stale descriptions of candidate probes as if they were production acceptance. The latest directly inspected production evidence remains [run 39372894454](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454): candidate ring-3 launch smoke was exercised, but the production target init handoff/readiness timed out and was not accepted. Later routing-contract success (including [run 39414913213](https://github.com/amerhwitat/OctavianOS/actions/runs/39414913213)) validates routing policy only; it does not replace the production verifier.
+
+### Gate-by-gate status
+
+| Gate | Status | Required evidence |
+|---|---|---|
+| Candidate ring-3 smoke | PASS for the isolated probe only | Probe syscall round-trip; not production payload |
+| Live / BIOS | NOT VERIFIED | Production init's CPL3 syscall + matching real PID handshake |
+| Live / UEFI | NOT VERIFIED | Same, with independent UEFI trace |
+| Installer / BIOS | NOT VERIFIED | Native installer init, real storage/install transaction, completion and reboot |
+| Installer / UEFI | NOT VERIFIED | Same, with independent UEFI trace |
+| Recovery / BIOS | NOT VERIFIED | Native recovery init and a real diagnostic/repair operation |
+| Recovery / UEFI | NOT VERIFIED | Same, with independent UEFI trace |
+| Live init → Aurora | NOT VERIFIED | Session/compositor-ready handshake from running userspace |
+| Process exit/reap/waitpid and address-space cleanup | PARTIAL / NOT ACCEPTED | PID-bound exit status, wait/block/wake/reap, teardown, and no leaked mappings/frames |
+| VFS and device initialization | NOT VERIFIED | Real mounted namespace, file descriptors, device discovery and usable service endpoints |
+| AP-backed concurrent SMP | NOT VERIFIED | AP startup evidence and concurrent per-CPU scheduling |
+| Release publication | BLOCKED | Every required production gate passes without weakening the verifier |
+
+### Timeout investigation — required phases
+
+The in-kernel PIT timeout is a bounded failure mechanism, not a successful handoff. Preserve its timeout result as a failure. Instrument each phase with a distinct diagnostic code and monotonic timestamp: (1) target/module selection, (2) archive extraction/decompression, (3) ELF validation/load, (4) address-space root activation, (5) ring-3 entry, (6) first syscall, (7) target init service initialization, and (8) readiness handshake. Each failure must identify the phase, target, PID if allocated, and exit/timeout reason. The outer QEMU timeout must never be used as the sole diagnosis.
+
+The next trace audit must establish whether the deadline expires before first userspace instruction, during the first syscall/return, or while init initializes services. Do not extend deadlines to conceal a stall. Ensure the timer interrupt remains serviceable during user execution and that timeout termination returns through a controlled kernel path before destroying the process address space.
+
+### Process-owned syscall and exit lifecycle
+
+The current single-active-target path is not a complete process table/lifecycle implementation. Complete and test these invariants before accepting sustained supervisor loops:
+
+- Bind the executing CPU/task to a unique live PID; syscall dispatch must obtain identity from the current execution context, not a global constant or target label alone.
+- GETPID returns the current process's real PID. EXIT/EXIT_GROUP atomically record the exit status, transition the process to EXITED/FAULTED, wake any parent waiting on that PID, and stop returning to the exited user instruction stream.
+- WAITPID must validate the requested PID and status pointer, block/wake correctly, return the actual PID and status, and reap only once. Unsupported flags and unavailable child relationships must return a documented error rather than fake success.
+- Teardown must detach scheduler/current-task references before reclaiming the user stack, mapped frames, page tables, and address-space object. Failed partial loads and timeout paths must use the same idempotent cleanup discipline.
+- Synchronize process/PID/state transitions for SMP. A process-table API without locking/ownership rules is not sufficient to claim concurrent safety.
+
+Do not claim these behaviors from an exit sentinel alone: the launch trampoline's return and address-space destruction are not proof of parent/child wait semantics or safe multi-process scheduling.
+
+### VFS/device service bootstrap
+
+The target init must not print readiness before the services it depends on are operational. Define a versioned bootstrap contract for memory management, VFS mount/root namespace, console input/output, block-device discovery, timer/sleep, process lifecycle, and IPC. The syscall dispatcher must validate user ranges and copy or map data through the active process address space. Until each backend exists, return ENOSYS/an explicit phase failure. In particular, an installer disk image is not a CPIO archive; installer boot must use a separately typed native init payload and a real block-device/transaction backend.
+
+### Completion rule
+
+Keep the production verifier unchanged. Require six independent Live/Installer/Recovery × BIOS/UEFI traces, each with a genuine CPL3-origin acknowledgement and a matching nonzero kernel-owned PID emitted only after the corresponding init is running. Then separately prove Aurora startup, installer completion/reboot/installed boot, a real recovery action, and AP-backed concurrent SMP. Until those artifacts exist, production readiness is NOT VERIFIED and release publication stays BLOCKED.
