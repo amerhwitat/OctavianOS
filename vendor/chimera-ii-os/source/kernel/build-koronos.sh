@@ -33,13 +33,19 @@ HOST_CXX="${HOST_CXX:-g++}"
   "$ROOT/kernel/tests/initramfs_parser_test.cpp" \
   -o "$BUILD/initramfs-parser-test"
 "$BUILD/initramfs-parser-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror \
+  -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/gzip.cpp" \
+  "$ROOT/kernel/tests/gzip_decoder_test.cpp" \
+  -o "$BUILD/gzip-decoder-test"
+"$BUILD/gzip-decoder-test"
 
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space initramfs target_launch)
+sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space initramfs gzip target_launch)
 for src in "${sources[@]}"; do
   "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
 done
