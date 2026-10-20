@@ -9,7 +9,6 @@ KERNEL = "[KRN ] KORONOS READY\n"
 ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
 PID = "NATIVE INIT PID: target={target} pid={pid}\n"
 READY = "USERSPACE READY: target={target} init_pid={pid}\n"
-READY = "USERSPACE READY: target={target} init_pid={pid}\n"
 
 
 def run(target, trace):
@@ -43,6 +42,20 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
     def test_requires_ordered_markers(self):
         trace = READY.format(target="live", pid=1) + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + KERNEL
         self.assertEqual(run("live", trace).returncode, 1)
+
+    def test_pid_diagnostic_is_required_even_when_readiness_marker_exists(self):
+        trace = KERNEL + ENTRY.format(target="live", pid=3) + READY.format(target="live", pid=3)
+        result = run("live", trace)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("native init PID diagnostic", result.stdout)
+
+    def test_fail_closed_service_block_does_not_count_as_readiness(self):
+        trace = (KERNEL + ENTRY.format(target="installer", pid=4)
+                 + PID.format(target="installer", pid=4)
+                 + "NATIVE INIT BLOCKED: required services unavailable\\n")
+        result = run("installer", trace)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("actual init PID readiness marker", result.stdout)
 
     def test_accepts_live_with_user_originated_syscall_and_matching_pid(self):
         trace = KERNEL + ENTRY.format(target="live", pid=1) + PID.format(target="live", pid=1) + READY.format(target="live", pid=1)
