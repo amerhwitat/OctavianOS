@@ -18,12 +18,8 @@ int chimera_cpio_read(const chimera_cpio_file *file,uint64_t offset,void *buffer
 /* Read-only rootfs binding. The mounted archive borrows its bytes from the
    boot module, which must remain reserved for the lifetime of the mount. */
 int chimera_vfs_mount_readonly(const void *bytes, uint64_t size);
-int chimera_vfs_mount_boot_module(uint32_t module_kind);
 int chimera_vfs_is_mounted(void);
-int chimera_vfs_open_readonly(uint32_t pid, const char *path);
-int chimera_vfs_read(uint32_t pid, int fd, void *kernel_buffer,
-                     uint64_t capacity, uint64_t *read_count);
-int chimera_vfs_close(uint32_t pid, int fd);
+const chimera_cpio_archive *chimera_vfs_root_archive(void);
 #ifdef __cplusplus
 }
 #endif
