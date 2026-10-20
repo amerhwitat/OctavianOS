@@ -29,6 +29,8 @@ python3 "$ROOT/tools/tests/test_native_init_packaging_contract.py"
 HOST_CXX="${HOST_CXX:-g++}"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/hardware.cpp" "$ROOT/kernel/tests/hardware_profile_test.cpp" -o "$BUILD/hardware-profile-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/compat.cpp" "$ROOT/kernel/core/syscall.cpp" "$ROOT/kernel/tests/syscall_backend_honesty_test.cpp" -o "$BUILD/syscall-backend-honesty-test"
+"${HOST_CXX:-g++}" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/hardware.cpp" "$ROOT/kernel/core/nbit.cpp" "$ROOT/tests/kernel/hardware_nbit_test.cpp" -o "$BUILD/nbit-hardware-honesty-test"
+"$BUILD/nbit-hardware-honesty-test"
 "$BUILD/syscall-backend-honesty-test"
 "$BUILD/hardware-profile-test"
 # Hosted ABI/service regressions use HOST_CXX, separate from the freestanding compiler.
