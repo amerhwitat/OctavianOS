@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/native-koronos-build.yml"
+RELEASE_WORKFLOW = ROOT / ".github/workflows/release-artifacts.yml"
 
 class UserspaceReleaseWorkflowTests(unittest.TestCase):
     @classmethod
@@ -22,6 +23,12 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("needs: [build-koronos, verify-userspace-handoff]", section)
         self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'", section)
         self.assertIn("Published only after Live, Installer, and Recovery userspace handoff gates pass.", section)
+
+    def test_general_release_workflow_fails_closed_until_production_acceptance(self):
+        release_text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        section = release_text.split("  # FAIL-CLOSED:", 1)[1].split("    needs: [container, iso]", 1)[0]
+        self.assertIn("production acceptance currently fails", section)
+        self.assertIn("  publish:\n    if: false", section)
 
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]

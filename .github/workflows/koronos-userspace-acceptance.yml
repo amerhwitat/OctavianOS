@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Candidate Smoke (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
             kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
             -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
+      - name: Build target-specific BIOS/UEFI candidate smoke ISO (not production payload)
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -66,7 +66,7 @@ jobs:
           EOF
           grub-mkrescue -o "$OUT/koronos-$TARGET.iso" "$ISO_ROOT"
           test -s "$OUT/koronos-$TARGET.iso"
-      - name: Boot and require userspace-originated readiness
+      - name: Boot candidate probe and require ring-3 handshake (not production readiness)
         env:
           TARGET: ${{ matrix.target }}
           FIRMWARE: ${{ matrix.firmware }}
