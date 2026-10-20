@@ -24,7 +24,7 @@ int main(){
  CHECK(chimera_cpio_find(&a,"../etc/motd",&f)==CHIMERA_CPIO_INVALID);
  CHECK(chimera_cpio_find(&a,"etc/missing",&f)==CHIMERA_CPIO_NOT_FOUND);
  CHECK(chimera_cpio_validate(&a,v.data(),109)==CHIMERA_CPIO_INVALID);
- auto dup=archive("etc/motd","one");add(dup,"etc/motd","two");add(dup,"TRAILER!!!","");
+ std::vector<uint8_t> dup;add(dup,"etc/motd","one");add(dup,"etc/motd","two");add(dup,"TRAILER!!!","");
  CHECK(chimera_cpio_validate(&a,dup.data(),dup.size())==CHIMERA_CPIO_DUPLICATE);
  auto traversal=archive("etc/../passwd","x");
  CHECK(chimera_cpio_validate(&a,traversal.data(),traversal.size())==CHIMERA_CPIO_INVALID);
