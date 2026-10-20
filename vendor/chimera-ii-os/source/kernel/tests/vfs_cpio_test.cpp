@@ -28,6 +28,10 @@ int main(){
  CHECK(chimera_cpio_validate(&a,dup.data(),dup.size())==CHIMERA_CPIO_DUPLICATE);
  auto traversal=archive("etc/../passwd","x");
  CHECK(chimera_cpio_validate(&a,traversal.data(),traversal.size())==CHIMERA_CPIO_INVALID);
+ auto empty=archive("etc/empty","");CHECK(chimera_cpio_validate(&a,empty.data(),empty.size())==CHIMERA_CPIO_OK);
+ CHECK(chimera_cpio_find(&a,"etc/empty",&f)==CHIMERA_CPIO_OK&&f.size==0);
+ auto badhex=archive("etc/x","y");badhex[94]='g';CHECK(chimera_cpio_validate(&a,badhex.data(),badhex.size())==CHIMERA_CPIO_INVALID);
+ auto nonul=archive("etc/x","y");nonul[110+5]='z';CHECK(chimera_cpio_validate(&a,nonul.data(),nonul.size())==CHIMERA_CPIO_INVALID);
  auto bad=archive("etc/x","y");bad[0]='X';CHECK(chimera_cpio_validate(&a,bad.data(),bad.size())==CHIMERA_CPIO_INVALID);
  auto missing=archive("etc/x","y");missing.resize(missing.size()-124);
  CHECK(chimera_cpio_validate(&a,missing.data(),missing.size())==CHIMERA_CPIO_INVALID);
