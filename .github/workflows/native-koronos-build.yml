@@ -392,6 +392,7 @@ jobs:
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
             module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer
+            module2 /boot/installer/chimera-installer-initramfs.cpio chimera-installer-initramfs
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
