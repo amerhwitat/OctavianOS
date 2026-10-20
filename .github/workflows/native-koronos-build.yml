@@ -78,6 +78,7 @@ on:
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/machine-code-pipeline-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-process-loader.yml'
+      - 'tests/migration/**'
       - '.github/workflows/native-koronos-build.yml'
 
 permissions:
