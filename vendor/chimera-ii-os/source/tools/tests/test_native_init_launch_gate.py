@@ -74,6 +74,15 @@ def main() -> int:
     if recognized < 0 or launch < 0 or recognized > launch:
         return fail("installer module recognition must be logged before user-init launch can fail closed")
 
+    submit_block = bootstrap.split("static void koronos_submit_bootstrap_tasks()", 1)[1]
+    kore_submit = submit_block.find("chimera_sched_submit(task_kore")
+    if kore_submit < 0:
+        return fail("Kore service supervisor is not submitted")
+    for target_task in ("task_live", "task_installer", "task_recovery"):
+        target_submit = submit_block.find(f"chimera_sched_submit({target_task}")
+        if target_submit < 0 or kore_submit > target_submit:
+            return fail(f"Kore health checks must be scheduled before {target_task}")
+
     for target, marker in (
         ("live", "CHIMERA_MODULE_LIVE_INITRAMFS"),
         ("recovery", "CHIMERA_MODULE_RECOVERY_INITRAMFS"),
