@@ -94,6 +94,8 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
+      - name: Validate highest-resolution SVGA policy for all boot target menus
+        run: bash tools/tests/test-grub-highest-resolution-policy.sh
       - name: Install native kernel build dependencies
         run: |
           set -euo pipefail
