@@ -75,6 +75,14 @@ cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/rec
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
 
+# Stage the dedicated installer CPIO rootfs separately from the install disk
+# image and its contracts. Never infer a filesystem from installation.img.
+INSTALLER_BOOT="$ROOT/build/live-boot/boot/installer"
+test -s "$INSTALLER_BOOT/chimera-installer-initramfs.img" || { echo "ERROR: installer initramfs missing: $INSTALLER_BOOT/chimera-installer-initramfs.img" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/installer"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img" "$DIST/iso/boot/installer/"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img.sha256" "$DIST/iso/boot/installer/" 2>/dev/null || true
+
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
 mkdir -p "$VISUAL_OUT"
