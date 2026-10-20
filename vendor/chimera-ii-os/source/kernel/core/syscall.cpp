@@ -5,6 +5,7 @@
 #include "chimera/scheduler.h"
 #include "chimera/timer.h"
 #include "chimera/vfs_cpio.h"
+#include "chimera/process.h"
 
 namespace {
 static volatile uint32_t g_initialized = 0;
@@ -159,7 +160,7 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             if (copy_rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(copy_rc));
             const uint32_t pid = koronos_target_active_pid();
             if (!pid) return static_cast<uint64_t>(-3ll);
-            return static_cast<uint64_t>(static_cast<int64_t>(chimera_vfs_open_readonly(pid, path)));
+            return static_cast<uint64_t>(static_cast<int64_t>(chimera_process_open_readonly(pid, chimera_vfs_root_archive(), path)));
         }
         case CHM_SYS_READ: {
             const uint64_t fd = frame->rdi;
@@ -172,7 +173,7 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             uint64_t bytes_read = 0;
             const uint32_t pid = koronos_target_active_pid();
             if (!pid) return static_cast<uint64_t>(-3ll);
-            const int read_rc = chimera_vfs_read(pid, static_cast<int>(fd), buffer, length, &bytes_read);
+            const int read_rc = chimera_process_read(pid, static_cast<int>(fd), buffer, length, &bytes_read);
             if (read_rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(read_rc));
             if (bytes_read > length) return static_cast<uint64_t>(-5ll);
             if (bytes_read) copy_to_user_validated(address, buffer, bytes_read);
@@ -183,7 +184,7 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             const uint32_t pid = koronos_target_active_pid();
             if (!pid) return static_cast<uint64_t>(-3ll);
             return static_cast<uint64_t>(static_cast<int64_t>(
-                chimera_vfs_close(pid, static_cast<int>(frame->rdi))));
+                chimera_process_close(pid, static_cast<int>(frame->rdi))));
         }
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
