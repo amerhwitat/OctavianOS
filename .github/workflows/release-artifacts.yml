@@ -80,8 +80,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # FAIL-CLOSED: production acceptance currently fails for the real Live, Installer,
+  # and Recovery payloads. Do not publish an OS release until the six-case BIOS/UEFI
+  # production trace gate, Aurora handoff, installer transaction, recovery repair,
+  # and AP-backed SMP are wired as required dependencies and pass on this candidate.
+  # The Docker companion and ISO build artifacts may still be inspected as CI artifacts.
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+    if: false
     needs: [container, iso]
     runs-on: ubuntu-latest
     steps:
