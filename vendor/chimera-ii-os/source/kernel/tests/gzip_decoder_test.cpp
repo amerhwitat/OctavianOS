@@ -50,6 +50,8 @@ int main() {
     assert(reject(gz,4));
     Bytes bad=gz; bad[bad.size()-8]^=1; assert(reject(bad));
     bad=gz; bad[3]=0xe0; assert(reject(bad));
+    bad=gz; bad[3]=0x02; assert(reject(bad)); // FHCRC is deliberately unsupported.
+    bad=gz; bad.insert(bad.end()-8,0x7f); assert(reject(bad)); // Extra bytes before trailer.
     bad=gz; bad.pop_back(); assert(reject(bad));
     bad={0x1f,0x8b,8,0,0,0,0,0,0,255,7}; assert(reject(bad));
     /* Independent zlib-generated streams: first DEFLATE block is fixed (BTYPE=1),
