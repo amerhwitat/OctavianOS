@@ -188,3 +188,20 @@ The latest integrated native build [run #39405093270](https://github.com/amerhwi
 6. Prove six actual production boots, then separately verify Live-to-Aurora, installer disk transaction/reboot, a real recovery operation, and AP-backed concurrent SMP. Release remains blocked until all required gates pass.
 
 **Current result:** no production-init implementation or new boot success is claimed by this audit. The proposal is retained as an architecture direction, not accepted as working code. Release stays BLOCKED; no prerelease should be published.
+
+
+## Native init patch review and ABI regression guard — 2026-10-20
+
+The proposed code was not copied verbatim because its syscall assumptions conflict with the current ABI. In `kernel/include/chimera/syscall.h`, IDs 10, 11, and 12 are already `CHM_SYS_MMAP`, `CHM_SYS_MUNMAP`, and `CHM_SYS_IOCTL`. Adding mount=10/devctl=11 would alias existing memory-management calls; it is not a safe extension. The current process-bound dispatcher also has no implemented VFS mount or device-control operation, so returning success or inventing readiness would be incorrect.
+
+### Code change made
+
+- Added `vendor/chimera-ii-os/source/tools/tests/test_native_init_syscall_abi.py`. It asserts the complete existing native syscall ID table, checks that unsupported mount/devctl names are not introduced as aliases, and verifies that the current GETPID/WRITE dispatch contract remains present.
+- Integrated this regression test into `kernel/build-koronos.sh` before native kernel compilation, alongside the existing ELF validator test.
+- Commits: `5d839e71ee0076a34ea82c8a028e84463132c7d5` (test) and `c7a01eec1e9ed2e8f2b402cb8c737c5f391e5776` (build integration).
+
+This is a preventive ABI-hardening change; it is not a production userspace implementation. The build script continues to label `user-init-live/installer/recovery.elf` as probes. No initramfs or ISO staging was switched to a nonfunctional binary. A real mount/device service API, VFS/filesystem implementation, service lifecycle, and post-readiness supervisor are still missing or unverified. The current yield syscall is explicitly a safe no-op in the bootstrap single-process path, so a tight forever-yield loop would not yet provide sleeping or CPU-efficient supervision.
+
+### Acceptance status
+
+The existing production verifier remains unchanged and fail-closed. The earlier latest verified native candidate run `39405093270` failed the aggregate Live/Installer/Recovery traces; probe matrix `39405093493` passed only as probes. The newly added source commits must receive CI runs before the regression test itself can be marked PASS. Production acceptance remains NOT VERIFIED and release remains BLOCKED.
