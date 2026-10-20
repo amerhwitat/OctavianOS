@@ -423,6 +423,11 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # The default ISO entry must be Live and its real native init must issue a CPL3 syscall.
+          # The current backend-unavailable result is expected here; production readiness is gated separately.
+          grep -Fq '[MB2 ] type=LIVE INITRAMFS' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Default ISO entry did not select the Live payload"; exit 1; }
+          grep -Eq 'USER INIT SYSCALL: target=live init_pid=[1-9][0-9]*' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Default Live init did not enter ring 3 and issue its syscall"; exit 1; }
+          grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/full-iso-debugcon.log" || { cat "$smoke/full-iso-debugcon.log"; echo "::error::Live init did not report the unavailable service backend"; exit 1; }
           # Production init readiness is enforced by verify-userspace-handoff below.
           # Keep this build smoke responsible for booting the ISO to Koronos and preserving
           # launch errors in its artifact, so the dedicated acceptance job can report them.
