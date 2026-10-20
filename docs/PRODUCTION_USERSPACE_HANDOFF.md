@@ -213,3 +213,25 @@ This is a preventive ABI-hardening change; it is not a production userspace impl
 ### Acceptance status
 
 The existing production verifier remains unchanged and fail-closed. The earlier latest verified native candidate run `39405093270` failed the aggregate Live/Installer/Recovery traces; probe matrix `39405093493` passed only as probes. The newly added source commits must receive CI runs before the regression test itself can be marked PASS. Production acceptance remains NOT VERIFIED and release remains BLOCKED.
+
+
+## Native PID 1 service gap and syscall ABI audit (2026-10-20)
+
+The latest native trace reached CPL3, performed a kernel syscall, reported the kernel-returned PID, and then exited with status 78 because required native services are unavailable. This is genuine execution progress, not a complete PID 1 supervisor or production userspace.
+
+The proposed `CHM_SYS_MOUNT = 10` sample is incompatible with the current ABI: `kernel/include/chimera/syscall.h` assigns syscall 10 to `CHM_SYS_MMAP`, and no `CHM_SYS_MOUNT` operation exists. Calling syscall 10 with source/target/fstype pointers would invoke the wrong operation. A mount table that only records `/` and returns success without a real backing filesystem is also unacceptable.
+
+The vendored kernel currently classifies Multiboot2 modules and dispatches target-specific ELFs, but it does not provide an integrated kernel VFS mount/open/read/stat path that exposes the selected initramfs archive to PID 1. A module being present is not equivalent to a mounted root filesystem.
+
+Required implementation sequence:
+
+1. Define a versioned syscall ABI and argument-validation contract before allocating any mount syscall number.
+2. Implement a bounded, read-only newc CPIO parser with traversal rejection, size limits, duplicate/path policy, symlink handling, and correct gzip/CRC/ISIZE validation for compressed payloads.
+3. Build a kernel-owned VFS namespace over validated archive entries, implement real lookup/read/stat operations, and report success only when the root has a live backing store.
+4. Expose the minimal userspace API with validated user pointers and honest `-ENOSYS`/`-ENODEV` errors until each operation is implemented.
+5. Add archive/security regressions, syscall ABI tests, and QEMU tests that read a known file from PID 1 through the actual user ABI; missing or malformed root must fail closed.
+6. Then implement process spawn/wait/reap, device enumeration/control, and target service managers. Aurora/Marine graphics, installer storage writes, and recovery repair need real service backends and their own acceptance tests.
+
+The native init regression test now guards against treating syscall 10 as mount and preserves status-78/no-readiness behavior while the mount ABI is absent. When a real VFS syscall is implemented, replace that guard with tests of the actual ABI and runtime behavior; do not weaken fail-closed readiness.
+
+**Production remains BLOCKED.** Do not claim any of the six Live/Installer/Recovery × BIOS/UEFI production cases, desktop handoff, disk-writing installation, recovery repair, or AP-backed SMP as passed until the corresponding runtime tests succeed. No release/prerelease is authorized.
