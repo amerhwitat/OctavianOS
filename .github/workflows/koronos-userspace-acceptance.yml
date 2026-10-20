@@ -39,6 +39,9 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           set -euo pipefail
           bash tools/build-live-boot-binaries.sh
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include \
+            kernel/core/vfs_cpio.cpp kernel/tests/vfs_cpio_test.cpp \
+            -o build/koronos/x86_64/vfs-cpio-test
           for root in \
             build/live-boot/boot/live/chimera-live-initramfs.cpio \
             build/live-boot/boot/installer/chimera-installer-initramfs.cpio \
