@@ -101,6 +101,10 @@ for target in live installer recovery; do
   readelf -lW "$BUILD/user-init-${target}.elf" | grep -Eq 'LOAD.*R E' || {
     echo "ERROR: user-init-${target}.elf has no read/execute PT_LOAD" >&2; exit 1;
   }
+  # Structural admission only: these artifacts remain acceptance probes, not
+  # production init implementations. The validator rejects scripts, wrong
+  # architectures, malformed PT_LOAD bounds, W+X segments, and invalid entry.
+  python3 "$ROOT/tools/validate-native-init-elf.py" --target "$target" "$BUILD/user-init-${target}.elf"
 done
 
 # A deliberately non-cooperative user process validates that the hardware
