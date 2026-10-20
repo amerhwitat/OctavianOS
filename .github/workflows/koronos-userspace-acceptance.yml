@@ -106,7 +106,7 @@ jobs:
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           # Require a real, nonzero PID supplied by the running probe, not a
           # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          ready_line="$(grep -Eo "USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
@@ -118,7 +118,6 @@ jobs:
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
-        if: matrix.firmware == 'bios'
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           set -euo pipefail
