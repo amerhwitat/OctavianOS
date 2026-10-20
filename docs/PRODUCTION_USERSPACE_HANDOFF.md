@@ -208,7 +208,7 @@ The proposed code was not copied verbatim because its syscall assumptions confli
 - Integrated this regression test into `kernel/build-koronos.sh` before native kernel compilation, alongside the existing ELF validator test.
 - Commits: `5d839e71ee0076a34ea82c8a028e84463132c7d5` (test) and `c7a01eec1e9ed2e8f2b402cb8c737c5f391e5776` (build integration).
 
-This is a preventive ABI-hardening change; it is not a production userspace implementation. The build script continues to label `user-init-live/installer/recovery.elf` as probes. No initramfs or ISO staging was switched to a nonfunctional binary. A real mount/device service API, VFS/filesystem implementation, service lifecycle, and post-readiness supervisor are still missing or unverified. The current yield syscall is explicitly a safe no-op in the bootstrap single-process path, so a tight forever-yield loop would not yet provide sleeping or CPU-efficient supervision.
+This is a preventive ABI-hardening change; it is not a production userspace implementation. The build script continues to label `user-init-live/installer/recovery.elf` as probes. The ISO now stages target-specific fail-closed bootstrap ELFs separately from the initramfs; they are intentionally non-service-complete and must not be described as production-ready. A real mount/device service API, VFS/filesystem implementation, service lifecycle, and post-readiness supervisor are still missing or unverified. The current yield syscall is explicitly a safe no-op in the bootstrap single-process path, so a tight forever-yield loop would not yet provide sleeping or CPU-efficient supervision.
 
 ### Acceptance status
 
