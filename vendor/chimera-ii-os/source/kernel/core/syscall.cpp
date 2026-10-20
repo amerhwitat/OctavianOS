@@ -155,6 +155,10 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return static_cast<uint64_t>(koronos_console_write_user(address, length));
         }
         case CHM_SYS_OPEN: {
+            /* This ABI currently exposes only O_RDONLY (flags=0, mode=0).
+             * Never silently accept write/create/truncate flags on a RO VFS. */
+            if (frame->rsi != 0u || frame->rdx != 0u)
+                return static_cast<uint64_t>(-22ll);
             char path[USER_COPY_LIMIT];
             const int copy_rc = copy_user_path(frame->rdi, path, sizeof(path));
             if (copy_rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(copy_rc));
