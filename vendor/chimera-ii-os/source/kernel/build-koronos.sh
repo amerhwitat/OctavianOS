@@ -38,6 +38,13 @@ HOST_CXX="${HOST_CXX:-g++}"
   "$ROOT/kernel/core/gzip.cpp" \
   "$ROOT/kernel/tests/gzip_decoder_test.cpp" \
   -o "$BUILD/gzip-decoder-test"
+
+# Run the same service lifecycle contract tests against the vendored Koronos source.
+SERVICE_TEST="$BUILD/service-lifecycle-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/service.cpp" "$ROOT/kernel/tests/service_lifecycle_test.cpp" \
+  -o "$SERVICE_TEST"
+"$SERVICE_TEST"
 "$BUILD/gzip-decoder-test"
 
 python3 "$ROOT/tools/isa/generate_registry.py"
