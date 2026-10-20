@@ -419,6 +419,95 @@ jobs:
           grep -Fq 'NATIVE INIT PID: target=installer pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not report the kernel-returned PID"; exit 1; }
           grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native services did not fail closed"; exit 1; }
           grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target did not fail closed after the readiness handshake was withheld"; exit 1; }
+      - name: Capture real target init traces for BIOS and isolated OVMF UEFI
+        working-directory: vendor/chimera-ii-os/source
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=boot/iso/dist/iso
+          test -s "$base/boot/koronos/koronos.elf"
+          for target in live installer recovery; do
+            case "$target" in
+              live)
+                init="/boot/live/user-init-live.elf"
+                root="/boot/live/chimera-live-initramfs.cpio"
+                module="chimera-live-initramfs"
+                extra="module2 /boot/live/live-manifest.json chimera-live-manifest"
+                ;;
+              installer)
+                init="/boot/installer/user-init-installer.elf"
+                root="/boot/installer/chimera-installer-initramfs.cpio"
+                module="chimera-installer-initramfs"
+                extra=$(cat <<'EOF'
+          module2 /install/installer/installation.img chimera-installation-image
+          module2 /install/installer/installation-manifest.json chimera-installation-manifest
+          module2 /install/installer/installer-contract.json chimera-installer-contract
+          module2 /install/installer/installation_phases.json chimera-install-phases
+          module2 /install/installer/installer_profiles.json chimera-installer-profiles
+          EOF
+          )
+                ;;
+              recovery)
+                init="/boot/recovery/user-init-recovery.elf"
+                root="/boot/recovery/chimera-recovery-initramfs.cpio"
+                module="chimera-recovery-initramfs"
+                extra="module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest"
+                ;;
+            esac
+            test -s "$base$init"
+            test -s "$base$root"
+            for firmware in bios uefi; do
+              out="build/qemu-smoke/acceptance-$target-$firmware"
+              tree="$out/tree"
+              mkdir -p "$tree/boot/grub"
+              cp -a "$base/." "$tree/"
+              cat > "$tree/boot/grub/grub.cfg" <<EOF
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Koronos production-target trace: $target" {
+            multiboot2 /boot/koronos/koronos.elf
+            module2 $init chimera-user-init-elf target=$target
+            module2 $root $module
+          $extra
+            boot
+          }
+          EOF
+              iso="$out/koronos-$target-$firmware.iso"
+              grub-mkrescue -o "$iso" "$tree"
+              log="$out/debugcon.log"
+              qemu=(qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$iso" -boot d
+                -display none -serial none -monitor none -no-reboot -no-shutdown
+                -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
+              if [[ "$firmware" == uefi ]]; then
+                code=""
+                vars=""
+                for candidate in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
+                  if [[ -f "$candidate" ]]; then
+                    candidate_vars="${candidate/CODE/VARS}"
+                    if [[ -f "$candidate_vars" ]]; then code="$candidate"; vars="$candidate_vars"; break; fi
+                  fi
+                done
+                [[ -n "$code" && -n "$vars" ]] || { echo "ERROR: matching OVMF CODE/VARS missing" >&2; exit 1; }
+                cp "$vars" "$out/OVMF_VARS.fd"
+                qemu+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$code"
+                       -drive "if=pflash,format=raw,unit=1,file=$out/OVMF_VARS.fd")
+              fi
+              set +e
+              timeout 18s "${qemu[@]}"
+              qemu_rc=$?
+              set -e
+              test -s "$log" || { echo "ERROR: no $target/$firmware trace (QEMU=$qemu_rc)" >&2; exit 1; }
+              grep -Fq '[KRN ] KORONOS READY' "$log"
+              grep -Eq "USER INIT SYSCALL: target=$target init_pid=[1-9][0-9]*" "$log"
+              grep -Eq "NATIVE INIT PID: target=$target pid=[1-9][0-9]*" "$log"
+              grep -Fq "NATIVE INIT ROOTFS VERIFIED: target=$target" "$log"
+              grep -Fq 'NATIVE INIT BLOCKED:' "$log"
+              grep -Fq '[RUN ] ERROR: userspace init exited before its target-specific USERSPACE READY handshake' "$log"
+              ! grep -Eq "USERSPACE READY: target=$target init_pid=[1-9][0-9]*" "$log"
+              echo "Target init reached ring 3 and verified its real rootfs; unavailable services correctly withheld readiness: $target/$firmware (QEMU=$qemu_rc)."
+            done
+          done
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -441,6 +530,7 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/acceptance-*/debugcon.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -481,9 +571,17 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          for target in live installer recovery; do
+            for firmware in bios uefi; do
+              log="trace/acceptance-$target-$firmware/debugcon.log"
+              if [[ ! -s "$log" ]]; then
+                echo "::error::Missing full-ISO target trace: $target/$firmware ($log)"
+                result=1
+                continue
+              fi
+              python3 tests/migration/verify-userspace-handoff.py "$target" "$log" || result=1
+            done
+          done
           exit "$result"
 
   publish-native-iso:
