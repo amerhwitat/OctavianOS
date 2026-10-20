@@ -78,7 +78,7 @@ int main() {
     assert(find(traversal, "init", &found, &size) == -6);
 
     const uint8_t gzip[] = {0x1f, 0x8b, 0x08, 0x00, 0, 0, 0, 0};
-    assert(chimera_initramfs_find_elf(gzip, sizeof(gzip), "init", &found, &size) == -2);
+    assert(chimera_initramfs_find_elf(gzip, sizeof(gzip), "init", &found, &size) == -13);
 
     Bytes truncated = valid;
     truncated.resize(115);
