@@ -22,20 +22,6 @@ static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
-struct TemporaryFrames {
-    uint64_t base = 0;
-    uint32_t pages = 0;
-    ~TemporaryFrames() {
-        if (base && pages) (void)koronos_frame_free_contiguous(base, pages);
-    }
-};
-static uint32_t read_le32(const uint8_t *p) {
-    return static_cast<uint32_t>(p[0]) |
-           (static_cast<uint32_t>(p[1]) << 8) |
-           (static_cast<uint32_t>(p[2]) << 16) |
-           (static_cast<uint32_t>(p[3]) << 24);
-}
-
 extern "C" void koronos_target_log(const char *message);
 
 static bool token(const char *text, const char *needle) {
@@ -166,86 +152,57 @@ extern "C" int koronos_launch_selected_userspace(void) {
     const void *init_elf=nullptr;
     uint64_t init_elf_size=0;
     Target target=TARGET_NONE;
-    /* Production payloads take precedence over injected probe ELFs. Refuse
-       mixed/ambiguous modules so a smoke ELF can never mask a missing init. */
+    /* Production payload and executable init are separate modules. Current
+       rootfs images contain shell scripts, but this kernel has no script
+       interpreter, VFS, or execve path. Require one target-matched native init
+       ELF beside exactly one production payload; never parse an image as ELF. */
     if (payload_count) {
-        if (payload_count!=1 || elf_count!=0 || !payload) {
-            koronos_target_log("[RUN ] ERROR: ambiguous production payload/native init modules; refusing probe fallback");
+        if (payload_count != 1 || !payload || elf_count != 1 || !selected) {
+            koronos_target_log("[RUN ] ERROR: production boot requires exactly one payload and one native init ELF; refusing probe fallback");
             return -1;
         }
-        if (payload->kind==CHIMERA_MODULE_LIVE_INITRAMFS) target=TARGET_LIVE;
-        else if (payload->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS) target=TARGET_RECOVERY;
-        else if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) target=TARGET_INSTALLER;
-        if (target==TARGET_NONE) return -2;
-        if (!payload->base || payload->size<110u || payload->size>MAX_INIT_IMAGE ||
-            payload->base>=KORONOS_FRAME_PHYS_LIMIT ||
-            payload->size>KORONOS_FRAME_PHYS_LIMIT-payload->base) {
+        if (payload->kind == CHIMERA_MODULE_LIVE_INITRAMFS) target = TARGET_LIVE;
+        else if (payload->kind == CHIMERA_MODULE_RECOVERY_INITRAMFS) target = TARGET_RECOVERY;
+        else if (payload->kind == CHIMERA_MODULE_INSTALL_IMAGE) target = TARGET_INSTALLER;
+        if (target == TARGET_NONE) return -2;
+        if (!payload->base || payload->size == 0 ||
+            payload->base >= KORONOS_FRAME_PHYS_LIMIT ||
+            payload->size > KORONOS_FRAME_PHYS_LIMIT - payload->base) {
             koronos_target_log("[RUN ] ERROR: selected production payload is outside bounded physical memory");
             return -3;
         }
-        /* The installer image is a disk/image container, not a CPIO initramfs.
-           Never reinterpret it as one; installer init must be staged as a
-           separately typed native USER_INIT_ELF module until the installer
-           image format has a real in-kernel mount/exec path. */
-        if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
-            koronos_target_log("[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged");
-            return -14;
+        if (target != TARGET_INSTALLER && payload->size > MAX_INIT_IMAGE) {
+            koronos_target_log("[RUN ] ERROR: initramfs exceeds the bounded production payload limit");
+            return -3;
         }
-        const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
-        uint64_t archive_size=payload->size;
-        TemporaryFrames decompressed{};
-        const uint8_t *compressed=static_cast<const uint8_t *>(archive);
-        if (archive_size>=2u && compressed[0]==0x1fu && compressed[1]==0x8bu) {
-            if (archive_size<18u) {
-                koronos_target_log("[RUN ] ERROR: truncated gzip initramfs header/trailer");
-                return -15;
-            }
-            const uint64_t expected_size=read_le32(compressed+archive_size-4u);
-            if (expected_size==0 || expected_size>MAX_INIT_IMAGE) {
-                koronos_target_log("[RUN ] ERROR: gzip initramfs ISIZE exceeds the bounded output limit");
-                return -16;
-            }
-            const uint64_t page_count=(expected_size+KORONOS_FRAME_SIZE-1u)/KORONOS_FRAME_SIZE;
-            decompressed.pages=static_cast<uint32_t>(page_count);
-            decompressed.base=koronos_frame_alloc_contiguous(decompressed.pages);
-            if (!decompressed.base) {
-                decompressed.pages=0;
-                koronos_target_log("[RUN ] ERROR: unable to reserve decompression frames");
-                return -18;
-            }
-            uint64_t decoded_size=0;
-            const int gzip_rc=chimera_gzip_decompress_bounded(
-                archive,archive_size,
-                reinterpret_cast<void *>(static_cast<uintptr_t>(decompressed.base)),
-                expected_size,&decoded_size);
-            if (gzip_rc!=0 || decoded_size!=expected_size) {
-                koronos_target_log("[RUN ] ERROR: gzip decode or CRC32/ISIZE validation failed");
-                return -19;
-            }
-            archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(decompressed.base));
-            archive_size=decoded_size;
-            koronos_target_log("[RUN ] Bounded gzip decompression and integrity checks passed");
+        if (!selected->base || selected->size < sizeof(koronos_elf64_ehdr) ||
+            selected->size > MAX_INIT_IMAGE || selected->base >= KORONOS_FRAME_PHYS_LIMIT ||
+            selected->size > KORONOS_FRAME_PHYS_LIMIT - selected->base) {
+            koronos_target_log("[RUN ] ERROR: target-native init ELF is outside bounded physical memory");
+            return -5;
         }
-        int find_rc=chimera_initramfs_find_elf(archive,archive_size,"init",&init_elf,&init_elf_size);
-        if (find_rc!=0)
-            find_rc=chimera_initramfs_find_elf(archive,archive_size,"sbin/init",&init_elf,&init_elf_size);
-        if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
-            koronos_target_log("[RUN ] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF");
-            return -4;
+        const Target elf_target = parse_target(selected->cmdline);
+        if (elf_target != target) {
+            koronos_target_log("[RUN ] ERROR: native init ELF target does not match the selected production payload");
+            return -6;
         }
-        selected=payload;
-        koronos_target_log("[RUN ] Extracted target init ELF from selected production cpio archive");
+        init_elf = reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base));
+        init_elf_size = selected->size;
+        koronos_target_log("[RUN ] Selected target-matched native init ELF alongside production payload");
+        if (target == TARGET_INSTALLER)
+            koronos_target_log("[RUN ] Installer image retained as a separate module; native installer init must mount/consume it");
     } else {
-        if (elf_count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
-        if (elf_count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
-            selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
-            selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
+        if (elf_count == 0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+        if (elf_count != 1 || !selected || !selected->base ||
+            selected->size < sizeof(koronos_elf64_ehdr) || selected->size > MAX_INIT_IMAGE ||
+            selected->base >= KORONOS_FRAME_PHYS_LIMIT ||
+            selected->size > KORONOS_FRAME_PHYS_LIMIT - selected->base) {
             koronos_target_log("[RUN ] ERROR: expected exactly one bounded USER_INIT_ELF module");
             return -5;
         }
-        target=parse_target(selected->cmdline);
-        init_elf=reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base));
-        init_elf_size=selected->size;
+        target = parse_target(selected->cmdline);
+        init_elf = reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base));
+        init_elf_size = selected->size;
     }
     if (target==TARGET_NONE) {
         koronos_target_log("[RUN ] ERROR: target resolution failed; require exactly one explicit target or payload kind");
