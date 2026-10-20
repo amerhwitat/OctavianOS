@@ -29,7 +29,7 @@ int main(int argc,char **argv){
   CHECK(target.size>0&&target.size<32);
   char name[32]{};uint64_t got=0;
   CHECK(chimera_cpio_read(&target,0,name,sizeof(name)-1,&got)==CHIMERA_CPIO_OK);
-  CHECK(got>0&&name[got-1]=='\\n');
+  CHECK(got>0&&name[got-1]=='\n');
   CHECK(chimera_vfs_mount_readonly(raw.data(),raw.size())==0);
   CHECK(chimera_vfs_is_mounted()==1);
   std::puts("Native rootfs CPIO archive validation and immutable mount: PASS");
