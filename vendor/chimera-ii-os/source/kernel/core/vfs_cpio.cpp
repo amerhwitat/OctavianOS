@@ -66,7 +66,8 @@ extern "C" int chimera_cpio_validate(chimera_cpio_archive*a,const void*bytes,uin
    if(old.next<=prior)return CHIMERA_CPIO_INVALID;
    prior=old.next;
   }
-  if(cur.next<=off)return CHIMERA_CPIO_INVALID;off=cur.next;
+  if(cur.next<=off)return CHIMERA_CPIO_INVALID;
+  off=cur.next;
  }
  if(!trailer)return CHIMERA_CPIO_INVALID;
  for(uint64_t i=off;i<size;i++)if(b[i]!=0)return CHIMERA_CPIO_INVALID;
