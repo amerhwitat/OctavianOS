@@ -121,6 +121,12 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/octavian-multiboot-modules-test
           /tmp/octavian-multiboot-modules-test
+      - name: Compile and run bounded CPIO init ELF parser regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/initramfs_test.cpp kernel/core/initramfs.cpp -o /tmp/octavian-initramfs-test
+          /tmp/octavian-initramfs-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -379,7 +385,8 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          grep -Eq '\[RUN \] (Extracted target init ELF from selected production cpio archive|ERROR: selected production payload)' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Production installer payload was neither accepted nor explicitly rejected"; exit 1; }
+          if grep -Eq 'USERSPACE READY: installer init pid=[1-9][0-9]*' "$smoke/installer-debugcon.log"; then echo "::error::Routing smoke must not manufacture production userspace readiness"; exit 1; fi
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
