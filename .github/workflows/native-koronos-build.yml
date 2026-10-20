@@ -244,6 +244,9 @@ jobs:
               assert data.startswith(b"070701"), f"{name} is not raw newc CPIO"
           print("Native VFS root archives verified as raw newc CPIO.")
           PY
+          build/koronos/x86_64/vfs-cpio-test "$live_cpio"
+          build/koronos/x86_64/vfs-cpio-test "$recovery_cpio"
+          build/koronos/x86_64/vfs-cpio-test "$installer_cpio"
           test -s "$live"
           test -s build/live-boot/boot/live/live-manifest.json
           test -s "$recovery"
