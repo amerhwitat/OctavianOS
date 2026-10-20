@@ -35,6 +35,11 @@ MULTIBOOT_TEST="$BUILD/multiboot-modules-test"
   -o "$MULTIBOOT_TEST"
 "$MULTIBOOT_TEST"
 rm -f "$MULTIBOOT_TEST"
+VFS_TEST="$BUILD/vfs-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/vfs.cpp" "$ROOT/kernel/tests/vfs_test.cpp" -o "$VFS_TEST"
+"$VFS_TEST"
+rm -f "$VFS_TEST"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
