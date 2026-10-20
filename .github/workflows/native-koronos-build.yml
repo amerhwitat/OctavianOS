@@ -403,7 +403,7 @@ jobs:
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
           grep -Eq 'USERSPACE READY: (live|installer|recovery) init pid=[1-9][0-9]*' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO reached the kernel but no production userspace init acknowledged readiness"; exit 1; }
-          if grep -Eq '\\[RUN \\] ERROR:|PANIC|Triple fault' "$smoke/full-iso-debugcon.log"; then echo "::error::Full ISO trace contains a userspace launch error, panic, or triple fault"; exit 1; fi
+          if grep -Eq '\[RUN \] ERROR:|PANIC|Triple fault' "$smoke/full-iso-debugcon.log"; then echo "::error::Full ISO trace contains a userspace launch error, panic, or triple fault"; exit 1; fi
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
