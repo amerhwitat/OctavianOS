@@ -21,6 +21,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
+bash -n "$ROOT/tools/build-production-init-elfs.sh"
 python3 "$ROOT/tools/tests/test_validate_native_init_elf.py"
 python3 "$ROOT/tools/tests/test_native_init_syscall_abi.py"
 python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
