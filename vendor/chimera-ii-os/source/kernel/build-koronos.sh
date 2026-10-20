@@ -23,6 +23,7 @@ BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
 python3 "$ROOT/tools/tests/test_validate_native_init_elf.py"
 python3 "$ROOT/tools/tests/test_native_init_syscall_abi.py"
+python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
