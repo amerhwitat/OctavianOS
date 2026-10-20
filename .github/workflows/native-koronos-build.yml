@@ -348,7 +348,9 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[REC ] Recovery payload is staged; native recovery operation still requires its init service' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload status missing"; exit 1; }
+          grep -Eq '\[RUN \] (Extracted target init ELF from selected production cpio archive|ERROR: selected production payload)' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Production payload launcher neither accepted nor explicitly rejected the selected recovery payload"; exit 1; }
+          if grep -Eq 'USERSPACE READY: recovery init pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log"; then echo "::error::Routing smoke must not manufacture production userspace readiness"; exit 1; fi
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
