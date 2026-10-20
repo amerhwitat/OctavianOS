@@ -50,7 +50,7 @@ HOST_CXX="${HOST_CXX:-g++}"
   -o "$BUILD/vfs-cpio-test"
 "$BUILD/vfs-cpio-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
-  "$ROOT/kernel/core/process.cpp" "$ROOT/kernel/tests/process_lifecycle_test.cpp" \
+  "$ROOT/kernel/core/process.cpp" "$ROOT/kernel/core/vfs_cpio.cpp" "$ROOT/kernel/tests/process_lifecycle_test.cpp" \
   -o "$BUILD/process-lifecycle-test"
 "$BUILD/process-lifecycle-test"
 python3 "$ROOT/tools/isa/generate_registry.py"
