@@ -28,6 +28,9 @@ extern "C" int chimera_nbit_get_default(uint32_t *bits) {
 extern "C" int chimera_nbit_set_default(uint32_t bits) {
     if (!valid_mode(bits)) return -1;
     if (!chimera_hardware_supports_mode(&g_profile, bits)) return -2;
+    /* No interpreter/JIT is registered: do not advertise a non-native
+       execution mode as a usable default merely because it is catalogued. */
+    if (bits != g_profile.native_nbit_mode) return -3;
     g_default_mode = bits;
     return 0;
 }
@@ -41,6 +44,10 @@ extern "C" int chimera_nbit_process_init(chimera_nbit_process_context *ctx, uint
     uint32_t mode = requested_bits ? requested_bits : g_default_mode;
     if (!valid_mode(mode)) return -2;
     if (!chimera_hardware_supports_mode(&g_profile, mode)) return -3;
+    /* A width catalog entry is not an execution engine. Until a real
+       interpreter/JIT or compatibility provider exists, only native width
+       can be assigned to an executable process context. */
+    if (mode != g_profile.native_nbit_mode) return -5;
     /* Compatibility targets require a registered, implemented provider. */
     if (compatibility_target && !(compatibility_target & g_profile.compatibility_mask)) return -4;
     ctx->process_id = process_id;
@@ -55,6 +62,8 @@ extern "C" int chimera_nbit_process_init(chimera_nbit_process_context *ctx, uint
 extern "C" int chimera_nbit_process_set_mode(chimera_nbit_process_context *ctx, uint32_t bits) {
     if (!ctx || !valid_mode(bits)) return -1;
     if (!chimera_hardware_supports_mode(&g_profile, bits)) return -2;
+    /* Do not mutate a live context to a mode with no execution provider. */
+    if (bits != g_profile.native_nbit_mode) return -3;
     ctx->mode_bits = bits;
     ctx->execution_class = CHIMERA_EXEC_NATIVE;
     return 0;
