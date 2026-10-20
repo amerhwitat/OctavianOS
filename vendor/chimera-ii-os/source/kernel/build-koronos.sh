@@ -29,6 +29,16 @@ python3 "$ROOT/tools/tests/test_native_init_packaging_contract.py"
 HOST_CXX="${HOST_CXX:-g++}"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/hardware.cpp" "$ROOT/kernel/tests/hardware_profile_test.cpp" -o "$BUILD/hardware-profile-test"
 "$BUILD/hardware-profile-test"
+# Hosted ABI/service regressions use HOST_CXX, separate from the freestanding compiler.
+HOST_CXX="${HOST_CXX:-g++}"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/compat.cpp" "$ROOT/kernel/tests/linux_syscall_translation_test.cpp" \
+  -o "$BUILD/linux-syscall-translation-test"
+"$BUILD/linux-syscall-translation-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/service.cpp" "$ROOT/kernel/tests/service_bootstrap_honesty_test.cpp" \
+  -o "$BUILD/service-bootstrap-honesty-test"
+"$BUILD/service-bootstrap-honesty-test"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
