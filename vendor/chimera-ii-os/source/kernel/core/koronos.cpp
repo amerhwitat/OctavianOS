@@ -443,13 +443,16 @@ static void task_kore(void *) {
 static void koronos_submit_bootstrap_tasks() {
     int a = chimera_sched_submit(task_console, 0, 100);
     int b = chimera_sched_submit(task_modules, 0, 90);
+    /* Run the dependency/health-checked Kore bootstrap before any target init.
+       Otherwise a ring-3 init could run before console, scheduler, hardware,
+       driver and process-registry services have been health-checked. */
+    int e = chimera_sched_submit(task_kore, 0, 95);
     int c = chimera_sched_submit(task_live, 0, 80);
     int d = chimera_sched_submit(task_installer, 0, 80);
-    int e = chimera_sched_submit(task_kore, 0, 95);
     int r = chimera_sched_submit(task_recovery, 0, 80);
     int m = chimera_sched_submit(task_monitor, 0, 60);
     console_write("[SCH ] Bootstrap tasks submitted");
-    console_write("[SCH ] console/module/live/installer/recovery/Kore services registered");
+    console_write("[SCH ] console/module/Kore health checks precede Live/Installer/Recovery target init");
     if (a < 0 || b < 0 || c < 0 || d < 0 || e < 0 || r < 0 || m < 0)
         console_write("[SCH ] WARNING: bootstrap task registration incomplete");
 }
