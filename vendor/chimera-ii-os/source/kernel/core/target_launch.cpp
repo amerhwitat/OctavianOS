@@ -126,14 +126,10 @@ extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
 }
 extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
                                                     uint32_t write_access) {
-    if (!validate_active_user_context(address)) {
-        /* The pointer need not be executable; validate the active PID/CR3
-           separately and let the address-space backend check data mappings. */
-        if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
-        uint64_t current_cr3 = 0;
-        __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
-        if ((current_cr3 & 0x000FFFFFFFFFF000ull) != active_root) return -1;
-    }
+    if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    uint64_t current_cr3 = 0;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
+    if ((current_cr3 & 0x000FFFFFFFFFF000ull) != active_root) return -1;
     return koronos_address_space_validate_user_range(active_root, address, length,
                                                        write_access);
 }
