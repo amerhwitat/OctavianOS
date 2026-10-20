@@ -389,7 +389,7 @@ jobs:
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
           # The installer image is not a CPIO archive; this smoke checks target routing
           # and verifies the kernel refuses to execute the disk image as an ELF init.
-          grep -Fq '[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF is staged' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer did not fail closed on its unsupported image format"; exit 1; }
+          grep -Fq '[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer did not fail closed on its unsupported image format"; exit 1; }
           if grep -Eq 'PANIC|Triple fault' "$smoke/installer-debugcon.log"; then echo "::error::Installer routing boot panicked or triple-faulted"; exit 1; fi
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
