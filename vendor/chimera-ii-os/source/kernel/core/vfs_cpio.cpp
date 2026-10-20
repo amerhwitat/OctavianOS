@@ -51,13 +51,14 @@ static bool same_path(const Entry&a,const Entry&b){
 }
 }
 extern "C" int chimera_cpio_validate(chimera_cpio_archive*a,const void*bytes,uint64_t size){
- if(!a||!bytes||size<HEADER)return CHIMERA_CPIO_INVALID;
+ if(!a)return CHIMERA_CPIO_INVALID;
  a->bytes=nullptr;a->size=0;a->validated=0;
+ if(!bytes||size<HEADER)return CHIMERA_CPIO_INVALID;
  const uint8_t*b=static_cast<const uint8_t*>(bytes);uint64_t off=0;uint32_t count=0;bool trailer=false;
  while(off<size){
   Entry cur{};if(!entry_at(b,size,off,&cur))return CHIMERA_CPIO_INVALID;
   if(cur.trailer){off=cur.next;trailer=true;break;}
-  if(++count>65536u)return CHIMERA_CPIO_INVALID;
+  if(++count>4096u)return CHIMERA_CPIO_INVALID;
   uint64_t prior=0;
   while(prior<off){
    Entry old{};if(!entry_at(b,size,prior,&old)||old.trailer)return CHIMERA_CPIO_INVALID;
