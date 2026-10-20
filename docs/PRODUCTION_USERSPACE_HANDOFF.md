@@ -151,3 +151,39 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+
+## Production audit refresh — 2026-10-20 (run 39372894454)
+
+Inspected the six job logs and uploaded artifacts from [OctavianOS run 39372894454](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454), branch `fix/production-initramfs-elf-bridge-20261020`, head `e5f450c04cbf976b13220dd4c90944900ccc8537`.
+
+The workflow's candidate smoke ISO jobs reach the candidate CR3/ring-3 launch path and log target-labelled probe markers. The same jobs explicitly label that result as **candidate ring-3 launch smoke**, with production payload acceptance separate. Their timeout-check invocation also logs `Selected userspace target failed its launch/readiness acceptance gate` after the in-kernel PIT deadline expires. Neither output is a production pass.
+
+The inspected production launch implementation now contains a bounded CPIO ELF extraction path for Live/Recovery, rejects ambiguous mixtures of production payloads and injected probe ELFs, and explicitly rejects treating an installer disk image as a CPIO initramfs when no separately typed native installer ELF is staged. Those are useful fail-closed safeguards, but they do not show that the final production ISO stages the correct init for each selected target or that init completes its handshake.
+
+| Gate | Status after run 39372894454 |
+|---|---|
+| Live / BIOS production payload | NOT VERIFIED |
+| Live / UEFI production payload | NOT VERIFIED |
+| Installer / BIOS production payload | NOT VERIFIED |
+| Installer / UEFI production payload | NOT VERIFIED |
+| Recovery / BIOS production payload | NOT VERIFIED |
+| Recovery / UEFI production payload | NOT VERIFIED |
+| Live init → Aurora/desktop session | NOT VERIFIED |
+| Installer completion → reboot → installed-system boot | NOT VERIFIED |
+| Recovery performs a real repair/diagnostic action | NOT VERIFIED |
+| AP startup and concurrent per-CPU SMP | NOT VERIFIED |
+| Production release | BLOCKED |
+
+The run uploaded per-case diagnostics: [Live BIOS](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12241993345), [Live UEFI](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12241687820), [Installer BIOS](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12242570095), [Installer UEFI](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12242525201), [Recovery BIOS](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12242312589), [Recovery UEFI](https://github.com/amerhwitat/OctavianOS/actions/runs/39372894454/artifacts/12241982096).
+
+### Required next implementation and acceptance
+
+1. Ensure the ISO builder stages the actual production init payload for the selected GRUB/Jasper target, with unambiguous module identity and target metadata. The injected probe ELF must never stand in for the production initramfs.
+2. Diagnose the production timeout from its retained trace; verify the extracted ELF's identity, entry, address-space mapping, ring-3 instruction flow, real syscall origin, and process-owned PID using the unchanged verifier.
+3. Supply a separately typed, executable native installer init payload and a real supported installer-image backend; do not reinterpret an install disk image as CPIO.
+4. For Live/Recovery compressed initramfs, implement or stage a bounded, tested decompression path as needed; reject unsupported formats with an explicit phase error.
+5. Run six independent production QEMU traces and require each unchanged verifier invocation to pass. Then separately demonstrate Aurora startup, disposable-disk installation/reboot, an actual recovery operation, and AP-backed concurrent SMP.
+6. Keep release publication fail-closed until all required gates pass. Do not fabricate CPL3/PID markers, loosen the verifier, or label smoke jobs as production acceptance.
+
+This update is an evidence/documentation refresh only. It does not claim a kernel source fix, successful production build, successful production boot, desktop launch, installer completion, recovery success, or SMP verification.
