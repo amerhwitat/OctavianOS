@@ -192,6 +192,8 @@ extern "C" int koronos_launch_selected_userspace(void) {
             return -14;
         }
         const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
+        uint64_t archive_size=payload->size;
+        TemporaryFrames decompressed{};
         int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
             find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
