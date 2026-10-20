@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "elf64.h"
+#include "chimera/vfs_cpio.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,6 +20,10 @@ uint32_t chimera_process_count(void);
 int chimera_process_set_parent(uint32_t child_pid,uint32_t parent_pid);
 int chimera_process_exit(uint32_t pid,uint32_t exit_code);
 int chimera_process_waitpid_poll(uint32_t parent_pid,uint32_t child_pid,uint32_t *exit_code);
+/* Kernel-buffer helpers only; these are not user-pointer-safe syscall entry points. */
+int chimera_process_open_readonly(uint32_t pid,const chimera_cpio_archive *archive,const char *path);
+int chimera_process_read(uint32_t pid,int fd,void *kernel_buffer,uint64_t capacity,uint64_t *read_count);
+int chimera_process_close(uint32_t pid,int fd);
 #ifdef __cplusplus
 }
 #endif
