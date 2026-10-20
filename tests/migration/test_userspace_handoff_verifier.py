@@ -9,6 +9,7 @@ KERNEL = "[KRN ] KORONOS READY\n"
 ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
 PID = "NATIVE INIT PID: target={target} pid={pid}\n"
 READY = "USERSPACE READY: target={target} init_pid={pid}\n"
+READY = "USERSPACE READY: target={target} init_pid={pid}\n"
 
 
 def run(target, trace):
