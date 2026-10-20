@@ -10,6 +10,15 @@
 #include "chimera/frame_allocator.h"
 #include "chimera/vfs_cpio.h"
 
+extern "C" int chimera_vfs_mount_boot_module(uint32_t module_kind) {
+    const chimera_boot_module *module = chimera_multiboot_find(module_kind);
+    if (!module || !module->base || !module->size ||
+        module->base > UINTPTR_MAX || module->size > UINTPTR_MAX - module->base)
+        return -1;
+    return chimera_vfs_mount_readonly(
+        reinterpret_cast<const void *>(static_cast<uintptr_t>(module->base)), module->size);
+}
+
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
 constexpr uint64_t USER_STACK_SIZE = 64ull * 1024ull;
