@@ -229,7 +229,21 @@ jobs:
           set -euo pipefail
           bash tools/build-live-boot-binaries.sh
           live=build/live-boot/boot/live/chimera-live-initramfs.img
+          live_cpio=build/live-boot/boot/live/chimera-live-initramfs.cpio
           recovery=build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+          recovery_cpio=build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio
+          installer_cpio=build/live-boot/boot/installer/chimera-installer-initramfs.cpio
+          test -s "$live_cpio"
+          test -s "$recovery_cpio"
+          test -s "$installer_cpio"
+          python3 - "$live_cpio" "$recovery_cpio" "$installer_cpio" <<'PY'
+          import sys
+          from pathlib import Path
+          for name in sys.argv[1:]:
+              data = Path(name).read_bytes()
+              assert data.startswith(b"070701"), f"{name} is not raw newc CPIO"
+          print("Native VFS root archives verified as raw newc CPIO.")
+          PY
           test -s "$live"
           test -s build/live-boot/boot/live/live-manifest.json
           test -s "$recovery"
@@ -267,8 +281,12 @@ jobs:
           path: |
             vendor/chimera-ii-os/source/build/live-boot/boot/koronos/koronos.elf
             vendor/chimera-ii-os/source/build/live-boot/boot/live/chimera-live-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/live/chimera-live-initramfs.cpio
             vendor/chimera-ii-os/source/build/live-boot/boot/live/live-manifest.json
+            vendor/chimera-ii-os/source/build/live-boot/boot/installer/chimera-installer-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/installer/chimera-installer-initramfs.cpio
             vendor/chimera-ii-os/source/build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio
             vendor/chimera-ii-os/source/build/live-boot/boot/recovery/recovery-manifest.json
             vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
           if-no-files-found: error
@@ -337,7 +355,7 @@ jobs:
           terminal_output console
           menuentry "Recovery module smoke" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+            module2 /boot/recovery/chimera-recovery-initramfs.cpio chimera-recovery-initramfs
             module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
