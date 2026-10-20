@@ -1,6 +1,6 @@
 # Koronos production userspace substrate — implementation plan
 
-**Status: architecture plan committed; implementation and production acceptance remain incomplete.** Do not use this document as evidence that a VFS, service supervisor, Linux syscall layer, or graphical userspace is operational.
+**Status: first substrate slice committed; production acceptance remains incomplete.** The code now includes a bounded read-only CPIO `newc` parser, hosted adversarial parser tests, process-owned read-only descriptor helpers, and explicit exit-status/reap-once metadata. These are not yet wired into a safe user syscall ABI or a blocking scheduler wait path. Do not use this as evidence that PID 1, a service supervisor, Linux syscall layer, or graphical userspace is operational.
 
 ## Root cause
 
@@ -67,3 +67,23 @@ Similarly, a CPIO parser must parse each hexadecimal field and validate every of
 ## Release policy
 
 Production acceptance remains **FAIL** and prerelease publication remains blocked until the full six-case matrix and the additional end-to-end checks above pass. Ring-3 probes, ELF structural validation, a compiled kernel, registry entries, packaged assets, or a readiness-shaped log line are not substitutes for this evidence.
+
+
+## Implementation slice committed (2026-10-20)
+
+The current branch now contains the first code slice:
+
+- `kernel/core/vfs_cpio.cpp` and `kernel/include/chimera/vfs_cpio.h`: bounded `070701`/`070702` reader, overflow-checked offsets and alignment, bounded hexadecimal fields and names, normalized absolute/relative paths, traversal/duplicate rejection, trailer requirement, regular-file read views, and range-checked partial reads. It intentionally rejects unsupported entry types rather than pretending to implement symlink/device semantics. Archive storage remains owned by the boot module and must outlive every view.
+- `kernel/tests/vfs_cpio_test.cpp`: hosted cases for valid lookup/read, EOF, missing paths, truncation, duplicate paths, traversal and malformed magic.
+- `kernel/core/process.cpp` / `kernel/include/chimera/process.h`: process-owned descriptor slots for read-only CPIO files, sequential reads, close, exit status, parent association, and reap-once polling. Process ABI is versioned to 2 because the process record grew.
+- `kernel/tests/process_lifecycle_test.cpp`: lifecycle and descriptor tests, including exit-time descriptor cleanup.
+- `kernel/build-koronos.sh`: adds the new source and runs both hosted regression executables before the freestanding build.
+
+Important boundaries still outstanding:
+- `chimera_process_waitpid_poll` is explicitly **non-blocking**. It does not park a task, register a wait queue, or perform scheduler wakeups.
+- Process table mutations are not yet integrated with a kernel-wide SMP-safe process lock or a scheduler-owned task lifetime. Do not treat this metadata table as a complete concurrent process manager.
+- Descriptor helpers accept kernel buffers and kernel path strings. They are not user-pointer-safe syscall entry points; `open`/`read`/close are not exposed to ring 3, and the archive is not yet mounted/selected from the live target's initramfs.
+- Address-space destruction, process record teardown, descriptor cleanup, and the user-entry return path still need one coordinated ownership contract before `waitpid`, `fork`, or `execve` can be advertised.
+- The new hosted tests are wired into the standard build script, but this commit has not yet produced a verified CI run or booted-guest result.
+
+Therefore the canonical production userspace gate stays **FAIL**. Do not modify the gate or let these unit-level additions emit readiness. Continue with user-memory copyin/copyout and active-initramfs binding, then a scheduler-integrated process/wait lifecycle and real service backends.
