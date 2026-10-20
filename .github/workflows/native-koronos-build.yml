@@ -390,7 +390,7 @@ jobs:
           grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init never acknowledged a CPL3 syscall"; exit 1; }
           grep -Fq 'NATIVE INIT PID: target=installer pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not report the kernel-returned PID"; exit 1; }
           grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native services did not fail closed"; exit 1; }
-          grep -Fq '[RUN ] Selected userspace target failed its launch/readiness acceptance gate' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target did not fail closed after the readiness handshake was withheld"; exit 1; }
+          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target did not fail closed after the readiness handshake was withheld"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
