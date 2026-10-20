@@ -27,12 +27,12 @@ def validate(path: Path, target: str) -> None:
     data = path.read_bytes()
     if not data or len(data) > MAX_IMAGE:
         raise ValueError(f"image size must be between 1 and {MAX_IMAGE} bytes")
+    if len(data) < 4 or data[:4] != b"\x7fELF":
+        raise ValueError("not an ELF file; shell scripts are not accepted")
     if len(data) < ELF_HEADER.size:
-        raise ValueError("truncated ELF header (scripts are not native init ELFs)")
+        raise ValueError("truncated ELF header")
     header = ELF_HEADER.unpack_from(data)
     ident, e_type, machine, _version, entry, phoff, _shoff, _flags, ehsize, phentsize, phnum, *_ = header
-    if ident[:4] != b"\x7fELF":
-        raise ValueError("not an ELF file; shell scripts are not accepted")
     if ident[4] != 2 or ident[5] != 1 or ident[6] != 1:
         raise ValueError("requires ELF64, little-endian, current ELF version")
     if e_type != ET_EXEC:
