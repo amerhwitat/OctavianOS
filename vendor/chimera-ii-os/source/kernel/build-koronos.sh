@@ -26,12 +26,39 @@ python3 "$ROOT/tools/tests/test_validate_native_init_elf.py"
 python3 "$ROOT/tools/tests/test_native_init_syscall_abi.py"
 python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
 python3 "$ROOT/tools/tests/test_native_init_packaging_contract.py"
+HOST_CXX="${HOST_CXX:-g++}"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/hardware.cpp" "$ROOT/kernel/tests/hardware_profile_test.cpp" -o "$BUILD/hardware-profile-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/compat.cpp" "$ROOT/kernel/core/syscall.cpp" "$ROOT/kernel/tests/syscall_backend_honesty_test.cpp" -o "$BUILD/syscall-backend-honesty-test"
+"${HOST_CXX:-g++}" -std=c++17 -Wall -Wextra -I"$ROOT/kernel/include" "$ROOT/kernel/core/hardware.cpp" "$ROOT/kernel/core/nbit.cpp" "$ROOT/tests/kernel/hardware_nbit_test.cpp" -o "$BUILD/nbit-hardware-honesty-test"
+"$BUILD/nbit-hardware-honesty-test"
+"$BUILD/syscall-backend-honesty-test"
+"$BUILD/hardware-profile-test"
+# Hosted ABI/service regressions use HOST_CXX, separate from the freestanding compiler.
+HOST_CXX="${HOST_CXX:-g++}"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/compat.cpp" "$ROOT/kernel/tests/linux_syscall_translation_test.cpp" \
+  -o "$BUILD/linux-syscall-translation-test"
+"$BUILD/linux-syscall-translation-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/service.cpp" "$ROOT/kernel/tests/service_bootstrap_honesty_test.cpp" \
+  -o "$BUILD/service-bootstrap-honesty-test"
+"$BUILD/service-bootstrap-honesty-test"
+# Bounded CPIO VFS and process lifecycle metadata regressions run hosted before
+# the freestanding kernel compile. waitpid_poll is intentionally non-blocking.
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/vfs_cpio.cpp" "$ROOT/kernel/tests/vfs_cpio_test.cpp" \
+  -o "$BUILD/vfs-cpio-test"
+"$BUILD/vfs-cpio-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/process.cpp" "$ROOT/kernel/core/vfs_cpio.cpp" "$ROOT/kernel/tests/process_lifecycle_test.cpp" \
+  -o "$BUILD/process-lifecycle-test"
+"$BUILD/process-lifecycle-test"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space target_launch)
+sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 vfs_cpio platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space target_launch)
 for src in "${sources[@]}"; do
   "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
 done
@@ -74,7 +101,8 @@ fi
 
 grep -aF '[INST] Installer runtime initialization' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: installer bootstrap is missing from Koronos ELF" >&2; exit 1; }
 grep -aF '[SCH ] Bootstrap tasks submitted' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: scheduler bootstrap is missing from Koronos ELF" >&2; exit 1; }
-grep -aF '[KORE] Service orchestration online' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: Kore bootstrap is missing from Koronos ELF" >&2; exit 1; }
+grep -aF '[KORE] Service registry initialized; process-backed health checks pending' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: Kore service-registry diagnostic is missing from Koronos ELF" >&2; exit 1; }
+grep -aF '[KORE] Storage/security/logging services BLOCKED: real backends and health checks unavailable' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: blocked-service diagnostic is missing from Koronos ELF" >&2; exit 1; }
 grep -aF '[ABI ] Compatibility syscall/interrupt registry ready' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: compatibility ABI bootstrap is missing from Koronos ELF" >&2; exit 1; }
 
 auto_banner=''

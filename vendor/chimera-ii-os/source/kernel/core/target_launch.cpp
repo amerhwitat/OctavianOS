@@ -145,7 +145,10 @@ extern "C" int koronos_target_note_user_write(const char *bytes, uint64_t length
 }
 
 extern "C" int koronos_launch_selected_userspace(void) {
-    if (attempted) return 0;
+    if (attempted) {
+        koronos_target_log("[RUN ] ERROR: selected userspace launch was already attempted; refusing duplicate success");
+        return -13;
+    }
     attempted=true;
     const chimera_boot_module *selected=nullptr;
     uint32_t count=0;

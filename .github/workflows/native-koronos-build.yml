@@ -78,6 +78,7 @@ on:
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/machine-code-pipeline-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-process-loader.yml'
+      - 'tests/migration/**'
       - '.github/workflows/native-koronos-build.yml'
 
 permissions:
@@ -390,7 +391,7 @@ jobs:
           grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init never acknowledged a CPL3 syscall"; exit 1; }
           grep -Fq 'NATIVE INIT PID: target=installer pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not report the kernel-returned PID"; exit 1; }
           grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native services did not fail closed"; exit 1; }
-          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer readiness failure was not reported"; exit 1; }
+          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target did not fail closed after the readiness handshake was withheld"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |

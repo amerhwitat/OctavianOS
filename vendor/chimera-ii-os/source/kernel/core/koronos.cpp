@@ -243,13 +243,9 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
+        // Only the Live task may launch the Live target. Installer and Recovery
+        // also carry USER_INIT_ELF modules, but those belong to their own task
+        // paths below; dispatching the first ELF found here steals their launch.
         const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
         if (m) {
             console_write("[LIVE] Live initramfs module recognized");
@@ -296,17 +292,13 @@ static void task_installer(void *) {
         return;
     }
 
-    if (image) {
-        const int launch_rc = koronos_launch_selected_userspace();
-        if (launch_rc != 0) {
-            console_write("[RUN ] Installer target init failed before readiness; failing closed");
-            chimera_sched_block();
-            return;
-        }
-    }
-
-    switch (installer_phase++) {
+    const uint32_t phase = installer_phase++;
+    switch (phase) {
         case 0:
+            // Log classification/metadata before entering user mode. The
+            // launcher can return an expected fail-closed error when the
+            // production services are unavailable; that must not hide the
+            // fact that the installer image was correctly recognized.
             console_write("[INST] Installer target detected");
             if (image) console_write("[INST] Installation image accepted");
             else console_write("[INST] ERROR: installation image module missing");
@@ -335,7 +327,21 @@ static void task_installer(void *) {
             break;
         default:
             chimera_sched_block();
-            break;
+            return;
+    }
+
+    // The target-specific init owns the installer session. Attempt launch
+    // once, after reporting module recognition; never continue into synthetic
+    // service scaffolding after a launch/readiness failure.
+    if (image && phase == 0) {
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0) {
+            console_write("[RUN ] Installer target init failed before readiness; failing closed");
+            chimera_sched_block();
+            return;
+        }
+        chimera_sched_block();
+        return;
     }
 }
 
@@ -388,8 +394,8 @@ static void task_kore(void *) {
     if (!started) {
         started = true;
         chimera_kore_bootstrap();
-        console_write("[KORE] Service orchestration online");
-        console_write("[KORE] Core storage/security/logging services active");
+        console_write("[KORE] Service registry initialized; process-backed health checks pending");
+        console_write("[KORE] Storage/security/logging services BLOCKED: real backends and health checks unavailable");
     }
     // Bootstrap orchestration is complete; a service worker must block until
     // an event source wakes it rather than consume every scheduler dispatch.
