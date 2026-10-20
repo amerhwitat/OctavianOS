@@ -337,6 +337,7 @@ jobs:
           menuentry "Recovery module smoke" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+            module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
           }
@@ -348,7 +349,10 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[RUN ] Recovery target init failed before readiness; failing closed' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery missing-init failure diagnostic absent"; exit 1; }
+          grep -Fq 'USER INIT SYSCALL: target=recovery init_pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init never acknowledged a CPL3 syscall"; exit 1; }
+          grep -Fq 'NATIVE INIT PID: target=recovery pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not report the kernel-returned PID"; exit 1; }
+          grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native services did not fail closed"; exit 1; }
+          grep -Fq '[RUN ] Recovery target init failed before readiness; failing closed' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery readiness failure was not reported"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -362,6 +366,7 @@ jobs:
           terminal_output console
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
@@ -377,7 +382,10 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[LIVE] Installer target detected; live service idle' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer image module was not recognized"; exit 1; }
-          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer missing-init failure diagnostic absent"; exit 1; }
+          grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init never acknowledged a CPL3 syscall"; exit 1; }
+          grep -Fq 'NATIVE INIT PID: target=installer pid=' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not report the kernel-returned PID"; exit 1; }
+          grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native services did not fail closed"; exit 1; }
+          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer readiness failure was not reported"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
