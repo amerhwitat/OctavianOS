@@ -76,7 +76,7 @@ __attribute__((noreturn, used)) void _start(void) {
      OPEN accepts O_RDONLY only; READ copies into this process's writable
      stack; CLOSE must release the per-process descriptor. */
   long fd = call3(20, (long)target_path, 0, 0);
-  char target_value[sizeof(CHIMERA_INIT_TARGET_NAME) + 1u];
+  char target_value[sizeof(CHIMERA_INIT_TARGET_NAME)];
   long bytes = fd >= 3 ? call3(8, fd, (long)target_value, (long)sizeof(target_value)) : fd;
   long close_rc = fd >= 3 ? call1(21, fd) : 0;
   if (fd < 3 || bytes != (long)sizeof(target_value) ||
