@@ -34,6 +34,14 @@ int main() {
     failures += check(module && memchr(module->cmdline, 0, sizeof(module->cmdline)) != nullptr,
                       "command line buffer is always terminated");
 
+    build_valid(info, true, true);
+    const char* installer_name = "installer-initramfs.img";
+    memcpy(info + 8 + 16, installer_name, strlen(installer_name) + 1u);
+    failures += check(chimera_multiboot_scan(reinterpret_cast<uint64_t>(info)) == 1,
+                      "dedicated installer initramfs is enumerated");
+    failures += check(chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS) != nullptr,
+                      "installer root is classified separately from installation disk image");
+
     build_valid(info, false, true);
     failures += check(chimera_multiboot_scan(reinterpret_cast<uint64_t>(info)) == 1,
                       "unterminated source command line is bounded and accepted safely");
