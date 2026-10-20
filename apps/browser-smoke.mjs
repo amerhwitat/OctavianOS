@@ -39,7 +39,9 @@ try {
   wav.writeUInt16LE(1,22); wav.writeUInt32LE(8000,24); wav.writeUInt32LE(16000,28);
   wav.writeUInt16LE(2,32); wav.writeUInt16LE(16,34); wav.write("data",36); wav.writeUInt32LE(800,40);
   await page.locator("#files").setInputFiles({name:"smoke.wav",mimeType:"audio/wav",buffer:wav});
-  assert.match(await page.locator("#status").innerText(), /Loaded: smoke\.wav/);
+  assert.match(await page.locator("#status").innerText(), /Added 1 media file\\(s\\); Loaded: smoke\\.wav/);
+  assert.match(await page.locator("#queue").innerText(), /smoke\\.wav/);
+  assert.ok(await page.locator("#audio").evaluate((audio) => audio.src.startsWith("blob:")), "Media Deck should attach the selected local file to its audio player");
   passed.push("Media Deck local media load");
 
   await page.goto(file("document-desk.html"));
