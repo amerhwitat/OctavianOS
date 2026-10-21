@@ -534,6 +534,10 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[SCH ] Initializing scheduler...");
     chimera_sched_init(f->logical_cpus);
     chimera_learning_init(f->logical_cpus);
+    // The service manager's health probe requires scheduler initialization to
+    // have completed before declaring this bootstrap service ready. Leaving
+    // this flag unset makes the critical scheduler service fail every boot.
+    g_scheduler_ready = 1;
     console_progress(35, "Scheduler and learning runtime initialized");
 
     console_write("[IO  ] Initializing virtual I/O drivers...");
