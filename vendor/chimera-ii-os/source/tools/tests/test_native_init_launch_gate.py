@@ -96,8 +96,12 @@ def main() -> int:
 
     build_path = ROOT / "kernel/build-koronos.sh"
     build = build_path.read_text(encoding="utf-8")
-    if "user-init-${target}.elf" in build and not ("acceptance probes" in build and "not production shells" in build):
-        return fail("smoke probe artifacts are not explicitly isolated from production")
+    if '"$ROOT/kernel/userspace/native_init.c"' not in build:
+        return fail("production target ELF must be compiled from canonical native_init.c")
+    if '"$ROOT/kernel/tests/user_init_smoke.c"' not in build:
+        return fail("the separate non-cooperative timeout probe must remain available")
+    if 'CHIMERA_INIT_TARGET_NAME=\\\"$target\\\"' not in build:
+        return fail("production init must receive the exact target name at compile time")
 
     print("NATIVE INIT LAUNCH GATE PASS: missing ELF fails closed; mount ABI is not faked; probes remain isolated")
     return 0
