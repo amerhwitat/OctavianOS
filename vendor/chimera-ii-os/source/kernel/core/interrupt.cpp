@@ -204,6 +204,12 @@ extern "C" void koronos_user_timeout_disarm(void) {
     if (saved_flags & (1ull << 9)) __asm__ volatile("sti" ::: "memory");
 }
 
+extern "C" int koronos_user_timeout_pending(void) {
+    // IRQ0 sets this flag when the bounded ring-3 launch deadline expires.
+    // The syscall gate checks it before accepting more user work.
+    return user_timeout_expired ? 1 : 0;
+}
+
 extern "C" int koronos_user_timeout_irq(void) {
     // Acknowledge IRQ0 before checking the deadline so the PIC can deliver
     // subsequent ticks while the user task is still within its time budget.
