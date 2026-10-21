@@ -34,8 +34,8 @@ class UserspaceMarkerContractTests(unittest.TestCase):
 
     def test_production_verifier_uses_same_target_and_pid_names(self):
         verifier = VERIFY.read_text(encoding="utf-8")
-        self.assertRegex(verifier, r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=")
-        self.assertRegex(verifier, r"USERSPACE READY: target=(live|installer|recovery) init_pid=")
+        self.assertIn('USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)', verifier)
+        self.assertIn('USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)', verifier)
         self.assertIn("entry.group(2) == marker.group(2)", verifier)
 
 
