@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/config/services/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
+      - 'vendor/chimera-ii-os/source/docs/OPEN_SOURCE_INTEGRATION_PLAN.md'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
@@ -51,6 +54,9 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/config/services/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
+      - 'vendor/chimera-ii-os/source/docs/OPEN_SOURCE_INTEGRATION_PLAN.md'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
@@ -100,6 +106,15 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+      - name: Validate runtime service evidence and driver lifecycle
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 -m json.tool config/services/service-registry.json >/dev/null
+          python3 -m json.tool config/services/runtime-evidence.json >/dev/null
+          python3 tools/tests/test_service_registry.py
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/core/driver.cpp kernel/tests/driver_backend_honesty_test.cpp -o /tmp/octavian-driver-lifecycle-test
+          /tmp/octavian-driver-lifecycle-test
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
