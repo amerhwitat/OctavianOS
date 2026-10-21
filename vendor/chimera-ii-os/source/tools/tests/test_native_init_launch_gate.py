@@ -103,7 +103,7 @@ def main() -> int:
     if "-DCHIMERA_INIT_TARGET_NAME=" not in build:
         return fail("production init must receive the exact target name at compile time")
 
-    print("NATIVE INIT LAUNCH GATE PASS: missing ELF fails closed; mount ABI is not faked; probes remain isolated")
+    print("NATIVE INIT LAUNCH GATE PASS: production init source is separate; missing ELF fails closed; no fake readiness")
     return 0
 
 
