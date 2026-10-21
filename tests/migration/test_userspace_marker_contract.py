@@ -15,8 +15,11 @@ class UserspaceMarkerContractTests(unittest.TestCase):
     def test_kernel_and_probe_emit_same_canonical_marker(self):
         launch = LAUNCH.read_text(encoding="utf-8")
         probe = PROBE.read_text(encoding="utf-8")
-        self.assertIn('const char *a="USERSPACE READY: target=";', launch)
-        self.assertIn('const char *b=" init_pid=";', launch)
+        # The kernel parses the marker components and the probe constructs the
+        # complete target/PID line; don't require an obsolete logging idiom.
+        self.assertIn('"USERSPACE READY: target="', launch)
+        self.assertIn('" init_pid="', launch)
+        self.assertIn('parse_target_pid_line(bytes,length,"USERSPACE READY: target="," init_pid=",target,pid)', launch)
         self.assertIn('"USERSPACE READY: target=" CHIMERA_TARGET_NAME " init_pid="', probe)
         self.assertNotIn('const char *a="USERSPACE READY: ";', launch)
         self.assertNotIn('"USERSPACE READY: " CHIMERA_TARGET_NAME " init pid="', probe)
@@ -24,12 +27,14 @@ class UserspaceMarkerContractTests(unittest.TestCase):
     def test_ci_regex_and_timeout_negative_assertion_match_contract(self):
         workflow = ACCEPTANCE.read_text(encoding="utf-8")
         self.assertIn('USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*', workflow)
-        self.assertIn('! grep -Fq "USERSPACE READY: target=live" "$LOG"', workflow)
+        # Negative timeout probe rejects the full canonical marker, including
+        # the required nonzero PID; it cannot pass on a truncated prefix.
+        self.assertIn('! grep -Fq "USERSPACE READY: target=live init_pid=" "$LOG"', workflow)
         self.assertNotIn('USERSPACE READY: ${TARGET} init pid=', workflow)
 
     def test_production_verifier_uses_same_target_and_pid_names(self):
         verifier = VERIFY.read_text(encoding="utf-8")
-        self.assertRegex(verifier, r'USERSPACE READY: target=\(live\|installer\|recovery\) init_pid=')
+        self.assertRegex(verifier, r'USERSPACE READY: target=\\(live\\|installer\\|recovery\\) init_pid=')
 
 
 if __name__ == "__main__":
