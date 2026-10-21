@@ -111,8 +111,8 @@ done
 printf 'Koronos ELF64: %s\n' "$BUILD/koronos.elf"
 printf 'Koronos + native Kore + OOP object model + SMP-safe scheduler + hardware/firmware + drivers + syscall/interrupt compatibility + N-bit runtime linked.\n'
 
-# Build target-specific, high-address ring-3 acceptance probes. These are test
-# payloads, not production shells or installer implementations.
+# Build the real target-specific native init ELF. It validates the selected CPIO
+# root and fails closed until persistent services exist; it is not a shell/installer.
 USER_CC="${CC:-gcc}"
 for target in live installer recovery; do
   case "$target" in
@@ -123,7 +123,7 @@ for target in live installer recovery; do
   "$USER_CC" -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
     -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
     -fno-asynchronous-unwind-tables -fno-unwind-tables \
-    -DCHIMERA_INIT_TARGET="$target_id" -DCHIMERA_INIT_TARGET_NAME=\\"$target\\" \
+    -DCHIMERA_INIT_TARGET="$target_id" -DCHIMERA_INIT_TARGET_NAME=\"$target\" \
     -c "$ROOT/kernel/userspace/native_init.c" -o "$BUILD/user-init-${target}.o"
   "$LD" -nostdlib -z max-page-size=0x1000 --build-id=none \
     -T "$ROOT/kernel/tests/user_init_smoke.ld" \
