@@ -42,6 +42,39 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address candidate probes (NOT production init)
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Ensure target-specific probe ELFs exist before ISO assembly
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          BUILD="$PWD/build/koronos/x86_64"
+          # Keep this workflow self-contained: a kernel-only build must never
+          # silently leave the matrix without its target probe payloads.
+          for target in live installer recovery; do
+            if [ ! -s "$BUILD/user-init-$target.elf" ]; then
+              gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \\
+                -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \\
+                -fno-asynchronous-unwind-tables -fno-unwind-tables \\
+                -D"CHIMERA_TARGET_${target^^}"=1 \\
+                -c kernel/tests/user_init_smoke.c -o "$BUILD/user-init-$target.o"
+              ld -nostdlib -z max-page-size=0x1000 --build-id=none \\
+                -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-$target.o" \\
+                -o "$BUILD/user-init-$target.elf"
+            fi
+            test -s "$BUILD/user-init-$target.elf"
+            readelf -h "$BUILD/user-init-$target.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
+            readelf -lW "$BUILD/user-init-$target.elf" | grep -Eq 'LOAD.*R E'
+          done
+          if [ ! -s "$BUILD/user-init-timeout.elf" ]; then
+            gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \\
+              -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \\
+              -fno-asynchronous-unwind-tables -fno-unwind-tables -DCHIMERA_TARGET_LIVE=1 -DCHIMERA_TEST_HANG=1 \\
+              -c kernel/tests/user_init_smoke.c -o "$BUILD/user-init-timeout.o"
+            ld -nostdlib -z max-page-size=0x1000 --build-id=none \\
+              -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-timeout.o" \\
+              -o "$BUILD/user-init-timeout.elf"
+          fi
+          test -s "$BUILD/user-init-timeout.elf"
+          echo "All candidate probe ELFs exist and have validated ELF headers."
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
