@@ -34,6 +34,31 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf busybox-static cpio
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Build explicitly separate ring-3 smoke probes
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          BUILD="$PWD/build/koronos/x86_64"
+          # build-koronos.sh creates production native_init ELFs which correctly
+          # exit 78 while service backends are missing. Never use those as the
+          # probe matrix payload: compile the dedicated handshake-only test ELF.
+          for target in live installer recovery; do
+            case "$target" in
+              live) macro=CHIMERA_TARGET_LIVE ;;
+              installer) macro=CHIMERA_TARGET_INSTALLER ;;
+              recovery) macro=CHIMERA_TARGET_RECOVERY ;;
+            esac
+            gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \\
+              -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \\
+              -fno-asynchronous-unwind-tables -fno-unwind-tables -D"$macro"=1 \\
+              -c kernel/tests/user_init_smoke.c -o "$BUILD/user-init-$target-probe.o"
+            ld -nostdlib -z max-page-size=0x1000 --build-id=none \\
+              -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-$target-probe.o" \\
+              -o "$BUILD/user-init-$target-probe.elf"
+            readelf -h "$BUILD/user-init-$target-probe.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
+            readelf -lW "$BUILD/user-init-$target-probe.elf" | grep -Eq 'LOAD.*R E'
+            test -s "$BUILD/user-init-$target-probe.elf"
+          done
       - name: Build compressed initramfs and raw native VFS roots
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -68,7 +93,7 @@ jobs:
           ISO_ROOT="$OUT/iso"
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
+          cp "build/koronos/x86_64/user-init-$TARGET-probe.elf" "$ISO_ROOT/boot/user-init-$TARGET-probe.elf"
           case "$TARGET" in
             live) ROOT_CPIO="build/live-boot/boot/live/chimera-live-initramfs.cpio"; TARGET_MODULE="chimera-live-initramfs" ;;
             installer) ROOT_CPIO="build/live-boot/boot/installer/chimera-installer-initramfs.cpio"; TARGET_MODULE="chimera-installer-initramfs" ;;
@@ -83,7 +108,7 @@ jobs:
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/user-init-$TARGET-probe.elf chimera-user-init-elf target=$TARGET
             module2 /boot/target-root.cpio $TARGET_MODULE
             boot
           }
