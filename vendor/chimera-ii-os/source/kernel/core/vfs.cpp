@@ -1,6 +1,7 @@
 #include "chimera/vfs.h"
 
 namespace {
+struct FsGuard { volatile uint32_t *lock; explicit FsGuard(chimera_vfs *fs):lock(fs?&fs->lock:nullptr){if(lock)while(__sync_lock_test_and_set(lock,1u)){} } ~FsGuard(){if(lock)__sync_lock_release(lock);} };
 static bool add_overflow(uint64_t a, uint64_t b, uint64_t *out) {
     if (!out || b > UINT64_MAX - a) return true;
     *out = a + b;
@@ -73,12 +74,14 @@ extern "C" int chimera_vfs_init(chimera_vfs *fs, chimera_vfs_node *nodes,
         nodes[i].data_offset = static_cast<uint64_t>(i) * slot_size;
         nodes[i].capacity = slot_size;
     }
+    fs->lock = 0;
     fs->initialized = 1;
     return CHIMERA_VFS_OK;
 }
 
 extern "C" int chimera_vfs_create(chimera_vfs *fs, const char *path,
                                    uint32_t mode, uint32_t uid, uint32_t gid) {
+    FsGuard guard(fs);
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
     if (rc) return rc;
@@ -112,6 +115,7 @@ extern "C" int chimera_vfs_create(chimera_vfs *fs, const char *path,
 
 extern "C" int chimera_vfs_stat_path(chimera_vfs *fs, const char *path,
                                       uint32_t uid, uint32_t gid, chimera_vfs_stat *out) {
+    FsGuard guard(fs);
     if (!out) return CHIMERA_VFS_EINVAL;
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
@@ -129,6 +133,7 @@ extern "C" int chimera_vfs_stat_path(chimera_vfs *fs, const char *path,
 
 extern "C" int64_t chimera_vfs_read(chimera_vfs *fs, const char *path, uint64_t offset,
                                      void *buffer, uint64_t length, uint32_t uid, uint32_t gid) {
+    FsGuard guard(fs);
     if (length && !buffer) return CHIMERA_VFS_EINVAL;
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
@@ -146,6 +151,7 @@ extern "C" int64_t chimera_vfs_read(chimera_vfs *fs, const char *path, uint64_t 
 
 extern "C" int64_t chimera_vfs_write(chimera_vfs *fs, const char *path, uint64_t offset,
                                       const void *buffer, uint64_t length, uint32_t uid, uint32_t gid) {
+    FsGuard guard(fs);
     if (length && !buffer) return CHIMERA_VFS_EINVAL;
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
@@ -167,6 +173,7 @@ extern "C" int64_t chimera_vfs_write(chimera_vfs *fs, const char *path, uint64_t
 
 extern "C" int chimera_vfs_truncate(chimera_vfs *fs, const char *path, uint64_t size,
                                       uint32_t uid, uint32_t gid) {
+    FsGuard guard(fs);
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
     if (rc) return rc;
@@ -184,6 +191,7 @@ extern "C" int chimera_vfs_truncate(chimera_vfs *fs, const char *path, uint64_t 
 
 extern "C" int chimera_vfs_chmod(chimera_vfs *fs, const char *path, uint32_t mode,
                                    uint32_t caller_uid, uint32_t caller_gid) {
+    FsGuard guard(fs);
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
     if (rc) return rc;
@@ -197,6 +205,7 @@ extern "C" int chimera_vfs_chmod(chimera_vfs *fs, const char *path, uint32_t mod
 
 extern "C" int chimera_vfs_chown(chimera_vfs *fs, const char *path, uint32_t owner_uid,
                                   uint32_t owner_gid, uint32_t caller_uid) {
+    FsGuard guard(fs);
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
     if (rc) return rc;
@@ -210,6 +219,7 @@ extern "C" int chimera_vfs_chown(chimera_vfs *fs, const char *path, uint32_t own
 
 extern "C" int chimera_vfs_unlink(chimera_vfs *fs, const char *path,
                                    uint32_t caller_uid, uint32_t caller_gid) {
+    FsGuard guard(fs);
     char key[CHIMERA_VFS_PATH_MAX];
     const int rc = canonical(fs, path, key);
     if (rc) return rc;
