@@ -115,11 +115,16 @@ printf 'Koronos + native Kore + OOP object model + SMP-safe scheduler + hardware
 # payloads, not production shells or installer implementations.
 USER_CC="${CC:-gcc}"
 for target in live installer recovery; do
+  case "$target" in
+    live) target_id=1 ;;
+    installer) target_id=2 ;;
+    recovery) target_id=3 ;;
+  esac
   "$USER_CC" -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
     -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
     -fno-asynchronous-unwind-tables -fno-unwind-tables \
-    -D"CHIMERA_TARGET_${target^^}"=1 \
-    -c "$ROOT/kernel/userland/native_init.c" -o "$BUILD/user-init-${target}.o"
+    -DCHIMERA_INIT_TARGET="$target_id" -DCHIMERA_INIT_TARGET_NAME=\\"$target\\" \
+    -c "$ROOT/kernel/userspace/native_init.c" -o "$BUILD/user-init-${target}.o"
   "$LD" -nostdlib -z max-page-size=0x1000 --build-id=none \
     -T "$ROOT/kernel/tests/user_init_smoke.ld" \
     "$BUILD/user-init-${target}.o" -o "$BUILD/user-init-${target}.elf"
