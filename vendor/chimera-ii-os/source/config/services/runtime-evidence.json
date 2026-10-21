@@ -19,10 +19,11 @@
     "chimera.storage": {
       "status": "blocked",
       "missing": [
-        "real block device backend (virtio-blk or equivalent)",
-        "bounded request queues and completion/error paths",
-        "flush/barrier semantics",
-        "persistent partition/filesystem mount"
+        "PCI configuration-space discovery and BAR/MMIO mapping wired to a real device backend",
+        "DMA-safe Virtio-blk feature negotiation and virtqueue descriptor/avail/used ring lifecycle",
+        "real hardware-backed bounded read/write requests and completion/error/timeout paths",
+        "device flush/barrier semantics verified against a real backend",
+        "persistent partition/filesystem mount and cross-reboot durability tests"
       ]
     },
     "chimera.security": {
@@ -174,6 +175,27 @@
     "acceptance_status": "failed_closed",
     "evidence": "Native build, ELF/Multiboot2 checks, QEMU kernel smoke, ISO candidate creation, and all six target/firmware traces completed.",
     "failure": "The six full-ISO traces reached a CPL 3 init syscall, but native init explicitly withheld USERSPACE READY because required operational services remain unavailable.",
-    "limitation": "Do not reinterpret CPL 3 entry or ISO boot success as target readiness. All six target/firmware entries remain not_verified; prerelease publication was skipped."
+    "limitation": "Do not reinterpret CPL 3 entry or ISO boot success as target readiness. All six target/firmware entries remain not_verified; prerelease publication was skipped.",
+    "next_increment": "Added bounded block API and regression test to the native build path; the newly triggered CI must pass before this increment is considered verified."
+  },
+  "implemented_contracts": {
+    "bounded_block_api": {
+      "status": "implemented_pending_ci",
+      "files": [
+        "kernel/include/chimera/block.h",
+        "kernel/core/block.cpp",
+        "kernel/tests/block_api_test.cpp"
+      ],
+      "guarantees": [
+        "fixed-capacity device registry",
+        "duplicate device ID rejection",
+        "sector-size validation",
+        "bounded sector count and LBA range checks",
+        "read/write callback error propagation",
+        "optional flush callback with explicit unsupported result",
+        "device unregister"
+      ],
+      "limitation": "This API is not a PCI enumerator, DMA allocator, Virtio-blk transport, filesystem, or durability proof. Storage service remains blocked until a real hardware backend is wired and target-tested."
+    }
   }
 }
