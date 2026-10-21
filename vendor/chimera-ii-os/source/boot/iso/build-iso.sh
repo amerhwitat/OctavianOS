@@ -57,6 +57,11 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+for target in live installer recovery; do
+  staged_init="$DIST/iso/boot/koronos/native-init-$target.elf"
+  test -s "$staged_init" || { echo "ERROR: target-specific $target init ELF was not staged: $staged_init" >&2; exit 2; }
+done
+test -s "$DIST/iso/boot/koronos/native-init.elf"
 LIVE_BOOT="$ROOT/build/live-boot/boot/live"
 test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: native live CPIO root missing" >&2; exit 2; }
 cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
