@@ -5,6 +5,11 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/iso/**'
+      - 'vendor/chimera-ii-os/source/boot/jasper/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/iso/chimera-live-iso.sh'
+      - '.github/workflows/koronos-userspace-acceptance.yml'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
