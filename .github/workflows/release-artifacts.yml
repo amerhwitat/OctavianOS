@@ -80,8 +80,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # The ISO/container build validates artifact presence and packaging, not the
+  # production CPL3 handoff. Keep publication blocked until the six-case
+  # Live/Installer/Recovery x BIOS/UEFI acceptance matrix has been reviewed.
+  # Set CHIMERA_RELEASE_ACCEPTANCE_APPROVED=true only after that evidence passes.
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+    if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish) && vars.CHIMERA_RELEASE_ACCEPTANCE_APPROVED == 'true'
     needs: [container, iso]
     runs-on: ubuntu-latest
     steps:
