@@ -8,6 +8,7 @@
 extern "C" void *chimera_isr_table[CHIMERA_IDT_ENTRIES];
 extern "C" int koronos_user_timeout_irq(void);
 extern "C" __attribute__((noreturn)) void koronos_user_timeout_abort(void);
+extern "C" __attribute__((noreturn)) void koronos_user_timeout_abort_irq(void);
 extern "C" int koronos_user_timeout_pending(void);
 
 namespace {
@@ -123,7 +124,7 @@ extern "C" void chimera_interrupt_dispatch(uint64_t vector, uint64_t frame) {
         const uint64_t *saved = reinterpret_cast<const uint64_t *>(static_cast<uintptr_t>(frame));
         /* Do not abandon a CPL0 critical section; defer timeout abort until CPL3. */
         if (expired && saved && ((saved[17] & 3u) == 3u))
-            koronos_user_timeout_abort();
+            koronos_user_timeout_abort_irq();
         return;
     }
     g_last = (uint32_t)vector;
