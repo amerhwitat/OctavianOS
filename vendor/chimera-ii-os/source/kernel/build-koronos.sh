@@ -119,7 +119,7 @@ for target in live installer recovery; do
     -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
     -fno-asynchronous-unwind-tables -fno-unwind-tables \
     -D"CHIMERA_TARGET_${target^^}"=1 \
-    -c "$ROOT/kernel/tests/user_init_smoke.c" -o "$BUILD/user-init-${target}.o"
+    -c "$ROOT/kernel/userland/native_init.c" -o "$BUILD/user-init-${target}.o"
   "$LD" -nostdlib -z max-page-size=0x1000 --build-id=none \
     -T "$ROOT/kernel/tests/user_init_smoke.ld" \
     "$BUILD/user-init-${target}.o" -o "$BUILD/user-init-${target}.elf"
