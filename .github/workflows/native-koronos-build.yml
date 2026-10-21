@@ -115,6 +115,12 @@ jobs:
           python3 tools/tests/test_service_registry.py
           g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/core/driver.cpp kernel/tests/driver_backend_honesty_test.cpp -o /tmp/octavian-driver-lifecycle-test
           /tmp/octavian-driver-lifecycle-test
+      - name: Compile and run service lifecycle tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include kernel/core/service.cpp kernel/tests/service_lifecycle_test.cpp -o /tmp/octavian-service-lifecycle-test
+          /tmp/octavian-service-lifecycle-test
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
