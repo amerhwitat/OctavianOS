@@ -591,10 +591,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
 
     chimera_learning_record(1, f->logical_cpus);
     koronos_elf64_init();
-    chimera_process_init();
-    g_process_registry_ready = 1;
-    console_write("[PROC] Protected-process admission layer ready (load-plan mode)");
-    console_progress(75, "Process admission and module registries initialized");
+    const int process_init_rc = chimera_process_init();
+    g_process_registry_ready = (process_init_rc == 0);
+    if (g_process_registry_ready) {
+        console_write("[PROC] Protected-process admission layer ready (load-plan mode)");
+        console_progress(75, "Process admission and module registries initialized");
+    } else {
+        console_write("[PROC] ERROR: process registry initialization failed; dependent services remain blocked");
+        console_progress(75, "Process registry unavailable; dependent services blocked");
+    }
     koronos_module_init();
     koronos_state = 0x4B4F524Fu;
     console_write("[PLT ] Native platform feature registry ready");
