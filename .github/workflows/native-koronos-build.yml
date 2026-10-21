@@ -247,7 +247,12 @@ jobs:
               assert data.startswith(b"070701"), f"{name} is not raw newc CPIO"
           print("Native VFS root archives verified as raw newc CPIO.")
           PY
-          # build-koronos.sh runs the standalone host test and removes its binary;\n          # rebuild it here so it can validate each actual staged root archive.\n          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include \\\n            kernel/core/vfs_cpio.cpp kernel/tests/vfs_cpio_test.cpp \\\n            -o build/koronos/x86_64/vfs-cpio-test\n          build/koronos/x86_64/vfs-cpio-test "$live_cpio"
+          # build-koronos.sh runs the standalone host test and removes its binary;
+          # rebuild it here so it can validate each actual staged root archive.
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include \
+            kernel/core/vfs_cpio.cpp kernel/tests/vfs_cpio_test.cpp \
+            -o build/koronos/x86_64/vfs-cpio-test
+          build/koronos/x86_64/vfs-cpio-test "$live_cpio"
           build/koronos/x86_64/vfs-cpio-test "$recovery_cpio"
           build/koronos/x86_64/vfs-cpio-test "$installer_cpio"
           test -s "$live"
