@@ -23,6 +23,11 @@ BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
 # Run the vendored service lifecycle regression before the freestanding build.
 HOST_CXX="${HOST_CXX:-g++}"
+BLOCK_TEST="$BUILD/block-api-test"
+"$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/block.cpp" "$ROOT/kernel/tests/block_api_test.cpp" -o "$BLOCK_TEST"
+"$BLOCK_TEST"
+rm -f "$BLOCK_TEST"
 SERVICE_TEST="$BUILD/service-lifecycle-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
   "$ROOT/kernel/core/service.cpp" "$ROOT/kernel/tests/service_lifecycle_test.cpp" \
