@@ -36,7 +36,7 @@ class UserspaceMarkerContractTests(unittest.TestCase):
         verifier = VERIFY.read_text(encoding="utf-8")
         self.assertIn('USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)', verifier)
         self.assertIn('USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)', verifier)
-        self.assertIn("entry.group(2) == marker.group(2)", verifier)
+        self.assertIn("marker.group(2) == entry.group(2)", verifier)
 
 
 if __name__ == "__main__":
