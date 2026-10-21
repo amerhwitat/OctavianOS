@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Candidate Ring-3 Probe (Not Production Acceptance)
 
 on:
   workflow_dispatch:
@@ -17,12 +17,14 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
+# This workflow boots synthetic candidate probes only. It is never a production release gate;
+# release decisions require the separately built full ISO and real target service operations.
 permissions:
   contents: read
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: candidate probe (NOT production acceptance) / ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -37,7 +39,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
-      - name: Build Koronos and high-address userspace probes
+      - name: Build Koronos and high-address candidate probes (NOT production init)
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
@@ -47,7 +49,7 @@ jobs:
             kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
             -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
+      - name: Build probe-only BIOS/UEFI ISO (not the release ISO)
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -71,7 +73,7 @@ jobs:
           EOF
           grub-mkrescue -o "$OUT/koronos-$TARGET.iso" "$ISO_ROOT"
           test -s "$OUT/koronos-$TARGET.iso"
-      - name: Boot and require userspace-originated readiness
+      - name: Candidate probe: require probe-originated marker (NOT production acceptance)
         env:
           TARGET: ${{ matrix.target }}
           FIRMWARE: ${{ matrix.firmware }}
