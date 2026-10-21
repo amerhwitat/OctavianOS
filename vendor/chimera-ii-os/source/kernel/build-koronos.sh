@@ -53,6 +53,7 @@ VFS_FD_TEST="$BUILD/vfs-fd-test"
   "$ROOT/kernel/tests/vfs_fd_test.cpp" -o "$VFS_FD_TEST"
 "$VFS_FD_TEST"
 rm -f "$VFS_FD_TEST"
+python3 "$ROOT/tools/tests/test_user_timeout_abort_contract.py"
 PROCESS_TEST="$BUILD/process-elf-admission-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
   "$ROOT/kernel/core/elf64.cpp" "$ROOT/kernel/core/process.cpp" \
