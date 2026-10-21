@@ -121,6 +121,12 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include kernel/core/service.cpp kernel/tests/service_lifecycle_test.cpp -o /tmp/octavian-service-lifecycle-test
           /tmp/octavian-service-lifecycle-test
+      - name: Compile and run bounded block API contract test
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/core/block.cpp kernel/tests/block_api_test.cpp -o /tmp/octavian-block-api-test
+          /tmp/octavian-block-api-test
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
