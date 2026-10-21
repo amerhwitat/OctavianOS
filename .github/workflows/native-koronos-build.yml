@@ -1,4 +1,4 @@
-name: Native Koronos kernel build
+name: Native Koronos build and production routing contracts
 
 on:
   workflow_dispatch:
@@ -51,6 +51,8 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/boot/**'
+      - 'vendor/chimera-ii-os/source/.github/workflows/chimera-full-iso.yml'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
