@@ -115,6 +115,10 @@ extern "C" void chimera_interrupt_dispatch(uint64_t vector, uint64_t frame) {
         message[pos] = 0;
         koronos_target_log(message);
     }
+    if (vector == 32u) {
+        if (koronos_user_timeout_irq() != 0) koronos_user_timeout_abort();
+        return;
+    }
     g_last = (uint32_t)vector;
     if (is_exception((uint32_t)vector)) ++g_exceptions;
     else if (vector >= 32u && vector != CHIMERA_SYSCALL_VECTOR) ++g_irqs;
@@ -144,6 +148,7 @@ static inline void port_out8(uint16_t port, uint8_t value) {
 static inline void io_wait() { port_out8(0x80, 0); }
 }
 
+extern "C" void koronos_user_timeout_abort(void);
 extern "C" int koronos_user_timeout_arm(uint32_t ticks) {
     if (ticks == 0) return -1;
     __asm__ volatile("cli" ::: "memory");
