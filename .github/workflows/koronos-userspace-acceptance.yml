@@ -51,13 +51,13 @@ jobs:
           # silently leave the matrix without its target probe payloads.
           for target in live installer recovery; do
             if [ ! -s "$BUILD/user-init-$target.elf" ]; then
-              gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \\
-                -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \\
-                -fno-asynchronous-unwind-tables -fno-unwind-tables \\
-                -D"CHIMERA_TARGET_${target^^}"=1 \\
+              gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
+                -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
+                -fno-asynchronous-unwind-tables -fno-unwind-tables \
+                -D"CHIMERA_TARGET_${target^^}"=1 \
                 -c kernel/tests/user_init_smoke.c -o "$BUILD/user-init-$target.o"
-              ld -nostdlib -z max-page-size=0x1000 --build-id=none \\
-                -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-$target.o" \\
+              ld -nostdlib -z max-page-size=0x1000 --build-id=none \
+                -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-$target.o" \
                 -o "$BUILD/user-init-$target.elf"
             fi
             test -s "$BUILD/user-init-$target.elf"
@@ -65,12 +65,12 @@ jobs:
             readelf -lW "$BUILD/user-init-$target.elf" | grep -Eq 'LOAD.*R E'
           done
           if [ ! -s "$BUILD/user-init-timeout.elf" ]; then
-            gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \\
-              -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \\
-              -fno-asynchronous-unwind-tables -fno-unwind-tables -DCHIMERA_TARGET_LIVE=1 -DCHIMERA_TEST_HANG=1 \\
+            gcc -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
+              -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
+              -fno-asynchronous-unwind-tables -fno-unwind-tables -DCHIMERA_TARGET_LIVE=1 -DCHIMERA_TEST_HANG=1 \
               -c kernel/tests/user_init_smoke.c -o "$BUILD/user-init-timeout.o"
-            ld -nostdlib -z max-page-size=0x1000 --build-id=none \\
-              -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-timeout.o" \\
+            ld -nostdlib -z max-page-size=0x1000 --build-id=none \
+              -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-timeout.o" \
               -o "$BUILD/user-init-timeout.elf"
           fi
           test -s "$BUILD/user-init-timeout.elf"
