@@ -176,6 +176,9 @@ if [[ -d "$(dirname "$RUNTIME_AURORA_ROOT")" ]]; then
   cp -a "$MEDIA/." "$RUNTIME_AURORA_ROOT/"
 fi
 printf '%s\n' '[5/7] Validate kernel-to-GRUB linkage, graphics and installation contracts'
+test -s "$DIST/iso/boot/live/user-init-live.elf" || { echo "Live ring-3 init ELF missing from ISO." >&2; exit 2; }
+test -s "$DIST/iso/boot/installer/user-init-installer.elf" || { echo "Installer ring-3 init ELF missing from ISO." >&2; exit 2; }
+test -s "$DIST/iso/boot/recovery/user-init-recovery.elf" || { echo "Recovery ring-3 init ELF missing from ISO." >&2; exit 2; }
 test -s "$DIST/iso/boot/koronos/koronos.elf"
 test -s "$DIST/iso/boot/spitfire/spitfire-stage2.bin"
 for visual in \
