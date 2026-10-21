@@ -93,6 +93,22 @@ test -s "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" || { echo "ERROR: nat
 cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" "$DIST/iso/boot/installer/"
 cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio.sha256" "$DIST/iso/boot/installer/"
 
+# Stage the actual freestanding ring-3 init ELFs into the ISO. Building these
+# probes is not enough: GRUB must load the matching file as a Multiboot2 module
+# or the kernel correctly fails closed before attempting userspace entry.
+USER_INIT_BUILD="$ROOT/build/koronos/x86_64"
+for target in live installer recovery; do
+  src="$USER_INIT_BUILD/user-init-$target.elf"
+  case "$target" in
+    live) dst="$DIST/iso/boot/live" ;;
+    installer) dst="$DIST/iso/boot/installer" ;;
+    recovery) dst="$DIST/iso/boot/recovery" ;;
+  esac
+  test -s "$src" || { echo "ERROR: $target ring-3 init ELF missing: $src" >&2; exit 2; }
+  mkdir -p "$dst"
+  install -m 0644 "$src" "$dst/user-init-$target.elf"
+done
+
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
 mkdir -p "$VISUAL_OUT"
