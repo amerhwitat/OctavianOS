@@ -25,6 +25,7 @@ def main():
  require("chimera-live-initramfs.img" not in top,"Install must not pass the Live initramfs")
  require("chimera-live-manifest.json" not in top,"Install must not pass the Live manifest")
  require("refusing to boot Live payload under the Install label" in top,"missing installer media must fail closed")
+ require(top.count("chimera-user-init-elf target=installer") == 1,"top-level installer route must stage exactly one native init ELF")
  jasper_install=menu_block(jasper,"chimera-install")
  require("configfile /boot/jasper/install.cfg" in jasper_install,"Jasper installer menu target must load install.cfg")
  native=menu_block(installer,"installer")
