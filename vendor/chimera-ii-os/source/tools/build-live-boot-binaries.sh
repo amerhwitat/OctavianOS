@@ -49,6 +49,16 @@ mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/recovery" "$OUT/initram
 KORONOS="${CHIMERA_KORONOS_KERNEL:-$BUILD_DIR/koronos/x86_64/koronos.elf}"
 [[ -f "$KORONOS" ]] || KORONOS="$(find "$BUILD_DIR" "$ROOT/kernel" -type f \( -name 'koronos*.elf' -o -name 'kernel.bin' \) 2>/dev/null | head -n1 || true)"
 if [[ -n "$KORONOS" && -f "$KORONOS" ]]; then chimera_copy_if_distinct "$KORONOS" "$OUT/boot/koronos/koronos.elf"; sha256sum "$OUT/boot/koronos/koronos.elf" > "$OUT/boot/koronos/koronos.elf.sha256"; else echo "ERROR: Koronos ELF64 kernel not found." >&2; exit 2; fi
+# Fail-closed native ring-3 init. It proves no readiness unless actual services
+# exist; the current implementation intentionally exits 78 after diagnostics.
+NATIVE_INIT="$OUT/boot/koronos/native-init.elf"
+"${CC:-gcc}" -m64 -std=c11 -O2 -ffreestanding -fno-builtin -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -mcmodel=large -nostdlib -static -no-pie \
+  -Wl,-e,_start -Wl,-Ttext-segment=0x100000000 -Wl,-z,max-page-size=0x1000 -Wl,-z,noexecstack \
+  "$ROOT/kernel/userland/native_init.c" -o "$NATIVE_INIT"
+readelf -h "$NATIVE_INIT" | grep -Eq 'Class:[[:space:]]+ELF64'
+readelf -h "$NATIVE_INIT" | grep -Eq 'Type:[[:space:]]+EXEC'
+readelf -l "$NATIVE_INIT" | grep -q LOAD
+sha256sum "$NATIVE_INIT" > "$NATIVE_INIT.sha256"
 INIT="$OUT/initramfs/root"
 BUSYBOX="$(command -v busybox || true)"
 [[ -n "$BUSYBOX" ]] || { echo "ERROR: busybox is required to build the live/recovery initramfs." >&2; exit 2; }
