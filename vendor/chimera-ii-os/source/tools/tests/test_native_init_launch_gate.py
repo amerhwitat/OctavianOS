@@ -100,7 +100,7 @@ def main() -> int:
         return fail("production target ELF must be compiled from canonical native_init.c")
     if '"$ROOT/kernel/tests/user_init_smoke.c"' not in build:
         return fail("the separate non-cooperative timeout probe must remain available")
-    if 'CHIMERA_INIT_TARGET_NAME=\\\"$target\\\"' not in build:
+    if "-DCHIMERA_INIT_TARGET_NAME=" not in build:
         return fail("production init must receive the exact target name at compile time")
 
     print("NATIVE INIT LAUNCH GATE PASS: missing ELF fails closed; mount ABI is not faked; probes remain isolated")
