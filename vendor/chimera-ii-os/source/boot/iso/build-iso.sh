@@ -202,6 +202,9 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/live/user-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/iso/grub.cfg" || { echo "ERROR: Live menu does not pass native init ELF to Koronos." >&2; exit 2; }
+grep -q 'module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/iso/grub.cfg" || { echo "ERROR: Installer menu does not pass native init ELF to Koronos." >&2; exit 2; }
+grep -q 'module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/jasper/recovery.cfg" || { echo "ERROR: Recovery menu does not pass native init ELF to Koronos." >&2; exit 2; }
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
