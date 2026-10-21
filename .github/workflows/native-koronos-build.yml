@@ -105,6 +105,17 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Build and validate fail-closed native init ELF (not readiness proof)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          gcc -m64 -std=c11 -O2 -ffreestanding -fno-builtin -fno-stack-protector -fno-pie -fno-asynchronous-unwind-tables -fno-unwind-tables -mcmodel=large -nostdlib -static -no-pie \
+            -Wl,-e,_start -Wl,-Ttext-segment=0x100000000 -Wl,-z,max-page-size=0x1000 -Wl,-z,noexecstack \
+            kernel/userland/native_init.c -o /tmp/octavian-native-init.elf
+          readelf -h /tmp/octavian-native-init.elf | grep -Eq 'Class:[[:space:]]+ELF64'
+          readelf -h /tmp/octavian-native-init.elf | grep -Eq 'Type:[[:space:]]+EXEC'
+          readelf -l /tmp/octavian-native-init.elf | grep -q LOAD
+          python3 tests/boot/test_iso_target_routing_artwork.py
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
