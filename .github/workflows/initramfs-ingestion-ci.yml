@@ -1,0 +1,41 @@
+name: Bounded initramfs ingestion CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - '.github/workflows/initramfs-ingestion-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - '.github/workflows/initramfs-ingestion-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-ingestion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and test gzip decoder with address/undefined sanitizers
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -I kernel/include kernel/core/gzip.cpp kernel/tests/gzip_decoder_test.cpp -o /tmp/gzip-decoder-test
+          /tmp/gzip-decoder-test
+      - name: Compile and test hardened CPIO validator
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -I kernel/include kernel/core/initramfs_cpio.cpp kernel/tests/initramfs_cpio_test.cpp -o /tmp/initramfs-cpio-test
+          /tmp/initramfs-cpio-test
+      - name: Compile and test end-to-end bounded gzip-to-CPIO ingestion
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -I kernel/include kernel/core/initramfs_cpio.cpp kernel/core/gzip.cpp kernel/core/initramfs_ingest.cpp kernel/tests/initramfs_ingest_test.cpp -o /tmp/initramfs-ingest-test
+          /tmp/initramfs-ingest-test
