@@ -7,7 +7,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("verify-userspace-handoff.py")
 KERNEL = "[KRN ] KORONOS READY\n"
 ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
-READY = "USERSPACE READY: target={target} init_pid={pid}\n"
+READY = "USERSPACE READY: {target} init pid={pid}\n"
 
 
 def run(target, trace):
