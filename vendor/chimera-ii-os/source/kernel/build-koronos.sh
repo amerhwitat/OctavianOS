@@ -26,6 +26,14 @@ CPIO_TEST="$BUILD/initramfs-cpio-test"
 "$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/initramfs_cpio.cpp" "$ROOT/kernel/tests/initramfs_cpio_test.cpp" -o "$CPIO_TEST"
 "$CPIO_TEST"
 rm -f "$CPIO_TEST"
+GZIP_TEST="$BUILD/gzip-decoder-test"
+"$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/gzip.cpp" "$ROOT/kernel/tests/gzip_decoder_test.cpp" -o "$GZIP_TEST"
+"$GZIP_TEST"
+rm -f "$GZIP_TEST"
+INGEST_TEST="$BUILD/initramfs-ingest-test"
+"$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/initramfs_cpio.cpp" "$ROOT/kernel/core/gzip.cpp" "$ROOT/kernel/core/initramfs_ingest.cpp" "$ROOT/kernel/tests/initramfs_ingest_test.cpp" -o "$INGEST_TEST"
+"$INGEST_TEST"
+rm -f "$INGEST_TEST"
 DRIVER_TEST="$BUILD/driver-backend-honesty-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/driver.cpp" "$ROOT/kernel/tests/driver_backend_honesty_test.cpp" -o "$DRIVER_TEST"
 "$DRIVER_TEST"
@@ -35,7 +43,7 @@ CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space initramfs_cpio target_launch)
+sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator address_space initramfs_cpio gzip initramfs_ingest target_launch)
 for src in "${sources[@]}"; do
   "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
 done

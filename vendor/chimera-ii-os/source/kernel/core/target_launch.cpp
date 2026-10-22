@@ -9,6 +9,7 @@
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
 #include "chimera/initramfs_cpio.h"
+#include "chimera/initramfs_ingest.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -21,6 +22,16 @@ static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
+constexpr uint64_t MAX_INITRAMFS_BYTES = 64ull * 1024ull * 1024ull;
+struct TemporaryFrames {
+    uint64_t base = 0;
+    uint32_t pages = 0;
+    ~TemporaryFrames() { if (base && pages) (void)koronos_frame_free_contiguous(base, pages); }
+};
+static uint32_t read_le32(const uint8_t *p) {
+    return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+           (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+}
 
 extern "C" void koronos_target_log(const char *message);
 
@@ -129,21 +140,54 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const uint32_t kind = active_target == TARGET_LIVE
             ? CHIMERA_MODULE_LIVE_INITRAMFS : CHIMERA_MODULE_RECOVERY_INITRAMFS;
         const chimera_boot_module *archive = nonempty(kind);
-        if (!archive || archive->size < 2u) { koronos_target_log("[USER] payload validation failed: selected initramfs module missing or too small"); return -2; }
+        if (!archive || archive->size < 2u || archive->size > MAX_INITRAMFS_BYTES ||
+            archive->base >= KORONOS_FRAME_PHYS_LIMIT ||
+            archive->size > KORONOS_FRAME_PHYS_LIMIT - archive->base) {
+            koronos_target_log("[USER] payload validation failed: selected initramfs bounds are invalid");
+            return -2;
+        }
         const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
         chimera_cpio_summary summary{};
-        const int cpio_rc = chimera_cpio_validate_newc(bytes, archive->size, &summary);
-        if (cpio_rc == CHIMERA_CPIO_E_COMPRESSION) {
-            koronos_target_log("[USER] payload validation failed: gzip initramfs requires bounded decompression, which is not yet wired");
-            return cpio_rc;
-        }
-        if (cpio_rc != CHIMERA_CPIO_OK) {
-            koronos_target_log("[USER] payload validation failed: malformed or unsafe newc CPIO archive");
-            return cpio_rc;
-        }
-        if (!summary.has_init) {
-            koronos_target_log("[USER] payload validation failed: archive has no top-level init entry");
-            return -10;
+        int cpio_rc = CHIMERA_CPIO_OK;
+        if (archive->size >= 2u && bytes[0] == 0x1fu && bytes[1] == 0x8bu) {
+            if (archive->size < 18u) {
+                koronos_target_log("[USER] payload validation failed: truncated gzip member");
+                return CHIMERA_CPIO_E_COMPRESSION;
+            }
+            const uint64_t expected_size = read_le32(bytes + archive->size - 4u);
+            if (expected_size < 110u || expected_size > MAX_INITRAMFS_BYTES) {
+                koronos_target_log("[USER] payload validation failed: gzip ISIZE exceeds bounded CPIO capacity");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            const uint64_t pages64 = (expected_size + KORONOS_FRAME_SIZE - 1u) / KORONOS_FRAME_SIZE;
+            if (pages64 == 0u || pages64 > 16384u) {
+                koronos_target_log("[USER] payload validation failed: decompression page limit exceeded");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            TemporaryFrames decoded{};
+            decoded.pages = static_cast<uint32_t>(pages64);
+            decoded.base = koronos_frame_alloc_contiguous(decoded.pages);
+            if (!decoded.base) {
+                decoded.pages = 0;
+                koronos_target_log("[USER] payload validation failed: no bounded decompression workspace");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            uint64_t decoded_size = 0;
+            cpio_rc = chimera_initramfs_prepare_newc(
+                bytes, archive->size,
+                reinterpret_cast<void *>(static_cast<uintptr_t>(decoded.base)),
+                expected_size, &decoded_size, &summary);
+            if (cpio_rc != CHIMERA_CPIO_OK || decoded_size != expected_size || !summary.has_init) {
+                koronos_target_log("[USER] payload validation failed: gzip integrity, CPIO safety, or init validation failed");
+                return cpio_rc == CHIMERA_CPIO_OK ? CHIMERA_CPIO_E_TRAILER : cpio_rc;
+            }
+            koronos_target_log("[USER] bounded gzip/DEFLATE, CRC32/ISIZE and CPIO validation passed");
+        } else {
+            cpio_rc = chimera_cpio_validate_newc(bytes, archive->size, &summary);
+            if (cpio_rc != CHIMERA_CPIO_OK || !summary.has_init) {
+                koronos_target_log("[USER] payload validation failed: malformed/unsafe CPIO or missing init");
+                return cpio_rc == CHIMERA_CPIO_OK ? CHIMERA_CPIO_E_TRAILER : cpio_rc;
+            }
         }
         return 0;
     }
