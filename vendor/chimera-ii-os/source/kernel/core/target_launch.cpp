@@ -196,7 +196,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
                need a separately staged native init ELF until a full archive
                mount + interpreter/process runtime exists. */
             if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
-                koronos_target_log("[RUN ] ERROR: installer image requires a separately staged native installer init ELF");
+                koronos_target_log("[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged");
                 return -14;
             }
             const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
