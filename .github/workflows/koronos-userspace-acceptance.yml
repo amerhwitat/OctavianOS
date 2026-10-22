@@ -54,7 +54,7 @@ jobs:
           PRODUCTION_ISO="$ROOT/boot/iso/dist/output.iso"
           mkdir -p "$ISO_ROOT/boot/grub"
           # Build the same payloads consumed by the production ISO pipeline.
-          # Never synthesize, copy, or fall back to user-init-$TARGET.elf.
+          # Production native-init ELFs are built independently and staged below; probe ELFs are not production payloads.
           bash tools/build-live-boot-binaries.sh
           bash boot/iso/build-iso.sh
           test -s "$PRODUCTION_ISO"
