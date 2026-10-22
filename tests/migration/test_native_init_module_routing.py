@@ -35,7 +35,7 @@ class NativeInitModuleRoutingTests(unittest.TestCase):
         for path in CONFIGS:
             lines = path.read_text(encoding="utf-8").splitlines()
             for i, line in enumerate(lines):
-                if "module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs" in line:
+                if "module2 /boot/live/chimera-live-initramfs.img" in line:
                     following = "\n".join(lines[i + 1:i + 3])
                     self.assertIn(
                         "module2 /boot/live/user-init-live.elf chimera-user-init-elf target=live",
@@ -47,7 +47,7 @@ class NativeInitModuleRoutingTests(unittest.TestCase):
         for path in CONFIGS:
             lines = path.read_text(encoding="utf-8").splitlines()
             for i, line in enumerate(lines):
-                if "module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs" in line:
+                if "module2 /boot/recovery/chimera-recovery-initramfs.img" in line:
                     following = "\n".join(lines[i + 1:i + 3])
                     self.assertIn(
                         "module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery",
