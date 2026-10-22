@@ -65,8 +65,13 @@ jobs:
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log"
           grep -Fq '[RUN ] Dispatching selected user init through CR3 + ring-3 entry' "$smoke/debugcon.log"
-          grep -Fq 'USER INIT SYSCALL: target=live init_pid=' "$smoke/debugcon.log"
-          grep -Fq 'USERSPACE READY: live init pid=' "$smoke/debugcon.log"
+          ack_line="$(grep -Eo 'USER INIT SYSCALL: target=live init_pid=[1-9][0-9]*' "$smoke/debugcon.log" | tail -n 1)"
+          ready_line="$(grep -Eo 'USERSPACE READY: target=live init_pid=[1-9][0-9]*' "$smoke/debugcon.log" | tail -n 1)"
+          test -n "$ack_line" || { echo "::error::missing CPL3-originated live init syscall acknowledgement"; exit 1; }
+          test -n "$ready_line" || { echo "::error::missing canonical live target readiness marker"; exit 1; }
+          ack_pid="${ack_line##*=}"
+          ready_pid="${ready_line##*=}"
+          test "$ack_pid" = "$ready_pid" || { echo "::error::syscall PID does not match readiness PID"; exit 1; }
           grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/debugcon.log"
           grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$smoke/debugcon.log"
           if grep -Eq '\[RUN \] ERROR:|PANIC|Triple fault' "$smoke/debugcon.log"; then
