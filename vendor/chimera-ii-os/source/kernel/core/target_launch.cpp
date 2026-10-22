@@ -10,6 +10,7 @@
 #include "chimera/frame_allocator.h"
 #include "chimera/initramfs.h"
 #include "chimera/gzip.h"
+#include "chimera/initramfs_cpio.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -177,7 +178,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
         else if (payload->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS) target=TARGET_RECOVERY;
         else if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) target=TARGET_INSTALLER;
         if (target==TARGET_NONE) return -2;
-        if (!payload->base || payload->size<110u || payload->size>MAX_INIT_IMAGE ||
+        if (!payload->base || payload->size==0u || payload->size>MAX_INIT_IMAGE ||
             payload->base>=KORONOS_FRAME_PHYS_LIMIT ||
             payload->size>KORONOS_FRAME_PHYS_LIMIT-payload->base) {
             koronos_target_log("[RUN ] ERROR: selected production payload is outside bounded physical memory");
@@ -226,6 +227,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
             archive_size=decoded_size;
             koronos_target_log("[RUN ] Bounded gzip decompression and integrity checks passed");
         }
+        chimera_cpio_summary validated_summary{};
+        const int validate_rc = chimera_cpio_validate_newc(archive, archive_size, &validated_summary);
+        if (validate_rc != CHIMERA_CPIO_OK || !validated_summary.has_init) {
+            koronos_target_log("[RUN ] ERROR: production initramfs failed bounded CPIO/path/link validation or lacks top-level init");
+            return -20;
+        }
+        koronos_target_log("[RUN ] Bounded CPIO validation passed after raw/gzip ingestion");
         int find_rc=chimera_initramfs_find_elf(archive,archive_size,"init",&init_elf,&init_elf_size);
         if (find_rc!=0)
             find_rc=chimera_initramfs_find_elf(archive,archive_size,"sbin/init",&init_elf,&init_elf_size);
