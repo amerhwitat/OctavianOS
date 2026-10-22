@@ -358,7 +358,7 @@ jobs:
           grep -Fq '[REC ] Recovery payload is staged; native recovery operation still requires its init service' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload status missing"; exit 1; }
           # This is a routing/payload smoke, not production userspace acceptance.
           # Gzip initramfs decompression and a native recovery init ELF remain separate gates.
-          grep -Eq '\[RUN \] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder|\[RUN \] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery did not report its current native-init blocker"; exit 1; }
+          grep -Eq '\[RUN \] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder|\[RUN \] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF|\[RUN \] ERROR: selected production CPIO has no executable native /init ELF; stage a target-matched native init ELF' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery did not report its current native-init blocker"; exit 1; }
           if grep -Eq 'PANIC|Triple fault' "$smoke/recovery-debugcon.log"; then echo "::error::Recovery boot panicked or triple-faulted"; exit 1; fi
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
