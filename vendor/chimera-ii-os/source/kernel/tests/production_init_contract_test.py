@@ -20,4 +20,6 @@ if "if (length < p+1u) return false;" not in source:
     raise SystemExit(fail("readiness marker must accept a one-digit PID without a trailing newline"))
 if "k==length" not in source:
     raise SystemExit(fail("readiness marker parser must allow end-of-buffer after the PID"))
+if "(UINT32_MAX-digit)/10u" not in source:
+    raise SystemExit(fail("readiness marker PID parsing must reject decimal overflow"))
 print("PRODUCTION INIT CONTRACT PASS: separate target-matched ELF required; embedded fallback rejected")
