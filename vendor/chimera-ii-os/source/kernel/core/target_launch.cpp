@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/initramfs_cpio.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -130,16 +131,19 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const chimera_boot_module *archive = nonempty(kind);
         if (!archive || archive->size < 2u) { koronos_target_log("[USER] payload validation failed: selected initramfs module missing or too small"); return -2; }
         const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
-        /* Accept valid production initramfs encodings: gzip-wrapped newc CPIO
-           or a raw newc CPIO archive. Arbitrary non-empty bytes are rejected. */
-        const bool gzip_cpio = bytes[0] == 0x1Fu && bytes[1] == 0x8Bu;
-        const bool raw_newc = archive->size >= 6u &&
-            bytes[0] == '0' && bytes[1] == '7' && bytes[2] == '0' &&
-            bytes[3] == '7' && bytes[4] == '0' &&
-            (bytes[5] == '1' || bytes[5] == '2');
-        if (!gzip_cpio && !raw_newc) {
-            koronos_target_log("[USER] payload validation failed: unsupported initramfs envelope");
-            return -3;
+        chimera_cpio_summary summary{};
+        const int cpio_rc = chimera_cpio_validate_newc(bytes, archive->size, &summary);
+        if (cpio_rc == CHIMERA_CPIO_E_COMPRESSION) {
+            koronos_target_log("[USER] payload validation failed: gzip initramfs requires bounded decompression, which is not yet wired");
+            return cpio_rc;
+        }
+        if (cpio_rc != CHIMERA_CPIO_OK) {
+            koronos_target_log("[USER] payload validation failed: malformed or unsafe newc CPIO archive");
+            return cpio_rc;
+        }
+        if (!summary.has_init) {
+            koronos_target_log("[USER] payload validation failed: archive has no top-level init entry");
+            return -10;
         }
         return 0;
     }
