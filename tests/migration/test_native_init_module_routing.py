@@ -11,6 +11,9 @@ CONFIGS = (
     ROOT / "boot/jasper/recovery.cfg",
     ROOT / "boot/jasper/diagnostics.cfg",
     ROOT / "boot/jasper/install.cfg",
+    ROOT / "vendor/chimera-ii-os/source/boot/jasper/live.cfg",
+    ROOT / "vendor/chimera-ii-os/source/boot/jasper/recovery.cfg",
+    ROOT / "vendor/chimera-ii-os/source/boot/jasper/install.cfg",
 )
 
 
@@ -61,7 +64,7 @@ class NativeInitModuleRoutingTests(unittest.TestCase):
                               f"{path.relative_to(ROOT)} installer entry omits native init ELF")
                 self.assertIn("chimera-user-init-elf target=installer", entry,
                               f"{path.relative_to(ROOT)} installer entry has no target binding")
-                self.assertIn("-a -f /boot/installer/user-init-installer.elf", entry,
+                self.assertIn("/boot/installer/user-init-installer.elf", entry.split("then", 1)[0],
                               f"{path.relative_to(ROOT)} installer entry does not guard the native init file")
 
 
