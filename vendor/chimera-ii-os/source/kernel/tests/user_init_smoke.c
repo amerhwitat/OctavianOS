@@ -10,6 +10,14 @@
 #error "Select CHIMERA_TARGET_LIVE, CHIMERA_TARGET_INSTALLER, or CHIMERA_TARGET_RECOVERY"
 #endif
 
+/* Keep both PT_LOAD segments non-empty in the smoke ELF. GNU ld emits a
+ * zero-sized writable PT_LOAD for an empty .data/.bss PHDR, and the strict
+ * kernel admission contract correctly rejects zero-sized load segments. */
+__attribute__((used, section(".data")))
+volatile unsigned long chimera_probe_writable_data = 0x4348494d455241ull;
+__attribute__((used, section(".bss")))
+volatile unsigned long chimera_probe_zero_fill;
+
 __attribute__((noreturn, used)) void _start(void) {
 #if defined(CHIMERA_TEST_HANG)
     /* Deliberately hostile acceptance payload: no syscalls, no readiness,
