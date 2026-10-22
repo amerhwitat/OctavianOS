@@ -28,6 +28,7 @@ on:
       - 'config/platform/**'
       - 'config/hardware/**'
       - 'config/settings/**'
+      - 'docs/OPEN_SOURCE_USERSPACE_CATALOG.json'
       - 'tools/tests/test_cross_os_contracts.py'
 
 
