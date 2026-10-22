@@ -206,7 +206,7 @@ jobs:
           ready_pid="${ready_line##*=}"
           ack_pid="${ack_line##*=}"
           test "$ready_pid" = "$ack_pid"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
+          grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
