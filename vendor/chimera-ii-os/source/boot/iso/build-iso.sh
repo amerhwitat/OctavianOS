@@ -209,6 +209,25 @@ grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"
 test -s "$DIST/output.iso"
 sha256sum "$DIST/output.iso" | tee "$DIST/output.iso.sha256"
 
+# Verify the files inside the generated ISO, not only the pre-ISO staging tree.
+ISO_VERIFY="$DIST/iso-verify"
+rm -rf "$ISO_VERIFY"
+mkdir -p "$ISO_VERIFY/boot/grub" "$ISO_VERIFY/boot/koronos"
+xorriso -osirrox on -indev "$DIST/output.iso" \
+  -extract /boot/grub/grub.cfg "$ISO_VERIFY/boot/grub/grub.cfg" >/dev/null
+for target in live installer recovery; do
+  staged="$DIST/iso/boot/koronos/native-init-$target.elf"
+  extracted="$ISO_VERIFY/boot/koronos/native-init-$target.elf"
+  xorriso -osirrox on -indev "$DIST/output.iso" \
+    -extract "/boot/koronos/native-init-$target.elf" "$extracted" >/dev/null
+  test -s "$extracted" || { echo "ERROR: final ISO missing native init ELF for $target" >&2; exit 2; }
+  cmp "$staged" "$extracted" || { echo "ERROR: final ISO native init differs from staged artifact for $target" >&2; exit 2; }
+  grep -Fq "module2 /boot/koronos/native-init-$target.elf chimera-user-init-elf target=$target" "$ISO_VERIFY/boot/grub/grub.cfg" || {
+    echo "ERROR: final ISO GRUB config does not stage the $target native init module" >&2; exit 2;
+  }
+done
+echo "Final ISO contains byte-identical Live, Installer, and Recovery native init ELFs and GRUB module routes."
+
 printf '%s\n' '[7/7] Inspect El Torito boot records'
 xorriso -indev "$DIST/output.iso" -report_el_torito plain -report_system_area plain | tee "$DIST/ISO-BOOT-REPORT.txt"
 printf 'ISO: %s\nKoronos: %s\nSpit Fire: %s\nAurora background: %s\nBoot video: %s\nRecovery terminal: %s\n' \
