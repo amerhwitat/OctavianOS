@@ -422,6 +422,7 @@ jobs:
         run: |
           set -euo pipefail
           smoke=build/qemu-smoke
+          matrix_result=0
           for target in live installer recovery; do
             root="$smoke/production-$target-tree"
             rm -rf "$root"
@@ -501,14 +502,15 @@ jobs:
               timeout 25s "${qemu[@]}"
               qemu_rc=$?
               set -e
-              test -s "$log" || { echo "::error::No $target/$firmware debugcon trace (QEMU exit $qemu_rc)"; exit 1; }
+              if [ ! -s "$log" ]; then echo "::error::No $target/$firmware debugcon trace (QEMU exit $qemu_rc)"; matrix_result=1; continue; fi
               cat "$log"
-              grep -Fq '[KRN ] KORONOS READY' "$log" || { echo "::error::$target/$firmware never reached Koronos readiness"; exit 1; }
-              grep -Fq '[RUN ] Selected target-matched native init ELF alongside production root payload' "$log" || { echo "::error::$target/$firmware did not bind the target native init ELF"; exit 1; }
-              grep -Eq "USER INIT SYSCALL: target=$target init_pid=[1-9][0-9]*" "$log" || { echo "::error::$target/$firmware native init never acknowledged a user-originated syscall"; exit 1; }
-              if grep -Eq 'PANIC|Triple fault' "$log"; then echo "::error::$target/$firmware panicked or triple-faulted"; exit 1; fi
+              if ! grep -Fq '[KRN ] KORONOS READY' "$log"; then echo "::error::$target/$firmware never reached Koronos readiness"; matrix_result=1; continue; fi
+              if ! grep -Fq '[RUN ] Selected target-matched native init ELF alongside production root payload' "$log"; then echo "::error::$target/$firmware did not bind the target native init ELF"; matrix_result=1; fi
+              if ! grep -Eq "USER INIT SYSCALL: target=$target init_pid=[1-9][0-9]*" "$log"; then echo "::error::$target/$firmware native init never acknowledged a user-originated syscall"; matrix_result=1; fi
+              if grep -Eq 'PANIC|Triple fault' "$log"; then echo "::error::$target/$firmware panicked or triple-faulted"; matrix_result=1; fi
             done
           done
+          exit "$matrix_result"
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -550,6 +552,7 @@ jobs:
 
   verify-userspace-handoff:
     name: Verify real Live, Installer, and Recovery userspace
+    if: always()
     needs: build-koronos
     runs-on: ubuntu-latest
     steps:
@@ -561,6 +564,7 @@ jobs:
           name: octavianos-full-iso-qemu-trace
           path: trace
       - name: Require actual user-mode init acknowledgement for every target
+        if: always()
         run: |
           set -uo pipefail
           result=0
