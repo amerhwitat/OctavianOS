@@ -28,6 +28,26 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate shared desktop preferences UI
+        run: |
+          set -euo pipefail
+          node --check desktop/shared/desktop-preferences.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for path in ("desktop/aurora-wayland-glass/index.html", "desktop/marine/index.html"):
+              html = Path(path).read_text()
+              assert '../shared/desktop-preferences.js' in html, f"missing preferences controller in {path}"
+          css = Path("desktop/shared/desktop-preferences.css").read_text()
+          js = Path("desktop/shared/desktop-preferences.js").read_text()
+          assert '#os-preferences-panel' in css and 'Ctrl+Alt+D' in js
+          contract = json.loads(Path("config/settings/control-panel-registry.json").read_text())
+          assert contract["desktop_preferences_contract"]["native_provider_status"] == "not_connected"
+          print("Shared preference UI assets and fail-honest capability contract validated.")
+          PY
       - name: Install native build tools
         run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev xvfb
       - name: Validate Aurora and Marine session-selection contract
