@@ -56,7 +56,12 @@ jobs:
               -T kernel/tests/user_init_smoke.ld "$BUILD/user-init-$target-probe.o" \
               -o "$BUILD/user-init-$target-probe.elf"
             readelf -h "$BUILD/user-init-$target-probe.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
-            readelf -lW "$BUILD/user-init-$target-probe.elf" | grep -Eq 'LOAD.*R E'
+            readelf -lW "$BUILD/user-init-$target-probe.elf" | tee "$BUILD/user-init-$target-probe.phdrs.txt"
+            grep -Eq 'LOAD.*R E' "$BUILD/user-init-$target-probe.phdrs.txt"
+            # Admission rejects PT_LOAD entries with p_memsz == 0. Catch an
+            # accidentally empty PHDR at build time instead of discovering it
+            # only after a QEMU boot has reached protected-process admission.
+            awk '$1 == "LOAD" { n++; if ($6 ~ /^0x0+$/) empty=1 } END { exit !(n >= 2 && !empty) }' "$BUILD/user-init-$target-probe.phdrs.txt"
             test -s "$BUILD/user-init-$target-probe.elf"
           done
       - name: Build compressed initramfs and raw native VFS roots
