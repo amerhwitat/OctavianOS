@@ -49,12 +49,13 @@ int main() {
     off = append_module(off, 0x205000, 0x205100, "chimera-installer-contract");
     off = append_module(off, 0x206000, 0x206100, "chimera-install-phases");
     off = append_module(off, 0x207000, 0x207100, "chimera-installer-profiles");
+    off = append_module(off, 0x208000, 0x208100, "chimera-install-profiles");
     std::memcpy(info + off, &end_type, 4);
     std::memcpy(info + off + 4, &end_size, 4);
     off += 8;
     total = off;
     std::memcpy(info, &total, 4);
-    assert(chimera_multiboot_scan(reinterpret_cast<uint64_t>(info)) == 6);
+    assert(chimera_multiboot_scan(reinterpret_cast<uint64_t>(info)) == 7);
     assert(chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF) != nullptr);
     assert(chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) != nullptr);
     assert(chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST) != nullptr);
