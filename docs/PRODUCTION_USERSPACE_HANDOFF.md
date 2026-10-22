@@ -1,5 +1,18 @@
 # Production userspace handoff — acceptance and integration contract
 
+## Root cause found in the current production path — 2026-10-22
+
+The latest trace-verifier job (run [39728253993](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993), job [119659006555](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993/job/119659006555)) reports all three targets missing both the CPL3-originated init syscall acknowledgement and PID-bound readiness marker.
+
+Source inspection identifies the concrete integration break:
+
+- The production ISO workflow stages the Live/Recovery initramfs or Installer image plus manifests/contracts as Multiboot2 modules. Its target-specific GRUB configuration does not stage a chimera-user-init-elf / user-init.elf module.
+- multiboot_modules.cpp can classify such a module if present, but classification does not create one.
+- target_launch.cpp only enters ring 3 after finding exactly one CHIMERA_MODULE_USER_INIT_ELF. The Live initramfs built by tools/build-live-boot-binaries.sh contains a /init shell script and BusyBox links, i.e. a Linux-style initramfs; Koronos's native ELF launcher does not interpret shell scripts or provide the Linux syscall/runtime environment needed to execute that BusyBox binary.
+- Consequently, the production boot path can recognize the target payload and still never enter the native user process. The candidate-probe matrix passes because it supplies a purpose-built probe ELF; it is a different input path and is not production evidence.
+
+This is a missing executable/runtime integration, not a verifier-format issue. Do not add a marker-only shim or reuse the candidate probe as production init. The real fix requires a native target init ELF/runtime that is actually built from production sources, staged by the production ISO builder with an unambiguous target tag, launched by Koronos, and connected to the target's actual initramfs/services. The current commit adds an explicit fail-closed error and ensures production payload boots reach that check; it improves diagnosis but does not claim that the native runtime has been implemented.
+
 **Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
 
 ## Latest independent evidence — 2026-10-22
