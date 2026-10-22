@@ -202,9 +202,9 @@ jobs:
           import pathlib, re, sys
           target, path = sys.argv[1], pathlib.Path(sys.argv[2])
           trace = path.read_text(encoding="utf-8", errors="replace")
-          kernel = list(re.finditer(r"\\[KRN \\] KORONOS READY", trace))
-          ack = list(re.finditer(r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b", trace))
-          ready = list(re.finditer(r"USERSPACE READY: (live|installer|recovery) init pid=([1-9][0-9]*)\\b", trace))
+          kernel = list(re.finditer(r"\[KRN \] KORONOS READY", trace))
+          ack = list(re.finditer(r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b", trace))
+          ready = list(re.finditer(r"USERSPACE READY: (live|installer|recovery) init pid=([1-9][0-9]*)\b", trace))
           if len(kernel) != 1:
               raise SystemExit(f"FAIL: expected exactly one kernel-ready marker, found {len(kernel)}")
           if len(ack) != 1:
