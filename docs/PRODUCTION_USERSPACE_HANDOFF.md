@@ -182,3 +182,28 @@ The production ISO layout stages these artifacts under `/boot/koronos/`, and the
 The native init issues `INT 0x80` for the CPL3-gate acknowledgement, obtains its PID through `CHM_SYS_GETPID`, and invokes `CHM_SYS_VALIDATE_BOOT_PAYLOAD` before emitting readiness. The kernel validates a gzip envelope for the selected Live/Recovery initramfs or checks the Installer image plus required JSON contract modules. The init then writes the target/PID-bound readiness token through `CHM_SYS_WRITE`, checks the write result, and exits through the native ABI. The existing verifier remains unchanged. This establishes a real process/syscall handoff only if all six QEMU cases pass; source wiring alone is not proof.
 
 **Explicit scope boundary:** the current native init does not claim that a VFS has been mounted, that the CPIO/initramfs contents are accessible through a filesystem API, that storage persists across reboot, that services are supervised, or that Aurora/Installer/Recovery workflows are complete. Those remain separate release gates. Do not label the OS production-ready based only on this minimal native-init handshake.
+
+
+## Fresh production acceptance audit — 2026-10-22
+
+Current head acceptance run [39736291623](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291623) was checked directly. All six jobs are queued: Live × BIOS/UEFI, Installer × BIOS/UEFI, Recovery × BIOS/UEFI. A queued job is neither a pass nor a failure; do not infer a result from previous commits. Native desktop component compile run [39736291844](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291844) completed successfully, while desktop contract run [39736291681](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291681) had started. Neither proves the remaining runtime acceptance gates.
+
+### Confirmed source-level blockers beyond the native-init handshake
+
+- **Filesystem and durable storage:** target payload validation checks module presence and a limited envelope/JSON prefix. It does not mount an initramfs or filesystem, perform file operations, flush durable data, or prove write/read persistence across a reboot. ISO extraction and hashes prove artifact integrity only.
+- **Installer:** no fresh end-to-end evidence proves the installer writes a target disk, verifies the installed image, reboots, and boots the installed system.
+- **Recovery:** no fresh end-to-end evidence proves a recovery operation changes/repairs a target and validates the result.
+- **Aurora:** the minimal native init's PID/syscall/readiness handshake is not an Aurora session handoff. The production path still needs actual userspace service startup and a verifiable session/display handoff.
+- **SMP:** `kernel/core/parallel.cpp` deliberately returns zero when more than one worker is requested, and `kernel/core/scheduler.cpp::chimera_sched_run_parallel()` currently returns zero unconditionally. This fail-closed behavior is honest but confirms that AP-backed concurrent worker dispatch is not implemented. Do not weaken the guard or report sequential callback execution as SMP.
+- **Desktop providers/preferences:** compile and schema/contract checks do not prove native preference persistence or working input, audio, display, and service providers. These require runtime tests against the real backends.
+
+### Required closeout evidence
+
+1. Capture all six production ISO traces and verify each has a CPL3-originated syscall acknowledgement, a nonzero kernel-owned PID, and a matching target/PID readiness marker.
+2. Add end-to-end filesystem and storage tests, including write, flush, reboot, and read-back from the same virtual disk.
+3. Exercise a real install → reboot → installed-system boot path and a real recovery repair path.
+4. Prove initramfs/rootfs mount and service supervision, then verify Aurora is actually entered.
+5. Run preferences and device/service tests against functional native providers, including persistence after process/application restart.
+6. Boot APs independently and prove simultaneous per-CPU work using synchronized overlap evidence and cross-core correctness tests.
+
+Until those artifacts exist, this PR remains draft and production publication remains blocked. Keep the verifier fail-closed; do not fabricate readiness or substitute probe-only evidence for production workflows.
