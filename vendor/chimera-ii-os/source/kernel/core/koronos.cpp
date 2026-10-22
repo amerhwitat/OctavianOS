@@ -198,6 +198,7 @@ static const char *module_kind_name(uint32_t k) {
         case CHIMERA_MODULE_INSTALL_CONTRACT: return "INSTALL CONTRACT";
         case CHIMERA_MODULE_INSTALL_PHASES: return "INSTALL PHASES";
         case CHIMERA_MODULE_INSTALL_PROFILES: return "INSTALL PROFILES";
+        case CHIMERA_MODULE_USER_INIT_ELF: return "NATIVE USER INIT ELF";
         default: return "OTHER";
     }
 }
