@@ -1,70 +1,89 @@
 #!/usr/bin/env python3
-"""Fail-closed validator for target-specific x86-64 native init ELF files."""
+"""Fail-closed validator for a target-specific x86-64 native init ELF.
+
+This validates packaging/ELF structure only. It does not establish that an
+image is production userspace or that its services work.
+"""
 import argparse
-import hashlib
-import json
 import struct
 import sys
 from pathlib import Path
 
-EHDR = struct.Struct("<16sHHIQQQIHHHHHH")
-PHDR = struct.Struct("<IIQQQQQQ")
-MAX_BYTES = 64 * 1024 * 1024
-TARGET_PATHS = {
-    "live": Path("boot/live/user-init-live.elf"),
-    "installer": Path("boot/installer/user-init-installer.elf"),
-    "recovery": Path("boot/recovery/user-init-recovery.elf"),
-}
+ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
+PROGRAM_HEADER = struct.Struct("<IIQQQQQQ")
+EM_X86_64 = 62
+ET_EXEC = 2
+PT_LOAD = 1
+PF_X = 1
+PF_W = 2
+PF_R = 4
+MAX_IMAGE = 64 * 1024 * 1024
+TARGETS = ("live", "installer", "recovery")
 
-def inspect(path: Path, target: str) -> dict:
+
+def validate(path: Path, target: str) -> None:
+    if target not in TARGETS:
+        raise ValueError(f"unsupported target {target!r}; expected one of {', '.join(TARGETS)}")
     data = path.read_bytes()
-    if not data or len(data) > MAX_BYTES or len(data) < EHDR.size:
-        raise ValueError(f"{target}: ELF file size is outside valid bounds")
-    h = EHDR.unpack_from(data)
-    ident, etype, machine, version, entry, phoff, _shoff, _flags, ehsize, phentsize, phnum, *_ = h
-    if ident[:4] != b"\x7fELF" or ident[4:7] != bytes((2, 1, 1)):
-        raise ValueError(f"{target}: expected ELF64 little-endian version 1")
-    if etype != 2 or machine != 62 or version != 1:
-        raise ValueError(f"{target}: expected x86-64 ET_EXEC")
-    if ehsize != EHDR.size or phentsize != PHDR.size or not 1 <= phnum <= 128:
-        raise ValueError(f"{target}: invalid ELF/program-header dimensions")
-    if phoff > len(data) or phnum * phentsize > len(data) - phoff:
-        raise ValueError(f"{target}: program-header table exceeds file bounds")
-    loads = []
-    for i in range(phnum):
-        p_type, flags, offset, vaddr, _paddr, filesz, memsz, align = PHDR.unpack_from(data, phoff + i * phentsize)
-        if p_type != 1:
+    if not data or len(data) > MAX_IMAGE:
+        raise ValueError(f"image size must be between 1 and {MAX_IMAGE} bytes")
+    if len(data) < 4 or data[:4] != b"\x7fELF":
+        raise ValueError("not an ELF file; shell scripts are not accepted")
+    if len(data) < ELF_HEADER.size:
+        raise ValueError("truncated ELF header")
+    header = ELF_HEADER.unpack_from(data)
+    ident, e_type, machine, _version, entry, phoff, _shoff, _flags, ehsize, phentsize, phnum, *_ = header
+    if ident[4] != 2 or ident[5] != 1 or ident[6] != 1:
+        raise ValueError("requires ELF64, little-endian, current ELF version")
+    if e_type != ET_EXEC:
+        raise ValueError("requires a fixed-address ET_EXEC image")
+    if machine != EM_X86_64:
+        raise ValueError("requires EM_X86_64")
+    if ehsize != ELF_HEADER.size or phentsize != PROGRAM_HEADER.size or phnum == 0:
+        raise ValueError("invalid ELF/program-header sizes")
+    if phoff > len(data) or phnum > (len(data) - phoff) // phentsize:
+        raise ValueError("program-header table is out of bounds")
+
+    executable_entry = False
+    load_count = 0
+    for index in range(phnum):
+        p_type, p_flags, p_offset, p_vaddr, _paddr, p_filesz, p_memsz, p_align = PROGRAM_HEADER.unpack_from(
+            data, phoff + index * phentsize
+        )
+        if p_type != PT_LOAD:
             continue
-        if filesz > memsz or offset > len(data) or filesz > len(data) - offset:
-            raise ValueError(f"{target}: invalid PT_LOAD file/memory bounds")
-        if memsz == 0 or vaddr < 0x10000 or vaddr + memsz > 0x0000800000000000 or vaddr + memsz < vaddr:
-            raise ValueError(f"{target}: invalid/noncanonical PT_LOAD virtual range")
-        if flags & 2 and flags & 1:
-            raise ValueError(f"{target}: writable+executable PT_LOAD violates W^X")
-        if align > 1 and ((align & (align - 1)) or vaddr % align != offset % align):
-            raise ValueError(f"{target}: invalid PT_LOAD alignment")
-        loads.append((vaddr, vaddr + memsz, flags))
-    ordered = sorted((start, end) for start, end, _ in loads)
-    if any(ordered[i][0] < ordered[i - 1][1] for i in range(1, len(ordered))):
-        raise ValueError(f"{target}: overlapping PT_LOAD virtual ranges")
-    if not loads or not any((flags & 1) and start <= entry < end for start, end, flags in loads):
-        raise ValueError(f"{target}: entry point is not inside executable PT_LOAD")
-    return {"target": target, "path": "/" + TARGET_PATHS[target].as_posix(),
-            "size_bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(),
-            "entry": f"0x{entry:x}", "load_segments": len(loads)}
+        load_count += 1
+        if p_filesz > p_memsz or p_offset > len(data) or p_filesz > len(data) - p_offset:
+            raise ValueError(f"PT_LOAD[{index}] has invalid file/memory bounds")
+        if p_memsz == 0 or p_vaddr + p_memsz > 0x0000800000000000 or p_vaddr + p_memsz < p_vaddr:
+            raise ValueError(f"PT_LOAD[{index}] has invalid user virtual bounds")
+        if p_vaddr < 0x0000000100000000:
+            raise ValueError(f"PT_LOAD[{index}] is below the supported user address floor")
+        if (p_flags & (PF_W | PF_X)) == (PF_W | PF_X):
+            raise ValueError(f"PT_LOAD[{index}] violates W^X (writable and executable)")
+        if p_align and (p_align & (p_align - 1)):
+            raise ValueError(f"PT_LOAD[{index}] alignment is not a power of two")
+        if p_flags & PF_X and p_flags & PF_R and p_vaddr <= entry < p_vaddr + p_memsz:
+            executable_entry = True
+    if load_count == 0:
+        raise ValueError("no PT_LOAD segments")
+    if not executable_entry:
+        raise ValueError("entry point is not inside a readable executable PT_LOAD segment")
+    print(f"ELF contract PASS: target={target} role=validated-native-image path={path}")
+
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--target", required=True, choices=sorted(TARGET_PATHS))
-    parser.add_argument("elf", type=Path)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--target", required=True, choices=TARGETS)
+    parser.add_argument("image", type=Path)
     args = parser.parse_args()
     try:
-        record = inspect(args.elf, args.target)
+        validate(args.image, args.target)
     except (OSError, ValueError, struct.error) as exc:
-        print(f"FAIL: {exc}", file=sys.stderr)
+        print(f"ELF contract FAIL: {exc}", file=sys.stderr)
         return 1
-    print("PASS: " + json.dumps(record, sort_keys=True))
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
