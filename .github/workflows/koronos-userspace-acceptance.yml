@@ -149,7 +149,7 @@ jobs:
             module2 /boot/installation-manifest.json chimera-installation-manifest
             module2 /boot/installer-contract.json chimera-installer-contract
             module2 /boot/installation_phases.json chimera-install-phases
-            module2 /boot/installer_profiles.json chimera-install-profiles
+            module2 /boot/installer_profiles.json chimera-installer-profiles
           GRUB
               ;;
           esac
