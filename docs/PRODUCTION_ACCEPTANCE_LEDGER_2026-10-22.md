@@ -85,3 +85,18 @@ The target launcher validates and stages newc into a private RAMFS tree, but the
 The safe closure sequence is: (1) design a rootfs/VFS mount abstraction with capacity appropriate for the validated RAMFS and explicit ownership/lifetime; (2) add an atomic mount/swap API and tests proving failed extraction/publication leaves the previous root intact; (3) implement process-owned file descriptors and user-pointer-safe filesystem syscalls against that mount; (4) implement target services and supervisor; (5) run unchanged full-production Live/Installer/Recovery × BIOS/UEFI acceptance, Aurora health, installer cold-reboot persistence, recovery postconditions, and AP-backed concurrent SMP. Add adversarial tests for duplicate paths, file/directory prefix conflicts, unsupported entry types, symlink rejection, malformed gzip/CPIO, and allocation exhaustion before enabling production launch.
 
 **Status:** the guard remains intentionally enabled. No production userspace readiness, full six-case production pass, Aurora, durable installation, recovery repair, or genuine SMP is claimed. Keep PR #120 draft and release blocked.
+
+
+## Source-level rootfs seam correction and latest CI — 2026-10-23
+
+A direct read of the exact branch source refines the earlier lifecycle diagnosis and avoids conflating the two repositories:
+
+- **OctavianOS vendored target launcher:** validates module count, target identity and physical bounds, then reaches the fail-closed `-15` guard. It does **not** call the CPIO validator, RAMFS extractor, or rootfs publisher in this launch path. The separate bounded-ingestion CI tests the parser/extractor in isolation; that pass does not imply the production launcher uses it.
+- **ChimeraIIOS target launcher:** calls bounded gzip/CPIO validation and `stage_rootfs()` into an unpublished RAMFS staging tree, but then reaches the same fail-closed guard because the staged tree is not published into the process-visible VFS.
+- **Both:** the VFS ABI is an unrelated fixed-capacity store (64 nodes, 128-byte paths, 4096-byte files), without a RAMFS root-mount/atomic-swap API. Native process syscalls do not yet provide process-owned descriptors plus safe open/read/write/stat against a mounted root.
+
+This is the critical cross-repository divergence: OctavianOS needs to wire production archive validation and staging into the launcher before implementing publication; ChimeraIIOS needs to complete publication after staging. The shared closure design must expose explicit mount ownership/lifetime and atomic publish/rollback, not copy archive files into the 64-node VFS or merely delete the guard.
+
+Latest workflow poll for docs commit `3d8859714439d307fc6aaafd93930e7b7183dbc5`: bounded ingestion, source integration, routing, artwork/progress, and explicit user ELF module smoke completed successfully. Candidate run `39866564460` remained in progress: Installer/BIOS and Recovery/UEFI candidate jobs passed; Installer/UEFI, Recovery/BIOS, Live/BIOS and Live/UEFI were still running. This is not production acceptance, and the candidate workflow itself labels its ISOs as non-production probes.
+
+**Do next:** (1) add launcher-level tests proving the production path invokes archive validation and stages an unpublished tree; (2) implement and test atomic RAMFS root publication/rollback; (3) add process-bound file descriptors and user-buffer validation; (4) only then enable production init launch and target services; (5) rerun six full-ISO cases and independent Aurora, disk persistence, recovery, and AP/SMP gates. Keep the fail-closed guard and release block until these tests pass.
