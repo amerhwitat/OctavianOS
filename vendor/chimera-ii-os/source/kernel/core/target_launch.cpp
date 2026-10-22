@@ -111,8 +111,8 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const bool gzip_cpio = bytes[0] == 0x1Fu && bytes[1] == 0x8Bu;
         const bool raw_newc = archive->size >= 6u &&
             bytes[0] == '0' && bytes[1] == '7' && bytes[2] == '0' &&
-            bytes[3] == '7' && (bytes[4] == '0' || bytes[4] == '2') &&
-            bytes[5] == '1';
+            bytes[3] == '7' && bytes[4] == '0' &&
+            (bytes[5] == '1' || bytes[5] == '2');
         if (!gzip_cpio && !raw_newc) {
             koronos_target_log("[USER] payload validation failed: unsupported initramfs envelope");
             return -3;
