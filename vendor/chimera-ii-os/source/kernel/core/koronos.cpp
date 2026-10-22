@@ -243,7 +243,15 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
+        const chimera_boot_module *user_init = chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF);
+        const chimera_boot_module *live_payload = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
+        const chimera_boot_module *recovery_payload = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
+        const chimera_boot_module *installer_payload = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
+        if (user_init || live_payload || recovery_payload || installer_payload) {
+            /* Route every production-payload boot through the same fail-closed
+             * launcher. A Linux initramfs/image is data, not an executable ELF;
+             * if the ISO omitted the native USER_INIT_ELF module, emit the
+             * concrete integration failure rather than silently idling. */
             const int launch_rc = koronos_launch_selected_userspace();
             if (launch_rc != 0)
                 console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
