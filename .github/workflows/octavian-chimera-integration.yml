@@ -23,7 +23,8 @@ permissions:
 
 concurrency:
   group: octavian-chimera-integration-${{ github.ref }}
-  cancel-in-progress: true
+  # Do not cancel the source-inventory job when a newer commit arrives; the report is a release-gate input.
+  cancel-in-progress: false
 
 jobs:
   hosted-bridge:
