@@ -417,7 +417,8 @@ extern "C" int64_t koronos_console_write_user(uint64_t address, uint64_t length)
 
 extern "C" void koronos_target_log(const char *message) {
     if (!message) return;
-    debugcon_write(message);
+    /* console_write already forwards to debugcon through serial_write.
+     * Avoid writing the same acceptance/target record twice. */
     console_write(message);
 }
 
