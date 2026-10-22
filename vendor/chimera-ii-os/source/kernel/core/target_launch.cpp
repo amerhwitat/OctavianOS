@@ -95,7 +95,7 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
 }
 
 extern "C" int koronos_target_validate_boot_payload(void) {
-    if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    if (active_target == TARGET_NONE || !active_pid || !active_root) { koronos_target_log("[USER] payload validation rejected: no active target/PID/address-space context"); return -1; }
     const auto nonempty = [](uint32_t kind) -> const chimera_boot_module * {
         const chimera_boot_module *m = chimera_multiboot_find(kind);
         return (m && m->base && m->size) ? m : nullptr;
@@ -104,11 +104,11 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const uint32_t kind = active_target == TARGET_LIVE
             ? CHIMERA_MODULE_LIVE_INITRAMFS : CHIMERA_MODULE_RECOVERY_INITRAMFS;
         const chimera_boot_module *archive = nonempty(kind);
-        if (!archive || archive->size < 2u) return -2;
+        if (!archive || archive->size < 2u) { koronos_target_log("[USER] payload validation failed: selected initramfs module missing or too small"); return -2; }
         const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
         /* Production initramfs builder emits gzip-compressed newc CPIO.
            Validate the compression envelope before allowing init readiness. */
-        if (bytes[0] != 0x1Fu || bytes[1] != 0x8Bu) return -3;
+        if (bytes[0] != 0x1Fu || bytes[1] != 0x8Bu) { koronos_target_log("[USER] payload validation failed: initramfs lacks gzip magic bytes"); return -3; }
         return 0;
     }
     if (active_target == TARGET_INSTALLER) {
@@ -119,7 +119,7 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         };
         for (uint32_t kind : required) {
             const chimera_boot_module *m = nonempty(kind);
-            if (!m) return -4;
+            if (!m) { koronos_target_log("[USER] payload validation failed: required installer data module missing"); return -4; }
         }
         /* Contract modules must at least be JSON objects/arrays, not empty or
            arbitrary bytes. Full schema/VFS validation remains a later gate. */
@@ -132,7 +132,7 @@ extern "C" int koronos_target_validate_boot_payload(void) {
             const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(m->base));
             uint64_t i = 0;
             while (i < m->size && (bytes[i] == ' ' || bytes[i] == '\n' || bytes[i] == '\r' || bytes[i] == '\t')) ++i;
-            if (i >= m->size || (bytes[i] != '{' && bytes[i] != '[')) return -5;
+            if (i >= m->size || (bytes[i] != '{' && bytes[i] != '[')) { koronos_target_log("[USER] payload validation failed: installer metadata is not a JSON object/array"); return -5; }
         }
         return 0;
     }
