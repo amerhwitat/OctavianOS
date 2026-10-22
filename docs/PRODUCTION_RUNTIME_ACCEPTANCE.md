@@ -52,21 +52,23 @@ The gate passes only if all six firmware/target combinations and all applicable 
 
 This section records observed gaps on the OctavianOS working branch; it does not waive any gate above.
 
-- The target-specific native init binaries in `kernel/userspace/native_init.c` currently perform a CPL3 syscall acknowledgement, validate that the selected data payload exists, emit `USERSPACE READY: <target> init pid=<N>`, and exit. Their own source explicitly limits that marker to the native-init ABI milestone. It does not mount the initramfs, start Aurora, run installer actions, or provide a recovery shell.
+- The target-specific native init binaries in `kernel/userspace/native_init.c` currently perform a CPL3 syscall acknowledgement, validate that the selected data payload exists, emit `USERSPACE READY: <target> init pid=<N>`, and exit. Their own source explicitly limits that marker to the native-init ABI milestone. They are ABI probes, not production init implementations: they do not mount the initramfs, start Aurora, run installer actions, or provide a recovery shell.
+- The root cause is also visible in `include/chimera/syscall.h` versus `core/syscall.cpp`: the declared ABI includes READ, MMAP, MUNMAP, IOCTL, NANOSLEEP, WAIT, and ARCH_PRCTL, but the native dispatcher implements only GETPID, YIELD, TIME_TICKS, payload validation, WRITE, and EXIT/EXIT_GROUP. There is no supported open/read/mount/exec/process-supervision path for unpacking and launching the initramfs `/init`, and no demonstrated display-device/compositor API. The existing gzip/newc archive is validated by its envelope only; it is not extracted or executed. Adding a readiness string would hide this missing runtime rather than fix it.
 - `core/koronos.cpp` currently logs explicit withheld states for Live, Installer, and Recovery when no supported target runtime is wired. These messages are release blockers and must not be treated as successful handoff.
 - `core/scheduler.cpp` deliberately returns zero from `chimera_sched_run_parallel()`; its comments state that no AP workers enter the scheduler from independent CPUs. SMP is NOT RUN / FAIL until AP startup, per-CPU state, scheduler participation, and overlapping work on distinct CPUs are demonstrated.
 - The acceptance workflow must fail closed if any withheld-handoff message is present or if the target-specific runtime readiness marker is absent. A green legacy ring-3 smoke run is evidence for the ABI probe only, not production target acceptance.
-- Native Koronos build workflow run `39764511700` had no jobs exposed at the last status inspection; its result is unresolved, not PASS.
-- The refreshed six-case acceptance workflow run `39764511575` was still executing at the last inspection. It is not a completed release result.
+- Native Koronos build workflow run `39764511700` had no jobs exposed at the latest status inspection; its result is unresolved, not PASS.
+- In acceptance run `39764511575`, Live/BIOS and Installer/UEFI completed and failed at `Boot and require userspace-originated readiness`; the other four cases were still in progress at the latest step-level inspection. The Live/BIOS raw trace confirms ordered ring-3 syscall/readiness for PID 1, then fails specifically because `USERSPACE TARGET READY: live component=aurora-session` is absent. Installer/UEFI additionally logs `graphical userspace is not running`, `install execution is not verified`, and `Installer handoff withheld`. These are production-runtime failures, not compiler or ISO-staging failures.
 
 ### Implementation work still required
 
-1. Implement a native userspace init/runtime that consumes the selected target payload through a real, supported archive/VFS interface and reports service readiness only after the services actually start.
-2. Live: mount and start the production initramfs, supervise the session, start the Aurora compositor/session manager, and prove the session is usable.
-3. Installer: implement and execute a target-owned installer runtime, perform a disposable-disk installation, reboot, and verify the installed system boots.
-4. Recovery: implement a target-owned recovery runtime and prove a repair shell can execute a harmless diagnostic command.
-5. Storage: implement/verify a real persistent block backend and filesystem mount; write, flush, cold-reboot, reattach, and verify data.
-6. SMP: implement AP startup/trampoline, per-CPU stacks/state and scheduler workers, then demonstrate overlapping work on at least two CPUs.
-7. Capture commit and ISO hashes, raw logs, verifier output, and explicit PASS/FAIL/NOT RUN for every firmware/target case and each end-to-end gate.
+1. Implement and test the missing syscall/runtime foundation (user-pointer validation and safe copy, file/open/read/write, archive extraction, VFS/mount, process create/exec/wait/exit and supervision). Do not expose a syscall ID as supported until it has a real implementation and tests.
+2. Implement a native userspace init/runtime that consumes the selected target payload through that archive/VFS interface and reports service readiness only after the services actually start.
+3. Live: mount and start the production initramfs, supervise the session, start the Aurora compositor/session manager, and prove the session is usable.
+4. Installer: implement and execute a target-owned installer runtime, perform a disposable-disk installation, reboot, and verify the installed system boots.
+5. Recovery: implement a target-owned recovery runtime and prove a repair shell can execute a harmless diagnostic command.
+6. Storage: implement/verify a real persistent block backend and filesystem mount; write, flush, cold-reboot, reattach, and verify data.
+7. SMP: implement AP startup/trampoline, per-CPU stacks/state and scheduler workers, then demonstrate overlapping work on at least two CPUs.
+8. Capture commit and ISO hashes, raw logs, verifier output, and explicit PASS/FAIL/NOT RUN for every firmware/target case and each end-to-end gate.
 
 Do not fabricate runtime markers to satisfy CI. The required marker is an observation emitted by a real target-owned runtime after the corresponding service has successfully started.
