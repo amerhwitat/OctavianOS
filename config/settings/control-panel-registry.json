@@ -50,7 +50,15 @@
         "desktop.virtual_desktops",
         "desktop.shortcuts",
         "desktop.notifications",
-        "desktop.audio"
+        "desktop.audio",
+        "desktop.interaction_profile",
+        "desktop.mouse_feedback",
+        "desktop.interface_sounds",
+        "desktop.ui_scale",
+        "desktop.accent_color",
+        "desktop.reduce_motion",
+        "desktop.developer_overlay",
+        "desktop.keyboard_shortcuts"
       ]
     },
     {
@@ -209,5 +217,19 @@
     "no_silent_fallback": true,
     "unsupported_behavior": "disabled_with_explanation",
     "hardware_or_firmware_changes_require_elevated_authorization": true
+  },
+  "desktop_preferences_contract": {
+    "frontend": "desktop/shared/desktop-preferences.js",
+    "stylesheet": "desktop/shared/desktop-preferences.css",
+    "persistence": "browser_local_storage_per_origin",
+    "status": "prototype_ui_controls_only",
+    "keyboard_shortcuts": {
+      "Ctrl+,": "open_or_close_preferences",
+      "Ctrl+Alt+D": "toggle_developer_overlay",
+      "Escape": "close_preferences",
+      "Alt+1..4": "prototype_workspace_indicator"
+    },
+    "native_provider_status": "not_connected",
+    "unsupported_settings": "visible_but_not_applied_to_host_os_or_hardware"
   }
 }
