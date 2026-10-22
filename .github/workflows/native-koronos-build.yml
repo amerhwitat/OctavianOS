@@ -139,7 +139,7 @@ jobs:
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
-          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/ramfs_test.cpp kernel/core/ramfs.cpp kernel/core/initramfs.cpp -o /tmp/octavian-ramfs-test
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/ramfs_test.cpp kernel/core/ramfs.cpp kernel/core/initramfs_cpio.cpp -o /tmp/octavian-ramfs-test
           /tmp/octavian-ramfs-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
