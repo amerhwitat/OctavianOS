@@ -172,3 +172,13 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+## Native init artifact and production GRUB integration — 2026-10-22
+
+A dedicated freestanding native init has now been added under `vendor/chimera-ii-os/source/kernel/userspace/native_init.c`, with an explicit ELF layout in `native_init_linker.ld`. The kernel build compiles three target-specific ELFs (`native-init-live.elf`, `native-init-installer.elf`, and `native-init-recovery.elf`) from this source; it does not rename or copy the candidate `user_init_smoke.c` probes. Build checks require ELF64 ET_EXEC and distinct RX plus RW PT_LOAD segments.
+
+The production ISO layout stages these artifacts under `/boot/koronos/`, and the main GRUB and Jasper Live/Installer/Recovery entries pass the matching ELF as `chimera-user-init-elf target=<target>`, separately from the initramfs or installation data module. The six-case acceptance workflow now stages and boots the dedicated native init against the selected production payload rather than using the probe ELF as its production init.
+
+The native init issues `INT 0x80` for the CPL3-gate acknowledgement, obtains its PID through `CHM_SYS_GETPID`, emits the target/PID-bound readiness token through `CHM_SYS_WRITE`, checks the write result, and exits through the native ABI. The existing verifier remains unchanged. This establishes a real process/syscall handoff only if all six QEMU cases pass; source wiring alone is not proof.
+
+**Explicit scope boundary:** the current native init does not claim that a VFS has been mounted, that the CPIO/initramfs contents are accessible through a filesystem API, that storage persists across reboot, that services are supervised, or that Aurora/Installer/Recovery workflows are complete. Those remain separate release gates. Do not label the OS production-ready based only on this minimal native-init handshake.
