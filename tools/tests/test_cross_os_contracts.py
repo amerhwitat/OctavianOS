@@ -132,6 +132,15 @@ for target in ("live", "installer", "recovery"):
         f"production GRUB must stage native init for {target}"
     )
 
+NATIVE_ACCEPTANCE_WORKFLOW = ROOT / ".github/workflows/koronos-userspace-acceptance.yml"
+acceptance_workflow_source = NATIVE_ACCEPTANCE_WORKFLOW.read_text(encoding="utf-8")
+assert 'module2 /boot/native-init-$TARGET.elf chimera-user-init-elf target=$TARGET' in acceptance_workflow_source, (
+    "six-case acceptance must boot the production native init, not the candidate probe"
+)
+assert 'cp "$NATIVE_INIT" "$ISO_ROOT/boot/native-init-$TARGET.elf"' in acceptance_workflow_source, (
+    "six-case acceptance ISO must stage the target-specific native init artifact"
+)
+
 app_count = sum(len(family.get("examples", [])) for family in families)
 print(f"cross-OS contracts PASS: {len(os_entries)} OS families, "
       f"{len(compat['cpu_profiles'])} CPU profiles, {len(setting_ids)} settings, "
