@@ -36,6 +36,17 @@ int main(){
   ((koronos_elf64_ehdr*)image)->e_phoff=UINT64_MAX;
   assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
 
+  // Program-header range arithmetic must reject a table that starts at
+  // the last byte and cannot fit, without relying on overflowing addition.
+  make_elf(image,false);
+  auto* malformed = (koronos_elf64_ehdr*)image;
+  malformed->e_phoff = sizeof(image) - 1;
+  malformed->e_phnum = UINT16_MAX;
+  assert(!koronos_elf64_validate(image,sizeof(image),KORONOS_EM_X86_64));
+  make_elf(image,false);
+  ((koronos_elf64_ehdr*)image)->e_ehsize = UINT16_MAX;
+  assert(!koronos_elf64_validate(image,sizeof(image),KORONOS_EM_X86_64));
+
   // Entry points must land inside an executable PT_LOAD segment.
   make_elf(image,false);
   ((koronos_elf64_ehdr*)image)->e_entry=0x700100;
