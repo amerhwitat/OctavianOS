@@ -54,3 +54,15 @@ The log also prints PASS: ordered kernel/user-syscall/userspace-ready trace targ
 - [ ] Complete six independent target/firmware cases with artifact hashes, boot logs, same-process syscall/PID evidence, service health logs, and explicit PASS/FAIL/NOT RUN.
 
 The target-marker gate fix only rejects false-green probe behavior; it does not supply the missing runtimes. No production release is justified until the ledger has end-to-end evidence.
+
+
+## Source implementation update — 2026-10-22
+
+A first executable archive-validation layer has been added to the mirrored Koronos source and build script on this branch:
+
+- `vendor/chimera-ii-os/source/kernel/include/chimera/initramfs_cpio.h` defines a bounded validation API with explicit error codes.
+- `vendor/chimera-ii-os/source/kernel/core/initramfs_cpio.cpp` validates raw `070701`/`070702` newc headers, fixed-width hex fields, bounds, alignment, NUL-terminated names, absolute/traversal path rejection, entry types, CRC for `070702`, archive/entry/payload limits, and `TRAILER!!!`. Gzip is explicitly reported as unsupported compression rather than accepted on magic bytes alone.
+- `vendor/chimera-ii-os/source/kernel/tests/initramfs_cpio_test.cpp` adds host regression cases; `build-koronos.sh` compiles/runs the tests and links the parser into Koronos.
+- `vendor/chimera-ii-os/source/kernel/core/target_launch.cpp` calls the validator for Live/Recovery and requires a top-level `init` entry in raw archives. The existing target marker remains service-specific and generic native-init readiness cannot satisfy it.
+
+This is partial archive validation only: there is no extraction, VFS mount, process-owned descriptor table, exec/wait/reap lifecycle, or target-service implementation yet. Duplicate/conflicting archive paths are not yet detected. Gzip/DEFLATE decompression remains absent and compressed production payloads fail closed. CI workflows triggered by the commits were queued/pending at the last poll; no passing build/test result is claimed.
