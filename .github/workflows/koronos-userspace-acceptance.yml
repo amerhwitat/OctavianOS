@@ -225,7 +225,7 @@ jobs:
           # target runtime actually started. Fail closed on known withheld paths
           # and require a target-owned runtime marker before this matrix can be
           # called production userspace acceptance.
-          if grep -Eq '\\[USER\\].*(handoff withheld|execution is not verified)|graphical userspace is not running' "$LOG"; then
+          if grep -Eq '\[USER\].*(handoff withheld|execution is not verified)|graphical userspace is not running' "$LOG"; then
             echo "::error::native init reached ring 3, but production target handoff is explicitly withheld"
             exit 1
           fi
