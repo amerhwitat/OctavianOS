@@ -237,6 +237,15 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: target resolution failed; require exactly one explicit target or payload kind");
         return -6;
     }
+    /* Production root payloads are currently classified and bounds-checked above,
+     * but this launch path does not yet extract the archive into RAMFS or publish
+     * that tree to the process-visible VFS. Launching init anyway permits a
+     * probe ELF to print USERSPACE READY while / is unavailable. Fail closed
+     * until transactional extraction + atomic VFS publication are wired here. */
+    if (payload_count == 1u) {
+        koronos_target_log("[RUN ] ERROR: production rootfs is validated but not mounted; refusing userspace readiness without VFS publication");
+        return -15;
+    }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
