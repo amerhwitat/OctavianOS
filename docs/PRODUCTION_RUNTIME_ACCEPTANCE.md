@@ -72,3 +72,16 @@ This section records observed gaps on the OctavianOS working branch; it does not
 8. Capture commit and ISO hashes, raw logs, verifier output, and explicit PASS/FAIL/NOT RUN for every firmware/target case and each end-to-end gate.
 
 Do not fabricate runtime markers to satisfy CI. The required marker is an observation emitted by a real target-owned runtime after the corresponding service has successfully started.
+
+
+### Latest production acceptance evidence — run 39767666859 (2026-10-22)
+
+The six-case workflow has now demonstrated the same production-runtime failure in Live/BIOS, Live/UEFI, Installer/UEFI, Recovery/BIOS, and Recovery/UEFI. Installer/BIOS was still running when this status was captured, so the matrix remains incomplete; do not report 4/6 as the final count or infer its result before completion.
+
+The raw QEMU trace narrows the immediate cause beyond the older “no native init ELF was staged” diagnosis: this candidate ISO does stage a target-specific NATIVE USER INIT ELF module alongside the selected data payload. The kernel enters ring 3, the probe calls GETPID and payload validation, writes USERSPACE READY: <target> init pid=1, verifies a syscall round-trip, and then calls EXIT. The kernel confirms that this ABI smoke process exited. The verifier then fails because no target-owned production marker appears, e.g. USERSPACE TARGET READY: live component=aurora-session. The Installer/UEFI trace additionally reports graphical userspace is not running, install execution is not verified, and Installer handoff withheld.
+
+Therefore the current immediate root cause is not BIOS-versus-UEFI routing, ELF compilation, or failure to enter ring 3. The supplied native init is still only a probe and exits before it consumes/extracts the selected initramfs, mounts a VFS, launches a real target init, supervises services, starts Aurora, performs an install, or opens a recovery shell. For Live/Recovery, koronos_target_validate_boot_payload() checks only the gzip/newc envelope; for Installer it checks required module presence and rudimentary JSON opening characters. Neither path starts the target runtime. The same missing runtime integration explains the shared failure across firmware modes.
+
+Safe fix required: implement the native target runtime and supporting kernel contracts (archive parsing/decompression, bounded CPIO extraction, VFS/file operations, process create/exec/wait/exit and supervision, device/display services), then make the production launcher start the real target-owned init and emit each target marker only after the relevant service is actually running. Installer additionally needs a disposable-disk install/reboot proof; Recovery needs a working diagnostic shell; Live needs a usable Aurora session. Keep the current fail-closed verifier unchanged. A marker-only change, re-labeling the probe, or weakening the check is not a fix.
+
+Related evidence: https://github.com/amerhwitat/OctavianOS/actions/runs/39767666859 and https://github.com/amerhwitat/OctavianOS/actions/runs/39767666880. The native build succeeded, but its downstream real-userspace verifier failed. Release remains blocked; no production ISO release is authorized by these results.
