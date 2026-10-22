@@ -1,0 +1,43 @@
+name: Optional App Panel Contract
+
+on:
+  push:
+    paths:
+      - 'desktop/optional_apps_catalog.json'
+      - 'vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/package_manager_panel.py'
+      - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/tests/desktop/test_optional_app_catalog.py'
+      - '.github/workflows/optional-app-panel-contract.yml'
+  pull_request:
+    paths:
+      - 'desktop/optional_apps_catalog.json'
+      - 'vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/package_manager_panel.py'
+      - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/tests/desktop/test_optional_app_catalog.py'
+      - '.github/workflows/optional-app-panel-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Compile application center
+        run: python -m py_compile vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py
+      - name: Test optional catalog discovery contract
+        run: python -m pytest -q vendor/chimera-ii-os/source/tests/desktop/test_optional_app_catalog.py
+      - name: Validate ISO staging
+        run: |
+          bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
+          grep -q 'optional_app_catalog' vendor/chimera-ii-os/source/build-chimera-iso.sh
+          python -m json.tool vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json >/dev/null
