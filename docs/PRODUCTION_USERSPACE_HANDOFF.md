@@ -1,6 +1,31 @@
+> **Correction — 2026-10-22, supersedes the older “no native init ELF staged” diagnosis below:** Newer production traces for run [39767666859](https://github.com/amerhwitat/OctavianOS/actions/runs/39767666859) show that the ISO does stage a target-specific native init ELF and that it enters ring 3. The staged ELF is the minimal ABI probe in `vendor/chimera-ii-os/source/kernel/userspace/native_init.c`; it validates the selected payload envelope, emits the generic `USERSPACE READY: <target> init pid=<N>` probe marker, then exits. This is **not** production target readiness. The real blocker is the absent target runtime after the probe: no extracted/launched target init, VFS/initramfs execution, service supervision, Aurora session, install operation, or recovery shell. The historical diagnosis below describes an earlier candidate and must not be used as the current root cause. Release remains blocked until the unchanged target-specific acceptance gates pass.
+
+---
+
 # Production userspace handoff — acceptance and integration contract
 
+## Root cause found in the current production path — 2026-10-22
+
+The latest trace-verifier job (run [39728253993](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993), job [119659006555](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993/job/119659006555)) reports all three targets missing both the CPL3-originated init syscall acknowledgement and PID-bound readiness marker.
+
+Source inspection identifies the concrete integration break:
+
+- The production ISO workflow stages the Live/Recovery initramfs or Installer image plus manifests/contracts as Multiboot2 modules. Its target-specific GRUB configuration does not stage a chimera-user-init-elf / user-init.elf module.
+- multiboot_modules.cpp can classify such a module if present, but classification does not create one.
+- target_launch.cpp only enters ring 3 after finding exactly one CHIMERA_MODULE_USER_INIT_ELF. The Live initramfs built by tools/build-live-boot-binaries.sh contains a /init shell script and BusyBox links, i.e. a Linux-style initramfs; Koronos's native ELF launcher does not interpret shell scripts or provide the Linux syscall/runtime environment needed to execute that BusyBox binary.
+- Consequently, the production boot path can recognize the target payload and still never enter the native user process. The candidate-probe matrix passes because it supplies a purpose-built probe ELF; it is a different input path and is not production evidence.
+
+This is a missing executable/runtime integration, not a verifier-format issue. Do not add a marker-only shim or reuse the candidate probe as production init. The real fix requires a native target init ELF/runtime that is actually built from production sources, staged by the production ISO builder with an unambiguous target tag, launched by Koronos, and connected to the target's actual initramfs/services. The current commit adds an explicit fail-closed error and ensures production payload boots reach that check; it improves diagnosis but does not claim that the native runtime has been implemented.
+
 **Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
+
+## Latest independent evidence — 2026-10-22
+
+The target-specific candidate/probe workflow run [39728253938](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253938) reports successful BIOS/UEFI boot-probe jobs for Live, Installer, and Recovery. These jobs validate the target-specific probe and boot path; they do **not** establish that the final production initramfs launches the real init process.
+
+The separate production trace verifier run [OctavianOS run 39728253993](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993) downloaded the full-ISO traces and failed for all three production targets with the missing user-originated init syscall acknowledgement (CPL 3) and actual init PID readiness marker. Its prerelease step was skipped. Therefore the current evidence is **6/6 candidate probe jobs successful, but production init handoff still FAILS**; storage persistence, service supervision, Aurora handoff, installer write/verify/reboot, recovery repair, and AP-backed SMP remain independently unproven.
+
+Do not convert the candidate-probe successes into production acceptance or weaken the verifier. Re-run the unchanged production verifier after fixing the real initramfs → ELF loader → ring-3 syscall → PID-bound readiness path.
 
 ## What the evidence means
 
@@ -151,3 +176,59 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+## Native init artifact and production GRUB integration — 2026-10-22
+
+A dedicated freestanding native init has now been added under `vendor/chimera-ii-os/source/kernel/userspace/native_init.c`, with an explicit ELF layout in `native_init_linker.ld`. The kernel build compiles three target-specific ELFs (`native-init-live.elf`, `native-init-installer.elf`, and `native-init-recovery.elf`) from this source; it does not rename or copy the candidate `user_init_smoke.c` probes. Build checks require ELF64 ET_EXEC and distinct RX plus RW PT_LOAD segments.
+
+The production ISO layout stages these artifacts under `/boot/koronos/`, and the main GRUB and Jasper Live/Installer/Recovery entries pass the matching ELF as `chimera-user-init-elf target=<target>`, separately from the initramfs or installation data module. The six-case acceptance workflow now stages and boots the dedicated native init against the selected production payload rather than using the probe ELF as its production init.
+
+The native init issues `INT 0x80` for the CPL3-gate acknowledgement, obtains its PID through `CHM_SYS_GETPID`, and invokes `CHM_SYS_VALIDATE_BOOT_PAYLOAD` before emitting readiness. The kernel validates a gzip envelope for the selected Live/Recovery initramfs or checks the Installer image plus required JSON contract modules. The init then writes the target/PID-bound readiness token through `CHM_SYS_WRITE`, checks the write result, and exits through the native ABI. The existing verifier remains unchanged. This establishes a real process/syscall handoff only if all six QEMU cases pass; source wiring alone is not proof.
+
+**Explicit scope boundary:** the current native init does not claim that a VFS has been mounted, that the CPIO/initramfs contents are accessible through a filesystem API, that storage persists across reboot, that services are supervised, or that Aurora/Installer/Recovery workflows are complete. Those remain separate release gates. Do not label the OS production-ready based only on this minimal native-init handshake.
+
+
+## Fresh production acceptance audit — 2026-10-22
+
+Current head acceptance run [39736291623](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291623) was checked directly. All six jobs are queued: Live × BIOS/UEFI, Installer × BIOS/UEFI, Recovery × BIOS/UEFI. A queued job is neither a pass nor a failure; do not infer a result from previous commits. Native desktop component compile run [39736291844](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291844) completed successfully, while desktop contract run [39736291681](https://github.com/amerhwitat/OctavianOS/actions/runs/39736291681) had started. Neither proves the remaining runtime acceptance gates.
+
+### Confirmed source-level blockers beyond the native-init handshake
+
+- **Filesystem and durable storage:** target payload validation checks module presence and a limited envelope/JSON prefix. It does not mount an initramfs or filesystem, perform file operations, flush durable data, or prove write/read persistence across a reboot. ISO extraction and hashes prove artifact integrity only.
+- **Installer:** no fresh end-to-end evidence proves the installer writes a target disk, verifies the installed image, reboots, and boots the installed system.
+- **Recovery:** no fresh end-to-end evidence proves a recovery operation changes/repairs a target and validates the result.
+- **Aurora:** the minimal native init's PID/syscall/readiness handshake is not an Aurora session handoff. The production path still needs actual userspace service startup and a verifiable session/display handoff.
+- **SMP:** `kernel/core/parallel.cpp` deliberately returns zero when more than one worker is requested, and `kernel/core/scheduler.cpp::chimera_sched_run_parallel()` currently returns zero unconditionally. This fail-closed behavior is honest but confirms that AP-backed concurrent worker dispatch is not implemented. Do not weaken the guard or report sequential callback execution as SMP.
+- **Desktop providers/preferences:** compile and schema/contract checks do not prove native preference persistence or working input, audio, display, and service providers. These require runtime tests against the real backends.
+
+### Required closeout evidence
+
+1. Capture all six production ISO traces and verify each has a CPL3-originated syscall acknowledgement, a nonzero kernel-owned PID, and a matching target/PID readiness marker.
+2. Add end-to-end filesystem and storage tests, including write, flush, reboot, and read-back from the same virtual disk.
+3. Exercise a real install → reboot → installed-system boot path and a real recovery repair path.
+4. Prove initramfs/rootfs mount and service supervision, then verify Aurora is actually entered.
+5. Run preferences and device/service tests against functional native providers, including persistence after process/application restart.
+6. Boot APs independently and prove simultaneous per-CPU work using synchronized overlap evidence and cross-core correctness tests.
+
+Until those artifacts exist, this PR remains draft and production publication remains blocked. Keep the verifier fail-closed; do not fabricate readiness or substitute probe-only evidence for production workflows.
+
+
+## Cross-edition propagation: Mobile edition and ISO/Flash tool — 2026-10-22
+
+This section records the required propagation boundary across OctavianOS desktop, Mobile edition, the matching ChimeraIIOS implementation, and the public ISO/Flash Center. It is an integration contract, not a claim that the items below are already complete.
+
+- **Shared source of truth:** keep the boot-target ABI, native-init artifact names, target IDs, module aliases, manifest schema, and acceptance marker format synchronized between OctavianOS and ChimeraIIOS. Mobile must consume the same versioned contracts while selecting mobile-specific drivers/compositor and architecture-appropriate boot assets; it must not advertise x86_64 ISO support as ARM64/mobile boot support.
+- **Mobile edition gate:** build and test Mobile independently for each declared architecture/device profile. Verify boot route, input/touch, display, audio, storage, settings persistence, service supervision, and Aurora/Marine session routing on supported hardware or an explicitly labeled emulator. Unsupported providers must be shown as unavailable rather than silently mapped to desktop implementations. Mobile builds do not count as evidence for the six BIOS/UEFI ISO cases or AP-backed SMP.
+- **ISO/Flash Center gate:** the web UI may inspect ISO metadata and checksums without elevated privileges. Destructive writes must remain behind explicit confirmation (CHIMERA_FLASH_CONFIRM=YES), require a validated image and an explicitly selected /dev/... target, reject arbitrary shell commands and ambiguous targets, and verify the written image afterward. Device detection and image verification are not proof of a successful boot or installed-system handoff. Do not trigger physical flashing from CI or automatically on page load.
+- **Cross-project parity:** changes to native-init names, boot manifests, target routing, flash API contracts, or acceptance evidence must be reflected in both OS repositories and the public site in one coordinated change set; link the corresponding commits and keep each project’s status independent. Avoid claiming parity based on a copied file or a green contract-only job.
+- **Current evidence boundary:** OctavianOS native desktop component compilation previously passed, but the six production Live/Installer/Recovery × BIOS/UEFI jobs were still queued at the last check. ChimeraIIOS has native-init build artifacts but lacks the matching ring-3 launch backend on this branch. Neither result establishes production userspace readiness, VFS mount/file operations, durable storage, Installer/Recovery workflows, Aurora handoff, or genuine AP concurrency.
+
+### Cross-edition closeout checklist
+
+- [ ] Mobile architecture/device matrix builds and runtime checks pass; unsupported targets are explicit.
+- [ ] Flash Center API and UI contract tests pass, including invalid-image, wrong-target, cancellation, and post-write verification failures.
+- [ ] The same ABI/manifest/target routing is verified against both OS repositories and site metadata.
+- [ ] All six production ISO cases produce real CPL3 syscall acknowledgements and PID-bound target readiness.
+- [ ] Live initramfs is mounted and file operations are exercised; Installer writes persist across reboot; Recovery performs and verifies a real repair.
+- [ ] Aurora session handoff, settings persistence, real input/audio/display providers, and AP-backed parallel execution are demonstrated.
+- [ ] Publication remains blocked until relevant release gates pass; contract checks and candidate probes are not substitutes for production evidence.

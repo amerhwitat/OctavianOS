@@ -4,6 +4,7 @@
 #include "chimera/compat.h"
 #include "chimera/scheduler.h"
 #include "chimera/timer.h"
+#include "chimera/target_launch.h"
 
 namespace {
 static volatile uint32_t g_initialized = 0;
@@ -123,6 +124,14 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return 0;
         case CHM_SYS_TIME_TICKS:
             return chimera_timer_now();
+        case CHM_SYS_VALIDATE_BOOT_PAYLOAD: {
+            const int validation = koronos_target_validate_boot_payload();
+            if (validation != 0) {
+                koronos_target_log("[USER] target payload validation failed before readiness");
+                return static_cast<uint64_t>(-CHIMERA_ENOSYS);
+            }
+            return 0;
+        }
         case CHM_SYS_WRITE: {
             const uint64_t fd = frame->rdi;
             const uint64_t address = frame->rsi;

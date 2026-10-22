@@ -25,6 +25,11 @@ on:
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
+      - 'config/platform/**'
+      - 'config/hardware/**'
+      - 'config/settings/**'
+      - 'docs/OPEN_SOURCE_USERSPACE_CATALOG.json'
+      - 'tools/tests/test_cross_os_contracts.py'
 
 
 
@@ -66,6 +71,11 @@ on:
       - 'tests/boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
+      - 'config/platform/**'
+      - 'config/hardware/**'
+      - 'config/settings/**'
+      - 'docs/OPEN_SOURCE_USERSPACE_CATALOG.json'
+      - 'tools/tests/test_cross_os_contracts.py'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -99,6 +109,16 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+      - name: Validate cross-OS settings, driver, and compatibility contracts
+        run: python3 tools/tests/test_cross_os_contracts.py
+      - name: Compile and run hardened ELF process-admission regression
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include \
+            kernel/tests/process_admission.cpp kernel/core/process.cpp kernel/core/elf64.cpp \
+            -o /tmp/octavian-process-admission-test
+          /tmp/octavian-process-admission-test
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -335,7 +355,8 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Recovery module smoke" --id recovery {
-            multiboot2 /boot/koronos/koronos.elf
+            multiboot2 /boot/koronos/koronos.elf target=recovery
+            module2 /boot/koronos/native-init-recovery.elf chimera-user-init-elf target=recovery
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
@@ -348,7 +369,9 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq "USER INIT SYSCALL: target=recovery init_pid=" "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not execute its ring-3 syscall"; exit 1; }
+          grep -Eq "USERSPACE READY: recovery init pid=[1-9][0-9]*" "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery userspace readiness marker missing"; exit 1; }
+          grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$smoke/recovery-debugcon.log" || { echo "::error::Recovery syscall round-trip missing"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -361,7 +384,8 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Installer module smoke" --id install {
-            multiboot2 /boot/koronos/koronos.elf
+            multiboot2 /boot/koronos/koronos.elf target=installer
+            module2 /boot/koronos/native-init-installer.elf chimera-user-init-elf target=installer
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
@@ -377,7 +401,9 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          grep -Fq "USER INIT SYSCALL: target=installer init_pid=" "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer init did not execute its ring-3 syscall"; exit 1; }
+          grep -Eq "USERSPACE READY: installer init pid=[1-9][0-9]*" "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer userspace readiness marker missing"; exit 1; }
+          grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$smoke/installer-debugcon.log" || { echo "::error::Installer syscall round-trip missing"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -421,6 +447,9 @@ jobs:
           path: |
             vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf
             vendor/chimera-ii-os/source/build/koronos/x86_64/symbols.txt
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-live.elf
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-installer.elf
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-recovery.elf
           if-no-files-found: error
           retention-days: 14
 

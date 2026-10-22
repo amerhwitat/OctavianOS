@@ -8,6 +8,8 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/initramfs_cpio.h"
+#include "chimera/initramfs_ingest.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -20,6 +22,16 @@ static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
+constexpr uint64_t MAX_INITRAMFS_BYTES = 64ull * 1024ull * 1024ull;
+struct TemporaryFrames {
+    uint64_t base = 0;
+    uint32_t pages = 0;
+    ~TemporaryFrames() { if (base && pages) (void)koronos_frame_free_contiguous(base, pages); }
+};
+static uint32_t read_le32(const uint8_t *p) {
+    return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+           (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+}
 
 extern "C" void koronos_target_log(const char *message);
 
@@ -66,32 +78,145 @@ static void log_user_init_syscall(Target target, uint32_t pid) {
     koronos_target_log(message);
 }
 static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
-    const char *name = target_name(target);
-    char prefix[80];
-    uint64_t p=0;
-    const char *a="USERSPACE READY: ";
-    while (*a) prefix[p++]=*a++;
-    while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
-    while (*b) prefix[p++]=*b++;
-    if (length < p+2u) return false;
-    bool found=false;
-    for (uint64_t i=0; i+p<length; ++i) {
-        uint64_t j=0;
-        while (j<p && bytes[i+j]==prefix[j]) ++j;
-        if (j!=p) continue;
-        uint64_t k=i+p;
-        uint32_t parsed=0, digits=0;
-        while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
-            ++k; ++digits;
-        }
-        if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
-            found=true; break;
+    (void)pid;
+    /* This flag is production target readiness, not the generic ABI probe
+       marker. The acceptance harness separately checks the PID-bound generic
+       syscall handshake and the target-owned service marker. */
+    const char *expected = nullptr;
+    switch (target) {
+        case TARGET_LIVE:
+            expected = "USERSPACE TARGET READY: live component=aurora-session";
+            break;
+        case TARGET_INSTALLER:
+            expected = "USERSPACE TARGET READY: installer component=install-executor";
+            break;
+        case TARGET_RECOVERY:
+            expected = "USERSPACE TARGET READY: recovery component=recovery-runtime";
+            break;
+        default:
+            return false;
+    }
+    uint64_t n = 0;
+    while (expected[n]) ++n;
+    if (!bytes || length < n) return false;
+    for (uint64_t i = 0; i + n <= length; ++i) {
+        uint64_t j = 0;
+        while (j < n && bytes[i + j] == expected[j]) ++j;
+        if (j == n && (i + n == length || bytes[i + n] == '\n' ||
+                       bytes[i + n] == '\r' || bytes[i + n] == ' ')) {
+            return true;
         }
     }
-    return found;
+    return false;
 }
+}
+
+extern "C" int koronos_target_validate_boot_payload(void) {
+    if (active_target == TARGET_NONE || !active_pid || !active_root) { koronos_target_log("[USER] payload validation rejected: no active target/PID/address-space context"); return -1; }
+    const auto nonempty = [](uint32_t kind) -> const chimera_boot_module * {
+        const chimera_boot_module *m = chimera_multiboot_find(kind);
+        return (m && m->base && m->size) ? m : nullptr;
+    };
+    // The production launcher selects exactly one target. Reject stale or
+    // accidentally co-packed target payloads instead of validating only the
+    // payload that happens to match the selected target.
+    const uint32_t expected_payload = active_target == TARGET_LIVE
+        ? CHIMERA_MODULE_LIVE_INITRAMFS
+        : (active_target == TARGET_RECOVERY
+            ? CHIMERA_MODULE_RECOVERY_INITRAMFS : CHIMERA_MODULE_INSTALL_IMAGE);
+    for (uint32_t i = 0; i < chimera_multiboot_module_count(); ++i) {
+        const chimera_boot_module *m = chimera_multiboot_module(i);
+        if (!m) continue;
+        const bool is_target_payload =
+            m->kind == CHIMERA_MODULE_LIVE_INITRAMFS ||
+            m->kind == CHIMERA_MODULE_RECOVERY_INITRAMFS ||
+            m->kind == CHIMERA_MODULE_INSTALL_IMAGE;
+        if (is_target_payload && m->kind != expected_payload) {
+            koronos_target_log("[USER] payload validation failed: conflicting target payload is present");
+            return -7;
+        }
+    }
+    if (active_target == TARGET_LIVE || active_target == TARGET_RECOVERY) {
+        const uint32_t kind = active_target == TARGET_LIVE
+            ? CHIMERA_MODULE_LIVE_INITRAMFS : CHIMERA_MODULE_RECOVERY_INITRAMFS;
+        const chimera_boot_module *archive = nonempty(kind);
+        if (!archive || archive->size < 2u || archive->size > MAX_INITRAMFS_BYTES ||
+            archive->base >= KORONOS_FRAME_PHYS_LIMIT ||
+            archive->size > KORONOS_FRAME_PHYS_LIMIT - archive->base) {
+            koronos_target_log("[USER] payload validation failed: selected initramfs bounds are invalid");
+            return -2;
+        }
+        const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
+        chimera_cpio_summary summary{};
+        int cpio_rc = CHIMERA_CPIO_OK;
+        if (archive->size >= 2u && bytes[0] == 0x1fu && bytes[1] == 0x8bu) {
+            if (archive->size < 18u) {
+                koronos_target_log("[USER] payload validation failed: truncated gzip member");
+                return CHIMERA_CPIO_E_COMPRESSION;
+            }
+            const uint64_t expected_size = read_le32(bytes + archive->size - 4u);
+            if (expected_size < 110u || expected_size > MAX_INITRAMFS_BYTES) {
+                koronos_target_log("[USER] payload validation failed: gzip ISIZE exceeds bounded CPIO capacity");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            const uint64_t pages64 = (expected_size + KORONOS_FRAME_SIZE - 1u) / KORONOS_FRAME_SIZE;
+            if (pages64 == 0u || pages64 > 16384u) {
+                koronos_target_log("[USER] payload validation failed: decompression page limit exceeded");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            TemporaryFrames decoded{};
+            decoded.pages = static_cast<uint32_t>(pages64);
+            decoded.base = koronos_frame_alloc_contiguous(decoded.pages);
+            if (!decoded.base) {
+                decoded.pages = 0;
+                koronos_target_log("[USER] payload validation failed: no bounded decompression workspace");
+                return CHIMERA_CPIO_E_LIMIT;
+            }
+            uint64_t decoded_size = 0;
+            cpio_rc = chimera_initramfs_prepare_newc(
+                bytes, archive->size,
+                reinterpret_cast<void *>(static_cast<uintptr_t>(decoded.base)),
+                expected_size, &decoded_size, &summary);
+            if (cpio_rc != CHIMERA_CPIO_OK || decoded_size != expected_size || !summary.has_init) {
+                koronos_target_log("[USER] payload validation failed: gzip integrity, CPIO safety, or init validation failed");
+                return cpio_rc == CHIMERA_CPIO_OK ? CHIMERA_CPIO_E_TRAILER : cpio_rc;
+            }
+            koronos_target_log("[USER] bounded gzip/DEFLATE, CRC32/ISIZE and CPIO validation passed");
+        } else {
+            cpio_rc = chimera_cpio_validate_newc(bytes, archive->size, &summary);
+            if (cpio_rc != CHIMERA_CPIO_OK || !summary.has_init) {
+                koronos_target_log("[USER] payload validation failed: malformed/unsafe CPIO or missing init");
+                return cpio_rc == CHIMERA_CPIO_OK ? CHIMERA_CPIO_E_TRAILER : cpio_rc;
+            }
+        }
+        return 0;
+    }
+    if (active_target == TARGET_INSTALLER) {
+        const uint32_t required[] = {
+            CHIMERA_MODULE_INSTALL_IMAGE, CHIMERA_MODULE_INSTALL_MANIFEST,
+            CHIMERA_MODULE_INSTALL_CONTRACT, CHIMERA_MODULE_INSTALL_PHASES,
+            CHIMERA_MODULE_INSTALL_PROFILES
+        };
+        for (uint32_t kind : required) {
+            const chimera_boot_module *m = nonempty(kind);
+            if (!m) { koronos_target_log("[USER] payload validation failed: required installer data module missing"); return -4; }
+        }
+        /* Contract modules must at least be JSON objects/arrays, not empty or
+           arbitrary bytes. Full schema/VFS validation remains a later gate. */
+        const uint32_t json_kinds[] = {
+            CHIMERA_MODULE_INSTALL_MANIFEST, CHIMERA_MODULE_INSTALL_CONTRACT,
+            CHIMERA_MODULE_INSTALL_PHASES, CHIMERA_MODULE_INSTALL_PROFILES
+        };
+        for (uint32_t kind : json_kinds) {
+            const chimera_boot_module *m = nonempty(kind);
+            const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(m->base));
+            uint64_t i = 0;
+            while (i < m->size && (bytes[i] == ' ' || bytes[i] == '\n' || bytes[i] == '\r' || bytes[i] == '\t')) ++i;
+            if (i >= m->size || (bytes[i] != '{' && bytes[i] != '[')) { koronos_target_log("[USER] payload validation failed: installer metadata is not a JSON object/array"); return -5; }
+        }
+        return 0;
+    }
+    return -6;
 }
 
 extern "C" uint32_t koronos_target_userspace_ready(void) { return ready_seen; }
@@ -143,7 +268,28 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const chimera_boot_module *m=chimera_multiboot_module(i);
         if (m && m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++count; }
     }
-    if (count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+    if (count==0) {
+        /* A kernel-only smoke boot may legitimately have no user payload.
+         * A production target module, however, is not itself executable by
+         * the native ELF launcher. Never treat an initramfs/installer image
+         * without a staged native init ELF as a successful no-op. */
+        bool production_payload = false;
+        for (uint32_t i=0;i<chimera_multiboot_module_count();++i) {
+            const chimera_boot_module *m=chimera_multiboot_module(i);
+            if (!m) continue;
+            if (m->kind==CHIMERA_MODULE_LIVE_INITRAMFS ||
+                m->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS ||
+                m->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
+                production_payload = true;
+                break;
+            }
+        }
+        if (production_payload) {
+            koronos_target_log("[RUN ] ERROR: production payload selected but no native USER_INIT_ELF module was staged; initramfs/image is not executable by the native ELF launcher");
+            return -12;
+        }
+        return 0; // Kernel-only smoke boot with no production target payload.
+    }
     if (count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
         selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
         selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
@@ -193,6 +339,16 @@ extern "C" int koronos_launch_selected_userspace(void) {
     active_root=root;
     syscall_ack_seen=0;
     ready_seen=0;
+    const int payload_rc = koronos_target_validate_boot_payload();
+    if (payload_rc != 0) {
+        (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
+        ops->destroy_address_space(nullptr,loaded.address_space);
+        active_target=TARGET_NONE;
+        active_pid=0;
+        active_root=0;
+        koronos_target_log("[RUN ] ERROR: selected target payload failed validation before ring-3 entry");
+        return -13;
+    }
     (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING);
     // 100 Hz PIT deadline: 1,000 ticks gives user init ten seconds to return
     // and emit readiness. This is enforced by IRQ0 inside the kernel, not by
@@ -227,6 +383,6 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: userspace init exited nonzero after readiness");
         return -9;
     }
-    koronos_target_log("[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly");
-    return 0;
+    koronos_target_log("[RUN ] ERROR: generic init ABI handshake is not target-service readiness; selected production runtime did not remain active");
+    return -14;
 }
