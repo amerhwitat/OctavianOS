@@ -4,10 +4,10 @@
 #include "chimera/process.h"
 
 static void make_elf(uint8_t* b,bool wx){
-  std::memset(b,0,4096);
+  std::memset(b,0,8192);
   auto* h=(koronos_elf64_ehdr*)b;
   h->e_ident[0]=0x7f; h->e_ident[1]='E'; h->e_ident[2]='L'; h->e_ident[3]='F';
-  h->e_ident[4]=2; h->e_ident[5]=1; h->e_type=KORONOS_ET_DYN; h->e_machine=KORONOS_EM_X86_64;
+  h->e_ident[4]=2; h->e_ident[5]=1; h->e_ident[6]=1; h->e_type=KORONOS_ET_EXEC; h->e_machine=KORONOS_EM_X86_64;
   h->e_version=1; h->e_entry=0x400100; h->e_ehsize=sizeof(*h); h->e_phoff=sizeof(*h);
   h->e_phentsize=sizeof(koronos_elf64_phdr); h->e_phnum=1;
   auto* p=(koronos_elf64_phdr*)(b+h->e_phoff);
@@ -26,7 +26,19 @@ int main(){
   assert(chimera_process_set_state(pid,CHIMERA_PROCESS_READY)==0);
   chimera_process_image q{};
   assert(chimera_process_get(pid,&q)==0 && q.state==CHIMERA_PROCESS_READY);
+
+  // Writable+executable segments must be rejected.
   make_elf(image,true);
+  assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
+
+  // A corrupt program-header offset must be rejected before dereferencing it.
+  make_elf(image,false);
+  ((koronos_elf64_ehdr*)image)->e_phoff=UINT64_MAX;
+  assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
+
+  // Entry points must land inside an executable PT_LOAD segment.
+  make_elf(image,false);
+  ((koronos_elf64_ehdr*)image)->e_entry=0x700100;
   assert(chimera_process_admit_elf(image,sizeof(image),KORONOS_EM_X86_64,0x800000,&q)<0);
   return 0;
 }
