@@ -221,9 +221,24 @@ jobs:
           PY
           grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
-          # Page-table reclamation is covered by its dedicated address-space tests;
-          # the production native-init trace does not emit the old probe-only banner.
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
+          # A ring-3 init handshake is not proof that the selected production
+          # target runtime actually started. Fail closed on known withheld paths
+          # and require a target-owned runtime marker before this matrix can be
+          # called production userspace acceptance.
+          if grep -Eq '\\[USER\\].*(handoff withheld|execution is not verified)|graphical userspace is not running' "$LOG"; then
+            echo "::error::native init reached ring 3, but production target handoff is explicitly withheld"
+            exit 1
+          fi
+          case "$TARGET" in
+            live) runtime_marker="USERSPACE TARGET READY: live component=aurora-session" ;;
+            installer) runtime_marker="USERSPACE TARGET READY: installer component=install-executor" ;;
+            recovery) runtime_marker="USERSPACE TARGET READY: recovery component=recovery-runtime" ;;
+          esac
+          grep -Fq "$runtime_marker" "$LOG" || {
+            echo "::error::missing target-owned production runtime marker: $runtime_marker"
+            exit 1
+          }
+          echo "Production target runtime acceptance passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
         run: |
