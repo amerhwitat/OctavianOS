@@ -148,6 +148,14 @@ done
 mkdir -p "$STAGE/boot/live" "$STAGE/boot/koronos"
 cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.img" "$STAGE/boot/live/"
 cp -f "$LIVE_BOOT/boot/live/live-manifest.json" "$STAGE/boot/live/"
+for target in live installer recovery; do
+  native_init="$LIVE_BOOT/boot/koronos/native-init-$target.elf"
+  [[ -s "$native_init" ]] || { echo "ERROR: missing production native init: $native_init" >&2; exit 2; }
+  [[ -s "$native_init.sha256" ]] || { echo "ERROR: missing native init checksum: $native_init.sha256" >&2; exit 2; }
+  sha256sum --check "$native_init.sha256"
+  cp -f "$native_init" "$STAGE/boot/koronos/native-init-$target.elf"
+  cp -f "$native_init.sha256" "$STAGE/boot/koronos/native-init-$target.elf.sha256"
+done
     chimera_copy_if_distinct "$LIVE_BOOT/boot/koronos/koronos.elf" "$STAGE/boot/koronos/koronos.elf"
 
 install_iso_dependencies
