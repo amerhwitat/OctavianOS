@@ -207,3 +207,24 @@ Current head acceptance run [39736291623](https://github.com/amerhwitat/Octavian
 6. Boot APs independently and prove simultaneous per-CPU work using synchronized overlap evidence and cross-core correctness tests.
 
 Until those artifacts exist, this PR remains draft and production publication remains blocked. Keep the verifier fail-closed; do not fabricate readiness or substitute probe-only evidence for production workflows.
+
+
+## Cross-edition propagation: Mobile edition and ISO/Flash tool — 2026-10-22
+
+This section records the required propagation boundary across OctavianOS desktop, Mobile edition, the matching ChimeraIIOS implementation, and the public ISO/Flash Center. It is an integration contract, not a claim that the items below are already complete.
+
+- **Shared source of truth:** keep the boot-target ABI, native-init artifact names, target IDs, module aliases, manifest schema, and acceptance marker format synchronized between OctavianOS and ChimeraIIOS. Mobile must consume the same versioned contracts while selecting mobile-specific drivers/compositor and architecture-appropriate boot assets; it must not advertise x86_64 ISO support as ARM64/mobile boot support.
+- **Mobile edition gate:** build and test Mobile independently for each declared architecture/device profile. Verify boot route, input/touch, display, audio, storage, settings persistence, service supervision, and Aurora/Marine session routing on supported hardware or an explicitly labeled emulator. Unsupported providers must be shown as unavailable rather than silently mapped to desktop implementations. Mobile builds do not count as evidence for the six BIOS/UEFI ISO cases or AP-backed SMP.
+- **ISO/Flash Center gate:** the web UI may inspect ISO metadata and checksums without elevated privileges. Destructive writes must remain behind explicit confirmation (CHIMERA_FLASH_CONFIRM=YES), require a validated image and an explicitly selected /dev/... target, reject arbitrary shell commands and ambiguous targets, and verify the written image afterward. Device detection and image verification are not proof of a successful boot or installed-system handoff. Do not trigger physical flashing from CI or automatically on page load.
+- **Cross-project parity:** changes to native-init names, boot manifests, target routing, flash API contracts, or acceptance evidence must be reflected in both OS repositories and the public site in one coordinated change set; link the corresponding commits and keep each project’s status independent. Avoid claiming parity based on a copied file or a green contract-only job.
+- **Current evidence boundary:** OctavianOS native desktop component compilation previously passed, but the six production Live/Installer/Recovery × BIOS/UEFI jobs were still queued at the last check. ChimeraIIOS has native-init build artifacts but lacks the matching ring-3 launch backend on this branch. Neither result establishes production userspace readiness, VFS mount/file operations, durable storage, Installer/Recovery workflows, Aurora handoff, or genuine AP concurrency.
+
+### Cross-edition closeout checklist
+
+- [ ] Mobile architecture/device matrix builds and runtime checks pass; unsupported targets are explicit.
+- [ ] Flash Center API and UI contract tests pass, including invalid-image, wrong-target, cancellation, and post-write verification failures.
+- [ ] The same ABI/manifest/target routing is verified against both OS repositories and site metadata.
+- [ ] All six production ISO cases produce real CPL3 syscall acknowledgements and PID-bound target readiness.
+- [ ] Live initramfs is mounted and file operations are exercised; Installer writes persist across reboot; Recovery performs and verifies a real repair.
+- [ ] Aurora session handoff, settings persistence, real input/audio/display providers, and AP-backed parallel execution are demonstrated.
+- [ ] Publication remains blocked until relevant release gates pass; contract checks and candidate probes are not substitutes for production evidence.
