@@ -75,7 +75,8 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     while (*name) prefix[p++]=*name++;
     const char *b=" init_pid=";
     while (*b) prefix[p++]=*b++;
-    if (length < p+2u) return false;
+    /* A valid marker needs at least one PID digit; the newline is optional. */
+    if (length < p+1u) return false;
     bool found=false;
     for (uint64_t i=0; i+p<length; ++i) {
         uint64_t j=0;
