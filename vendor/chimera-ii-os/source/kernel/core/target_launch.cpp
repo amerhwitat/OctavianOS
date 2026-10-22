@@ -85,7 +85,13 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
         uint64_t k=i+p;
         uint32_t parsed=0, digits=0;
         while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
+            const uint32_t digit=(uint32_t)(bytes[k]-'0');
+            if (parsed>(UINT32_MAX-digit)/10u) {
+                /* Never let an oversized decimal PID wrap onto the active PID. */
+                digits=0;
+                break;
+            }
+            parsed=parsed*10u+digit;
             ++k; ++digits;
         }
         if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
