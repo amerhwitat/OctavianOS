@@ -46,14 +46,16 @@ static void write_pid_diagnostic(long pid) {
 __attribute__((noreturn, used)) void _start(void) {
   static const char started[] = "NATIVE INIT STARTED: " CHIMERA_INIT_TARGET_NAME "\n";
   static const char blocked[] = "NATIVE INIT BLOCKED: required native filesystem, process, device and graphics services are not available; refusing to claim USERSPACE READY.\n";
-  /* This DPL3 interrupt proves user-mode entry; the PID must be kernel-owned. */
+  /* DPL3 interrupt acknowledges the actual ring-3 origin; GETPID must come
+     from the kernel-owned process record and may never be fabricated. */
   __asm__ volatile("int $0x80" ::: "memory");
   long pid = call0(2);
   if (pid <= 0) call1(1, 78);
   if (write_console(started, (long)(sizeof(started)-1)) < 0) call1(1, 78);
   write_pid_diagnostic(pid);
   if (write_console(blocked, (long)(sizeof(blocked)-1)) < 0) call1(1, 78);
-  /* Explicit unavailable-service exit; never fabricate target readiness. */
+  /* Exit 78 is an explicit unavailable-service result, not readiness. The
+     production release gate must remain red until these services exist. */
   call1(1, 78);
   for (;;) __asm__ volatile("pause" ::: "memory");
 }
