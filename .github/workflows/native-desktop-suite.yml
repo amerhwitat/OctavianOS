@@ -43,7 +43,7 @@ jobs:
               assert '../shared/desktop-preferences.js' in html, f"missing preferences controller in {path}"
           css = Path("desktop/shared/desktop-preferences.css").read_text()
           js = Path("desktop/shared/desktop-preferences.js").read_text()
-          assert '#os-preferences-panel' in css and 'Ctrl+Alt+D' in js
+          assert '#os-preferences-panel' in css and 'e.ctrlKey && e.altKey' in js
           contract = json.loads(Path("config/settings/control-panel-registry.json").read_text())
           assert contract["desktop_preferences_contract"]["native_provider_status"] == "not_connected"
           print("Shared preference UI assets and fail-honest capability contract validated.")
