@@ -59,6 +59,12 @@ jobs:
           bash boot/iso/build-iso.sh
           test -s "$PRODUCTION_ISO"
           cp build/live-boot/boot/koronos/koronos.elf "$ISO_ROOT/boot/koronos.elf"
+          NATIVE_INIT="build/koronos/x86_64/native-init-$TARGET.elf"
+          test -s "$NATIVE_INIT" || { echo "::error::production native init missing: $NATIVE_INIT"; exit 2; }
+          readelf -h "$NATIVE_INIT" | grep -Eq 'Type:[[:space:]]+EXEC'
+          readelf -lW "$NATIVE_INIT" | grep -Eq 'LOAD.*R E'
+          readelf -lW "$NATIVE_INIT" | grep -Eq 'LOAD.*RW '
+          cp "$NATIVE_INIT" "$ISO_ROOT/boot/native-init-$TARGET.elf"
           case "$TARGET" in
             live)
               manifest=build/live-boot/boot/live/live-manifest.json
@@ -121,7 +127,8 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET production-payload acceptance" {
-            multiboot2 /boot/koronos.elf
+            multiboot2 /boot/koronos.elf target=$TARGET
+            module2 /boot/native-init-$TARGET.elf chimera-user-init-elf target=$TARGET
           EOF
           case "$TARGET" in
             live)
