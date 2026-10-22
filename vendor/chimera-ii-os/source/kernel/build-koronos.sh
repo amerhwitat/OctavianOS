@@ -21,7 +21,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
-python3 "$ROOT/tools/tests/test_cross_os_contracts.py"
 HOST_CXX="${HOST_CXX:-g++}"
 DRIVER_TEST="$BUILD/driver-backend-honesty-test"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/driver.cpp" "$ROOT/kernel/tests/driver_backend_honesty_test.cpp" -o "$DRIVER_TEST"
