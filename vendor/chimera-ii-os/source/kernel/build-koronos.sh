@@ -35,6 +35,7 @@ HOST_CXX="${HOST_CXX:-g++}"
 "$HOST_CXX" -std=c++17 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/vfs.cpp" "$ROOT/kernel/tests/vfs_test.cpp" -o "$BUILD/vfs-test"
 "$BUILD/vfs-test"
 "$BUILD/initramfs-parser-test"
+python3 "$ROOT/tools/tests/test_target_launch_native_init_contract.py"
 
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
