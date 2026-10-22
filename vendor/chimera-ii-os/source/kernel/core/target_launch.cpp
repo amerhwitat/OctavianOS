@@ -106,9 +106,17 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const chimera_boot_module *archive = nonempty(kind);
         if (!archive || archive->size < 2u) { koronos_target_log("[USER] payload validation failed: selected initramfs module missing or too small"); return -2; }
         const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
-        /* Production initramfs builder emits gzip-compressed newc CPIO.
-           Validate the compression envelope before allowing init readiness. */
-        if (bytes[0] != 0x1Fu || bytes[1] != 0x8Bu) { koronos_target_log("[USER] payload validation failed: initramfs lacks gzip magic bytes"); return -3; }
+        /* Accept valid production initramfs encodings: gzip-wrapped newc CPIO
+           or a raw newc CPIO archive. Arbitrary non-empty bytes are rejected. */
+        const bool gzip_cpio = bytes[0] == 0x1Fu && bytes[1] == 0x8Bu;
+        const bool raw_newc = archive->size >= 6u &&
+            bytes[0] == '0' && bytes[1] == '7' && bytes[2] == '0' &&
+            bytes[3] == '7' && (bytes[4] == '0' || bytes[4] == '2') &&
+            bytes[5] == '1';
+        if (!gzip_cpio && !raw_newc) {
+            koronos_target_log("[USER] payload validation failed: unsupported initramfs envelope");
+            return -3;
+        }
         return 0;
     }
     if (active_target == TARGET_INSTALLER) {
