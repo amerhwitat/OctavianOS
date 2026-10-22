@@ -34,3 +34,23 @@ Keep acceptance fail-closed. Generic init markers, candidate probe ISOs, static 
 - Limine boot protocol contract: https://github.com/limine-bootloader/limine-protocol/blob/trunk/PROTOCOL.md
 
 These references inform the design; no third-party implementation was copied into the kernel without license review, integration and tests.
+
+
+## Follow-up evidence — 2026-10-22
+
+Production acceptance run 39774382031 has a completed FAILURE for recovery/UEFI (job 119809533041); the other five matrix jobs were still queued at the last poll, so they are NOT RUN/pending, not passes. The failed job built Koronos and high-address userspace probes, classified the recovery module, built a target-specific ISO, and attempted the userspace readiness gate. The log shows generic USERSPACE READY: recovery init pid=1, then a userspace exit; the launcher reports init exited before its target-specific handshake and explicitly states recovery handoff is withheld because no native recovery init ELF/runtime is wired to the payload. Runnable task count is zero.
+
+The log also prints PASS: ordered kernel/user-syscall/userspace-ready trace target=recovery pid=1. This is a narrow trace-order/probe assertion, not proof of a usable recovery service; the job's final conclusion is failure. Do not let this sub-check mask the service readiness gate.
+
+## Implementation/acceptance ledger
+
+- [ ] Bounded newc CPIO parser with overflow-safe bounds, header/name/data validation, alignment and trailer checks.
+- [ ] Bounded gzip/DEFLATE decompression with strict expanded-size limits; reject unknown compression instead of treating it as CPIO.
+- [ ] Safe extraction with path traversal/absolute-path rejection, entry and byte caps, duplicate/type-conflict handling, and symlink escape prevention.
+- [ ] Mount extracted rootfs in VFS; connect process-owned file descriptors and checked user-buffer copies to real file operations; keep unsupported syscalls fail-closed.
+- [ ] Implement real process exec/exit/wait/reap and deterministic address-space/FD cleanup.
+- [ ] Start and health-check target services: Live/Aurora session, Installer transaction executor, Recovery shell/runtime. Emit each target marker only after the corresponding service passes its health check.
+- [ ] Verify installer writes to disposable storage and survives cold reboot; verify genuine AP startup and concurrent execution on separate CPUs.
+- [ ] Complete six independent target/firmware cases with artifact hashes, boot logs, same-process syscall/PID evidence, service health logs, and explicit PASS/FAIL/NOT RUN.
+
+The target-marker gate fix only rejects false-green probe behavior; it does not supply the missing runtimes. No production release is justified until the ledger has end-to-end evidence.
