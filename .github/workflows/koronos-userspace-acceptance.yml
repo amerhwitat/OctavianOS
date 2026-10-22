@@ -101,6 +101,18 @@ jobs:
                 xorriso -osirrox on -indev "$PRODUCTION_ISO" -extract "/install/installer/$f" "$ISO_ROOT/boot/$f" >/dev/null
                 test -s "$ISO_ROOT/boot/$f" || { echo "::error::production Installer artifact missing: $f"; exit 1; }
               done
+              sha256sum "$ISO_ROOT"/boot/installation.img "$ISO_ROOT"/boot/installation-manifest.json "$ISO_ROOT"/boot/installer-contract.json "$ISO_ROOT"/boot/installation_phases.json "$ISO_ROOT"/boot/installer_profiles.json
+              python3 - "$ISO_ROOT/boot" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for name in ("installation-manifest.json", "installer-contract.json",
+                       "installation_phases.json", "installer_profiles.json"):
+              json.loads((root / name).read_text(encoding="utf-8"))
+          payload = root / "installation.img"
+          if not payload.read_bytes():
+              raise SystemExit("production Installer image is empty")
+          print(f"production_payload={payload} size={payload.stat().st_size}")
+          PY
               ;;
             *) echo "::error::unknown target $TARGET"; exit 2 ;;
           esac
