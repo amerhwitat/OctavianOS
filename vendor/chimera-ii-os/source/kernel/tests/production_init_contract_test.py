@@ -16,4 +16,8 @@ if "chimera_initramfs_find_elf" in source:
     raise SystemExit(fail("production launch must not fall back to executing an ELF found inside CPIO"))
 if "parse_target(selected->cmdline)" not in source or "elf_target!=target" not in source:
     raise SystemExit(fail("native init target must match independently classified payload"))
+if "if (length < p+1u) return false;" not in source:
+    raise SystemExit(fail("readiness marker must accept a one-digit PID without a trailing newline"))
+if "k==length" not in source:
+    raise SystemExit(fail("readiness marker parser must allow end-of-buffer after the PID"))
 print("PRODUCTION INIT CONTRACT PASS: separate target-matched ELF required; embedded fallback rejected")
