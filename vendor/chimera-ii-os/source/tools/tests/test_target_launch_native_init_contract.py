@@ -17,6 +17,7 @@ required = [
     "native init ELF target does not match the selected production payload",
     "Selected target-matched native init ELF alongside production root payload",
     "production payload has no separately staged target-matched native init ELF; refusing embedded-init fallback",
+    "production rootfs is validated but not mounted; refusing userspace readiness without VFS publication",
 ]
 missing = [item for item in required if item not in text]
 if missing:
