@@ -109,6 +109,29 @@ assert "CHIMERA_MODULE_RECOVERY_INITRAMFS" in target_launch_source and "CHIMERA_
     "missing native init detection must cover Live, Recovery, and Installer payloads"
 )
 
+# Production native init is a separate freestanding artifact, not the candidate probe.
+NATIVE_INIT = ROOT / "vendor/chimera-ii-os/source/kernel/userspace/native_init.c"
+NATIVE_LINKER = ROOT / "vendor/chimera-ii-os/source/kernel/userspace/native_init_linker.ld"
+NATIVE_BUILD = ROOT / "vendor/chimera-ii-os/source/kernel/build-koronos.sh"
+PRODUCTION_GRUB = ROOT / "vendor/chimera-ii-os/source/boot/iso/grub.cfg"
+assert NATIVE_INIT.is_file() and NATIVE_LINKER.is_file(), "production native init source/linker layout missing"
+native_init_source = NATIVE_INIT.read_text(encoding="utf-8")
+assert 'int $0x80' in native_init_source and "CHM_SYS_GETPID" in native_init_source and "CHM_SYS_WRITE" in native_init_source, (
+    "native init must execute the CPL3 gate and use the actual Koronos native syscall ABI"
+)
+assert "VFS mounting, storage durability, service supervision and desktop readiness" in native_init_source, (
+    "native init must not overclaim VFS/storage/desktop readiness that is not implemented"
+)
+native_build_source = NATIVE_BUILD.read_text(encoding="utf-8")
+assert "kernel/userspace/native_init.c" in native_build_source and "native-init-$target.elf" in native_build_source, (
+    "build must compile dedicated production init ELFs, not copy acceptance probes"
+)
+production_grub_source = PRODUCTION_GRUB.read_text(encoding="utf-8")
+for target in ("live", "installer", "recovery"):
+    assert f"native-init-{target}.elf" in production_grub_source, (
+        f"production GRUB must stage native init for {target}"
+    )
+
 app_count = sum(len(family.get("examples", [])) for family in families)
 print(f"cross-OS contracts PASS: {len(os_entries)} OS families, "
       f"{len(compat['cpu_profiles'])} CPU profiles, {len(setting_ids)} settings, "
