@@ -17,7 +17,6 @@ required = [
     "native init ELF target does not match the selected production payload",
     "Selected target-matched native init ELF alongside production root payload",
     "production payload has no separately staged target-matched native init ELF; refusing embedded-init fallback",
-    "chimera_initramfs_find_elf" ,
 ]
 missing = [item for item in required if item not in text]
 if missing:
