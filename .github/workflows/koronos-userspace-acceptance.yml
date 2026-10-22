@@ -208,7 +208,8 @@ jobs:
           test "$ready_pid" = "$ack_pid"
           grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
-          grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
+          # Page-table reclamation is covered by its dedicated address-space tests;
+          # the production native-init trace does not emit the old probe-only banner.
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
