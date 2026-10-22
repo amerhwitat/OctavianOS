@@ -127,6 +127,12 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/initramfs_test.cpp kernel/core/initramfs.cpp -o /tmp/octavian-initramfs-test
           /tmp/octavian-initramfs-test
+      - name: Compile and run bounded gzip-to-CPIO ingestion regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/core/initramfs_cpio.cpp kernel/core/gzip.cpp kernel/core/initramfs_ingest.cpp kernel/tests/initramfs_ingest_test.cpp -o /tmp/octavian-initramfs-ingest-test
+          /tmp/octavian-initramfs-ingest-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
         run: |
