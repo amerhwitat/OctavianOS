@@ -100,6 +100,25 @@ extern "C" int koronos_target_validate_boot_payload(void) {
         const chimera_boot_module *m = chimera_multiboot_find(kind);
         return (m && m->base && m->size) ? m : nullptr;
     };
+    // The production launcher selects exactly one target. Reject stale or
+    // accidentally co-packed target payloads instead of validating only the
+    // payload that happens to match the selected target.
+    const uint32_t expected_payload = active_target == TARGET_LIVE
+        ? CHIMERA_MODULE_LIVE_INITRAMFS
+        : (active_target == TARGET_RECOVERY
+            ? CHIMERA_MODULE_RECOVERY_INITRAMFS : CHIMERA_MODULE_INSTALL_IMAGE);
+    for (uint32_t i = 0; i < chimera_multiboot_module_count(); ++i) {
+        const chimera_boot_module *m = chimera_multiboot_module(i);
+        if (!m) continue;
+        const bool is_target_payload =
+            m->kind == CHIMERA_MODULE_LIVE_INITRAMFS ||
+            m->kind == CHIMERA_MODULE_RECOVERY_INITRAMFS ||
+            m->kind == CHIMERA_MODULE_INSTALL_IMAGE;
+        if (is_target_payload && m->kind != expected_payload) {
+            koronos_target_log("[USER] payload validation failed: conflicting target payload is present");
+            return -7;
+        }
+    }
     if (active_target == TARGET_LIVE || active_target == TARGET_RECOVERY) {
         const uint32_t kind = active_target == TARGET_LIVE
             ? CHIMERA_MODULE_LIVE_INITRAMFS : CHIMERA_MODULE_RECOVERY_INITRAMFS;
@@ -267,6 +286,16 @@ extern "C" int koronos_launch_selected_userspace(void) {
     active_root=root;
     syscall_ack_seen=0;
     ready_seen=0;
+    const int payload_rc = koronos_target_validate_boot_payload();
+    if (payload_rc != 0) {
+        (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
+        ops->destroy_address_space(nullptr,loaded.address_space);
+        active_target=TARGET_NONE;
+        active_pid=0;
+        active_root=0;
+        koronos_target_log("[RUN ] ERROR: selected target payload failed validation before ring-3 entry");
+        return -13;
+    }
     (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING);
     // 100 Hz PIT deadline: 1,000 ticks gives user init ten seconds to return
     // and emit readiness. This is enforced by IRQ0 inside the kernel, not by
