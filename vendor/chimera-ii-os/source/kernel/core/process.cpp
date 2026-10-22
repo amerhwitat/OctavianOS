@@ -2,7 +2,6 @@
 
 namespace {
 constexpr uint32_t MAX_SEGMENTS = 16;
-static uint8_t *as_bytes(const void *p) { return static_cast<uint8_t *>(const_cast<void *>(p)); }
 static void copy_bytes(void *destination, const void *source, uint64_t length) {
     auto *dst = static_cast<uint8_t *>(destination);
     const auto *src = static_cast<const uint8_t *>(source);
