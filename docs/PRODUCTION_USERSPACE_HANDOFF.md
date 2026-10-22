@@ -2,6 +2,14 @@
 
 **Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
 
+## Latest independent evidence — 2026-10-22
+
+The target-specific candidate/probe workflow run [39728253938](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253938) reports successful BIOS/UEFI boot-probe jobs for Live, Installer, and Recovery. These jobs validate the target-specific probe and boot path; they do **not** establish that the final production initramfs launches the real init process.
+
+The separate production trace verifier run [OctavianOS run 39728253993](https://github.com/amerhwitat/OctavianOS/actions/runs/39728253993) downloaded the full-ISO traces and failed for all three production targets with the missing user-originated init syscall acknowledgement (CPL 3) and actual init PID readiness marker. Its prerelease step was skipped. Therefore the current evidence is **6/6 candidate probe jobs successful, but production init handoff still FAILS**; storage persistence, service supervision, Aurora handoff, installer write/verify/reboot, recovery repair, and AP-backed SMP remain independently unproven.
+
+Do not convert the candidate-probe successes into production acceptance or weaken the verifier. Re-run the unchanged production verifier after fixing the real initramfs → ELF loader → ring-3 syscall → PID-bound readiness path.
+
 ## What the evidence means
 
 The acceptance job ran the existing verifier unchanged against these traces:
