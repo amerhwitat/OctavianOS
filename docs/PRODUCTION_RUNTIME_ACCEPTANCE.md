@@ -47,3 +47,26 @@ Do not infer one firmware result from the other. Do not mark unexecuted cases PA
 ## Release rule
 
 The gate passes only if all six firmware/target combinations and all applicable end-to-end checks pass on the exact artifacts intended for publication. Keep release publication blocked on any FAIL or NOT RUN. Store logs and artifact hashes with the CI run. Never synthesize success markers or weaken this gate to obtain a green dashboard.
+
+## Current branch evidence status (2026-10-22)
+
+This section records observed gaps on the OctavianOS working branch; it does not waive any gate above.
+
+- The target-specific native init binaries in `kernel/userspace/native_init.c` currently perform a CPL3 syscall acknowledgement, validate that the selected data payload exists, emit `USERSPACE READY: <target> init pid=<N>`, and exit. Their own source explicitly limits that marker to the native-init ABI milestone. It does not mount the initramfs, start Aurora, run installer actions, or provide a recovery shell.
+- `core/koronos.cpp` currently logs explicit withheld states for Live, Installer, and Recovery when no supported target runtime is wired. These messages are release blockers and must not be treated as successful handoff.
+- `core/scheduler.cpp` deliberately returns zero from `chimera_sched_run_parallel()`; its comments state that no AP workers enter the scheduler from independent CPUs. SMP is NOT RUN / FAIL until AP startup, per-CPU state, scheduler participation, and overlapping work on distinct CPUs are demonstrated.
+- The acceptance workflow must fail closed if any withheld-handoff message is present or if the target-specific runtime readiness marker is absent. A green legacy ring-3 smoke run is evidence for the ABI probe only, not production target acceptance.
+- Native Koronos build workflow run `39764511700` had no jobs exposed at the last status inspection; its result is unresolved, not PASS.
+- The refreshed six-case acceptance workflow run `39764511575` was still executing at the last inspection. It is not a completed release result.
+
+### Implementation work still required
+
+1. Implement a native userspace init/runtime that consumes the selected target payload through a real, supported archive/VFS interface and reports service readiness only after the services actually start.
+2. Live: mount and start the production initramfs, supervise the session, start the Aurora compositor/session manager, and prove the session is usable.
+3. Installer: implement and execute a target-owned installer runtime, perform a disposable-disk installation, reboot, and verify the installed system boots.
+4. Recovery: implement a target-owned recovery runtime and prove a repair shell can execute a harmless diagnostic command.
+5. Storage: implement/verify a real persistent block backend and filesystem mount; write, flush, cold-reboot, reattach, and verify data.
+6. SMP: implement AP startup/trampoline, per-CPU stacks/state and scheduler workers, then demonstrate overlapping work on at least two CPUs.
+7. Capture commit and ISO hashes, raw logs, verifier output, and explicit PASS/FAIL/NOT RUN for every firmware/target case and each end-to-end gate.
+
+Do not fabricate runtime markers to satisfy CI. The required marker is an observation emitted by a real target-owned runtime after the corresponding service has successfully started.
