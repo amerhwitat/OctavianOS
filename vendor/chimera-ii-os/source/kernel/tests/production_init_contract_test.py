@@ -12,6 +12,8 @@ def fail(message):
 
 if "production payload has no separately staged target-matched native init ELF" not in source:
     raise SystemExit(fail("missing native init ELF must fail closed"))
+if "production rootfs is validated but not mounted; refusing userspace readiness without VFS publication" not in source:
+    raise SystemExit(fail("production init must fail closed until rootfs is published to process-visible VFS"))
 if "chimera_initramfs_find_elf" in source:
     raise SystemExit(fail("production launch must not fall back to executing an ELF found inside CPIO"))
 if "parse_target(selected->cmdline)" not in source or "elf_target!=target" not in source:
