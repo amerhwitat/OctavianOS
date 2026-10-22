@@ -63,3 +63,25 @@ No production acceptance is claimed. Keep PR #120 draft and release publication 
 - The preceding explicit ELF smoke on head `050328b60d33c9f5b32a28cdab6847671de044fc` failed before QEMU boot at `kernel/tests/ramfs_test.cpp:62`. Root cause: RAMFS collapsed all CPIO preflight errors to `CHIMERA_RAMFS_E_HEADER`, obscuring the validator's precise `CHIMERA_CPIO_E_TYPE`. The error-category mapping was corrected in `e946b2336fc905a39618491d7069d5d2128d6ff7`; exact-head rerun is pending.
 - The target launcher still does not extract the production archive into a process-visible VFS. A fail-closed guard now prevents production init launch/readiness before rootfs publication. This intentionally makes the missing lifecycle explicit; it does not complete rootfs mounting.
 - Release remains BLOCKED. Six full-ISO production cases, Aurora health, installer persistence, recovery postconditions, and AP-backed SMP remain unproven.
+
+
+## Check/Plan/Do recheck — 2026-10-23
+
+### Check: completed workflow evidence
+
+Reviewed source-fix commit `e946b2336fc905a39618491d7069d5d2128d6ff7` (the PR branch later received a documentation-only update at `8eaa6a8ab0b18c7dd038132806413854d82d799c`).
+
+- Explicit user ELF module smoke, run [39849315812](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315812): **PASS** (build, QEMU module boot, evidence upload).
+- Bounded initramfs ingestion, run [39849315798](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315798): **PASS**.
+- Boot target routing, run [39849315740](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315740): **PASS**.
+- Splash artwork/progress contracts, run [39849315759](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315759): **PASS**.
+- Candidate ring-3 run [39849315730](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315730): **CANCELLED overall**. Installer/UEFI, Installer/BIOS, Recovery/BIOS and Recovery/UEFI jobs passed as candidate probes; Live/BIOS and Live/UEFI jobs were cancelled before the test sequence completed. These are candidate-only checks, not production acceptance.
+- Source integration run [39849315785](https://github.com/amerhwitat/OctavianOS/actions/runs/39849315785): **CANCELLED**, not a pass.
+
+### Plan/Do: confirmed architectural blocker
+
+The target launcher validates and stages newc into a private RAMFS tree, but then deliberately returns `-15` for every production payload because it does not publish that tree into a process-visible root/VFS. The current VFS is a separate fixed-size store (`CHIMERA_VFS_MAX_NODES=64`, `CHIMERA_VFS_FILE_MAX=4096`) and exposes no root-mount/publication API. Therefore the staged RAMFS is not mounted; simply removing the guard would permit an init process to claim readiness while filesystem syscalls cannot see its files. The native syscall path currently implements PID, yield, ticks, console write and exit, not file descriptors/open/read/write/stat/mount semantics.
+
+The safe closure sequence is: (1) design a rootfs/VFS mount abstraction with capacity appropriate for the validated RAMFS and explicit ownership/lifetime; (2) add an atomic mount/swap API and tests proving failed extraction/publication leaves the previous root intact; (3) implement process-owned file descriptors and user-pointer-safe filesystem syscalls against that mount; (4) implement target services and supervisor; (5) run unchanged full-production Live/Installer/Recovery × BIOS/UEFI acceptance, Aurora health, installer cold-reboot persistence, recovery postconditions, and AP-backed concurrent SMP. Add adversarial tests for duplicate paths, file/directory prefix conflicts, unsupported entry types, symlink rejection, malformed gzip/CPIO, and allocation exhaustion before enabling production launch.
+
+**Status:** the guard remains intentionally enabled. No production userspace readiness, full six-case production pass, Aurora, durable installation, recovery repair, or genuine SMP is claimed. Keep PR #120 draft and release blocked.
