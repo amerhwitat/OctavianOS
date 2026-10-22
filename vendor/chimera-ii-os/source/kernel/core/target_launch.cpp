@@ -199,6 +199,9 @@ extern "C" int koronos_launch_selected_userspace(void) {
             chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS) != nullptr ||
             chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS) != nullptr ||
             chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_LIVE_ROOTFS_CPIO) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_ROOTFS_CPIO) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_ROOTFS_CPIO) != nullptr ||
             chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) != nullptr;
         if (!has_target_payload) return 0;
         koronos_target_log("[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied");
@@ -217,9 +220,9 @@ extern "C" int koronos_launch_selected_userspace(void) {
     }
     /* Each production target gets a distinct validated root archive. The
        install disk image is a separate payload and is never parsed as CPIO. */
-    const uint32_t rootfs_kind = target==TARGET_LIVE ? CHIMERA_MODULE_LIVE_INITRAMFS :
-        (target==TARGET_INSTALLER ? CHIMERA_MODULE_INSTALLER_INITRAMFS :
-                                    CHIMERA_MODULE_RECOVERY_INITRAMFS);
+    const uint32_t rootfs_kind = target==TARGET_LIVE ? CHIMERA_MODULE_LIVE_ROOTFS_CPIO :
+        (target==TARGET_INSTALLER ? CHIMERA_MODULE_INSTALLER_ROOTFS_CPIO :
+                                    CHIMERA_MODULE_RECOVERY_ROOTFS_CPIO);
     const int rootfs_rc = chimera_vfs_mount_boot_module(rootfs_kind);
     if (rootfs_rc != 0) {
         koronos_target_log("[VFS ] ERROR: selected target rootfs missing, malformed, or already mounted");
