@@ -94,6 +94,51 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
 }
 }
 
+extern "C" int koronos_target_validate_boot_payload(void) {
+    if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    const auto nonempty = [](uint32_t kind) -> const chimera_boot_module * {
+        const chimera_boot_module *m = chimera_multiboot_find(kind);
+        return (m && m->base && m->size) ? m : nullptr;
+    };
+    if (active_target == TARGET_LIVE || active_target == TARGET_RECOVERY) {
+        const uint32_t kind = active_target == TARGET_LIVE
+            ? CHIMERA_MODULE_LIVE_INITRAMFS : CHIMERA_MODULE_RECOVERY_INITRAMFS;
+        const chimera_boot_module *archive = nonempty(kind);
+        if (!archive || archive->size < 2u) return -2;
+        const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(archive->base));
+        /* Production initramfs builder emits gzip-compressed newc CPIO.
+           Validate the compression envelope before allowing init readiness. */
+        if (bytes[0] != 0x1Fu || bytes[1] != 0x8Bu) return -3;
+        return 0;
+    }
+    if (active_target == TARGET_INSTALLER) {
+        const uint32_t required[] = {
+            CHIMERA_MODULE_INSTALL_IMAGE, CHIMERA_MODULE_INSTALL_MANIFEST,
+            CHIMERA_MODULE_INSTALL_CONTRACT, CHIMERA_MODULE_INSTALL_PHASES,
+            CHIMERA_MODULE_INSTALL_PROFILES
+        };
+        for (uint32_t kind : required) {
+            const chimera_boot_module *m = nonempty(kind);
+            if (!m) return -4;
+        }
+        /* Contract modules must at least be JSON objects/arrays, not empty or
+           arbitrary bytes. Full schema/VFS validation remains a later gate. */
+        const uint32_t json_kinds[] = {
+            CHIMERA_MODULE_INSTALL_MANIFEST, CHIMERA_MODULE_INSTALL_CONTRACT,
+            CHIMERA_MODULE_INSTALL_PHASES, CHIMERA_MODULE_INSTALL_PROFILES
+        };
+        for (uint32_t kind : json_kinds) {
+            const chimera_boot_module *m = nonempty(kind);
+            const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(m->base));
+            uint64_t i = 0;
+            while (i < m->size && (bytes[i] == ' ' || bytes[i] == '\n' || bytes[i] == '\r' || bytes[i] == '\t')) ++i;
+            if (i >= m->size || (bytes[i] != '{' && bytes[i] != '[')) return -5;
+        }
+        return 0;
+    }
+    return -6;
+}
+
 extern "C" uint32_t koronos_target_userspace_ready(void) { return ready_seen; }
 extern "C" uint32_t koronos_target_active_pid(void) {
     return active_target != TARGET_NONE ? active_pid : 0u;
