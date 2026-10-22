@@ -90,7 +90,7 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     for (uint64_t i = 0; i + n <= length; ++i) {
         uint64_t j = 0;
         while (j < n && bytes[i + j] == expected[j]) ++j;
-        if (j == n && (i + n == length || bytes[i + n] == '\\n' ||
+        if (j == n && (i + n == length || bytes[i + n] == '\n' ||
                        bytes[i + n] == '\\r' || bytes[i + n] == ' ')) {
             return true;
         }
