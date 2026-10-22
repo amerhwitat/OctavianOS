@@ -433,6 +433,9 @@ jobs:
           path: |
             vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf
             vendor/chimera-ii-os/source/build/koronos/x86_64/symbols.txt
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-live.elf
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-installer.elf
+            vendor/chimera-ii-os/source/build/koronos/x86_64/native-init-recovery.elf
           if-no-files-found: error
           retention-days: 14
 
