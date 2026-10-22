@@ -85,4 +85,4 @@ jobs:
       - name: Compile vendored Application Center scripts
         run: python -m py_compile vendor/chimera-ii-os/source/appcenter/cli/chimera-appctl.py vendor/chimera-ii-os/source/desktop/aurora/repository_application_center.py
       - name: Check HTML integration link
-        run: grep -q 'apps/application-center.html' web/index.html
+        run: grep -q 'apps/octavianos/application-center.html' web/index.html
