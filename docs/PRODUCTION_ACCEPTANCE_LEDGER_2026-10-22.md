@@ -55,3 +55,11 @@ Reviewed branch head: `8289e61af960a684144f8ce19c2bdcb33990634e`.
 Re-reading the target launcher confirms the unresolved implementation gap: validated gzip/CPIO bytes are held only in a temporary decompression allocation; the current path does not extract files into a mounted process-visible VFS before entering the separate native init ELF. That init still exits with status 78 because production services are unavailable. These are not grounds to manufacture a readiness marker or weaken the verifier.
 
 No production acceptance is claimed. Keep PR #120 draft and release publication blocked until real rootfs extraction/mounting, target services, Live→Aurora, installer persistence, recovery repair, genuine AP-backed SMP, and all six target/firmware traces pass on the same candidate.
+
+
+## Exact-head remediation cycle — 2026-10-22 20:35 UTC
+
+- Current OctavianOS PR #120 head: `e946b2336fc905a39618491d7069d5d2128d6ff7`. Latest bounded-ingestion, target-routing, source-integration, artwork, and candidate-smoke workflow runs are queued; explicit ELF smoke is queued for this exact head. Do not infer results before jobs finish.
+- The preceding explicit ELF smoke on head `050328b60d33c9f5b32a28cdab6847671de044fc` failed before QEMU boot at `kernel/tests/ramfs_test.cpp:62`. Root cause: RAMFS collapsed all CPIO preflight errors to `CHIMERA_RAMFS_E_HEADER`, obscuring the validator's precise `CHIMERA_CPIO_E_TYPE`. The error-category mapping was corrected in `e946b2336fc905a39618491d7069d5d2128d6ff7`; exact-head rerun is pending.
+- The target launcher still does not extract the production archive into a process-visible VFS. A fail-closed guard now prevents production init launch/readiness before rootfs publication. This intentionally makes the missing lifecycle explicit; it does not complete rootfs mounting.
+- Release remains BLOCKED. Six full-ISO production cases, Aurora health, installer persistence, recovery postconditions, and AP-backed SMP remain unproven.
