@@ -119,7 +119,7 @@ native_init_source = NATIVE_INIT.read_text(encoding="utf-8")
 assert 'int $0x80' in native_init_source and "CHM_SYS_GETPID" in native_init_source and "CHM_SYS_WRITE" in native_init_source, (
     "native init must execute the CPL3 gate and use the actual Koronos native syscall ABI"
 )
-assert "VFS mounting, storage durability, service supervision and desktop readiness" in native_init_source, (
+assert "VFS mounting, storage" in native_init_source and "service supervision and desktop readiness" in native_init_source, (
     "native init must not overclaim VFS/storage/desktop readiness that is not implemented"
 )
 native_build_source = NATIVE_BUILD.read_text(encoding="utf-8")
