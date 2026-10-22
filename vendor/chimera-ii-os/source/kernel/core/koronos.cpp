@@ -283,11 +283,6 @@ static void task_recovery(void *) {
 }
 
 static void task_installer(void *) {
-    if (installer_launch_failed) {
-        console_write("[INST] ERROR: native installer init launch failed; withholding installer service startup");
-        chimera_sched_block();
-        return;
-    }
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
@@ -297,6 +292,21 @@ static void task_installer(void *) {
     if (!image && !manifest && !contract && !phases && !profiles) {
         if (installer_phase++ == 0)
             console_write("[INST] Installer target not selected: no installer modules");
+        chimera_sched_block();
+        return;
+    }
+
+    /* Report routing recognition, but never claim service startup after the
+       selected production init was rejected by the launcher. */
+    if (installer_launch_failed) {
+        if (installer_phase == 0) {
+            console_write("[INST] Installer target detected");
+            if (image) console_write("[INST] Installation image accepted");
+            if (manifest) console_write("[INST] Installation manifest accepted");
+            if (contract) console_write("[INST] Installer contract accepted");
+            installer_phase = 1;
+        }
+        console_write("[INST] ERROR: native installer init launch failed; withholding installer service startup");
         chimera_sched_block();
         return;
     }
