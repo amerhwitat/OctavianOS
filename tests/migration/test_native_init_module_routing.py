@@ -14,6 +14,7 @@ CONFIGS = (
     ROOT / "vendor/chimera-ii-os/source/boot/jasper/live.cfg",
     ROOT / "vendor/chimera-ii-os/source/boot/jasper/recovery.cfg",
     ROOT / "vendor/chimera-ii-os/source/boot/jasper/install.cfg",
+    ROOT / "vendor/chimera-ii-os/source/boot/iso/grub.cfg",
 )
 
 
