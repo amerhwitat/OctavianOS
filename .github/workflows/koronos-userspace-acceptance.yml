@@ -196,16 +196,29 @@ jobs:
           # acceptance evidence, not the QEMU process exit code. Always print the
           # complete trace before assertions so failures can be debugged from CI.
           if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
-          grep -Fq "[KRN ] KORONOS READY" "$LOG"
-          # Require a real, nonzero PID supplied by the running probe, not a
-          # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
-          ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
-          test -n "$ready_line"
-          test -n "$ack_line"
-          ready_pid="${ready_line##*=}"
-          ack_pid="${ack_line##*=}"
-          test "$ready_pid" = "$ack_pid"
+          # Parse the complete trace, not just the last matching lines: reject
+          # reordered, duplicated, wrong-target, zero-PID, or mismatched-PID markers.
+          python3 - "$TARGET" "$LOG" <<'PY'
+          import pathlib, re, sys
+          target, path = sys.argv[1], pathlib.Path(sys.argv[2])
+          trace = path.read_text(encoding="utf-8", errors="replace")
+          kernel = list(re.finditer(r"\\[KRN \\] KORONOS READY", trace))
+          ack = list(re.finditer(r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b", trace))
+          ready = list(re.finditer(r"USERSPACE READY: (live|installer|recovery) init pid=([1-9][0-9]*)\\b", trace))
+          if len(kernel) != 1:
+              raise SystemExit(f"FAIL: expected exactly one kernel-ready marker, found {len(kernel)}")
+          if len(ack) != 1:
+              raise SystemExit(f"FAIL: expected exactly one nonzero user-init syscall acknowledgement, found {len(ack)}")
+          if len(ready) != 1:
+              raise SystemExit(f"FAIL: expected exactly one nonzero userspace-ready marker, found {len(ready)}")
+          if ack[0].group(1) != target or ready[0].group(1) != target:
+              raise SystemExit(f"FAIL: target mismatch: expected {target}, ack={ack[0].group(1)}, ready={ready[0].group(1)}")
+          if ack[0].group(2) != ready[0].group(2):
+              raise SystemExit(f"FAIL: PID mismatch: ack={ack[0].group(2)}, ready={ready[0].group(2)}")
+          if not kernel[0].start() < ack[0].start() < ready[0].start():
+              raise SystemExit("FAIL: required order is kernel-ready -> user-originated syscall -> userspace-ready")
+          print(f"PASS: ordered kernel/user-syscall/userspace-ready trace target={target} pid={ready[0].group(2)}")
+          PY
           grep -Fq "NATIVE INIT: Koronos syscall round-trip verified" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           # Page-table reclamation is covered by its dedicated address-space tests;
