@@ -40,3 +40,18 @@ The release gate must remain fail-closed. Do not publish a production release un
 - The same traces exposed target-menu packaging gaps: Jasper Live/Recovery/Installer menu entries did not consistently pass the separately staged target-matched native init ELF. Native init ELF module lines and fail-closed file guards were added to the top-level and vendored target menus. `tests/migration/test_native_init_module_routing.py` enforces the contract in CI.
 - The production CI verifier was also consuming logs from routing smoke tests that intentionally omitted native init modules. The native-kernel workflow now builds target-specific production-payload ISOs and records Live/Installer/Recovery × BIOS/UEFI logs for the unchanged readiness verifier. Routing-only smoke logs remain separate.
 - The latest native init still deliberately exits 78 because the real filesystem/process/device/graphics services are not implemented. Therefore these changes fix archive admission and launch plumbing, but do not pass production readiness, Aurora, installer persistence, recovery postcondition, or SMP gates. Exact-head six-case CI must complete and readiness must be proven before release.
+
+
+## Exact-head recheck — 2026-10-22 17:53 UTC
+
+Reviewed branch head: `8289e61af960a684144f8ce19c2bdcb33990634e`.
+
+- [Native Koronos kernel build #39824705866](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705866): pending; no job results available yet.
+- [Chimera source integration #39824706139](https://github.com/amerhwitat/OctavianOS/actions/runs/39824706139): queued.
+- [Explicit user ELF smoke #39824705572](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705572): queued.
+- [Candidate ring-3 smoke #39824705521](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705521): queued; candidate smoke is not production acceptance.
+- [Boot target routing #39824705454](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705454), [bounded ingestion #39824705445](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705445), and [artwork/progress #39824705441](https://github.com/amerhwitat/OctavianOS/actions/runs/39824705441): queued.
+
+Re-reading the target launcher confirms the unresolved implementation gap: validated gzip/CPIO bytes are held only in a temporary decompression allocation; the current path does not extract files into a mounted process-visible VFS before entering the separate native init ELF. That init still exits with status 78 because production services are unavailable. These are not grounds to manufacture a readiness marker or weaken the verifier.
+
+No production acceptance is claimed. Keep PR #120 draft and release publication blocked until real rootfs extraction/mounting, target services, Live→Aurora, installer persistence, recovery repair, genuine AP-backed SMP, and all six target/firmware traces pass on the same candidate.
