@@ -24,3 +24,14 @@ The mobile edition is a separate target, not a desktop menu alias. This folder d
 | Device | Hardware-specific test report, drivers and known limitations |
 
 Do not report x86_64 ISO success as mobile support.
+
+
+## Cross-edition synchronization and flash safety (2026-10-22)
+
+OctavianOS Mobile follows the shared Chimera/Koronos release and artifact contract but remains an independently validated target. The Web/React Native companion is not the ARM64 kernel and cannot certify a device boot.
+
+- Release records must bind repository/commit, architecture, device profile, boot mode, workflow run, SHA-256, and validation result. Never infer mobile support from x86_64 ISO or companion-app success.
+- ARM64 remains in bring-up until a named device or documented QEMU AArch64 target proves kernel-ready, mobile-userspace-ready, display/input/audio/storage/network/power operation, verified-boot compatibility, update rollback and recovery. Other architectures remain unsupported until independently tested.
+- Flash UI calls only the local native bridge; browser JavaScript cannot directly write block devices. Require a valid matching SHA-256, explicit target identity, typed destructive confirmation, native mounted-filesystem and system-disk refusal, and read-back verification.
+- Generic phone ROM flashing stays disabled without an exact model-specific signed firmware profile. Never bypass bootloader locks, AVB, Apple secure boot or OEM signing. ADB/Fastboot checks remain read-only by default.
+- Use PASS, FAIL, NOT RUN, or UNSUPPORTED rather than converting missing evidence into success. Release publication remains blocked by any required failed or missing production gate.
