@@ -235,13 +235,19 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
+          # Keep production admission strict: the timeout probe still needs a
+          # valid selected target initramfs before ring-3 dispatch is permitted.
+          LIVE_INITRAMFS="build/live-boot/boot/live/chimera-live-initramfs.img"
+          test -s "$LIVE_INITRAMFS" || { echo "::error::production Live initramfs missing for timeout acceptance"; exit 2; }
+          cp "$LIVE_INITRAMFS" "$ISO_ROOT/boot/chimera-live-initramfs.img"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
           set timeout=0
           set default=0
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
-            multiboot2 /boot/koronos.elf
+            multiboot2 /boot/koronos.elf target=live
             module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
+            module2 /boot/chimera-live-initramfs.img chimera-live-initramfs
             boot
           }
           EOF
