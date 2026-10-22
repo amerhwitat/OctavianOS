@@ -1,3 +1,7 @@
+> **Correction — 2026-10-22, supersedes the older “no native init ELF staged” diagnosis below:** Newer production traces for run [39767666859](https://github.com/amerhwitat/OctavianOS/actions/runs/39767666859) show that the ISO does stage a target-specific native init ELF and that it enters ring 3. The staged ELF is the minimal ABI probe in `vendor/chimera-ii-os/source/kernel/userspace/native_init.c`; it validates the selected payload envelope, emits the generic `USERSPACE READY: <target> init pid=<N>` probe marker, then exits. This is **not** production target readiness. The real blocker is the absent target runtime after the probe: no extracted/launched target init, VFS/initramfs execution, service supervision, Aurora session, install operation, or recovery shell. The historical diagnosis below describes an earlier candidate and must not be used as the current root cause. Release remains blocked until the unchanged target-specific acceptance gates pass.
+
+---
+
 # Production userspace handoff — acceptance and integration contract
 
 ## Root cause found in the current production path — 2026-10-22
