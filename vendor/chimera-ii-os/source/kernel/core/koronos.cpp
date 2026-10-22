@@ -226,6 +226,9 @@ static volatile uint32_t console_task_runs = 0;
 static volatile uint32_t module_task_runs = 0;
 static volatile uint32_t live_task_runs = 0;
 static volatile uint32_t installer_phase = 0;
+/* The installer metadata task must not start service scaffolding after the
+   selected target launcher has rejected the production init payload. */
+static volatile uint32_t installer_launch_failed = 0;
 
 static void task_console(void *) {
     if (console_task_runs++ == 0) console_write("[TASK] Console service online");
@@ -257,8 +260,11 @@ static void task_live(void *) {
            It extracts /init or /sbin/init from supported newc cpio payloads;
            unsupported disk-image formats fail closed without a fake marker. */
         const int launch_rc = koronos_launch_selected_userspace();
-        if (launch_rc != 0)
+        if (launch_rc != 0) {
+            if (chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE))
+                installer_launch_failed = 1;
             console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
+        }
     } else {
         console_write("[LIVE] No native init payload selected; userspace launch skipped");
     }
@@ -277,6 +283,11 @@ static void task_recovery(void *) {
 }
 
 static void task_installer(void *) {
+    if (installer_launch_failed) {
+        console_write("[INST] ERROR: native installer init launch failed; withholding installer service startup");
+        chimera_sched_block();
+        return;
+    }
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
