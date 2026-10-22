@@ -143,7 +143,28 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const chimera_boot_module *m=chimera_multiboot_module(i);
         if (m && m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++count; }
     }
-    if (count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+    if (count==0) {
+        /* A kernel-only smoke boot may legitimately have no user payload.
+         * A production target module, however, is not itself executable by
+         * the native ELF launcher. Never treat an initramfs/installer image
+         * without a staged native init ELF as a successful no-op. */
+        bool production_payload = false;
+        for (uint32_t i=0;i<chimera_multiboot_module_count();++i) {
+            const chimera_boot_module *m=chimera_multiboot_module(i);
+            if (!m) continue;
+            if (m->kind==CHIMERA_MODULE_LIVE_INITRAMFS ||
+                m->kind==CHIMERA_MODULE_RECOVERY_INITRAMFS ||
+                m->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
+                production_payload = true;
+                break;
+            }
+        }
+        if (production_payload) {
+            koronos_target_log("[RUN ] ERROR: production payload selected but no native USER_INIT_ELF module was staged; initramfs/image is not executable by the native ELF launcher");
+            return -12;
+        }
+        return 0; // Kernel-only smoke boot with no production target payload.
+    }
     if (count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
         selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
         selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
