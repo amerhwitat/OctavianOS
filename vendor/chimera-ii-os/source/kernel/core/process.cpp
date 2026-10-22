@@ -1,5 +1,9 @@
 #include "../include/chimera/process.h"
 
+// Implemented by core/elf64.cpp; the public header exposes only the inline
+// magic/version predicate, so declare the bounded whole-image validator here.
+extern "C" int koronos_elf64_validate(const void *image, uint64_t size, uint16_t machine);
+
 namespace {
 constexpr uint32_t MAX_SEGMENTS = 16;
 static void copy_bytes(void *destination, const void *source, uint64_t length) {
