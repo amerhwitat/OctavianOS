@@ -74,6 +74,15 @@ cleanup_finished
 "$ROOT/tools/build-desktop-binaries.sh"
 cleanup_finished
 "$ROOT/tools/build-live-boot-binaries.sh"
+# Stage distinct fail-closed native init ELFs beside each production target root.
+# Without these modules the kernel must reject every production handoff.
+CHIMERA_INIT_ELF_STAGE="$ROOT/build/live-boot" bash "$ROOT/tools/build-production-init-elfs.sh"
+for target_path in \
+  "$ROOT/build/live-boot/boot/live/user-init-live.elf" \
+  "$ROOT/build/live-boot/boot/installer/user-init-installer.elf" \
+  "$ROOT/build/live-boot/boot/recovery/user-init-recovery.elf"; do
+  [[ -s "$target_path" ]] || { echo "ERROR: target init ELF missing from ISO staging tree: $target_path" >&2; exit 2; }
+done
 cleanup_finished
 # The compiler tree is finished at this point; retain only the produced kernel/binaries.
 # Keep the configured CMake tree for incremental/manual builds. Remove only generated compiler intermediates.

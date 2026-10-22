@@ -121,6 +121,12 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/octavian-multiboot-modules-test
           /tmp/octavian-multiboot-modules-test
+      - name: Compile and run bounded CPIO init ELF parser regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/initramfs_test.cpp kernel/core/initramfs.cpp -o /tmp/octavian-initramfs-test
+          /tmp/octavian-initramfs-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -164,6 +170,7 @@ jobs:
           python3 -m unittest discover -s tests/runtime -p "test_train_runtime_rnn.py" -v
           python3 -m unittest discover -s tests/runtime -p "test_mark_runtime_smoke_tested.py" -v
           python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
+          python3 -m unittest discover -s tests/migration -p "test_userspace_marker_contract.py" -v
           python3 -m unittest discover -s tests/migration -p "test_userspace_release_gate_workflow.py" -v
           (cd vendor/chimera-ii-os/source && python3 -m unittest tools.cognition.test_trainable_rnn_lm -v && python3 -m unittest tools.isa.test_rv32i_execution_vectors -v)
           (cd vendor/chimera-ii-os/source && python3 -m unittest tests/isa/test_import_riscv_opcodes.py -v)
@@ -348,7 +355,11 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[REC ] Recovery payload is staged; native recovery operation still requires its init service' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery payload status missing"; exit 1; }
+          # This is a routing/payload smoke, not production userspace acceptance.
+          # Gzip initramfs decompression and a native recovery init ELF remain separate gates.
+          grep -Eq '\[RUN \] ERROR: gzip-compressed production initramfs requires a bounded kernel DEFLATE decoder|\[RUN \] ERROR: selected production CPIO initramfs contains no valid /init or /sbin/init ELF|\[RUN \] ERROR: selected production CPIO has no executable native /init ELF; stage a target-matched native init ELF' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery did not report its current native-init blocker"; exit 1; }
+          if grep -Eq 'PANIC|Triple fault' "$smoke/recovery-debugcon.log"; then echo "::error::Recovery boot panicked or triple-faulted"; exit 1; fi
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -377,7 +388,10 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          # The installer image is not a CPIO archive; this smoke checks target routing
+          # and verifies the kernel refuses to execute the disk image as an ELF init.
+          grep -Fq '[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer did not fail closed on its unsupported image format"; exit 1; }
+          if grep -Eq 'PANIC|Triple fault' "$smoke/installer-debugcon.log"; then echo "::error::Installer routing boot panicked or triple-faulted"; exit 1; fi
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -391,6 +405,10 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # Production init readiness is enforced by verify-userspace-handoff below.
+          # Keep this build smoke responsible for booting the ISO to Koronos and preserving
+          # launch errors in its artifact, so the dedicated acceptance job can report them.
+          if grep -Eq 'PANIC|Triple fault' "$smoke/full-iso-debugcon.log"; then echo "::error::Full ISO trace contains a panic or triple fault"; exit 1; fi
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4

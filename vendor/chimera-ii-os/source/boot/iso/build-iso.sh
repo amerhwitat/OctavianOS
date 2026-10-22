@@ -57,6 +57,19 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# The production GRUB entries require one target-matched native init ELF each.
+# Stage these after prepare-layout so they survive its clean rebuild of the tree.
+CHIMERA_INIT_ELF_STAGE="$DIST/iso" bash "$ROOT/tools/build-production-init-elfs.sh"
+python3 "$ROOT/tools/validate-native-init-elf.py" --target live "$DIST/iso/boot/live/user-init-live.elf"
+python3 "$ROOT/tools/validate-native-init-elf.py" --target installer "$DIST/iso/boot/installer/user-init-installer.elf"
+python3 "$ROOT/tools/validate-native-init-elf.py" --target recovery "$DIST/iso/boot/recovery/user-init-recovery.elf"
+for module in \
+  'module2 /boot/live/user-init-live.elf chimera-user-init-elf target=live' \
+  'module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer' \
+  'module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery'; do
+  grep -Fq "$module" "$DIST/iso/boot/grub/grub.cfg" || { echo "ERROR: GRUB is missing target native init module: $module" >&2; exit 2; }
+done
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"

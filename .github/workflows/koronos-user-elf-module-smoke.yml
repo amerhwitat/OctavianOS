@@ -1,0 +1,93 @@
+name: Koronos explicit user ELF module smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - '.github/workflows/koronos-user-elf-module-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  user-elf-module-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kernel and QEMU dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin xorriso mtools qemu-system-x86
+
+      - name: Build kernel and target-specific ring-3 probes
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          bash kernel/build-koronos.sh
+          test -s build/koronos/x86_64/koronos.elf
+          test -s build/koronos/x86_64/user-init-live.elf
+          grub-file --is-x86-multiboot2 build/koronos/x86_64/koronos.elf
+          readelf -h build/koronos/x86_64/user-init-live.elf | grep -Eq 'Type:[[:space:]]+EXEC'
+
+      - name: Boot the test ELF as an explicit Multiboot2 module
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/user-elf-module-smoke
+          mkdir -p "$smoke/iso/boot/grub"
+          cp build/koronos/x86_64/koronos.elf "$smoke/iso/boot/koronos.elf"
+          cp build/koronos/x86_64/user-init-live.elf "$smoke/iso/boot/user-init-live.elf"
+          cat > "$smoke/iso/boot/grub/grub.cfg" <<'GRUB'
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Koronos explicit ring-3 ELF module smoke" {
+            multiboot2 /boot/koronos.elf
+            module2 /boot/user-init-live.elf chimera-user-init-elf target=live
+            boot
+          }
+          GRUB
+          grub-mkrescue -o "$smoke/user-elf-module.iso" "$smoke/iso"
+          set +e
+          timeout 25s qemu-system-x86_64 \
+            -machine q35 -cpu max -m 512M \
+            -cdrom "$smoke/user-elf-module.iso" -boot d \
+            -display none -serial none -monitor none -no-reboot -no-shutdown \
+            -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/debugcon.log" || { echo "::error::QEMU produced no debugcon trace (exit $qemu_status)"; exit 1; }
+          cat "$smoke/debugcon.log"
+          grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log"
+          grep -Fq '[RUN ] Dispatching selected user init through CR3 + ring-3 entry' "$smoke/debugcon.log"
+          ack_line="$(grep -Eo 'USER INIT SYSCALL: target=live init_pid=[1-9][0-9]*' "$smoke/debugcon.log" | tail -n 1)"
+          ready_line="$(grep -Eo 'USERSPACE READY: target=live init_pid=[1-9][0-9]*' "$smoke/debugcon.log" | tail -n 1)"
+          test -n "$ack_line" || { echo "::error::missing CPL3-originated live init syscall acknowledgement"; exit 1; }
+          test -n "$ready_line" || { echo "::error::missing canonical live target readiness marker"; exit 1; }
+          ack_pid="${ack_line##*=}"
+          ready_pid="${ready_line##*=}"
+          test "$ack_pid" = "$ready_pid" || { echo "::error::syscall PID does not match readiness PID"; exit 1; }
+          grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/debugcon.log"
+          grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$smoke/debugcon.log"
+          if grep -Eq '\[RUN \] ERROR:|PANIC|Triple fault' "$smoke/debugcon.log"; then
+            echo "::error::Kernel reported an ELF launch error, panic, or triple fault"
+            exit 1
+          fi
+          echo "PASS: explicit Multiboot2 user ELF reached CPL3, performed syscalls, returned to ring 3, and exited cleanly."
+
+      - name: Upload ELF-module boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-explicit-user-elf-module-smoke
+          path: |
+            vendor/chimera-ii-os/source/build/user-elf-module-smoke/debugcon.log
+            vendor/chimera-ii-os/source/build/user-elf-module-smoke/user-elf-module.iso
+            vendor/chimera-ii-os/source/build/koronos/x86_64/user-init-live.elf
+          if-no-files-found: ignore
+          retention-days: 14

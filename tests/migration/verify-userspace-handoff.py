@@ -12,10 +12,10 @@ import sys
 TARGETS = {"live", "installer", "recovery"}
 KERNEL_MARKER = "[KRN ] KORONOS READY"
 ENTRY_RE = re.compile(
-    r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
+    r"USER INIT SYSCALL: target=(?P<target>live|installer|recovery) init_pid=(?P<pid>[1-9][0-9]*)\b"
 )
 READY_RE = re.compile(
-    r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
+    r"USERSPACE READY: target=(?P<target_canonical>live|installer|recovery) init_pid=(?P<pid_canonical>[1-9][0-9]*)\b"
 )
 
 
@@ -42,10 +42,11 @@ def main() -> int:
         print("FAIL: missing " + ", ".join(missing))
         return 1
     for entry in entries:
-        if entry.group(1) != target or kernel_at >= entry.start():
+        if entry.group("target") != target or kernel_at >= entry.start():
             continue
         for marker in ready:
-            if (marker.group(1) == target and marker.group(2) == entry.group(2)
+            if (marker.group("target_canonical") == target
+                    and marker.group("pid_canonical") == entry.group("pid")
                     and entry.start() < marker.start()):
                 print(f"PASS: target={target} init entered user mode and reported readiness with a consistent PID")
                 return 0
