@@ -57,6 +57,15 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+for target in live installer recovery; do
+  staged_init="$DIST/iso/boot/koronos/native-init-$target.elf"
+  test -s "$staged_init" || { echo "ERROR: target-specific $target init ELF was not staged: $staged_init" >&2; exit 2; }
+done
+test -s "$DIST/iso/boot/koronos/native-init.elf"
+LIVE_BOOT="$ROOT/build/live-boot/boot/live"
+test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: native live CPIO root missing" >&2; exit 2; }
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio.sha256" "$DIST/iso/boot/live/"
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
@@ -72,8 +81,38 @@ test -s "$RECOVERY_BOOT/recovery-manifest.json" || { echo "ERROR: Jasper recover
 mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
+test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" || { echo "ERROR: native recovery CPIO root missing" >&2; exit 2; }
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" "$DIST/iso/boot/recovery/"
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio.sha256" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+
+# Stage the dedicated installer CPIO rootfs separately from the install disk
+# image and its contracts. Never infer a filesystem from installation.img.
+INSTALLER_BOOT="$ROOT/build/live-boot/boot/installer"
+test -s "$INSTALLER_BOOT/chimera-installer-initramfs.img" || { echo "ERROR: installer initramfs missing: $INSTALLER_BOOT/chimera-installer-initramfs.img" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/installer"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img" "$DIST/iso/boot/installer/"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.img.sha256" "$DIST/iso/boot/installer/" 2>/dev/null || true
+test -s "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" || { echo "ERROR: native installer CPIO root missing" >&2; exit 2; }
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio" "$DIST/iso/boot/installer/"
+cp -f "$INSTALLER_BOOT/chimera-installer-initramfs.cpio.sha256" "$DIST/iso/boot/installer/"
+
+# Stage the actual freestanding ring-3 init ELFs into the ISO. Building these
+# probes is not enough: GRUB must load the matching file as a Multiboot2 module
+# or the kernel correctly fails closed before attempting userspace entry.
+USER_INIT_BUILD="$ROOT/build/koronos/x86_64"
+for target in live installer recovery; do
+  src="$USER_INIT_BUILD/user-init-$target.elf"
+  case "$target" in
+    live) dst="$DIST/iso/boot/live" ;;
+    installer) dst="$DIST/iso/boot/installer" ;;
+    recovery) dst="$DIST/iso/boot/recovery" ;;
+  esac
+  test -s "$src" || { echo "ERROR: $target ring-3 init ELF missing: $src" >&2; exit 2; }
+  mkdir -p "$dst"
+  install -m 0644 "$src" "$dst/user-init-$target.elf"
+done
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
@@ -142,6 +181,9 @@ if [[ -d "$(dirname "$RUNTIME_AURORA_ROOT")" ]]; then
   cp -a "$MEDIA/." "$RUNTIME_AURORA_ROOT/"
 fi
 printf '%s\n' '[5/7] Validate kernel-to-GRUB linkage, graphics and installation contracts'
+test -s "$DIST/iso/boot/live/user-init-live.elf" || { echo "Live ring-3 init ELF missing from ISO." >&2; exit 2; }
+test -s "$DIST/iso/boot/installer/user-init-installer.elf" || { echo "Installer ring-3 init ELF missing from ISO." >&2; exit 2; }
+test -s "$DIST/iso/boot/recovery/user-init-recovery.elf" || { echo "Recovery ring-3 init ELF missing from ISO." >&2; exit 2; }
 test -s "$DIST/iso/boot/koronos/koronos.elf"
 test -s "$DIST/iso/boot/spitfire/spitfire-stage2.bin"
 for visual in \
@@ -165,16 +207,19 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/live/user-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/iso/grub.cfg" || { echo "ERROR: Live menu does not pass native init ELF to Koronos." >&2; exit 2; }
+grep -q 'module2 /boot/installer/user-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/iso/grub.cfg" || { echo "ERROR: Installer menu does not pass native init ELF to Koronos." >&2; exit 2; }
+grep -q 'module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/jasper/recovery.cfg" || { echo "ERROR: Recovery menu does not pass native init ELF to Koronos." >&2; exit 2; }
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
-test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/live/chimera-live-initramfs.cpio" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
-test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.cpio" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
-grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
+grep -q '/boot/live/chimera-live-initramfs.cpio' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/live/live-manifest.json' "$ROOT/boot/jasper/live.cfg"
-grep -q '/boot/recovery/chimera-recovery-initramfs.img' "$ROOT/boot/jasper/recovery.cfg"
+grep -q '/boot/recovery/chimera-recovery-initramfs.cpio' "$ROOT/boot/jasper/recovery.cfg"
 grep -q 'Recovery Terminal' "$ROOT/boot/jasper/recovery.cfg"
 
 for contract in \

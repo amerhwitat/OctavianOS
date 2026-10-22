@@ -42,7 +42,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 # CHIMERA_LIVE_BOOT_DIR remains an explicit override for standalone builds.
 BUILD_DIR="${CHIMERA_BUILD_DIR:-$ROOT/build}"
 OUT="${CHIMERA_LIVE_BOOT_DIR:-$BUILD_DIR/live-boot}"
-mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/recovery" "$OUT/initramfs/root"/{bin,sbin,dev,proc,sys,run,tmp,mnt/chimera,etc,var/log/mesgs/archive,var/lib/chimera/drivers,etc/chimera/drivers,lib/chimera/drivers,lib/firmware} "$OUT/mobile"/{arm64,armv7,x86_64} "$OUT/manifests"
+mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/installer" "$OUT/boot/recovery" "$OUT/initramfs/root"/{bin,sbin,dev,proc,sys,run,tmp,mnt/chimera,etc,var/log/mesgs/archive,var/lib/chimera/drivers,etc/chimera/drivers,lib/chimera/drivers,lib/firmware} "$OUT/mobile"/{arm64,armv7,x86_64} "$OUT/manifests"
 # This ISO boots the native Koronos Multiboot2 ELF; it must not scrape the
 # build host's protected /boot/vmlinuz into the guest media. The live manifest
 # explicitly declares linux_vmlinuz_required=false.
@@ -113,7 +113,11 @@ fi
 exec /bin/sh
 EOF
 chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || true
+mkdir -p "$INIT/etc/chimera"
+printf '%s\n' 'live' > "$INIT/etc/chimera/target"
+(cd "$INIT" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/live/chimera-live-initramfs.cpio"
 (cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
+sha256sum "$OUT/boot/live/chimera-live-initramfs.cpio" > "$OUT/boot/live/chimera-live-initramfs.cpio.sha256"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
 # Dedicated recovery image: same hardware/filesystem utilities as Live, but
@@ -154,8 +158,40 @@ recovery_progress 100 "Recovery shell" "repair console is ready; individual repa
 exec /bin/chimera-recovery-console.sh
 EOF
 chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
+mkdir -p "$REC/etc/chimera"
+printf '%s\n' 'recovery' > "$REC/etc/chimera/target"
+(cd "$REC" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio"
 (cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
+sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.cpio" > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio.sha256"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
+
+# Dedicated installer rootfs: reuse the audited read-only utility payload but
+# mark it explicitly as installer-target content. The native Koronos init ELF
+# owns production readiness; this shell is only a diagnostic fallback and
+# must never be interpreted as a completed installation.
+INST="$OUT/initramfs/installer"
+rm -rf "$INST"
+mkdir -p "$INST"
+cp -a "$INIT/." "$INST/"
+mkdir -p "$INST/etc/chimera"
+printf '%s\n' 'installer' > "$INST/etc/chimera/target"
+cat > "$INST/init" <<'EOF'
+#!/bin/sh
+set -eu
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+mkdir -p /run/chimera /var/log/mesgs
+printf '%s\n' '[INSTALLER] Diagnostic fallback only; native service-backed installer acceptance has not been established.' > /dev/console 2>/dev/null || true
+exec /bin/sh
+EOF
+chmod +x "$INST/init"
+(cd "$INST" && find . -mindepth 1 \( -type d -o -type f \) -printf '%P\0' | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/installer/chimera-installer-initramfs.cpio"
+(cd "$INST" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/installer/chimera-installer-initramfs.img"
+sha256sum "$OUT/boot/installer/chimera-installer-initramfs.cpio" > "$OUT/boot/installer/chimera-installer-initramfs.cpio.sha256"
+sha256sum "$OUT/boot/installer/chimera-installer-initramfs.img" > "$OUT/boot/installer/chimera-installer-initramfs.img.sha256"
+
 
 for arch in arm64 armv7 x86_64; do
   mkdir -p "$OUT/mobile/$arch"

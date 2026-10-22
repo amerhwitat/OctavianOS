@@ -18,6 +18,12 @@ extern "C" void koronos_outb(uint16_t port, uint8_t value);
 
 namespace {
 volatile uint32_t koronos_state = 0;
+static volatile uint32_t g_console_ready = 0;
+static volatile uint32_t g_module_registry_ready = 0;
+static volatile uint32_t g_scheduler_ready = 0;
+static volatile uint32_t g_hardware_inventory_ready = 0;
+static volatile uint32_t g_driver_manager_ready = 0;
+static volatile uint32_t g_process_registry_ready = 0;
 
 static uint8_t serial_in8(uint16_t port) {
     uint8_t v;
@@ -193,6 +199,7 @@ static const char *module_kind_name(uint32_t k) {
         case CHIMERA_MODULE_LIVE_MANIFEST: return "LIVE MANIFEST";
         case CHIMERA_MODULE_RECOVERY_INITRAMFS: return "RECOVERY INITRAMFS";
         case CHIMERA_MODULE_RECOVERY_MANIFEST: return "RECOVERY MANIFEST";
+        case CHIMERA_MODULE_INSTALLER_INITRAMFS: return "INSTALLER INITRAMFS";
         case CHIMERA_MODULE_INSTALL_IMAGE: return "INSTALL IMAGE";
         case CHIMERA_MODULE_INSTALL_MANIFEST: return "INSTALL MANIFEST";
         case CHIMERA_MODULE_INSTALL_CONTRACT: return "INSTALL CONTRACT";
@@ -243,24 +250,18 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
         const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
         if (m) {
             console_write("[LIVE] Live initramfs module recognized");
-            console_write("[USER] Handoff withheld: production initramfs requires a supported native init ELF/runtime; no process was launched");
+            const int launch_rc = koronos_launch_selected_userspace();
+            if (launch_rc != 0)
+                console_write("[RUN ] Live target init failed before readiness; failing closed");
             chimera_sched_block();
-        } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE)) {
+        } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) &&
+                   !chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS)) {
             console_write("[LIVE] No live initramfs module; live service idle");
             chimera_sched_block();
         } else {
-            // Installer media is handled by task_installer. There is no live
-            // payload to poll for, so the live service must block as well.
             console_write("[LIVE] Installer target detected; live service idle");
             chimera_sched_block();
         }
@@ -271,7 +272,9 @@ static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0)
+            console_write("[RUN ] Recovery target init failed before readiness; failing closed");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -280,23 +283,27 @@ static void task_recovery(void *) {
 
 static void task_installer(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
+    const chimera_boot_module *initramfs = chimera_multiboot_find(CHIMERA_MODULE_INSTALLER_INITRAMFS);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
     const chimera_boot_module *phases = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PHASES);
     const chimera_boot_module *profiles = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PROFILES);
 
-    if (!image && !manifest && !contract && !phases && !profiles) {
+    if (!image && !initramfs && !manifest && !contract && !phases && !profiles) {
         if (installer_phase++ == 0)
             console_write("[INST] Installer target not selected: no installer modules");
         chimera_sched_block();
         return;
     }
 
-    switch (installer_phase++) {
+    const uint32_t phase = installer_phase++;
+    switch (phase) {
         case 0:
             console_write("[INST] Installer target detected");
+            if (initramfs) console_write("[INST] Dedicated installer initramfs accepted");
+            else console_write("[INST] ERROR: installer initramfs module missing");
             if (image) console_write("[INST] Installation image accepted");
-            else console_write("[INST] ERROR: installation image module missing");
+            else console_write("[INST] Installation image unavailable; installer may diagnose but must not write disks");
             if (manifest) console_write("[INST] Installation manifest accepted");
             else console_write("[INST] WARNING: installation manifest module missing");
             if (contract) console_write("[INST] Installer contract accepted");
@@ -315,14 +322,21 @@ static void task_installer(void *) {
             if (profiles) console_write("[INST] Installer profiles loaded");
             console_write("[INST] Installer UI scaffolding initialized; graphical userspace is not running");
             break;
-        case 4:
-            console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
-            chimera_sched_block();
-            break;
         default:
             chimera_sched_block();
             break;
+    }
+    /* Start the installer init from its own rootfs; actual disk writes are
+       separately gated on the install image and a real storage backend. */
+    if (initramfs && phase == 0) {
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0) {
+            console_write("[RUN ] Installer target init failed before readiness; failing closed");
+            chimera_sched_block();
+            return;
+        }
+        chimera_sched_block();
+        return;
     }
 }
 
@@ -370,13 +384,56 @@ static void task_monitor(void *) {
     }
 }
 
+static bool service_id_equal(const char* a, const char* b) {
+    if (!a || !b) return false;
+    while (*a && *b && *a == *b) { ++a; ++b; }
+    return *a == 0 && *b == 0;
+}
+static bool bootstrap_service_ready(const char* id) {
+    if (service_id_equal(id, "console") || service_id_equal(id, "logging"))
+        return g_console_ready != 0;
+    if (service_id_equal(id, "module-registry")) return g_module_registry_ready != 0;
+    if (service_id_equal(id, "scheduler")) return g_scheduler_ready != 0;
+    if (service_id_equal(id, "hardware-inventory")) return g_hardware_inventory_ready != 0;
+    if (service_id_equal(id, "driver-manager")) return g_driver_manager_ready != 0;
+    if (service_id_equal(id, "process-registry")) return g_process_registry_ready != 0;
+    return false;
+}
+static int bootstrap_service_start(const char* id, void*) {
+    return bootstrap_service_ready(id) ? 0 : -1;
+}
+static int bootstrap_service_health(const char* id, void*) {
+    return bootstrap_service_ready(id) ? 0 : -1;
+}
 static void task_kore(void *) {
     static bool started = false;
     if (!started) {
         started = true;
         chimera_kore_bootstrap();
-        console_write("[KORE] Service orchestration online");
-        console_write("[KORE] Core storage/security/logging services active");
+        static const char* console_dep[] = {"console"};
+        static const char* scheduler_dep[] = {"scheduler"};
+        static const char* hardware_dep[] = {"hardware-inventory"};
+        static const chimera_service_manifest services[] = {
+            {CHIMERA_SERVICE_ABI, "console", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 1, 0, nullptr},
+            {CHIMERA_SERVICE_ABI, "module-registry", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 1, 1, console_dep},
+            {CHIMERA_SERVICE_ABI, "scheduler", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 1, 1, console_dep},
+            {CHIMERA_SERVICE_ABI, "hardware-inventory", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 0, 1, scheduler_dep},
+            {CHIMERA_SERVICE_ABI, "driver-manager", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 0, 1, hardware_dep},
+            {CHIMERA_SERVICE_ABI, "process-registry", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 1, 1, scheduler_dep},
+            {CHIMERA_SERVICE_ABI, "logging", CHM_SVC_DECLARED, CHM_RESTART_NEVER, 0, 1, console_dep}
+        };
+        const char* ordered[CHIMERA_SERVICE_MAX] = {};
+        chimera_service_plan plan{0, CHIMERA_SERVICE_MAX, ordered};
+        const chimera_service_ops ops{bootstrap_service_start, bootstrap_service_health, nullptr, nullptr};
+        console_write("[KORE] Starting initialized kernel services with dependency and health checks");
+        const int result = chimera_service_start_all(services, 7, &ops, &plan);
+        if (result < 0) console_write("[KORE] ERROR: critical bootstrap service failed health validation");
+        for (uint32_t i = 0; i < 7; ++i) {
+            console_write(chimera_service_get_state(services[i].id) == CHM_SVC_RUNNING
+                ? "[KORE] service RUNNING: " : "[KORE] service NOT RUNNING: ");
+            console_write(services[i].id);
+        }
+        console_write("[KORE] Storage, network, security and graphical-session services are not declared RUNNING without backends");
     }
     // Bootstrap orchestration is complete; a service worker must block until
     // an event source wakes it rather than consume every scheduler dispatch.
@@ -386,13 +443,16 @@ static void task_kore(void *) {
 static void koronos_submit_bootstrap_tasks() {
     int a = chimera_sched_submit(task_console, 0, 100);
     int b = chimera_sched_submit(task_modules, 0, 90);
+    /* Run the dependency/health-checked Kore bootstrap before any target init.
+       Otherwise a ring-3 init could run before console, scheduler, hardware,
+       driver and process-registry services have been health-checked. */
+    int e = chimera_sched_submit(task_kore, 0, 95);
     int c = chimera_sched_submit(task_live, 0, 80);
     int d = chimera_sched_submit(task_installer, 0, 80);
-    int e = chimera_sched_submit(task_kore, 0, 95);
     int r = chimera_sched_submit(task_recovery, 0, 80);
     int m = chimera_sched_submit(task_monitor, 0, 60);
     console_write("[SCH ] Bootstrap tasks submitted");
-    console_write("[SCH ] console/module/live/installer/recovery/Kore services registered");
+    console_write("[SCH ] console/module/Kore health checks precede Live/Installer/Recovery target init");
     if (a < 0 || b < 0 || c < 0 || d < 0 || e < 0 || r < 0 || m < 0)
         console_write("[SCH ] WARNING: bootstrap task registration incomplete");
 }
@@ -433,9 +493,11 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     }
 
     console_write("OK");
+    g_console_ready = 1;
     console_progress(5, "Koronos boot context accepted");
     console_write("[HW  ] Initializing hardware...");
     uint32_t modules = chimera_multiboot_scan(ctx->boot_info);
+    g_module_registry_ready = 1;
     console_write("[MB2 ] Scanned Multiboot2 modules");
     const int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
     if (frame_init == 0) {
@@ -472,6 +534,10 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[SCH ] Initializing scheduler...");
     chimera_sched_init(f->logical_cpus);
     chimera_learning_init(f->logical_cpus);
+    // The service manager's health probe requires scheduler initialization to
+    // have completed before declaring this bootstrap service ready. Leaving
+    // this flag unset makes the critical scheduler service fail every boot.
+    g_scheduler_ready = 1;
     console_progress(35, "Scheduler and learning runtime initialized");
 
     console_write("[IO  ] Initializing virtual I/O drivers...");
@@ -507,11 +573,13 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[PCI ] Enumerated devices: ");
     console_progress(55, "Hardware inventory enumerated");
     console_u32(devices < 0 ? 0 : (uint32_t)devices);
+    g_hardware_inventory_ready = (devices >= 0);
 
     int bound = chimera_driver_probe_all();
     console_write("[DRV ] Native/compatible bindings: ");
     console_u32(bound);
     int running = chimera_driver_start_all();
+    g_driver_manager_ready = (bound >= 0 && running >= 0);
     console_write("[DRV ] Active driver set: ");
     console_progress(65, "Driver probing and start requests completed");
     console_u32(running);
@@ -523,9 +591,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
 
     chimera_learning_record(1, f->logical_cpus);
     koronos_elf64_init();
-    chimera_process_init();
-    console_write("[PROC] Protected-process admission layer ready (load-plan mode)");
-    console_progress(75, "Process admission and module registries initialized");
+    const int process_init_rc = chimera_process_init();
+    g_process_registry_ready = (process_init_rc == 0);
+    if (g_process_registry_ready) {
+        console_write("[PROC] Protected-process admission layer ready (load-plan mode)");
+        console_progress(75, "Process admission and module registries initialized");
+    } else {
+        console_write("[PROC] ERROR: process registry initialization failed; dependent services remain blocked");
+        console_progress(75, "Process registry unavailable; dependent services blocked");
+    }
     koronos_module_init();
     koronos_state = 0x4B4F524Fu;
     console_write("[PLT ] Native platform feature registry ready");

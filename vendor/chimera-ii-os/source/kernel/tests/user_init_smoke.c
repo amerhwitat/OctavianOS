@@ -10,6 +10,14 @@
 #error "Select CHIMERA_TARGET_LIVE, CHIMERA_TARGET_INSTALLER, or CHIMERA_TARGET_RECOVERY"
 #endif
 
+/* Keep both PT_LOAD segments non-empty in the smoke ELF. GNU ld emits a
+ * zero-sized writable PT_LOAD for an empty .data/.bss PHDR, and the strict
+ * kernel admission contract correctly rejects zero-sized load segments. */
+__attribute__((used, section(".data")))
+volatile unsigned long chimera_probe_writable_data = 0x4348494d455241ull;
+__attribute__((used, section(".bss")))
+volatile unsigned long chimera_probe_zero_fill;
+
 __attribute__((noreturn, used)) void _start(void) {
 #if defined(CHIMERA_TEST_HANG)
     /* Deliberately hostile acceptance payload: no syscalls, no readiness,
@@ -39,7 +47,7 @@ __attribute__((noreturn, used)) void _start(void) {
     }
 
     char ready_message[96];
-    const char prefix[] = "USERSPACE READY: " CHIMERA_TARGET_NAME " init pid=";
+    const char prefix[] = "USERSPACE READY: target=" CHIMERA_TARGET_NAME " init_pid=";
     size_t used = 0;
     for (size_t i = 0; i < sizeof(prefix) - 1u; ++i)
         ready_message[used++] = prefix[i];
@@ -62,6 +70,31 @@ __attribute__((noreturn, used)) void _start(void) {
     }
     while (digits) ready_message[used++] = reversed[--digits];
     ready_message[used++] = '\n';
+
+    /* Probe-only PID diagnostic: this proves the user image can report the
+     * actual GETPID return value. It does not represent service readiness. */
+    char pid_message[96];
+    const char pid_prefix[] = "NATIVE INIT PID: target=" CHIMERA_TARGET_NAME " pid=";
+    size_t pid_used = 0;
+    for (size_t i = 0; i < sizeof(pid_prefix) - 1u; ++i)
+        pid_message[pid_used++] = pid_prefix[i];
+    char pid_reversed[20];
+    size_t pid_digits = 0;
+    unsigned long diagnostic_pid = (unsigned long)number;
+    while (diagnostic_pid && pid_digits < sizeof(pid_reversed)) {
+        pid_reversed[pid_digits++] = (char)('0' + (diagnostic_pid % 10u));
+        diagnostic_pid /= 10u;
+    }
+    while (pid_digits) pid_message[pid_used++] = pid_reversed[--pid_digits];
+    pid_message[pid_used++] = '\n';
+    register long pid_write_number __asm__("rax") = 9;
+    register long pid_write_fd __asm__("rdi") = 1;
+    register const char *pid_write_buffer __asm__("rsi") = pid_message;
+    register long pid_write_length __asm__("rdx") = (long)pid_used;
+    __asm__ volatile("syscall"
+                     : "+a"(pid_write_number)
+                     : "D"(pid_write_fd), "S"(pid_write_buffer), "d"(pid_write_length)
+                     : "rcx", "r11", "memory");
 
     number = 9; /* CHM_SYS_WRITE */
     register long fd __asm__("rdi") = 1;
