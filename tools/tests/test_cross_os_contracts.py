@@ -98,6 +98,17 @@ assert "for (uint32_t i = begin; i < end; ++i)" in parallel_source, (
     "single-worker fallback must be explicit and reviewable"
 )
 
+# Production payload data is not an executable native init. Require the
+# launcher to fail closed and name the missing USER_INIT_ELF integration.
+TARGET_LAUNCH = ROOT / "vendor/chimera-ii-os/source/kernel/core/target_launch.cpp"
+target_launch_source = TARGET_LAUNCH.read_text(encoding="utf-8")
+assert "no native USER_INIT_ELF module was staged" in target_launch_source, (
+    "production payload without a native init ELF must report the concrete handoff failure"
+)
+assert "CHIMERA_MODULE_RECOVERY_INITRAMFS" in target_launch_source and "CHIMERA_MODULE_INSTALL_IMAGE" in target_launch_source, (
+    "missing native init detection must cover Live, Recovery, and Installer payloads"
+)
+
 app_count = sum(len(family.get("examples", [])) for family in families)
 print(f"cross-OS contracts PASS: {len(os_entries)} OS families, "
       f"{len(compat['cpu_profiles'])} CPU profiles, {len(setting_ids)} settings, "
