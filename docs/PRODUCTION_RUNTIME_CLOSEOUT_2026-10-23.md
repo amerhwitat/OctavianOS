@@ -51,3 +51,12 @@ Verification status: latest commit workflow lookups reported no runs, and no loc
 ## Closeout gate tightened — ring-3 file-operation evidence (2026-10-23)
 
 The DAPS gate is synchronized with ChimeraIIOS and now requires all six target/firmware cases to include rootfs_file_syscalls_verified=true and a non-empty rootfs_file_syscalls_evidence reference, in addition to process_visible_rootfs=true. This prevents pointer publication alone from counting as proof that ring-3 can open, read, and close a file. The source-contract test asserts that these fields remain required. The same gate is mirrored in the vendored source tree. No evidence has been generated for these new fields, so production release remains blocked.
+
+
+## General VFS and mutable tmpfs implementation update — 2026-10-23
+
+Mirrored the current ChimeraIIOS VFS and target integration into the vendored source. The new VFS provides mount routing, canonical traversal-rejecting paths, PID-bound descriptors, offset/seek, read/write/open/close, mutation backend hooks, read-only mounts, and mount-operation pins. A bounded mutable tmpfs implements create/write/truncate/mkdir/unlink/rename with per-file and total-byte limits and copy-then-commit content replacement.
+
+The production target launcher mounts the validated Live/Recovery initramfs RAMFS as read-only / and a bounded writable tmpfs at /tmp; native ring-3 OPEN/READ/WRITE/SEEK/CLOSE use the VFS. Ring-3 mkdir/unlink/rename are deliberately not exposed until permission/ownership checks are implemented. VFS and tmpfs regression tests are registered in both the canonical build script and CTest. DAPS now requires raw tmpfs mutation evidence for both Live and Recovery across BIOS and UEFI.
+
+Verification remains unestablished: no local compile was run, and the latest workflow lookup returned no runs. Installer persistent storage, a disk-backed filesystem, service supervision, Aurora handoff/health, Recovery repair postcondition, AP-backed SMP, and the six-case production acceptance matrix remain open. Keep this PR draft and release blocked until real build and production evidence pass.
