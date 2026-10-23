@@ -205,7 +205,10 @@ extern "C" int chimera_process_get_by_handle(chimera_process_handle handle,
 }
 
 extern "C" int chimera_process_set_state(uint32_t pid, chimera_process_state state) {
-    if (!pid || state < CHIMERA_PROCESS_ADMITTED || state > CHIMERA_PROCESS_FAULTED)
+    // Terminal states must use chimera_process_exit() so wait/reap sees a
+    // single exit transition and the corresponding status exactly once.
+    if (!pid || state < CHIMERA_PROCESS_ADMITTED || state > CHIMERA_PROCESS_FAULTED ||
+        state == CHIMERA_PROCESS_EXITED)
         return -1;
     lock_registry();
     const int i = find_pid_locked(pid);
