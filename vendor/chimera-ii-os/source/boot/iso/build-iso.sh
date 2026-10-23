@@ -114,17 +114,23 @@ cp -f "$MEDIA/Init.mp4" "$VISUAL_OUT/Init.mp4"
 
 # OctavianOS-specific firmware artwork: render the original Octopus Aurora SVG
 # and embed the resulting PNG in the ISO, rather than only publishing a CI artifact.
-OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
+# Resolve the owning checkout from Git rather than assuming the nested
+# vendor directory depth. CI can invoke this builder from a worktree or a
+# relocated checkout, and Octavian artwork must still be staged into the ISO.
+OCTAVIAN_ROOT="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || true)"
 OCTAVIAN_ARTWORK="$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-octopus-aurora.svg"
 OCTAVIAN_RENDERER="$OCTAVIAN_ROOT/tools/boot/render_boot_artwork.py"
-if [[ -f "$OCTAVIAN_ARTWORK" && -f "$OCTAVIAN_RENDERER" ]]; then
+OCTAVIAN_MANIFEST="$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json"
+if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
+  [[ -f "$OCTAVIAN_RENDERER" ]] || { echo "ERROR: Octavian artwork exists but its renderer is missing: $OCTAVIAN_RENDERER" >&2; exit 2; }
+  [[ -s "$OCTAVIAN_MANIFEST" ]] || { echo "ERROR: Octavian artwork manifest is missing: $OCTAVIAN_MANIFEST" >&2; exit 2; }
   OCTAVIAN_BOOT_PNG="$VISUAL_OUT/octavian-octopus-aurora.png"
   python3 "$OCTAVIAN_RENDERER" --source "$OCTAVIAN_ARTWORK" --output "$OCTAVIAN_BOOT_PNG"
   test -s "$OCTAVIAN_BOOT_PNG" || { echo "ERROR: OctavianOS boot artwork was not rendered." >&2; exit 2; }
   # Make the Octavian artwork the actual GRUB background, while retaining the
   # named source derivative and manifest for inspection.
   cp -f "$OCTAVIAN_BOOT_PNG" "$VISUAL_OUT/aurora-boot.png"
-  cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
+  cp -f "$OCTAVIAN_MANIFEST" "$VISUAL_OUT/octavian-artwork-manifest.json"
 fi
 
 # Hard-stage the same deterministic artwork/media in every native boot namespace.
@@ -212,6 +218,14 @@ command -v xorriso >/dev/null || { echo "xorriso is required." >&2; exit 2; }
 # them to xorriso, where they are rejected as unknown commands. Let xorriso use
 # its native defaults for a hybrid BIOS/UEFI image.
 grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"
+# Validate the exact Octavian artwork files in the authored ISO tree before
+# final-image inspection. This catches path-resolution/staging regressions at
+# the producer instead of leaving only a downstream xorriso failure.
+if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
+  test -s "$DIST/iso/boot/visual/octavian-octopus-aurora.png" || { echo "ERROR: Octavian artwork PNG was not staged before ISO mastering." >&2; exit 2; }
+  test -s "$DIST/iso/boot/visual/octavian-artwork-manifest.json" || { echo "ERROR: Octavian artwork manifest was not staged before ISO mastering." >&2; exit 2; }
+fi
+test -s "$DIST/output.iso" || { echo "ERROR: ISO mastering did not produce output.iso." >&2; exit 2; }
 test -s "$DIST/output.iso"
 sha256sum "$DIST/output.iso" | tee "$DIST/output.iso.sha256"
 
