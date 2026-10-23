@@ -109,7 +109,7 @@ jobs:
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET probe=ring3
             boot
           }
           EOF
@@ -183,7 +183,7 @@ jobs:
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
+            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live probe=ring3
             boot
           }
           EOF
