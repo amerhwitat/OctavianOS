@@ -33,7 +33,12 @@ int main() {
     assert(chimera_process_admit_elf_child(elf, sizeof(elf), KORONOS_EM_X86_64,
         0x800000, &parent, &child_image, &child) > 0);
     assert(child.pid != parent.pid && child.generation != 0);
-    assert(chimera_process_count() == 2);
+
+    chimera_process_handle grandchild{};
+    chimera_process_image grandchild_image{};
+    assert(chimera_process_admit_elf_child(elf, sizeof(elf), KORONOS_EM_X86_64,
+        0x800000, &child, &grandchild_image, &grandchild) > 0);
+    assert(chimera_process_count() == 3);
     assert(chimera_process_set_state(child.pid, CHIMERA_PROCESS_EXITED) < 0);
 
     chimera_process_handle reaped{};
@@ -41,6 +46,13 @@ int main() {
     assert(chimera_process_wait_child(parent, &reaped, &status) == 0);
     assert(chimera_process_exit(child, 23) == 0);
     assert(chimera_process_exit(child, 24) < 0);
+    // An exited process cannot be reaped while it still owns an unreaped child.
+    assert(chimera_process_wait_child(parent, &reaped, &status) == 0);
+    assert(chimera_process_exit(grandchild, 31) == 0);
+    chimera_process_handle reaped_grandchild{};
+    assert(chimera_process_wait_child(child, &reaped_grandchild, &status) == 1);
+    assert(reaped_grandchild.pid == grandchild.pid && status == 31);
+    assert(chimera_process_get_by_handle(grandchild, &grandchild_image) < 0);
     assert(chimera_process_wait_child(parent, &reaped, &status) == 1);
     assert(reaped.pid == child.pid && reaped.generation == child.generation);
     assert(status == 23);
