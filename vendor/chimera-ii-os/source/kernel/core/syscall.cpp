@@ -61,11 +61,15 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
             return 0;
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
-            /* Process teardown is deliberately owned by the process manager;
-             * this early dispatcher only acknowledges the semantic operation. */
+            /* There is no active-process lookup/teardown path wired into this
+             * dispatcher yet. A success return would falsely claim that the
+             * process exited while leaving it runnable. Fail closed until
+             * process ownership, wait status, and scheduler teardown are
+             * connected. */
             (void)args;
-            *return_value = 0;
-            return 0;
+            ++g_rejected;
+            *return_value = error_value();
+            return -1;
         default:
             ++g_rejected;
             *return_value = error_value();
