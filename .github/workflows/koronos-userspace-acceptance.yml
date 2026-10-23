@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+  candidate-smoke:
+    name: ${{ matrix.target }} / ${{ matrix.firmware }} candidate smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -118,7 +118,7 @@ jobs:
           grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
+          echo "CANDIDATE SMOKE PASS target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc; NOT PRODUCTION ACCEPTANCE. This job uses candidate probe ELFs and cannot satisfy release gates."
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
         run: |
@@ -158,7 +158,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: userspace-${{ matrix.target }}-${{ matrix.firmware }}-logs
+          name: candidate-smoke-${{ matrix.target }}-${{ matrix.firmware }}-logs
           path: |
             vendor/chimera-ii-os/source/build/userspace-acceptance/${{ matrix.target }}/qemu-${{ matrix.firmware }}.log
             vendor/chimera-ii-os/source/build/userspace-acceptance/timeout/qemu-timeout.log
