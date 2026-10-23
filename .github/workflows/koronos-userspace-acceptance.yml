@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: amerhwitat/ChimeraIIOS
-          ref: 12401d8eae7fb14a90e783660d059186ed3fdf48
+          ref: aa87332f12cd6ed9d6652dc8b759784ba122a08e
           path: chimera-upstream
           fetch-depth: 1
       - name: Synchronize canonical source into isolated vendor build tree
@@ -45,7 +45,7 @@ jobs:
           mkdir -p "$dest"
           rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' chimera-upstream/ "$dest/"
           source_sha="$(git -C chimera-upstream rev-parse HEAD)"
-          test "$source_sha" = "12401d8eae7fb14a90e783660d059186ed3fdf48"
+          test "$source_sha" = "aa87332f12cd6ed9d6652dc8b759784ba122a08e"
           echo "Canonical ChimeraIIOS source: $source_sha" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::Koronos acceptance is building pinned canonical source $source_sha, not an unverified stale vendor tree."
       - name: Install kernel, ISO and QEMU tools
