@@ -547,7 +547,8 @@ extern "C" int koronos_launch_selected_userspace(void) {
     koronos_user_timeout_disarm();
     (void)chimera_vfs_close_process(active_pid);
     ops->destroy_address_space(nullptr,loaded.address_space);
-    if (exit_code == 0) (void)chimera_process_exit(process_handle, exit_code);\n    else (void)chimera_process_fault(process_handle, exit_code);
+    if (exit_code == 0) (void)chimera_process_exit(process_handle, exit_code);
+    else (void)chimera_process_fault(process_handle, exit_code);
     active_target=TARGET_NONE;
     active_ring3_probe=false;
     active_root=0;
