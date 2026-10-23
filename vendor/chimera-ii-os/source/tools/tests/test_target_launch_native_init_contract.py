@@ -11,23 +11,27 @@ SOURCE = ROOT / "kernel/core/target_launch.cpp"
 text = SOURCE.read_text(encoding="utf-8")
 
 required = [
-    "payload_count!=1 || elf_count>1 || !payload",
-    "const Target elf_target=parse_target(selected->cmdline);",
-    "if (elf_target!=target)",
-    "native init ELF target does not match the selected production payload",
-    "Selected target-matched native init ELF alongside production root payload",
-    "production payload has no separately staged target-matched native init ELF; refusing embedded-init fallback",
-    "production rootfs is validated but not mounted; refusing userspace readiness without VFS publication",
+    "uint32_t payload_count=0;",
+    "Target payload_target=TARGET_NONE;",
+    "case CHIMERA_MODULE_LIVE_INITRAMFS:",
+    "case CHIMERA_MODULE_INSTALL_IMAGE:",
+    "case CHIMERA_MODULE_RECOVERY_INITRAMFS:",
+    "if (payload_count>1u)",
+    "if (payload_count==1u && payload_target!=target)",
+    "native init target does not match the selected production payload",
+    "stage_rootfs(archive_bytes, archive->size)",
+    'chimera_vfs_mount("/", &ramfs_vfs_ops, staged_rootfs, CHIMERA_VFS_MOUNT_RDONLY)',
+    'chimera_vfs_mount("/tmp", chimera_tmpfs_vfs_ops(), tmpfs_candidate, 0u)',
+    "transactional RAMFS staging failed; no rootfs was published",
+    "VFS root mount failed; refusing userspace launch",
 ]
 missing = [item for item in required if item not in text]
 if missing:
     raise SystemExit("target-launch native-init contract missing: " + "; ".join(missing))
 
-# The target-specific ELF is an explicit module, not a silently substituted
-# candidate. The production payload must independently resolve the target.
-if "if (payload_count) {" not in text or "if (elf_count==1)" not in text:
-    raise SystemExit("target/payload binding contract missing")
-
+# The target-specific ELF is explicit and independently bound to one payload.
+if "if (count!=1" not in text or "USER_INIT_ELF module was supplied" not in text:
+    raise SystemExit("target/payload dispatch must reject missing or ambiguous native init ELF")
 if "chimera_initramfs_find_elf" in text:
-    raise SystemExit("target-launch native-init contract missing: embedded CPIO ELF fallback must remain disabled")
-print("target-launch native-init contract: PASS (source-level only; not boot acceptance)")
+    raise SystemExit("embedded CPIO ELF fallback must remain disabled")
+print("target-launch native-init contract: PASS (source-level only; not boot acceptance)\n
