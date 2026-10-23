@@ -29,6 +29,10 @@ python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
 python3 "$ROOT/tools/tests/test_production_closeout_daps.py"
 python3 "$ROOT/tools/tests/test_target_launch_native_init_contract.py"
 HOST_CXX="${HOST_CXX:-g++}"
+"$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/core/process.cpp" "$ROOT/kernel/tests/process_lifecycle_test.cpp" \
+  -o "$BUILD/process-lifecycle-test"
+"$BUILD/process-lifecycle-test"
 "$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/initramfs_cpio.cpp" "$ROOT/kernel/tests/initramfs_cpio_test.cpp" -o "$BUILD/initramfs-cpio-test"
 "$BUILD/initramfs-cpio-test"
 "$HOST_CXX" -std=c++20 -Wall -Wextra -Werror -I"$ROOT/kernel/include" "$ROOT/kernel/core/gzip.cpp" "$ROOT/kernel/tests/gzip_decoder_test.cpp" -o "$BUILD/gzip-decoder-test"
