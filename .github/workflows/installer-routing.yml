@@ -106,8 +106,11 @@ jobs:
           # Exercise the real ISO producer after the native kernel and target
           # probes have been built; source-only contract checks are insufficient
           # to catch artwork or module packaging regressions.
-          python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
-          python3 tools/runtime/stage_native_command_runtime.py
+          (
+            cd "$GITHUB_WORKSPACE"
+            python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
+            python3 tools/runtime/stage_native_command_runtime.py
+          )
           bash tools/build-live-boot-binaries.sh
           bash boot/iso/build-iso.sh
           iso=boot/iso/dist/output.iso
