@@ -57,6 +57,7 @@ on:
     branches: [fix/production-initramfs-elf-bridge]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
