@@ -48,10 +48,14 @@ int main() {
     assert(chimera_process_exit(child, 24) < 0);
     // An exited process cannot be reaped while it still owns an unreaped child.
     assert(chimera_process_wait_child(parent, &reaped, &status) == 0);
-    assert(chimera_process_exit(grandchild, 31) == 0);
+    assert(chimera_process_fault(grandchild, -11) == 0);
+    assert(chimera_process_exit(grandchild, 31) < 0);
+    chimera_process_image faulted_image{};
+    assert(chimera_process_get_by_handle(grandchild, &faulted_image) == 0);
+    assert(faulted_image.state == CHIMERA_PROCESS_FAULTED);
     chimera_process_handle reaped_grandchild{};
     assert(chimera_process_wait_child(child, &reaped_grandchild, &status) == 1);
-    assert(reaped_grandchild.pid == grandchild.pid && status == 31);
+    assert(reaped_grandchild.pid == grandchild.pid && status == -11);
     assert(chimera_process_get_by_handle(grandchild, &grandchild_image) < 0);
     assert(chimera_process_wait_child(parent, &reaped, &status) == 1);
     assert(reaped.pid == child.pid && reaped.generation == child.generation);
