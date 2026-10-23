@@ -27,14 +27,14 @@ jobs:
         firmware: [bios, uefi]
     steps:
       - uses: actions/checkout@v4
-      # Pin the exact upstream revision recorded by vendor/UPSTREAM_REVISION. Candidate probes remain smoke evidence only.
-      # The checked-in vendor snapshot can lag behind the production source;
-      # building it blindly hides missing files until ISO assembly or runtime.
+      # Pin the exact reviewed ChimeraIIOS remediation commit for this candidate run.
+      # The canonical checkout is overlaid into an isolated CI build tree; this does not rewrite the committed vendor snapshot.
+      # Candidate probes remain smoke evidence only and cannot satisfy production closeout.
       - name: Checkout canonical ChimeraIIOS kernel source
         uses: actions/checkout@v4
         with:
           repository: amerhwitat/ChimeraIIOS
-          ref: 24b48f7ddf2b1f244e8f95a9d6b041ac44549889
+          ref: 5921ead9aea3e71287b8781895715974286dc6cb
           path: chimera-upstream
           fetch-depth: 1
       - name: Synchronize canonical source into isolated vendor build tree
@@ -45,7 +45,7 @@ jobs:
           mkdir -p "$dest"
           rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' chimera-upstream/ "$dest/"
           source_sha="$(git -C chimera-upstream rev-parse HEAD)"
-          test "$source_sha" = "24b48f7ddf2b1f244e8f95a9d6b041ac44549889"
+          test "$source_sha" = "5921ead9aea3e71287b8781895715974286dc6cb"
           echo "Canonical ChimeraIIOS source: $source_sha" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::Koronos acceptance is building pinned canonical source $source_sha, not an unverified stale vendor tree."
       - name: Verify kernel source/build manifest parity
@@ -91,6 +91,14 @@ jobs:
             kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
             -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
+      - name: Test dependency-aware service supervisor lifecycle
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include \
+            kernel/core/service.cpp kernel/tests/service_bootstrap_test.cpp \
+            -o /tmp/service-supervisor-contract
+          /tmp/service-supervisor-contract
       - name: Test transactional RAMFS symlink extraction and rollback
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
