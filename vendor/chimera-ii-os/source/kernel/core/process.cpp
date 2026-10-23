@@ -213,8 +213,8 @@ extern "C" int chimera_process_get_by_handle(chimera_process_handle handle,
 }
 
 extern "C" int chimera_process_set_state(uint32_t pid, chimera_process_state state) {
-    // Terminal states must use chimera_process_exit() so wait/reap sees a
-    // single exit transition and the corresponding status exactly once.
+    // Terminal states must use chimera_process_exit()/chimera_process_fault()
+    // so wait/reap observes one terminal transition and status exactly once.
     if (!pid || state < CHIMERA_PROCESS_ADMITTED || state > CHIMERA_PROCESS_FAULTED ||
         state == CHIMERA_PROCESS_EXITED || state == CHIMERA_PROCESS_FAULTED)
         return -1;
