@@ -87,3 +87,8 @@ The vendored fail-closed native init now exercises /tmp create + truncate + writ
 ### Act decision
 
 Keep both OS release candidates blocked. Next implementation work must provide process exec/wait and service supervision, a storage-backed installer filesystem plus reboot/readback, real ISO × firmware acceptance for all six target cases, verified Aurora and recovery outcomes, and AP-backed concurrent SMP. Latest fresh CI status for the Chimera workflow update remains unconfirmed by the available PR-run lookup.
+
+
+### Additional syscall/service boundary finding
+
+The vendored native syscall dispatcher implements a limited set of process-independent and VFS operations, but it does not wire a process-spawn/exec operation or a functional wait/reap lifecycle into the native syscall path. The service subsystem validates dependency declarations and records service states; it does not launch child processes or verify target service health. This explains why native init cannot truthfully start the Live compositor/session, Installer executor, or Recovery runtime. Implementing a success marker without that lifecycle would be a false acceptance result.
