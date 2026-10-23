@@ -114,3 +114,27 @@ jobs:
           name: chimera-source-inventory
           path: reports/chimera-source-inventory.json
           if-no-files-found: warn
+
+  koronos-native-build:
+    name: Vendored Koronos native build and source contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Install native kernel build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential binutils nasm python3
+      - name: Run canonical vendored Koronos build and contract tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          bash kernel/build-koronos.sh
+      - name: Upload native build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-vendored-koronos-build
+          path: vendor/chimera-ii-os/source/build/koronos/x86_64
+          if-no-files-found: warn
