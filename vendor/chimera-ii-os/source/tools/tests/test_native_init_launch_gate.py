@@ -103,10 +103,23 @@ def main() -> int:
             return fail(f"native dispatcher missing filesystem syscall route: {syscall}")
 
     ramfs_source = (ROOT / "kernel/core/ramfs.cpp").read_text(encoding="utf-8")
-    if "Normalize only" not in ramfs_source or "normalized_name[0]=='.'&&normalized_name[1]=='/'" not in ramfs_source:
+    # Upstream normalizes the leading ./ prefix in the CPIO extraction loop;
+    # the vendored implementation normalizes it inside insert_path. Both are
+    # safe if they strip only a leading relative prefix and component_ok still
+    # rejects absolute paths, empty components, "." and "..".
+    extraction_normalization = (
+        "Normalize only" in ramfs_source
+        and "normalized_name[0]=='.'&&normalized_name[1]=='/'" in ramfs_source
+    )
+    insertion_normalization = (
+        "while(length>=2u&&path[0]=='.'&&path[1]=='/')" in ramfs_source
+    )
+    if not (extraction_normalization or insertion_normalization):
         return fail("RAMFS must normalize common leading ./ paths from relative newc archives")
-    if "absolute paths and interior dot/dot-dot" not in ramfs_source:
-        return fail("RAMFS path normalization must preserve traversal rejection")
+    if "component_ok" not in ramfs_source or "(n==2&&p[0]=='.'&&p[1]=='.')" not in ramfs_source:
+        return fail("RAMFS path normalization must preserve rejection of interior dot/dot-dot traversal")
+    if "path[0]=='/'" not in ramfs_source:
+        return fail("RAMFS path normalization must reject absolute archive paths")
 
     daps_source = (ROOT / "tools/production-closeout-daps.py").read_text(encoding="utf-8")
     if 'rootfs_file_syscalls_verified' not in daps_source or 'rootfs_file_syscalls_evidence' not in daps_source:
