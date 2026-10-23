@@ -44,8 +44,14 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
 
     switch (id.canonical) {
         case CHM_SYS_GETPID:
-            *return_value = 1u;
-            return 0;
+            /* Do not fabricate PID 1. The dispatcher is not yet bound to an
+             * active process context, so reporting a constant PID would let a
+             * ring-3 smoke probe appear to have a real process identity when
+             * no process-owned execution context exists. Fail closed until
+             * the scheduler/process manager supplies the caller's PID. */
+            ++g_rejected;
+            *return_value = error_value();
+            return -1;
         case CHM_SYS_YIELD:
             chimera_sched_yield();
             *return_value = 0;
