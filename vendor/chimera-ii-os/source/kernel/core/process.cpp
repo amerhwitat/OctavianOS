@@ -216,7 +216,7 @@ extern "C" int chimera_process_set_state(uint32_t pid, chimera_process_state sta
     // Terminal states must use chimera_process_exit() so wait/reap sees a
     // single exit transition and the corresponding status exactly once.
     if (!pid || state < CHIMERA_PROCESS_ADMITTED || state > CHIMERA_PROCESS_FAULTED ||
-        state == CHIMERA_PROCESS_EXITED)
+        state == CHIMERA_PROCESS_EXITED || state == CHIMERA_PROCESS_FAULTED)
         return -1;
     lock_registry();
     const int i = find_pid_locked(pid);
@@ -235,6 +235,19 @@ extern "C" int chimera_process_exit(chimera_process_handle handle, int32_t exit_
     slot.exited = true;
     slot.exit_status = exit_status;
     slot.image.state = CHIMERA_PROCESS_EXITED;
+    unlock_registry();
+    return 0;
+}
+
+extern "C" int chimera_process_fault(chimera_process_handle handle, int32_t fault_status) {
+    lock_registry();
+    const int i = find_handle_locked(handle);
+    if (i < 0) { unlock_registry(); return -1; }
+    Slot& slot = slots[(uint32_t)i];
+    if (slot.exited) { unlock_registry(); return -2; }
+    slot.exited = true;
+    slot.exit_status = fault_status;
+    slot.image.state = CHIMERA_PROCESS_FAULTED;
     unlock_registry();
     return 0;
 }
