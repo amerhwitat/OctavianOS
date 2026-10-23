@@ -8,6 +8,8 @@ on:
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
       - 'kernel/**'
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
       - 'editions/mobile/**'
       - 'tools/release/**'
       - 'tests/qemu/**'
