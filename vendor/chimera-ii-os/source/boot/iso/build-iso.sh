@@ -217,14 +217,14 @@ command -v xorriso >/dev/null || { echo "xorriso is required." >&2; exit 2; }
 # genisoimage/mkisofs flags such as -iso-level directly: grub-mkrescue forwards
 # them to xorriso, where they are rejected as unknown commands. Let xorriso use
 # its native defaults for a hybrid BIOS/UEFI image.
-grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"
-# Validate the exact Octavian artwork files in the authored ISO tree before
-# final-image inspection. This catches path-resolution/staging regressions at
-# the producer instead of leaving only a downstream xorriso failure.
+# Validate artwork in the authored tree before ISO mastering so an
+# incorrect checkout-root calculation fails at the producer, not in a later
+# xorriso extraction step.
 if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
   test -s "$DIST/iso/boot/visual/octavian-octopus-aurora.png" || { echo "ERROR: Octavian artwork PNG was not staged before ISO mastering." >&2; exit 2; }
   test -s "$DIST/iso/boot/visual/octavian-artwork-manifest.json" || { echo "ERROR: Octavian artwork manifest was not staged before ISO mastering." >&2; exit 2; }
 fi
+grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"
 test -s "$DIST/output.iso" || { echo "ERROR: ISO mastering did not produce output.iso." >&2; exit 2; }
 test -s "$DIST/output.iso"
 sha256sum "$DIST/output.iso" | tee "$DIST/output.iso.sha256"
