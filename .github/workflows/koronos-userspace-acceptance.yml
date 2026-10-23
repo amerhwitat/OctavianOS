@@ -5,11 +5,15 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'tools/collect-production-closeout-evidence.py'
+      - 'tools/tests/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'tools/collect-production-closeout-evidence.py'
+      - 'tools/tests/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
@@ -32,6 +36,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+      - name: Test fail-closed closeout evidence collector
+        run: |
+          python3 -m py_compile tools/collect-production-closeout-evidence.py
+          python3 -m unittest discover -s tools/tests -p "test_collect_production_closeout_evidence.py" -v
       - name: Enforce production native-init launch contract
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && python3 kernel/tests/production_init_contract_test.py
       - name: Build Koronos and high-address userspace probes
