@@ -72,6 +72,20 @@ class ArtifactValidationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("artifact file does not exist", result.stdout)
 
+        # A case-level digest is not enough: every case must bind to the
+        # single declared production ISO identity used for the closeout.
+        report.pop("production_iso_sha256")
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = Path(tmp) / "evidence.json"
+            evidence.write_text(json.dumps(report), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(DAPS), str(evidence)],
+                text=True, capture_output=True, check=False,
+            )
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("production_iso_sha256 must be a required", result.stdout)
+        self.assertIn("cannot bind case ISO to a missing/invalid top-level", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
