@@ -117,6 +117,9 @@ def check_evidence(data: object, artifact_root: Path | None = None) -> list[str]
     cases = data.get("cases")
     if not isinstance(cases, dict):
         return ["cases must be an object keyed by target-firmware"]
+    declared_iso_hash = data.get("production_iso_sha256")
+    if not isinstance(declared_iso_hash, str) or not HEX256.fullmatch(declared_iso_hash):
+        errors.append("production_iso_sha256 must be a required 64-character SHA-256 hex digest")
     for case_id in CASE_IDS:
         case = cases.get(case_id)
         if not isinstance(case, dict):
@@ -128,6 +131,10 @@ def check_evidence(data: object, artifact_root: Path | None = None) -> list[str]
             errors.append(f"{case_id}: missing production_iso artifact identity")
         if not isinstance(case.get("iso_sha256"), str) or not HEX256.fullmatch(case["iso_sha256"]):
             errors.append(f"{case_id}: iso_sha256 must be a 64-character SHA-256 hex digest")
+        elif not isinstance(declared_iso_hash, str) or not HEX256.fullmatch(declared_iso_hash):
+            errors.append(f"{case_id}: cannot bind case ISO to a missing/invalid top-level production ISO SHA-256")
+        elif case["iso_sha256"].lower() != declared_iso_hash.lower():
+            errors.append(f"{case_id}: ISO SHA-256 differs from the top-level production ISO identity")
         if not nonempty(case.get("raw_trace")):
             errors.append(f"{case_id}: missing raw_trace artifact/path")
         if artifact_root is not None:
