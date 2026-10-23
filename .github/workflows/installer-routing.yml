@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential binutils nasm python3
+          sudo apt-get install --yes build-essential binutils nasm python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
       - name: Run canonical Koronos build and all source-contract tests
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -103,3 +103,17 @@ jobs:
             fi
           done
           test -s build/koronos/x86_64/user-init-timeout.elf
+          # Exercise the real ISO producer after the native kernel and target
+          # probes have been built; source-only contract checks are insufficient
+          # to catch artwork or module packaging regressions.
+          python3 tools/runtime/train_runtime_rnn.py --epochs 2 --hidden 8 --output runtime/cognition/trained-command-isa-rnn.json
+          python3 tools/runtime/stage_native_command_runtime.py
+          bash tools/build-live-boot-binaries.sh
+          bash boot/iso/build-iso.sh
+          iso=boot/iso/dist/output.iso
+          test -s "$iso"
+          inspect=build/iso-artwork-inspect
+          mkdir -p "$inspect"
+          xorriso -osirrox on -indev "$iso" -extract /boot/visual/octavian-octopus-aurora.png "$inspect/octavian-octopus-aurora.png" >/dev/null
+          test -s "$inspect/octavian-octopus-aurora.png"
+          cmp "$inspect/octavian-octopus-aurora.png" boot/iso/dist/iso/boot/visual/octavian-octopus-aurora.png
