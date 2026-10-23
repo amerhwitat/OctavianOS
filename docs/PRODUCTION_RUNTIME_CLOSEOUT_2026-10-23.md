@@ -92,3 +92,12 @@ Keep both OS release candidates blocked. Next implementation work must provide p
 ### Additional syscall/service boundary finding
 
 The vendored native syscall dispatcher implements a limited set of process-independent and VFS operations, but it does not wire a process-spawn/exec operation or a functional wait/reap lifecycle into the native syscall path. The service subsystem validates dependency declarations and records service states; it does not launch child processes or verify target service health. This explains why native init cannot truthfully start the Live compositor/session, Installer executor, or Recovery runtime. Implementing a success marker without that lifecycle would be a false acceptance result.
+
+
+## Strict production marker audit — 2026-10-23
+
+- Found a release-gate integrity gap in Chimera's DAPS: it accepted legacy `USERSPACE READY:` smoke-probe markers as proof that the target service was production-ready. DAPS now requires the service-specific `USERSPACE TARGET READY: <target> component=<expected-service> init pid=<pid>` marker and matches the PID to the user-originated syscall. Regression tests reject the legacy marker and mismatched PID.
+- Commits in Chimera: `003edfc85cd7ecd899284def469a376aecf119ca`, `eb7b67eaa09d9b0aaf272794cc055d17053c031d`, and `227005920d576dfbc1d8160b9f9d824ff37b68f6`.
+- Root cause in Octavian: its vendored DAPS did not inspect raw trace semantics, so JSON flags and artifact references could not independently establish target-specific readiness. The checker is now synchronized with Chimera in `0727220c0d33a8224f2834be552e9b6454e6748e`; regression tests are synchronized in `f941eca95130d5896382a326a3f59d9add76e105` and `67fa4306222573cac61479dbfe1ec94b266785fd`.
+- Chimera's `docs/LINUX_TO_KORONOS_PORTING_MAP.md` records the Linux-to-Koronos architecture map and staged closure work. It deliberately does not claim Linux source was imported: Linux internal components are coupled to Linux-specific memory, task, VFS, locking, and build interfaces and should not be copied piecemeal without a license/dependency review.
+- Production remains blocked. Native init exits 78 until target services are operational; installer storage persistence, six production BIOS/UEFI boots, Aurora, recovery postconditions, and AP-backed SMP remain unverified. Fresh CI has not been confirmed.
