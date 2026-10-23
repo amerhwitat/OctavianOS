@@ -46,3 +46,8 @@ The vendored Koronos target launcher and syscall ABI were synchronized from the 
 Commits: 5763a347244e2ca928dd98a3ed77a6a638a53afb, d8d125ae161b8ebe45fde665b90dfd3309a0fe81, e88c56d3ca4101ea78f79e081161261f46203a3c, 6fdb0c7b605142d7ce3de59254b50616954a9a48, 63a5e62a4d4a393a5a88a7b95a9fad0c7f2abd4a, c9ce8d688018e247f97b6324f5ac94cbf799bffd.
 
 Verification status: latest commit workflow lookups reported no runs, and no local build or boot test was executed in this session. These source changes are therefore unverified. This bridge does not complete general VFS mutation, service supervision, Aurora startup, installer persistence, recovery repair, AP-backed concurrent SMP, or the six-case full production acceptance matrix. Keep PR #120 draft and release publication blocked.
+
+
+## Closeout gate tightened — ring-3 file-operation evidence (2026-10-23)
+
+The DAPS gate is synchronized with ChimeraIIOS and now requires all six target/firmware cases to include rootfs_file_syscalls_verified=true and a non-empty rootfs_file_syscalls_evidence reference, in addition to process_visible_rootfs=true. This prevents pointer publication alone from counting as proof that ring-3 can open, read, and close a file. The source-contract test asserts that these fields remain required. The same gate is mirrored in the vendored source tree. No evidence has been generated for these new fields, so production release remains blocked.
