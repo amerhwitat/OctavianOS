@@ -34,6 +34,7 @@ int main() {
         0x800000, &parent, &child_image, &child) > 0);
     assert(child.pid != parent.pid && child.generation != 0);
     assert(chimera_process_count() == 2);
+    assert(chimera_process_set_state(child.pid, CHIMERA_PROCESS_EXITED) < 0);
 
     chimera_process_handle reaped{};
     int32_t status = -999;
