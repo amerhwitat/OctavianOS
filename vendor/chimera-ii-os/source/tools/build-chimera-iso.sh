@@ -89,11 +89,9 @@ if [ "$SKIP_TESTS" != "1" ]; then
   fi
 fi
 say BUILD "Building network, toolchain, drivers, compatibility, mobile, desktop and live artifacts"
-# Ensure the CPU profile command is executable in the rootfs overlay before ISO staging.
 if [[ -f "$ROOT/rootfs/usr/sbin/chimera-cpu-mode" ]]; then
   chmod +x "$ROOT/rootfs/usr/sbin/chimera-cpu-mode"
 fi
-
 for tool in build-network-toolkit.sh build-toolchain-bundle.sh fetch-driver-payloads.sh build-koronos-targets.sh fetch-foreign-runtimes.sh build-compatibility-binaries.sh build-mobile-edition.sh build-desktop-binaries.sh build-live-boot-binaries.sh; do
   chmod +x "$ROOT/tools/$tool"
 done
@@ -118,7 +116,8 @@ cp -f "$TARGET" "$ROOT/chimera-ii-os.iso"
 cp -f "$TARGET.sha256" "$ROOT/chimera-ii-os.iso.sha256"
 if command -v xorriso >/dev/null 2>&1; then xorriso -indev "$TARGET" -report_el_torito plain -report_system_area plain > "$ROOT/build/iso/ISO-BOOT-REPORT.txt" || true; fi
 say VERIFY "Validating final ISO"
-python3 "$ROOT/boot/iso/validate-iso.py" --tree "$ROOT/boot/iso/dist/iso" --write-manifest "$ROOT/build/iso/SHA256SUMS" || true
+# Fail closed: a malformed staged tree must stop the ISO build and prevent release publication.
+python3 "$ROOT/boot/iso/validate-iso.py" --tree "$ROOT/boot/iso/dist/iso" --write-manifest "$ROOT/build/iso/SHA256SUMS"
 [ -s "$ROOT/chimera-ii-os.iso" ] || die "Final ISO copy missing"
 echo "ISO: $ROOT/chimera-ii-os.iso"
 echo "SHA256: $ROOT/chimera-ii-os.iso.sha256"
