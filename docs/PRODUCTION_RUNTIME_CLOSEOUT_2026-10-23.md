@@ -74,3 +74,16 @@ The vendored fail-closed native init now exercises /tmp create + truncate + writ
 - Source audit confirms the production native init currently prints `NATIVE INIT BLOCKED` and exits 78 by design. Kernel launch explicitly rejects Installer because a storage-backed root namespace is not mounted. Therefore the production init is fail-closed, not service-complete; installer/Aurora/recovery service behavior is not implemented to acceptance level by those stubs.
 - Remaining root causes: production service ELF behavior is not complete; installer disk-backed root and persistence path is absent; native init does not launch Aurora or perform recovery repair; AP startup/concurrent SMP evidence is missing. The current DAPS checker tests evidence fields and artifact hashes but does not itself produce boot evidence.
 - Release remains blocked. Require current-head native build, six production BIOS/UEFI traces, real ring-3 filesystem traces, Aurora handoff, installer cold-reboot readback, recovery postcondition, and AP-backed concurrent SMP before release.
+
+
+## Additional cross-repository audit — 2026-10-23
+
+- ChimeraIIOS now has an additional explicit UEFI candidate handoff pass for Live/Installer/Recovery (`061643babf6827bcb46adc0ec70ac083fb749cd6`), in addition to its existing BIOS candidate pass. The logs are collected with the target trace artifact. This is candidate smoke coverage from reconstructed target payload ISOs, not proof of the six full production ISO cases.
+- The native init remains intentionally fail-closed: after its VFS create/write/seek/read/close self-test it exits 78 because it does not start and supervise the actual target services. The kernel service manager's metadata/dependency state is not a substitute for process spawning, service health, or desktop readiness.
+- Installer is still blocked by the explicit missing storage-backed root namespace. A module containing `installation.img` and metadata is not evidence of a mounted writable disk filesystem or cold-reboot persistence.
+- The current workflow does not generate `build/iso/production-closeout-evidence.json`; therefore a release gate requiring that evidence must remain blocked until a real production harness produces raw traces and independent Aurora, persistence, recovery-repair, and AP-concurrency evidence. Do not manufacture evidence JSON from candidate smoke output.
+- Chimera's DAPS and standalone verifier now accept the actual production target/component/PID marker. These parser fixes and the UEFI candidate test improve detection and coverage, but they do not complete the native runtime.
+
+### Act decision
+
+Keep both OS release candidates blocked. Next implementation work must provide process exec/wait and service supervision, a storage-backed installer filesystem plus reboot/readback, real ISO × firmware acceptance for all six target cases, verified Aurora and recovery outcomes, and AP-backed concurrent SMP. Latest fresh CI status for the Chimera workflow update remains unconfirmed by the available PR-run lookup.
