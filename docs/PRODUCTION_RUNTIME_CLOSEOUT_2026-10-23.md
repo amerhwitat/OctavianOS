@@ -65,3 +65,12 @@ Verification remains unestablished: no local compile was run, and the latest wor
 ## Ring-3 VFS self-test
 
 The vendored fail-closed native init now exercises /tmp create + truncate + write + seek + read + close through the real native syscall dispatcher and emits NATIVE INIT VFS SELFTEST PASS only if byte counts and payload match. Failure is diagnostic and exits 78; the marker is not USERSPACE READY. Production services and the full acceptance gates remain blocked pending raw traces from the unchanged verifier.
+
+
+## 2026-10-23 CI closeout — candidate/production boundary
+
+- Corrected `.github/workflows/koronos-userspace-acceptance.yml` naming and job/artifact labels to explicitly say **Koronos Ring-3 Candidate Smoke (not production acceptance)**. The workflow boots candidate probe ELFs; its green result must never be counted as production Live/Installer/Recovery acceptance.
+- Latest observed ChimeraIIOS checks passed for boot artifacts, desktop compatibility, structured ISO composition, and the Koronos contract/build jobs. These are build/structure/regression results only.
+- Source audit confirms the production native init currently prints `NATIVE INIT BLOCKED` and exits 78 by design. Kernel launch explicitly rejects Installer because a storage-backed root namespace is not mounted. Therefore the production init is fail-closed, not service-complete; installer/Aurora/recovery service behavior is not implemented to acceptance level by those stubs.
+- Remaining root causes: production service ELF behavior is not complete; installer disk-backed root and persistence path is absent; native init does not launch Aurora or perform recovery repair; AP startup/concurrent SMP evidence is missing. The current DAPS checker tests evidence fields and artifact hashes but does not itself produce boot evidence.
+- Release remains blocked. Require current-head native build, six production BIOS/UEFI traces, real ring-3 filesystem traces, Aurora handoff, installer cold-reboot readback, recovery postcondition, and AP-backed concurrent SMP before release.
