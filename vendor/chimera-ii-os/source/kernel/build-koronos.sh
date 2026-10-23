@@ -82,3 +82,39 @@ done
 printf 'Koronos ELF64: %s\n' "$BUILD/koronos.elf"
 printf 'Koronos + native Kore + OOP object model + SMP-safe scheduler + hardware/firmware + drivers + syscall/interrupt compatibility + N-bit runtime linked.\n'
 printf 'N-bit artifacts: %s/nbit\n' "$BUILD"
+
+# Build target-specific high-address CPL3 smoke probes consumed by
+# .github/workflows/koronos-userspace-acceptance.yml. Keep these in the same
+# build script that the acceptance workflow invokes so a stale vendored source
+# cannot silently omit the artifacts and fail later during ISO assembly.
+USER_CC="${CC:-gcc}"
+for target in live installer recovery; do
+  "$USER_CC" -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
+    -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
+    -fno-asynchronous-unwind-tables -fno-unwind-tables \
+    -D"CHIMERA_TARGET_${target^^}"=1 \
+    -c "$ROOT/kernel/tests/user_init_smoke.c" -o "$BUILD/user-init-${target}.o"
+  "$LD" -nostdlib -z max-page-size=0x1000 --build-id=none \
+    -T "$ROOT/kernel/tests/user_init_smoke.ld" \
+    "$BUILD/user-init-${target}.o" -o "$BUILD/user-init-${target}.elf"
+  readelf -h "$BUILD/user-init-${target}.elf" | grep -Eq 'Type:[[:space:]]+EXEC' || {
+    echo "ERROR: user-init-${target}.elf is not ET_EXEC" >&2; exit 1;
+  }
+  readelf -lW "$BUILD/user-init-${target}.elf" | grep -Eq 'LOAD.*R E' || {
+    echo "ERROR: user-init-${target}.elf has no read/execute PT_LOAD" >&2; exit 1;
+  }
+done
+
+# A non-cooperative user process tests the kernel's timer-based timeout path.
+"$USER_CC" -std=c11 -O2 -Wall -Wextra -Werror -ffreestanding -fno-builtin \
+  -fno-stack-protector -fno-pic -fno-pie -mcmodel=large -mno-red-zone -mno-sse -mno-mmx -msoft-float \
+  -fno-asynchronous-unwind-tables -fno-unwind-tables \
+  -DCHIMERA_TARGET_LIVE=1 -DCHIMERA_TEST_HANG=1 \
+  -c "$ROOT/kernel/tests/user_init_smoke.c" -o "$BUILD/user-init-timeout.o"
+"$LD" -nostdlib -z max-page-size=0x1000 --build-id=none \
+  -T "$ROOT/kernel/tests/user_init_smoke.ld" \
+  "$BUILD/user-init-timeout.o" -o "$BUILD/user-init-timeout.elf"
+readelf -lW "$BUILD/user-init-timeout.elf" | grep -Eq 'LOAD.*R E' || {
+  echo "ERROR: user-init-timeout.elf has no read/execute PT_LOAD" >&2; exit 1;
+}
+printf 'Built target-specific userspace probes and timeout probe: %s/user-init-*.elf\n' "$BUILD"
