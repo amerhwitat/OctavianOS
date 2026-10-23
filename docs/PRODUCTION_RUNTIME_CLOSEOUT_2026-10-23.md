@@ -4,11 +4,11 @@
 ## Check/Plan/Do closeout loop — 2026-10-23
 
 ### Check: source-backed failures
-- Production Live/Recovery initramfs is bounded-decoded and CPIO-validated, then extracted into an unpublished RAMFS staging tree. The launch path explicitly returns before ring-3 entry when a production payload exists because the staged rootfs is not mounted/published into a process-visible VFS. This is the direct reason those production cases cannot produce a real user-originated syscall/readiness handshake on this path.
+- Production Live/Recovery initramfs is bounded-decoded and CPIO-validated, extracted into RAMFS, mounted read-only at `/`, and paired with writable `/tmp`; the root pointer is published only after both mounts succeed. The current source therefore no longer supports the old blanket claim that the root mount is absent. The unresolved question is runtime proof: the production BIOS/UEFI trace must demonstrate successful mounts and ring-3 OPEN/READ/CLOSE plus tmpfs mutation. Installer still explicitly refuses launch until its storage-backed root namespace is mounted.
 - `kernel/userspace/native_init.c` is diagnostic-only by design. It performs an INT 0x80 acknowledgement attempt, requests kernel-owned PID, writes diagnostics, reports unavailable services, and exits 78. Do not relabel this as production init.
 - Installer payload is a disk/image container and does not share the Live/Recovery CPIO extraction path; it needs a real installer execution and persistence test.
 - Genuine AP startup and per-CPU scheduler workers are absent. CPU discovery is not CPU-online evidence; a loop over run_once() is serial, not SMP.
-- No supported process-visible VFS bridge was found on the reviewed production branch; the expected standalone VFS source path returned 404. Do not invent an API or connect the 64-node/4-KiB legacy RAMFS as if it were production-capable.
+- A process-visible VFS syscall bridge and bounded tmpfs self-test are now present in the reviewed source. Their source/contract tests do not establish that the full production ISO successfully executes those operations; raw CPL3 syscall traces are still mandatory. Do not infer installer persistence from tmpfs or read-only rootfs coverage.
 
 ### Plan: close blockers in dependency order
 1. Implement a capacity-appropriate transactional extractor with canonical paths, duplicate/prefix conflict rejection, strict type/symlink policy, total-byte/entry limits, and rollback.
