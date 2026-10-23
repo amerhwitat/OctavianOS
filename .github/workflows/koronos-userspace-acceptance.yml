@@ -7,7 +7,7 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
-    branches: [main]
+    branches: [main, fix/userspace-acceptance-probe-artifacts-20261023]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
