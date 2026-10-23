@@ -51,6 +51,14 @@ static int find_handle_locked(chimera_process_handle h) {
     if (i < 0 || slots[(uint32_t)i].generation != h.generation) return -1;
     return i;
 }
+static bool has_children_locked(chimera_process_handle parent) {
+    for (uint32_t i = 0; i < CHIMERA_PROCESS_MAX; ++i) {
+        const Slot& child = slots[i];
+        if (child.used && child.parent_pid == parent.pid &&
+            child.parent_generation == parent.generation) return true;
+    }
+    return false;
+}
 static void clear_reaped_slot_locked(uint32_t i) {
     Slot& s = slots[i];
     s.used = false;
@@ -244,6 +252,13 @@ extern "C" int chimera_process_wait_child(chimera_process_handle parent,
             child.parent_generation != parent.generation) continue;
         found_child = true;
         if (!child.exited) continue;
+        // Preserve the ownership tree: an exited parent remains waitable until
+        // its own children have been reaped, rather than orphaning live records.
+        const chimera_process_handle child_handle{child.image.pid, child.generation};
+        if (has_children_locked(child_handle)) {
+            unlock_registry();
+            return 0;
+        }
         child_out->pid = child.image.pid;
         child_out->generation = child.generation;
         *status_out = child.exit_status;
