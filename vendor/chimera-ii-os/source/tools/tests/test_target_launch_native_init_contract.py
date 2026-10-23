@@ -24,6 +24,9 @@ required = [
     'chimera_vfs_mount("/tmp", chimera_tmpfs_vfs_ops(), tmpfs_candidate, 0u)',
     "transactional RAMFS staging failed; no rootfs was published",
     "VFS root mount failed; refusing userspace launch",
+    "bounded writable /tmp filesystem mount failed; refusing userspace launch",
+    "__atomic_store_n(&published_rootfs, staged_rootfs, __ATOMIC_RELEASE)",
+    "if (!staged_rootfs_ready || !staged_rootfs)",
 ]
 missing = [item for item in required if item not in text]
 if missing:
@@ -41,4 +44,6 @@ if min(root_mount, tmp_mount, publish_root) < 0 or not (root_mount < publish_roo
     raise SystemExit("rootfs publication must occur only after both root and writable /tmp mounts succeed")
 if 'installer storage-backed root namespace is not mounted; refusing false readiness' not in text:
     raise SystemExit("installer target must remain blocked until storage-backed namespace exists")
+if "production root filesystem is not mounted" in text:
+    raise SystemExit("stale rootfs-not-mounted source contract remains; use the current fail-closed mount path")
 print("target-launch native-init contract: PASS (source-level only; not boot acceptance)")
