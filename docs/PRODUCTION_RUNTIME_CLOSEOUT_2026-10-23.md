@@ -32,3 +32,17 @@
 
 ### Release decision
 Keep ChimeraIIOS PR #187 and OctavianOS PR #120 (and parent production ELF bridge) draft. Do not publish a production release until all seven dependency-order gates above pass. Never weaken the verifier, synthesize readiness, or count queued/cancelled/unreported checks as passing.
+
+
+## Follow-up implementation — vendored RAMFS root publication and read-only process file syscalls (2026-10-23)
+
+The vendored Koronos target launcher and syscall ABI were synchronized from the ChimeraIIOS implementation:
+- vendor/chimera-ii-os/source/kernel/core/target_launch.cpp: bounded CPIO extraction now produces a staged RAMFS tree, then publishes its root pointer atomically for Live/Recovery only after extraction succeeds. Installer remains fail-closed because the disk/image payload is not mounted here.
+- Process-bound read-only descriptors are tied to the active PID. open accepts read-only flags only; read validates user memory against the active process CR3 and caps reads at 4096 bytes; close enforces descriptor ownership. Exit cleanup reclaims descriptors.
+- Native OPEN/CLOSE IDs and OPEN/READ/CLOSE dispatch were mirrored. WRITE remains console-only; file mutation is not implemented.
+- The vendored kernel/build-koronos.sh now requires the rootfs syscall bridge symbols at link validation.
+- Added the missing vendored tools/tests/test_native_init_launch_gate.py regression test and extended it to require publication, user-buffer validation, and syscall routing. Service readiness wording is synchronized too.
+
+Commits: 5763a347244e2ca928dd98a3ed77a6a638a53afb, d8d125ae161b8ebe45fde665b90dfd3309a0fe81, e88c56d3ca4101ea78f79e081161261f46203a3c, 6fdb0c7b605142d7ce3de59254b50616954a9a48, 63a5e62a4d4a393a5a88a7b95a9fad0c7f2abd4a, c9ce8d688018e247f97b6324f5ac94cbf799bffd.
+
+Verification status: latest commit workflow lookups reported no runs, and no local build or boot test was executed in this session. These source changes are therefore unverified. This bridge does not complete general VFS mutation, service supervision, Aurora startup, installer persistence, recovery repair, AP-backed concurrent SMP, or the six-case full production acceptance matrix. Keep PR #120 draft and release publication blocked.
