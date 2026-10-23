@@ -44,6 +44,18 @@ if min(root_mount, tmp_mount, publish_root) < 0 or not (root_mount < publish_roo
     raise SystemExit("rootfs publication must occur only after both root and writable /tmp mounts succeed")
 if 'installer storage-backed root namespace is not mounted; refusing false readiness' not in text:
     raise SystemExit("installer target must remain blocked until storage-backed namespace exists")
+
+# The launcher must retain the generation-tagged identity returned by admission
+# and use the terminal lifecycle API; PID-only terminal state writes bypass wait/reap.
+for item in (
+    "chimera_process_admit_elf_child(",
+    "chimera_process_fault(process_handle,",
+    "chimera_process_exit(process_handle,",
+):
+    if item not in text:
+        raise SystemExit("target-launch process lifecycle integration missing: " + item)
+if "chimera_process_set_state(active_pid,exit_code" in text:
+    raise SystemExit("terminal process state must flow through exit/fault lifecycle APIs")
 if "production root filesystem is not mounted" in text:
     raise SystemExit("stale rootfs-not-mounted source contract remains; use the current fail-closed mount path")
 print("target-launch native-init contract: PASS (source-level only; not boot acceptance)")
