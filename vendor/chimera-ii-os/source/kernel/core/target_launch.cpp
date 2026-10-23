@@ -517,7 +517,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     const uint64_t root=koronos_address_space_root(loaded.address_space);
     if (!root) {
         ops->destroy_address_space(nullptr,loaded.address_space);
-        (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_fault(process_handle, -7);
         koronos_target_log("[RUN ] ERROR: selected user init has no owned CR3 root");
         return -7;
     }
