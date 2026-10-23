@@ -261,9 +261,16 @@ static void task_live(void *) {
            unsupported disk-image formats fail closed without a fake marker. */
         const int launch_rc = koronos_launch_selected_userspace();
         if (launch_rc != 0) {
-            if (chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE))
+            if (chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE)) {
                 installer_launch_failed = 1;
-            console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
+                console_write("[RUN ] Installer target init failed before readiness; failing closed");
+            } else if (chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS)) {
+                console_write("[RUN ] Recovery target init failed before readiness; failing closed");
+            } else if (chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS)) {
+                console_write("[RUN ] Live target init failed before readiness; failing closed");
+            } else {
+                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
+            }
         }
     } else {
         console_write("[LIVE] No native init payload selected; userspace launch skipped");
