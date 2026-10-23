@@ -34,4 +34,4 @@ if "if (count!=1" not in text or "USER_INIT_ELF module was supplied" not in text
     raise SystemExit("target/payload dispatch must reject missing or ambiguous native init ELF")
 if "chimera_initramfs_find_elf" in text:
     raise SystemExit("embedded CPIO ELF fallback must remain disabled")
-print("target-launch native-init contract: PASS (source-level only; not boot acceptance)\n
+print("target-launch native-init contract: PASS (source-level only; not boot acceptance)")
