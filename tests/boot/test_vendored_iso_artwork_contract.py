@@ -25,7 +25,7 @@ class VendoredIsoArtworkContractTests(unittest.TestCase):
             with self.subTest(contract=item):
                 self.assertIn(item, source)
         self.assertLess(source.index('Octavian artwork PNG was not staged before ISO mastering.'),
-                        source.index('grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"') + 600)
+                        source.index('grub-mkrescue -o "$DIST/output.iso" "$DIST/iso"'))
 
     def test_native_build_requires_target_specific_probe_outputs(self):
         source = KERNEL_BUILDER.read_text(encoding="utf-8")
