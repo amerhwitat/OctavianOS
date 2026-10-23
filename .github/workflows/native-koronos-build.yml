@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
@@ -113,6 +114,17 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+          # The candidate matrix consumes these target-specific ET_EXEC files;
+          # fail in the build step with a complete artifact inventory if a
+          # future script regression stops producing them.
+          for target in live installer recovery; do
+            artifact="build/koronos/x86_64/user-init-$target.elf"
+            if [[ ! -s "$artifact" ]]; then
+              echo "::error::Missing candidate ELF: $artifact"
+              find build/koronos/x86_64 -maxdepth 1 -type f -printf '%f\\n' | sort
+              exit 1
+            fi
+          done
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
