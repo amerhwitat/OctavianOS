@@ -31,6 +31,10 @@ def check_evidence(data: object) -> list[str]:
     cases = data.get("cases")
     if not isinstance(cases, dict):
         return ["cases must be an object keyed by target-firmware"]
+    declared_iso_hash = data.get("production_iso_sha256")
+    if declared_iso_hash is not None and (not isinstance(declared_iso_hash, str) or not HEX256.fullmatch(declared_iso_hash)):
+        errors.append("production_iso_sha256 must be a 64-character SHA-256 hex digest when supplied")
+
     for case_id in CASE_IDS:
         case = cases.get(case_id)
         if not isinstance(case, dict):
@@ -42,8 +46,15 @@ def check_evidence(data: object) -> list[str]:
             errors.append(f"{case_id}: missing production_iso artifact identity")
         if not isinstance(case.get("iso_sha256"), str) or not HEX256.fullmatch(case["iso_sha256"]):
             errors.append(f"{case_id}: iso_sha256 must be a 64-character SHA-256 hex digest")
+        if isinstance(case.get("iso_sha256"), str) and HEX256.fullmatch(case["iso_sha256"]):
+            if isinstance(declared_iso_hash, str) and HEX256.fullmatch(declared_iso_hash) and case["iso_sha256"].lower() != declared_iso_hash.lower():
+                errors.append(f"{case_id}: ISO SHA-256 differs from the top-level production ISO identity")
         if not nonempty(case.get("raw_trace")):
             errors.append(f"{case_id}: missing raw_trace artifact/path")
+        else:
+            trace_name = Path(case["raw_trace"]).name.casefold()
+            if "candidate-smoke" in trace_name or case.get("candidate_trace_is_production_evidence") is False:
+                errors.append(f"{case_id}: candidate smoke trace is not production acceptance evidence")
         if case.get("cpl3_syscall_ack") is not True:
             errors.append(f"{case_id}: no verified CPL3-originated syscall acknowledgement")
         if case.get("process_visible_rootfs") is not True:
