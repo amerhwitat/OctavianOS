@@ -48,6 +48,34 @@ jobs:
           test "$source_sha" = "13abae5cde89b1c952bdd7e6863f83d655820416"
           echo "Canonical ChimeraIIOS source: $source_sha" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::Koronos acceptance is building pinned canonical source $source_sha, not an unverified stale vendor tree."
+      - name: Verify kernel source/build manifest parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd vendor/chimera-ii-os/source
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path(".")
+          builder = (root / "kernel/build-koronos.sh").read_text(encoding="utf-8")
+          required = (
+              "block_device", "iso9660", "frame_allocator", "address_space",
+              "initramfs_cpio", "gzip", "initramfs_ingest", "ramfs",
+              "vfs", "tmpfs", "target_launch",
+          )
+          match = re.search(r"^sources=\(([^)]*)\)", builder, re.MULTILINE)
+          if not match:
+              raise SystemExit("ERROR: canonical builder has no explicit source manifest")
+          units = set(match.group(1).split())
+          missing = [name for name in required if name not in units or not (root / f"kernel/core/{name}.cpp").is_file()]
+          if missing:
+              raise SystemExit("ERROR: kernel source/build manifest drift: " + ", ".join(missing))
+          if "user_entry.asm" not in builder or "user-entry.o" not in builder:
+              raise SystemExit("ERROR: ring-3 user-entry assembly is not built and linked")
+          if not (root / "kernel/arch/x86_64/user_entry.asm").is_file():
+              raise SystemExit("ERROR: required ring-3 user-entry assembly source is missing")
+          print("PASS: canonical kernel source list includes process/address-space/VFS/initramfs/target-launch and ring-3 entry")
+          PY
       - name: Install kernel, ISO and QEMU tools
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
