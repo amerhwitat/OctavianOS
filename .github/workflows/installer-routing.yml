@@ -41,6 +41,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test fail-closed userspace handoff evidence verifier
         run: python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
+      - name: Test production DAPS artifact existence and hash enforcement
+        run: python3 tests/test_daps_artifact_validation.py
       - name: Install GRUB parser
         run: |
           sudo apt-get update
