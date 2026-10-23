@@ -16,8 +16,8 @@ required = [
     "if (elf_target!=target)",
     "native init ELF target does not match the selected production payload",
     "Selected target-matched native init ELF alongside production root payload",
-    "gzip-compressed production initramfs requires a separately staged target native init ELF",
-    "selected production CPIO has no executable native /init ELF; stage a target-matched native init ELF",
+    "production payload has no separately staged target-matched native init ELF; refusing embedded-init fallback",
+    "production rootfs is validated but not mounted; refusing userspace readiness without VFS publication",
 ]
 missing = [item for item in required if item not in text]
 if missing:
@@ -28,4 +28,6 @@ if missing:
 if "if (payload_count) {" not in text or "if (elf_count==1)" not in text:
     raise SystemExit("target/payload binding contract missing")
 
+if "chimera_initramfs_find_elf" in text:
+    raise SystemExit("target-launch native-init contract missing: embedded CPIO ELF fallback must remain disabled")
 print("target-launch native-init contract: PASS (source-level only; not boot acceptance)")

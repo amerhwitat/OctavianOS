@@ -75,7 +75,8 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     while (*name) prefix[p++]=*name++;
     const char *b=" init_pid=";
     while (*b) prefix[p++]=*b++;
-    if (length < p+2u) return false;
+    /* A valid marker needs at least one PID digit; the newline is optional. */
+    if (length < p+1u) return false;
     bool found=false;
     for (uint64_t i=0; i+p<length; ++i) {
         uint64_t j=0;
@@ -84,7 +85,13 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
         uint64_t k=i+p;
         uint32_t parsed=0, digits=0;
         while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
+            const uint32_t digit=(uint32_t)(bytes[k]-'0');
+            if (parsed>(UINT32_MAX-digit)/10u) {
+                /* Never let an oversized decimal PID wrap onto the active PID. */
+                digits=0;
+                break;
+            }
+            parsed=parsed*10u+digit;
             ++k; ++digits;
         }
         if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
@@ -206,27 +213,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
             init_elf_size=selected->size;
             koronos_target_log("[RUN ] Selected target-matched native init ELF alongside production root payload");
         } else {
-            /* Installer image is not a CPIO initramfs. Live/Recovery CPIO may
-               be gzip-compressed and contain a shell-script /init. Both cases
-               need a separately staged native init ELF until a full archive
-               mount + interpreter/process runtime exists. */
-            if (payload->kind==CHIMERA_MODULE_INSTALL_IMAGE) {
-                koronos_target_log("[RUN ] ERROR: installer image is not a CPIO initramfs and no native installer init ELF module is staged");
-                return -14;
-            }
-            const void *archive=reinterpret_cast<const void *>(static_cast<uintptr_t>(payload->base));
-            int find_rc=chimera_initramfs_find_elf(archive,payload->size,"init",&init_elf,&init_elf_size);
-            if (find_rc!=0)
-                find_rc=chimera_initramfs_find_elf(archive,payload->size,"sbin/init",&init_elf,&init_elf_size);
-            if (find_rc!=0 || !init_elf || init_elf_size<sizeof(koronos_elf64_ehdr)) {
-                if (find_rc==-13)
-                    koronos_target_log("[RUN ] ERROR: gzip-compressed production initramfs requires a separately staged target native init ELF");
-                else
-                    koronos_target_log("[RUN ] ERROR: selected production CPIO has no executable native /init ELF; stage a target-matched native init ELF");
-                return -4;
-            }
-            selected=payload;
-            koronos_target_log("[RUN ] Extracted target init ELF from selected production cpio archive");
+            /* Production targets must carry exactly one separately staged,
+               target-matched native init ELF. Extracting arbitrary /init from
+               CPIO is not an execution contract: it may be a script, can be
+               ambiguous, and the kernel has no interpreter or mounted-root
+               process lifecycle to execute it safely. */
+            koronos_target_log("[RUN ] ERROR: production payload has no separately staged target-matched native init ELF; refusing embedded-init fallback");
+            return -14;
         }
     } else {
         if (elf_count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
@@ -243,6 +236,15 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (target==TARGET_NONE) {
         koronos_target_log("[RUN ] ERROR: target resolution failed; require exactly one explicit target or payload kind");
         return -6;
+    }
+    /* Production root payloads are currently classified and bounds-checked above,
+     * but this launch path does not yet extract the archive into RAMFS or publish
+     * that tree to the process-visible VFS. Launching init anyway permits a
+     * probe ELF to print USERSPACE READY while / is unavailable. Fail closed
+     * until transactional extraction + atomic VFS publication are wired here. */
+    if (payload_count == 1u) {
+        koronos_target_log("[RUN ] ERROR: production rootfs is validated but not mounted; refusing userspace readiness without VFS publication");
+        return -15;
     }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
