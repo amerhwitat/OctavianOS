@@ -45,6 +45,7 @@ int chimera_process_get(uint32_t, chimera_process_image*);
 int chimera_process_get_by_handle(chimera_process_handle, chimera_process_image*);
 int chimera_process_set_state(uint32_t, chimera_process_state);
 int chimera_process_exit(chimera_process_handle, int32_t exit_status);
+int chimera_process_fault(chimera_process_handle, int32_t fault_status);
 /* Nonblocking wait: 1=reaped child/status returned, 0=child still running,
    negative=invalid parent/no matching child. Scheduler blocking is not implied. */
 int chimera_process_wait_child(chimera_process_handle, chimera_process_handle*,
