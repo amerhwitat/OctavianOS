@@ -60,3 +60,8 @@ Mirrored the current ChimeraIIOS VFS and target integration into the vendored so
 The production target launcher mounts the validated Live/Recovery initramfs RAMFS as read-only / and a bounded writable tmpfs at /tmp; native ring-3 OPEN/READ/WRITE/SEEK/CLOSE use the VFS. Ring-3 mkdir/unlink/rename are deliberately not exposed until permission/ownership checks are implemented. VFS and tmpfs regression tests are registered in both the canonical build script and CTest. DAPS now requires raw tmpfs mutation evidence for both Live and Recovery across BIOS and UEFI.
 
 Verification remains unestablished: no local compile was run, and the latest workflow lookup returned no runs. Installer persistent storage, a disk-backed filesystem, service supervision, Aurora handoff/health, Recovery repair postcondition, AP-backed SMP, and the six-case production acceptance matrix remain open. Keep this PR draft and release blocked until real build and production evidence pass.
+
+
+## Ring-3 VFS self-test
+
+The vendored fail-closed native init now exercises /tmp create + truncate + write + seek + read + close through the real native syscall dispatcher and emits NATIVE INIT VFS SELFTEST PASS only if byte counts and payload match. Failure is diagnostic and exits 78; the marker is not USERSPACE READY. Production services and the full acceptance gates remain blocked pending raw traces from the unchanged verifier.
