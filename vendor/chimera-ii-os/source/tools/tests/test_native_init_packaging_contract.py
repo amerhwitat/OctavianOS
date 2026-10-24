@@ -40,6 +40,32 @@ def main() -> int:
     recovery_text = recovery_cfg.read_text(encoding="utf-8")
     install_text = install_cfg.read_text(encoding="utf-8")
 
+    # Validate each concrete menu entry, not merely a target token anywhere
+    # in grub.cfg. A stale menu can otherwise pass because an unrelated entry
+    # contains target=live while the real boot entry omits the native ELF.
+    menu_ids = {"live": "aurora-live", "installer": "install", "recovery": "recovery"}
+
+    def menu_block(text: str, menu_id: str):
+        marker = f"--id {menu_id} {{"
+        start = text.find(marker)
+        if start < 0:
+            return None
+        start = text.rfind("menuentry", 0, start)
+        if start < 0:
+            return None
+        brace = text.find("{", start)
+        if brace < 0:
+            return None
+        depth = 0
+        for index in range(brace, len(text)):
+            if text[index] == "{":
+                depth += 1
+            elif text[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:index + 1]
+        return None
+
     for target, staged_path in (
         ("live", "boot/live/user-init-live.elf"),
         ("installer", "boot/installer/user-init-installer.elf"),
@@ -47,8 +73,18 @@ def main() -> int:
     ):
         if staged_path not in build_text:
             return fail(f"builder does not stage {staged_path}")
-        if f"target={target}" not in grub_text:
-            return fail(f"canonical GRUB does not select target={target}")
+        block = menu_block(grub_text, menu_ids[target])
+        if block is None:
+            return fail(f"canonical GRUB menu entry is missing: {menu_ids[target]}")
+        expected_kernel = f"multiboot2 /boot/koronos/koronos.elf"
+        expected_module = (
+            f"module2 /boot/{target}/user-init-{target}.elf "
+            f"chimera-user-init-elf target={target}"
+        )
+        if expected_kernel not in block or f"target={target}" not in block:
+            return fail(f"GRUB menu entry {menu_ids[target]} does not select kernel target={target}")
+        if expected_module not in block:
+            return fail(f"GRUB menu entry {menu_ids[target]} does not stage its tagged native init ELF")
     if 'bash "$ROOT/tools/build-production-init-elfs.sh"' not in iso_build_text:
         return fail("ISO build orchestrator does not invoke target init ELF builder after layout preparation")
     if "chimera-user-init-elf target=live" not in live_text:
