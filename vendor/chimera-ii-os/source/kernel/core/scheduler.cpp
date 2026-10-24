@@ -122,10 +122,10 @@ extern "C" uint32_t chimera_sched_run_serial_range(uint32_t first_cpu,uint32_t n
     uint32_t ran=0;for(uint32_t cpu=first_cpu;cpu<end;cpu++)ran+=chimera_sched_run_once(cpu);
     return ran;
 }
-/* Fail-closed until AP startup and independent CPU workers are wired.
- * No AP workers currently enter this scheduler from independent CPUs.
- * Never report serial callback invocations as parallel execution. */
 extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
+    /* Fail-closed until AP startup and independent CPU workers are wired.
+     * No AP workers currently enter this scheduler from independent CPUs.
+     * Never report serial callback invocations as parallel execution. */
     (void)first_cpu;(void)n;
     return 0;
 }
