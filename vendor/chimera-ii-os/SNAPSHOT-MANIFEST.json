@@ -13,7 +13,7 @@
   ],
   "kernel_source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
   "kernel_source_ref": "fix/uefi-native-syscall-ack-20261024",
-  "kernel_source_commit": "0ebd5220a491bd071fc075e7e48762d7bf5fbb4a",
+  "kernel_source_commit": "916508a91827c2629ccb2633b5fa46b0daaff688",
   "kernel_source_blob_count": 146,
   "kernel_snapshot_scope": "kernel/** blob contents synchronized and SHA-verified against kernel_source_commit; non-kernel vendor snapshot remains at source_commit"
 }
