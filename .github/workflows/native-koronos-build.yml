@@ -22,15 +22,7 @@ on:
       - 'tests/boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
-      - 'tools/boot/**'
-      - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
-
-
-
-
-
-
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -66,6 +58,7 @@ on:
       - 'tests/boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
+      - 'tests/migration/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -142,8 +135,6 @@ jobs:
           timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
-          # A running idle kernel is intentionally stopped by timeout (124).
-          # Any exit status is acceptable only if the kernel's own readiness marker appeared.
           if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
@@ -348,7 +339,7 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery handoff status missing"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -363,7 +354,7 @@ jobs:
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
             module2 /install/installer/installation.img chimera-installation-image
-            module2 /install/installer/installation-manifest.json chimera-installation-manifest
+            module2 /install/installer/installation-manifest.json chimera-installer-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
             module2 /install/installer/installation_phases.json chimera-install-phases
             module2 /install/installer/installer_profiles.json chimera-installer-profiles
@@ -377,7 +368,7 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer handoff status missing"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
