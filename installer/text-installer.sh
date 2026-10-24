@@ -1,5 +1,5 @@
 #!/bin/sh
-# OctavianOS keyboard-only installer entry point.
+# OctavianOS keyboard-only installer entry point; the GUI companion is staged in installer/gui/.
 # Deliberately delegates to the shared Chimera transaction frontend/backend;
 # it must never implement a second, divergent installation path.
 set -eu
@@ -8,7 +8,7 @@ if [ "$#" -gt 0 ] && [ "${1:-}" = "--help" ]; then
   cat <<'EOF'
 Usage: text-installer.sh [SOURCE_ROOT [TARGET_ROOT]]
 
-Delegates to the shared chimera-installer-cli. The frontend preserves its exit
+Delegates to the shared chimera-installer-cli. The shared text and GUI flows follow the cross-distro workflow contract; GUI review does not authorize disk writes. The frontend preserves its exit
 status. A missing backend or an unsupported transaction is a hard failure.
 EOF
   exit 0
