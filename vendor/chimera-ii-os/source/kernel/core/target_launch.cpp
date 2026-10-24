@@ -26,7 +26,8 @@ static uint64_t active_root = 0;
 static void *active_address_space = nullptr;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
-/* Candidate-only fallback is gated by the explicit probe=ring3 module flag. */
+/* Generic USERSPACE READY is accepted only for a module explicitly tagged probe=ring3.
+   Production init must emit its component-specific USERSPACE TARGET READY token. */
 static bool active_ring3_probe = false;
 /* Keep the complete bounded extraction private until the VFS root mount
    succeeds. The tree remains alive while mounted and is never mutated in place. */
