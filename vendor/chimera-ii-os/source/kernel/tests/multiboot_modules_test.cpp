@@ -6,6 +6,14 @@
 namespace {
 alignas(8) uint8_t info[512];
 uint32_t align8(uint32_t n) { return (n + 7u) & ~7u; }
+uint32_t append_cmdline(uint32_t off, const char *cmd) {
+    const uint32_t size = 8u + static_cast<uint32_t>(std::strlen(cmd)) + 1u;
+    const uint32_t type = 1u;
+    std::memcpy(info + off, &type, 4);
+    std::memcpy(info + off + 4, &size, 4);
+    std::memcpy(info + off + 8, cmd, std::strlen(cmd) + 1u);
+    return off + align8(size);
+}
 uint32_t append_module(uint32_t off, uint32_t start, uint32_t end, const char *cmd) {
     const uint32_t size = 16u + static_cast<uint32_t>(std::strlen(cmd)) + 1u;
     const uint32_t type = 3u;
@@ -23,6 +31,7 @@ int main() {
     std::memcpy(info, &total, 4);
     std::memcpy(info + 4, &reserved, 4);
     uint32_t off = 8;
+    off = append_cmdline(off, "chm.mode=live chm.log=verbose");
     off = append_module(off, 0x100000, 0x101000, "chimera-recovery-initramfs");
     off = append_module(off, 0x102000, 0x102400, "chimera-recovery-manifest");
     off = append_module(off, 0x103000, 0x104000, "chimera-live-initramfs");
@@ -37,5 +46,6 @@ int main() {
     assert(chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_MANIFEST) != nullptr);
     assert(chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS) != nullptr);
     assert(chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) == nullptr);
+    assert(std::strcmp(chimera_multiboot_command_line(), "chm.mode=live chm.log=verbose") == 0);
     return 0;
 }
