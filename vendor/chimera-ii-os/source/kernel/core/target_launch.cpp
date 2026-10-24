@@ -35,9 +35,9 @@ static bool token(const char *text, const char *needle) {
     return false;
 }
 static Target parse_target(const char *cmdline) {
-    const bool live = token(cmdline,"target=live");
-    const bool installer = token(cmdline,"target=installer");
-    const bool recovery = token(cmdline,"target=recovery");
+    const bool live = token(cmdline,"target=live") || token(cmdline,"chm.mode=live");
+    const bool installer = token(cmdline,"target=installer") || token(cmdline,"chm.mode=installer");
+    const bool recovery = token(cmdline,"target=recovery") || token(cmdline,"chm.mode=recovery");
     if ((live?1:0)+(installer?1:0)+(recovery?1:0) != 1) return TARGET_NONE;
     return live ? TARGET_LIVE : (installer ? TARGET_INSTALLER : TARGET_RECOVERY);
 }
@@ -143,7 +143,14 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const chimera_boot_module *m=chimera_multiboot_module(i);
         if (m && m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++count; }
     }
-    if (count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+    if (count==0) {
+        const Target boot_target = parse_target(chimera_multiboot_command_line());
+        if (boot_target != TARGET_NONE) {
+            koronos_target_log("[RUN ] ERROR: selected production target has no CHIMERA_MODULE_USER_INIT_ELF; initramfs-to-process extraction backend is unavailable");
+            return -12;
+        }
+        return 0; // Untargeted kernel-only smoke boots intentionally have no user ELF.
+    }
     if (count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
         selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
         selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
