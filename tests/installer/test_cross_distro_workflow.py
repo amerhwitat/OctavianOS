@@ -44,6 +44,9 @@ class CrossDistroInstallerWorkflowTests(unittest.TestCase):
         self.assertIn("production-acceptance:", workflow)
         self.assertIn("needs: [container, iso, production-acceptance]", workflow)
         self.assertIn("production_acceptance_gate.py", workflow)
+        self.assertIn('install -m 0644 installer/gui/installer-i18n.js "$DEST/gui/installer-i18n.js"', workflow)
+        self.assertIn('"installer-i18n.js"', workflow)
+        self.assertIn('"$DEST/gui/installer-i18n.js"', workflow)
         self.assertIn("installation_success_claimed", workflow)
 
     def test_gui_does_not_claim_native_backend_or_fake_install_success(self):
@@ -56,6 +59,9 @@ class CrossDistroInstallerWorkflowTests(unittest.TestCase):
         html = HTML.read_text(encoding="utf-8")
         js = JS.read_text(encoding="utf-8")
         catalog = (ROOT / "installer" / "gui" / "installer-i18n.js").read_text(encoding="utf-8")
+        ui_contract = json.loads((ROOT / "installer" / "gui" / "aurora-installer-ui.json").read_text(encoding="utf-8"))
+        self.assertEqual(ui_contract["localization"]["locale_standard"], "BCP-47")
+        self.assertTrue(ui_contract["localization"]["rtl_layout"])
         self.assertIn('id="uiLanguage"', html)
         self.assertIn('src="installer-i18n.js"', html)
         self.assertIn("Intl.getCanonicalLocales", catalog)
