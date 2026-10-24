@@ -65,7 +65,8 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     require(trace_path.is_relative_to(root.resolve()), f"{label}: trace path escapes evidence root")
     require(trace_path.is_file(), f"{label}: trace file missing: {trace_path}")
     text = trace_path.read_text(encoding="utf-8", errors="replace")
-    require("[KRN ] KORONOS READY" in text, f"{label}: kernel-ready marker missing")
+    kernel_at = text.find(KERNEL_MARKER)
+    require(kernel_at >= 0, f"{label}: kernel-ready marker missing")
 
     target = label.split("/")[0]
     ack = list(re.finditer(
