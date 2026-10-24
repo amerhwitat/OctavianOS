@@ -1,0 +1,11 @@
+[Unit]
+Description=OctavianOS Init.mp4 progress splash
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/octavian-init-splash --background
+
+[Install]
+WantedBy=graphical-session.target
