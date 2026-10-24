@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/native-koronos-build.yml"
 PROCESS_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/process.cpp"
+SCHEDULER_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/scheduler.cpp"
 
 
 class UserspaceReleaseWorkflowTests(unittest.TestCase):
@@ -55,6 +56,14 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("Reject page-overlapping PT_LOAD ranges", source)
         self.assertIn("s.p_vaddr < 0x0000000100000000ull", source)
         self.assertIn("end > 0x0000800000000000ull", source)
+
+    def test_parallel_scheduler_does_not_claim_serial_steps_as_smp(self):
+        source = SCHEDULER_SOURCE.read_text(encoding="utf-8")
+        body = source.split("extern \"C\" uint32_t chimera_sched_run_parallel", 1)[1]
+        body = body.split("extern \"C\"", 1)[0]
+        self.assertIn("fail-closed until AP startup", body)
+        self.assertIn("return 0;", body)
+        self.assertNotIn("chimera_sched_run_once(cpu)", body)
 
     def test_pid_wraparound_does_not_alias_a_live_process(self):
         source = PROCESS_SOURCE.read_text(encoding="utf-8")
