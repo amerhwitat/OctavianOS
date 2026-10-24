@@ -1,6 +1,6 @@
 {
   "schema": "OCTAVIANOS_CROSS_DISTRO_INSTALLER_FLOW_V1",
-  "goal": "A native Chimera installer experience informed by public workflows, not copied distro code or branding.",
+  "goal": "An OctavianOS installer experience informed by public workflows, not copied distro code or branding.",
   "design_influences": [
     {
       "project": "Red Hat Anaconda / CentOS",
