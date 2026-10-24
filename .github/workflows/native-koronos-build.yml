@@ -346,7 +346,8 @@ jobs:
           # manifest, but no production native-init ELF. Assert the honest fail-closed
           # behavior here; production ring-3 execution is tested by the separate
           # userspace gate and must not be inferred from this routing smoke.
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery routing smoke did not report the missing production init backend"; exit 1; }
+          grep -Fq '[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery routing smoke did not report the missing production init ELF module"; exit 1; }
+          grep -Fq '[RUN ] Recovery target init failed before readiness; failing closed' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery routing smoke did not fail closed after missing native init"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
