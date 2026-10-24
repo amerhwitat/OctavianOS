@@ -3,13 +3,6 @@ namespace {
 constexpr uint32_t MAX_MODULES=64;
 chimera_boot_module modules[MAX_MODULES];
 uint32_t module_count=0;
-char boot_cmdline[256];
-static void copy_boot_cmd(char* dst,const char* src){
- uint32_t i=0;
- if(!src){dst[0]=0;return;}
- for(;i<255&&src[i];++i) dst[i]=src[i];
- dst[i]=0;
-}
 static void copy_cmd(char* dst,const char* src){
  uint32_t i=0;
  if(!src){dst[0]=0;return;}
@@ -41,7 +34,6 @@ static uint32_t classify(const char* s){
 }
 extern "C" __attribute__((used,noinline)) uint32_t chimera_multiboot_scan(uint64_t boot_info){
  module_count=0;
- boot_cmdline[0]=0;
  if(!boot_info)return 0;
  const uint8_t* base=(const uint8_t*)(uintptr_t)boot_info;
  uint32_t total=*(const uint32_t*)base;
@@ -50,9 +42,6 @@ extern "C" __attribute__((used,noinline)) uint32_t chimera_multiboot_scan(uint64
   const uint32_t type=*(const uint32_t*)(base+off);
   const uint32_t size=*(const uint32_t*)(base+off+4);
   if(size<8||off+size>total)break;
-  if(type==1&&size>8){
-   copy_boot_cmd(boot_cmdline,(const char*)(base+off+8));
-  }
   if(type==3&&size>=16&&module_count<MAX_MODULES){
    const uint32_t start=*(const uint32_t*)(base+off+8);
    const uint32_t end=*(const uint32_t*)(base+off+12);
@@ -69,7 +58,6 @@ extern "C" __attribute__((used,noinline)) uint32_t chimera_multiboot_scan(uint64
  return module_count;
 }
 extern "C" uint32_t chimera_multiboot_module_count(void){return module_count;}
-extern "C" const char* chimera_multiboot_command_line(void){return boot_cmdline;}
 extern "C" const chimera_boot_module* chimera_multiboot_module(uint32_t index){return index<module_count?&modules[index]:0;}
 extern "C" const chimera_boot_module* chimera_multiboot_find(uint32_t kind){
  for(uint32_t i=0;i<module_count;i++)
