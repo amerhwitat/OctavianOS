@@ -402,6 +402,14 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
           if-no-files-found: ignore
           retention-days: 14
+      - name: Upload production DAPS evidence bundle when generated
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-production-daps-evidence
+          path: vendor/chimera-ii-os/source/build/production-daps/**
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
         if: always()
         uses: actions/upload-artifact@v4
@@ -445,9 +453,25 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  verify-production-daps:
+    name: Verify production DAPS before release
+    needs: build-koronos
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production DAPS verifier
+        uses: actions/checkout@v4
+      - name: Download production DAPS evidence bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-production-daps-evidence
+          path: production-daps
+      - name: Require all production acceptance evidence
+        run: python3 tools/release/verify-production-daps.py --evidence production-daps/evidence.json
+
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
+    needs: [build-koronos, verify-userspace-handoff, verify-production-daps]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
