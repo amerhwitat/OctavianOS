@@ -70,6 +70,23 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     require(ready, f"{label}: userspace readiness marker missing")
     require(ack[-1] == ready[-1], f"{label}: syscall acknowledgement PID and ready PID differ")
     require("USERSPACE SYSCALL RETURNED TO RING3" in text, f"{label}: ring-3 return evidence missing")
+
+    # Candidate user-init ELF probes are useful kernel smoke tests, but cannot
+    # satisfy production release acceptance. Require explicit provenance from
+    # the production initramfs extraction/launch path and bind it to this PID.
+    target = label.split("/")[0]
+    payload = re.findall(
+        rf"PRODUCTION INIT PAYLOAD: target={re.escape(target)} source=initramfs sha256=([0-9a-f]{{64}})",
+        text,
+    )
+    executed = re.findall(
+        rf"PRODUCTION INIT EXECUTED: target={re.escape(target)} pid=([1-9][0-9]*)",
+        text,
+    )
+    require(payload, f"{label}: production initramfs payload provenance missing (probe ELF is not production evidence)")
+    require(executed, f"{label}: production init execution record missing")
+    require(executed[-1] == ack[-1] == ready[-1],
+            f"{label}: production init, syscall acknowledgement, and readiness PIDs differ")
     return text
 
 
