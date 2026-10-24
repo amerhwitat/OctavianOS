@@ -19,6 +19,7 @@ static volatile uint32_t ready_seen = 0;
 static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static uint32_t syscall_ack_seen = 0;
+static uint32_t pid_diagnostic_seen = 0;
 static bool attempted = false;
 
 extern "C" void koronos_target_log(const char *message);
@@ -65,17 +66,15 @@ static void log_user_init_syscall(Target target, uint32_t pid) {
     message[used] = 0;
     koronos_target_log(message);
 }
-static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
+static bool parse_target_pid_line(const char *bytes, uint64_t length, const char *label,
+                                  const char *suffix, Target target, uint32_t pid) {
     const char *name = target_name(target);
     char prefix[80];
     uint64_t p=0;
-    const char *a="USERSPACE READY: ";
-    while (*a) prefix[p++]=*a++;
+    while (*label) prefix[p++]=*label++;
     while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
-    while (*b) prefix[p++]=*b++;
+    while (*suffix) prefix[p++]=*suffix++;
     if (length < p+2u) return false;
-    bool found=false;
     for (uint64_t i=0; i+p<length; ++i) {
         uint64_t j=0;
         while (j<p && bytes[i+j]==prefix[j]) ++j;
@@ -83,14 +82,21 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
         uint64_t k=i+p;
         uint32_t parsed=0, digits=0;
         while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
+            const uint32_t digit=(uint32_t)(bytes[k]-'0');
+            if (parsed > (UINT32_MAX-digit)/10u) return false;
+            parsed=parsed*10u+digit;
             ++k; ++digits;
         }
-        if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
-            found=true; break;
-        }
+        if (digits && parsed==pid &&
+            (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) return true;
     }
-    return found;
+    return false;
+}
+static bool target_pid_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
+    return parse_target_pid_line(bytes,length,"NATIVE INIT PID: target="," pid=",target,pid);
+}
+static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
+    return parse_target_pid_line(bytes,length,"USERSPACE READY: target="," init_pid=",target,pid);
 }
 }
 
@@ -122,12 +128,16 @@ extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t
 }
 extern "C" int koronos_target_note_user_write(const char *bytes, uint64_t length) {
     if (!bytes || !length || active_target==TARGET_NONE || !active_pid) return 0;
-    /* Readiness is valid only after this active process has already
-       issued a syscall through the DPL3 gate and the kernel verified its
-       saved CS.RPL, RIP and CR3. A write that arrives first cannot satisfy
-       the readiness half of the acceptance handshake. */
-    if (syscall_ack_seen && active_pid &&
-        target_marker(bytes,length,static_cast<Target>(active_target),active_pid)) {
+    /* Ordered user-originated handshake: DPL3 syscall acknowledgement,
+       then a diagnostic matching the kernel-returned PID, then readiness.
+       The PID line is not readiness and cannot prove service initialization. */
+    if (!syscall_ack_seen) return 0;
+    const Target target=static_cast<Target>(active_target);
+    if (target_pid_marker(bytes,length,target,active_pid)) {
+        pid_diagnostic_seen=1;
+        return 0;
+    }
+    if (pid_diagnostic_seen && target_marker(bytes,length,target,active_pid)) {
         ready_seen=1;
         return 1;
     }
@@ -143,7 +153,18 @@ extern "C" int koronos_launch_selected_userspace(void) {
         const chimera_boot_module *m=chimera_multiboot_module(i);
         if (m && m->kind==CHIMERA_MODULE_USER_INIT_ELF) { selected=m; ++count; }
     }
-    if (count==0) return 0; // Kernel-only smoke boots intentionally have no user ELF.
+    if (count==0) {
+        /* Kernel-only smoke boots have no target payload and remain valid.
+         * A production initramfs/install image without its separate native
+         * ELF is a packaging/dispatch failure, never a successful handoff. */
+        const bool has_target_payload =
+            chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS) != nullptr ||
+            chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE) != nullptr;
+        if (!has_target_payload) return 0;
+        koronos_target_log("[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied");
+        return -12;
+    }
     if (count!=1 || !selected || !selected->base || selected->size<sizeof(koronos_elf64_ehdr) ||
         selected->size>MAX_INIT_IMAGE || selected->base>=KORONOS_FRAME_PHYS_LIMIT ||
         selected->size>KORONOS_FRAME_PHYS_LIMIT-selected->base) {
@@ -192,6 +213,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     active_pid=static_cast<uint32_t>(pid);
     active_root=root;
     syscall_ack_seen=0;
+    pid_diagnostic_seen=0;
     ready_seen=0;
     (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING);
     // 100 Hz PIT deadline: 1,000 ticks gives user init ten seconds to return

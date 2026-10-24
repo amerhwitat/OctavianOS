@@ -21,6 +21,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
+bash -n "$ROOT/tools/build-production-init-elfs.sh"
+python3 "$ROOT/tools/tests/test_validate_native_init_elf.py"
+python3 "$ROOT/tools/tests/test_native_init_syscall_abi.py"
+python3 "$ROOT/tools/tests/test_native_init_launch_gate.py"
+python3 "$ROOT/tools/tests/test_native_init_packaging_contract.py"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
@@ -101,6 +106,10 @@ for target in live installer recovery; do
   readelf -lW "$BUILD/user-init-${target}.elf" | grep -Eq 'LOAD.*R E' || {
     echo "ERROR: user-init-${target}.elf has no read/execute PT_LOAD" >&2; exit 1;
   }
+  # Structural admission only: these artifacts remain acceptance probes, not
+  # production init implementations. The validator rejects scripts, wrong
+  # architectures, malformed PT_LOAD bounds, W+X segments, and invalid entry.
+  python3 "$ROOT/tools/validate-native-init-elf.py" --target "$target" "$BUILD/user-init-${target}.elf"
 done
 
 # A deliberately non-cooperative user process validates that the hardware

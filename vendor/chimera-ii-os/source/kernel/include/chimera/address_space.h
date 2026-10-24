@@ -16,6 +16,10 @@ int koronos_address_space_ready(void);
 int koronos_address_space_self_test(void);
 const chimera_elf_load_ops *koronos_address_space_loader_ops(void);
 uint64_t koronos_address_space_root(const void *address_space);
+/* Creates an isolated child PML4 and deep-copies all mapped user blocks.
+   Supervisor bootstrap mappings keep kernel backing; no user page is shared. */
+int koronos_address_space_clone(const void *source_address_space, void **out_child_address_space);
+void koronos_address_space_destroy(void *address_space);
 int koronos_address_space_validate_user_range(uint64_t root_physical, uint64_t address,
                                               uint64_t length, uint32_t write_access);
 uint64_t koronos_address_space_count(void);

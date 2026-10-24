@@ -163,6 +163,13 @@ done
 mkdir -p "$DIST/boot/live"
 cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.img" "$DIST/boot/live/"
 cp -f "$LIVE_BOOT/boot/live/live-manifest.json" "$DIST/boot/live/"
+
+# Build real target-specific ring-3 bootstrap ELFs and stage them before GRUB configs.
+# These are fail-closed service bootstraps, not production-ready desktop/install/recovery services.
+bash "$ROOT/tools/build-production-init-elfs.sh"
+for init_elf in "$DIST/boot/live/user-init-live.elf" "$DIST/boot/installer/user-init-installer.elf" "$DIST/boot/recovery/user-init-recovery.elf"; do
+  [[ -s "$init_elf" ]] || { echo "Native target init ELF missing after build: $init_elf" >&2; exit 2; }
+done
 if [[ -s "$LIVE_BOOT/boot/vmlinuz" ]]; then
   cp -f "$LIVE_BOOT/boot/vmlinuz" "$DIST/boot/live/vmlinuz"
 fi

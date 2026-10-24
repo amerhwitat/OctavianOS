@@ -92,7 +92,7 @@ extern "C" int chimera_sched_set_affinity(uint32_t task_id,uint64_t mask){
 extern "C" uint32_t chimera_sched_run_once(uint32_t cpu){
     lock();if(cpu>=cpus){unlock();return 0;}
     /* A CPU may own at most one active callback. Without this guard, a second
-       concurrent/re-entrant run_once(cpu) can overwrite current_index[cpu],
+       concurrent/re-entrant run_once(cpu) can overwrite current_index[cpu], 
        lose ownership of the first callback, and misroute yield/block/exit. */
     if(current_index[cpu]>=0){unlock();return 0;}
     chimera_task_fn fn=nullptr;void* arg=nullptr;uint32_t index=0;
@@ -115,12 +115,21 @@ extern "C" uint32_t chimera_sched_run_once(uint32_t cpu){
     if(current_index[cpu]==(int32_t)index)current_index[cpu]=-1;
     unlock();return 1;
 }
-extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
+/* This is intentionally a serial stepping helper. It must never be described
+ * as parallel execution or used as evidence of AP startup / genuine SMP. */
+extern "C" uint32_t chimera_sched_run_serial_range(uint32_t first_cpu,uint32_t n){
     lock();uint32_t total=cpus;unlock();
     if(first_cpu>=total||n==0)return 0;
     uint32_t end=first_cpu+n;if(end<first_cpu||end>total)end=total;
-    uint32_t ran=0;for(uint32_t cpu=first_cpu;cpu<end;cpu++)ran+=chimera_sched_run_once(cpu);
+    uint32_t ran=0;
+    for(uint32_t cpu=first_cpu;cpu<end;cpu++)ran+=chimera_sched_run_once(cpu);
     return ran;
+}
+/* Fail closed until real AP startup and independent per-CPU execution exist.
+ * A loop over run_once() is serial dispatch, not parallel execution. */
+extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
+    (void)first_cpu;(void)n;
+    return 0;
 }
 extern "C" int chimera_sched_yield_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_YIELD);}
 extern "C" int chimera_sched_block_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_BLOCK);}
@@ -138,12 +147,8 @@ extern "C" uint32_t chimera_sched_snapshot(chimera_task_info *out, uint32_t cap)
     if (out == nullptr) {
         return 0;
     }
-
     lock();
     const uint32_t n = count < cap ? count : cap;
-    for (uint32_t i = 0; i < n; ++i) {
-        out[i] = tasks[i].info;
-    }
-    unlock();
-    return n;
+    for (uint32_t i = 0; i < n; ++i) out[i] = tasks[i].info;
+    unlock();return n;
 }

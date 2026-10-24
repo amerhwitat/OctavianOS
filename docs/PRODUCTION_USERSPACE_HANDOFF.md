@@ -1,6 +1,14 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
+**Status: BLOCKED — 0/6 production target/firmware cases passed.** Run [#39414913167](https://github.com/amerhwitat/OctavianOS/actions/runs/39414913167) built the native kernel and ISO and observed the Installer ELF enter CPL3, execute a syscall, report its kernel-returned PID, and fail closed before readiness. The job then failed because the installer routing smoke expected the Live service-idle message instead of the actual `[INST] Installer target detected` diagnostic and installation-image acceptance messages. The assertion was corrected in commit [ee5a1f7](https://github.com/amerhwitat/OctavianOS/commit/ee5a1f7c57e5b3bd56a72f0dff956ddd339c9408), and the installer smoke now checks the real CPL3/PID/blocking diagnostics as well. The native init regression test also now guards against misusing syscall 10 (`MMAP`) as a nonexistent mount operation. Follow-up runs are queued/pending on the updated branch. The bootstrap still intentionally exits 78 before readiness because the kernel has no integrated VFS root, process lifecycle, device services, or graphics services. Build and smoke success do not pass production acceptance; no prerelease is authorized.
+
+## Source audit: actual launch gate and packaging boundary
+
+The source-level cause was not a generic `is_production_initramfs` conditional. Koronos recognizes initramfs/install-image modules separately from native ELF process images. The latest branch changes now build three target-specific, fail-closed bootstrap ELFs, stage them at `/boot/live/user-init-live.elf`, `/boot/installer/user-init-installer.elf`, and `/boot/recovery/user-init-recovery.elf`, and attach them with exactly one `target=live|installer|recovery` selector in the canonical GRUB/Jasper configurations. Koronos still does not unpack a gzip/newc archive into a VFS or execute its `/init`; the installer archive's `/init` is a BusyBox shell script, not a Koronos ELF.
+
+A fail-closed diagnostic correction was applied on branch `fix/native-init-elf-contract-guard-20261020`: Live, Installer, and Recovery invoke the common launcher when their target payload is present, and missing `USER_INIT_ELF` is an explicit negative launch result. The canonical ISO now carries target-specific bootstrap ELFs; custom QEMU routing smokes intentionally omit them to verify the missing-module failure path. This does not make the bootstrap service-complete and does not satisfy the production verifier.
+
+The proposed `stage_production_init()` snippet was not copied as-is. Instead, the branch now builds target-specific native bootstrap ELFs from `kernel/userspace/native_init.c` and stages/routes them through the ISO pipeline. These ELFs query the kernel-owned PID with GETPID, emit a matching `NATIVE INIT PID: target=... pid=...` diagnostic, then report `NATIVE INIT BLOCKED` and exit with status 78 because native filesystem, process, device, and graphics services are unavailable. They are useful for testing real ring-3 dispatch, but are not complete production init implementations and must not emit readiness.
 
 ## What the evidence means
 
@@ -10,7 +18,7 @@ The acceptance job ran the existing verifier unchanged against these traces:
 - `trace/installer-debugcon.log` for Installer
 - `trace/recovery-debugcon.log` for Recovery
 
-All six target/firmware attempts failed because they lack both a user-originated init syscall acknowledgement proving CPL 3 and a subsequent target-specific readiness marker carrying the same real, nonzero init PID. The verifier is intentionally fail-closed; do not weaken it or manufacture these markers from kernel code.
+The last full production-verifier matrix still failed all six target/firmware cases because the required ordered CPL3 acknowledgement plus target-specific readiness handshake was not established. Later target-specific routing smoke evidence now confirms Recovery can execute the bootstrap far enough to issue a syscall and report its kernel-returned PID, but the bootstrap exits before readiness. This newer diagnostic does not retroactively pass the six-case production matrix. The verifier is intentionally fail-closed; do not weaken it or manufacture readiness markers from kernel code.
 
 ## Source-level integration gaps
 
@@ -20,7 +28,7 @@ The current vendored path and the upstream candidate must be treated as separate
 2. `process.cpp` records ELF metadata/PID admission. Admission is not proof that an instruction executed in ring 3.
 3. `interrupt.cpp` installs DPL-0 IDT gates and explicitly defers ring-3 exposure until TSS, stack, and address-space setup are complete.
 4. The compatibility `syscall.cpp` dispatcher is not itself a hardware syscall entry/return path; its current GETPID/EXIT semantics are insufficient evidence of process-owned PID and teardown.
-5. Multiboot module classification recognizes a possible `CHIMERA_MODULE_USER_INIT_ELF`, but classification is not proof that the ISO build actually stages the target's production init ELF or that the launch path selects it.
+5. Multiboot module classification recognizes `CHIMERA_MODULE_USER_INIT_ELF`; the current branch now builds/stages target bootstrap ELFs and routes them from GRUB. Actual service initialization and successful readiness remain unverified.
 6. The current QEMU smoke gates prove kernel readiness and target routing only. They must not be renamed or documented as production userspace acceptance.
 
 Upstream [ChimeraIIOS PR #125](https://github.com/amerhwitat/ChimeraIIOS/pull/125) contains a candidate ring-3 probe path and passed its standalone acceptance workflow. It does **not** by itself prove that the real init executable is extracted from the production Live/Installer/Recovery payload and launched in the final ISO. Do not blindly copy it over OctavianOS-specific source.
@@ -121,10 +129,10 @@ The latest source inspection confirms why a successful ISO build still cannot sa
 
 - `vendor/chimera-ii-os/source/build-chimera-iso.sh` stages the Live and Recovery initramfs images, but the inspected ISO staging path does not build or stage a target-specific `CHIMERA_MODULE_USER_INIT_ELF`.
 - `vendor/chimera-ii-os/source/kernel/core/multiboot_modules.cpp` classifies a module as `USER_INIT_ELF` from its command-line/name. Classification does not create or extract an ELF executable.
-- `vendor/chimera-ii-os/source/kernel/core/target_launch.cpp` scans for exactly one bounded `USER_INIT_ELF`, then requires working address-space operations, process admission, ELF loading, a real CR3 root, and ring-3 entry. With no such module it returns without launching production init.
+- `vendor/chimera-ii-os/source/kernel/core/target_launch.cpp` scans for exactly one bounded `USER_INIT_ELF`, then requires working address-space operations, process admission, ELF loading, a real CR3 root, and ring-3 entry. The canonical GRUB entries now pass target-specific bootstrap ELFs; if a custom/production target has no such module, launch fails closed.
 - The ELF admission/load-plan APIs do not prove execution, and a passing kernel/ISO smoke test does not prove a user process reached CPL 3.
 
-No probe ELF, synthetic ready marker, or weakened verifier is an acceptable workaround. A real production init/runtime and its target-specific staging still need to be implemented and tested end to end. The current 0/6 result and release block remain unchanged.
+No probe ELF, synthetic ready marker, or weakened verifier is an acceptable workaround. Target bootstrap ELF staging/routing is now implemented on this branch, but a real production init/runtime and its service backends still need to be implemented and tested end to end. The last verified production result remains 0/6 and release remains blocked.
 
 
 ## Fresh source scan — syscall-fix branch — 2026-10-19
@@ -137,7 +145,7 @@ Inspected branch `fix/mirror-fail-closed-process-syscalls` at candidate commit `
 - The launch routine searches for exactly one `CHIMERA_MODULE_USER_INIT_ELF` and returns without launching when none is present. The audited ISO staging path does not extract/build a supported native init executable from the shell initramfs or stage a target-specific init ELF.
 - `kernel/core/syscall.cpp` deliberately rejects GETPID and EXIT/EXIT_GROUP in the compatibility dispatcher when there is no active process context. The native dispatcher depends on a validated active process and real CR3/ring-3 execution; logging helpers and admission state cannot replace that execution.
 
-This is a concrete integration/runtime blocker, not a CI retry problem. A correct fix must supply a real production-compatible native init/runtime (or implement and test the required shell/Linux ABI runtime), stage/select it separately for Live, Installer, and Recovery, and prove actual process entry and syscalls. Do not package a tiny marker-only probe, generate acceptance strings in kernel code, or weaken `tests/migration/verify-userspace-handoff.py` / `tests/migration/verify-six-case-userspace-matrix.py`.
+This remains a concrete runtime blocker, not a CI retry problem. Target ELF construction/staging/routing is now present on the active branch, but the current bootstrap exits 78 after reporting unavailable native services. The next requirement is a service-capable target supervisor and actual VFS/device/graphics backends. Do not package a marker-only probe, generate acceptance strings in kernel code, or weaken `tests/migration/verify-userspace-handoff.py` / `tests/migration/verify-six-case-userspace-matrix.py`.
 
 **Historical snapshot:** this earlier scan recorded 0/6 production target/firmware cases. The candidate probe and integrated build results below supersede its source/build snapshot; production acceptance remains a separate gate.
 
@@ -151,3 +159,79 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+
+## Current verification refresh — 2026-10-20 (run #39404402300)
+
+**Release decision remains BLOCKED.** The native Koronos build job passed, but the unchanged production verifier failed for Live, Installer, and Recovery. The verifier reported missing user-originated init syscall acknowledgement (CPL 3) and actual init PID readiness evidence in each of the three aggregate traces. The prerelease job was skipped. See [run #39404402300](https://github.com/amerhwitat/OctavianOS/actions/runs/39404402300).
+
+The separate [ring-3 probe matrix #39404402308](https://github.com/amerhwitat/OctavianOS/actions/runs/39404402308) passed all six probe jobs (Live/Installer/Recovery × BIOS/UEFI), but the workflow explicitly labels them **not production acceptance**. Passing those probes does not establish that production init ELFs are staged in the ISO or that target services start.
+
+The ordered kernel handshake has been hardened on branch `fix/native-init-elf-contract-guard-20261020`: a verified CPL3 syscall acknowledgement must precede a target/PID diagnostic matching the kernel-owned PID, and only then can a matching target readiness line be recognized. The ring-3 smoke payload now exercises that order. This is a contract/probe change only; it is not a service implementation and must not be used to relabel the probe payload as production init.
+
+The key unresolved integration failure is still end-to-end production execution: the actual production payload path must stage and select a real target init ELF, enter it at CPL3, and let it initialize target services before it emits readiness. VFS/filesystem/device services, Aurora handoff, installer transaction/reboot, recovery repair, and AP-backed SMP remain NOT VERIFIED. Keep `tests/migration/verify-userspace-handoff.py` unchanged. Do not synthesize acknowledgements, PIDs, or readiness; keep prerelease publication gated on real production verifier passes and follow-up functional acceptance.
+
+
+## Linux-inspired target-init proposal audit — 2026-10-20
+
+**Decision: do not promote the proposed `target_init.c` sample to production or stage it as a production init.** The architectural direction (one PID-1-style target supervisor with target-specific service startup and readiness only after success) is sound, but the supplied implementation currently reports success without initializing those services.
+
+Concrete ABI/source findings on branch `fix/native-init-elf-contract-guard-20261020`:
+
+- `kernel/core/syscall.cpp` implements the process-bound native syscall path for GETPID, WRITE, EXIT and a few basic operations. FORK/EXECVE/WAITPID return ENOSYS; there is no implemented mount syscall or device-control syscall in the native dispatcher. The compatibility dispatcher intentionally rejects GETPID and EXIT without process context.
+- Therefore the proposed `CHM_SYS_MOUNT=10` and `CHM_SYS_DEVCTL=11` are placeholders, not supported ABI calls. Calling them and returning success locally would not mount `/proc`, `/sys`, or `/dev`, initialize a device manager, launch Aurora, run an installer transaction, or repair a system.
+- The sample's `init_virtual_filesystems()`, `init_device_subsystem()`, and `execute_target_payload()` return zero unconditionally. Its `sleep(5)` and hosted headers also assume a libc/POSIX runtime that the freestanding native-init build does not currently provide.
+- The production ISO pipeline now builds and stages target-specific fail-closed native init bootstrap ELFs separately from `kernel/tests/user_init_smoke.c` probes. These bootstraps are not service-complete and intentionally do not emit readiness; replacing the probe-only gap does not itself establish production acceptance.
+- The kernel launch path calls the user image and then expects it to return after readiness. A real PID-1 supervisor must remain alive, which requires a safe scheduler/process lifecycle and a defined post-readiness handoff; an infinite loop cannot simply be dropped into the current one-shot launch path without proving timer/interrupt behavior, process ownership, and control flow.
+
+The latest integrated native build [run #39405093270](https://github.com/amerhwitat/OctavianOS/actions/runs/39405093270) confirms the kernel/ISO candidate job passes, while the unchanged production verifier fails Live, Installer, and Recovery with missing CPL3-origin acknowledgement and matching actual-PID readiness evidence. The six-case probe matrix [run #39405093493](https://github.com/amerhwitat/OctavianOS/actions/runs/39405093493) passed as a probe workflow only; it is explicitly not production acceptance.
+
+### Required implementation order
+
+1. Define and implement a real kernel ABI for the operations actually needed (or a native service IPC/capability interface). Do not reserve syscall numbers by assumption; document and test dispatch, argument validation, user-memory access, errors, and process identity.
+2. Implement real target service backends and observable success/failure results: VFS/rootfs and required mounts, device enumeration/console/input/display, and service lifecycle. Until a backend exists, init must fail closed and must not print readiness.
+3. Build a freestanding native init against the supported ABI (not hosted `unistd.h`/libc assumptions); include target-specific service plans, bounded startup, diagnostic error codes, and a supervisor lifecycle compatible with the kernel scheduler.
+4. Extract or build the real target init for each Live/Installer/Recovery payload, validate archive paths and ELF bounds, stage it as exactly one target-matched `CHIMERA_MODULE_USER_INIT_ELF`, and verify the final ISO contents.
+5. Add host-side tests for target selection, missing/duplicate modules, unsupported syscall errors, startup failure, PID formatting/overflow, and readiness ordering. Keep `tests/migration/verify-userspace-handoff.py` unchanged.
+6. Prove six actual production boots, then separately verify Live-to-Aurora, installer disk transaction/reboot, a real recovery operation, and AP-backed concurrent SMP. Release remains blocked until all required gates pass.
+
+**Current result:** no production-init implementation or new boot success is claimed by this audit. The proposal is retained as an architecture direction, not accepted as working code. Release stays BLOCKED; no prerelease should be published.
+
+
+## Native init patch review and ABI regression guard — 2026-10-20
+
+The proposed code was not copied verbatim because its syscall assumptions conflict with the current ABI. In `kernel/include/chimera/syscall.h`, IDs 10, 11, and 12 are already `CHM_SYS_MMAP`, `CHM_SYS_MUNMAP`, and `CHM_SYS_IOCTL`. Adding mount=10/devctl=11 would alias existing memory-management calls; it is not a safe extension. The current process-bound dispatcher also has no implemented VFS mount or device-control operation, so returning success or inventing readiness would be incorrect.
+
+### Code change made
+
+- Added `vendor/chimera-ii-os/source/tools/tests/test_native_init_syscall_abi.py`. It asserts the complete existing native syscall ID table, checks that unsupported mount/devctl names are not introduced as aliases, and verifies that the current GETPID/WRITE dispatch contract remains present.
+- Integrated this regression test into `kernel/build-koronos.sh` before native kernel compilation, alongside the existing ELF validator test.
+- Commits: `5d839e71ee0076a34ea82c8a028e84463132c7d5` (test) and `c7a01eec1e9ed2e8f2b402cb8c737c5f391e5776` (build integration).
+
+This is a preventive ABI-hardening change; it is not a production userspace implementation. The build script continues to label `user-init-live/installer/recovery.elf` as probes. The ISO now stages target-specific fail-closed bootstrap ELFs separately from the initramfs; they are intentionally non-service-complete and must not be described as production-ready. A real mount/device service API, VFS/filesystem implementation, service lifecycle, and post-readiness supervisor are still missing or unverified. The current yield syscall is explicitly a safe no-op in the bootstrap single-process path, so a tight forever-yield loop would not yet provide sleeping or CPU-efficient supervision.
+
+### Acceptance status
+
+The existing production verifier remains unchanged and fail-closed. The earlier latest verified native candidate run `39405093270` failed the aggregate Live/Installer/Recovery traces; probe matrix `39405093493` passed only as probes. The newly added source commits must receive CI runs before the regression test itself can be marked PASS. Production acceptance remains NOT VERIFIED and release remains BLOCKED.
+
+
+## Native PID 1 service gap and syscall ABI audit (2026-10-20)
+
+The latest native trace reached CPL3, performed a kernel syscall, reported the kernel-returned PID, and then exited with status 78 because required native services are unavailable. This is genuine execution progress, not a complete PID 1 supervisor or production userspace.
+
+The proposed `CHM_SYS_MOUNT = 10` sample is incompatible with the current ABI: `kernel/include/chimera/syscall.h` assigns syscall 10 to `CHM_SYS_MMAP`, and no `CHM_SYS_MOUNT` operation exists. Calling syscall 10 with source/target/fstype pointers would invoke the wrong operation. A mount table that only records `/` and returns success without a real backing filesystem is also unacceptable.
+
+The vendored kernel currently classifies Multiboot2 modules and dispatches target-specific ELFs, but it does not provide an integrated kernel VFS mount/open/read/stat path that exposes the selected initramfs archive to PID 1. A module being present is not equivalent to a mounted root filesystem.
+
+Required implementation sequence:
+
+1. Define a versioned syscall ABI and argument-validation contract before allocating any mount syscall number.
+2. Implement a bounded, read-only newc CPIO parser with traversal rejection, size limits, duplicate/path policy, symlink handling, and correct gzip/CRC/ISIZE validation for compressed payloads.
+3. Build a kernel-owned VFS namespace over validated archive entries, implement real lookup/read/stat operations, and report success only when the root has a live backing store.
+4. Expose the minimal userspace API with validated user pointers and honest `-ENOSYS`/`-ENODEV` errors until each operation is implemented.
+5. Add archive/security regressions, syscall ABI tests, and QEMU tests that read a known file from PID 1 through the actual user ABI; missing or malformed root must fail closed.
+6. Then implement process spawn/wait/reap, device enumeration/control, and target service managers. Aurora/Marine graphics, installer storage writes, and recovery repair need real service backends and their own acceptance tests.
+
+The native init regression test now guards against treating syscall 10 as mount and preserves status-78/no-readiness behavior while the mount ABI is absent. When a real VFS syscall is implemented, replace that guard with tests of the actual ABI and runtime behavior; do not weaken fail-closed readiness.
+
+**Production remains BLOCKED.** Do not claim any of the six Live/Installer/Recovery × BIOS/UEFI production cases, desktop handoff, disk-writing installation, recovery repair, or AP-backed SMP as passed until the corresponding runtime tests succeed. No release/prerelease is authorized.
