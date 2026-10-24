@@ -6,13 +6,13 @@ on:
     paths:
       - "vendor/chimera-ii-os/source/kernel/**"
       - "vendor/chimera-ii-os/source/tools/runtime/check-koronos32-boot.sh"
-      - "vendor/chimera-ii-os/source/architecture/support-matrix.json"
+      - "architecture/support-matrix.json"
       - ".github/workflows/native-artifact-architecture-gate.yml"
   pull_request:
     paths:
       - "vendor/chimera-ii-os/source/kernel/**"
       - "vendor/chimera-ii-os/source/tools/runtime/check-koronos32-boot.sh"
-      - "vendor/chimera-ii-os/source/architecture/support-matrix.json"
+      - "architecture/support-matrix.json"
       - ".github/workflows/native-artifact-architecture-gate.yml"
   workflow_dispatch:
 
@@ -120,7 +120,7 @@ jobs:
           import json
           from pathlib import Path
 
-          path = Path("vendor/chimera-ii-os/source/architecture/support-matrix.json")
+          path = Path("architecture/support-matrix.json")
           data = json.loads(path.read_text(encoding="utf-8"))
           targets = data.get("targets", [])
           if not targets:
