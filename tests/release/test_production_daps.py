@@ -102,8 +102,10 @@ class ProductionDAPSTests(unittest.TestCase):
 
     def test_rejects_missing_aurora_in_one_firmware(self):
         (self.root / "live-uefi.log").write_text(
-            "[KRN ] KORONOS READY\nUSER INIT SYSCALL: target=live init_pid=42\n"
-            "USERSPACE READY: live init pid=42\nUSERSPACE SYSCALL RETURNED TO RING3\n",
+            "[KRN ] KORONOS READY\\nUSER INIT SYSCALL: target=live init_pid=42\\n"
+            "USERSPACE READY: live init pid=42\\nUSERSPACE SYSCALL RETURNED TO RING3\\n"
+            "PRODUCTION INIT PAYLOAD: target=live source=initramfs sha256=" + "a" * 64 + "\\n"
+            "PRODUCTION INIT EXECUTED: target=live pid=42\\n",
             encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: actual Aurora"):
             DAPS.verify(self.manifest)
