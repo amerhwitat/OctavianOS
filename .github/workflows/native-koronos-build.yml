@@ -456,7 +456,10 @@ jobs:
     steps:
       - name: Checkout production DAPS verifier
         uses: actions/checkout@v4
-      - name: Download production DAPS evidence bundle
+      - name: Prepare fail-closed DAPS evidence directory
+        run: mkdir -p production-daps
+      - name: Download production DAPS evidence bundle when available
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: octavianos-production-daps-evidence
