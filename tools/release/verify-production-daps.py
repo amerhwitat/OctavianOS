@@ -95,6 +95,11 @@ def verify(evidence_path: Path) -> None:
     require(bool(SHA256_RE.fullmatch(expected_sha)), "iso_sha256 must be lowercase SHA-256")
     actual_sha = sha256_file(iso_path)
     require(actual_sha == expected_sha, f"candidate ISO hash mismatch: expected {expected_sha}, got {actual_sha}")
+    with iso_path.open("rb") as stream:
+        stream.seek(16 * 2048)
+        primary_volume_descriptor = stream.read(7)
+    require(primary_volume_descriptor == b"\\x01CD001\\x01",
+            "candidate does not contain an ISO9660 primary volume descriptor at sector 16")
 
     traces = evidence.get("traces")
     require(isinstance(traces, dict), "traces must be an object")
