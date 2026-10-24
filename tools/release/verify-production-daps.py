@@ -84,7 +84,7 @@ def read_evidence_log(root: Path, relative: object, label: str, markers: tuple[s
     return text
 
 
-def verify(evidence_path: Path) -> None:
+def verify(evidence_path: Path, report: bool = True) -> None:
     root = evidence_path.resolve().parent
     evidence = read_json(evidence_path)
     require(evidence.get("schema_version") == 1, "schema_version must be 1")
@@ -153,10 +153,11 @@ def verify(evidence_path: Path) -> None:
     require(len(observed_cpus) >= 2, "SMP trace must show at least two AP-online CPU records")
     require(declared_cpus.issubset(observed_cpus), "SMP declared CPU IDs are not all present in per-CPU trace")
 
-    print("PRODUCTION DAPS: PASS")
-    print(f"ISO SHA-256: {expected_sha}")
-    print("Runtime matrix: Live/Installer/Recovery × BIOS/UEFI: 6/6")
-    print("Aurora, installer cold-reboot persistence, recovery postconditions, and AP-backed SMP: PASS")
+    if report:
+        print("PRODUCTION DAPS: PASS")
+        print(f"ISO SHA-256: {expected_sha}")
+        print("Runtime matrix: Live/Installer/Recovery × BIOS/UEFI: 6/6")
+        print("Aurora, installer cold-reboot persistence, recovery postconditions, and AP-backed SMP: PASS")
 
 
 def main() -> int:
