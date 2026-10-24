@@ -20,6 +20,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tools/tests/test-grub-highest-resolution-policy.sh'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tools/boot/**'
@@ -64,6 +65,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tools/tests/test-grub-highest-resolution-policy.sh'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
@@ -94,6 +96,8 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
+      - name: Validate highest-resolution SVGA policy for all boot target menus
+        run: bash tools/tests/test-grub-highest-resolution-policy.sh
       - name: Install native kernel build dependencies
         run: |
           set -euo pipefail
@@ -226,6 +230,8 @@ jobs:
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
+          # Stage all offline desktop assets before the initramfs is packed.
+          python3 "$GITHUB_WORKSPACE/tools/boot/stage_desktop_artifacts.py" --rootfs "$PWD/rootfs" --initramfs-root "$PWD/build/live-boot/initramfs/root"
           bash tools/build-live-boot-binaries.sh
           live=build/live-boot/boot/live/chimera-live-initramfs.img
           recovery=build/live-boot/boot/recovery/chimera-recovery-initramfs.img
@@ -296,6 +302,23 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Hard-stage Octavian artwork and all desktop assets into the final ISO
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          iso_tree="$PWD/boot/iso/dist/iso"
+          iso="$PWD/boot/iso/dist/output.iso"
+          python3 "$GITHUB_WORKSPACE/tools/boot/stage_desktop_artifacts.py" --rootfs "$PWD/rootfs" --initramfs-root "$PWD/build/live-boot/initramfs/root" --iso-root "$iso_tree"
+          python3 "$GITHUB_WORKSPACE/tools/boot/render_boot_artwork.py" --source "$GITHUB_WORKSPACE/desktop/aurora/assets/octavian-octopus-aurora.svg" --output "$iso_tree/boot/visual/octavian-octopus-aurora.png"
+          cp "$GITHUB_WORKSPACE/desktop/aurora/assets/octavian-artwork-manifest.json" "$iso_tree/boot/visual/octavian-artwork-manifest.json"
+          for stage in spitfire jasper grub koronos; do
+            mkdir -p "$iso_tree/boot/$stage"
+            cp "$iso_tree/boot/visual/octavian-octopus-aurora.png" "$iso_tree/boot/$stage/aurora-boot.png"
+          done
+          cp "$iso_tree/boot/visual/octavian-octopus-aurora.png" "$iso_tree/boot/visual/aurora-boot.png"
+          grub-mkrescue -o "$iso" "$iso_tree"
+          test -s "$iso"
+          sha256sum "$iso" > "$iso.sha256"
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
         run: |
