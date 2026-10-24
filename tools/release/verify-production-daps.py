@@ -88,6 +88,28 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     ring3_return = text.find("USERSPACE SYSCALL RETURNED TO RING3", ack[-1].start())
     require(ring3_return >= 0, f"{label}: ring-3 return evidence missing")
 
+    # Candidate user-init ELF probes are useful kernel smoke tests, but cannot
+    # satisfy production release acceptance. Require explicit provenance from
+    # the production initramfs extraction/launch path and bind it to this PID.
+    target = label.split("/")[0]
+    payload = list(re.finditer(
+        rf"PRODUCTION INIT PAYLOAD: target={re.escape(target)} source=initramfs sha256=([0-9a-f]{{64}})",
+        text,
+    ))
+    executed = list(re.finditer(
+        rf"PRODUCTION INIT EXECUTED: target={re.escape(target)} pid=([1-9][0-9]*)",
+        text,
+    ))
+    require(payload, f"{label}: production initramfs payload provenance missing (probe ELF is not production evidence)")
+    require(executed, f"{label}: production init execution record missing")
+    require(payload[-1].group(1) == expected_payload_sha,
+            f"{label}: production init payload digest differs from independently recorded extracted payload")
+    require(payload[-1].start() < ack[-1].start(),
+            f"{label}: production payload provenance appears after user execution began")
+    require(executed[-1].start() < ready[-1].start(),
+            f"{label}: production init execution record appears after readiness")
+    require(executed[-1].group(1) == ack[-1].group(1) == ready[-1].group(1),
+            f"{label}: production init, syscall acknowledgement, and readiness PIDs differ")
     # Prove the same PID can use the mounted root VFS and writable /tmp from
     # ring 3. A generic syscall acknowledgement alone is not a file-I/O proof.
     pid = ack[-1].group(1)
@@ -120,28 +142,6 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     require(open_records[-1].start() < read_records[-1].start() < close_records[-1].start(),
             f"{label}: rootfs OPEN/READ/CLOSE evidence is out of order")
 
-    # Candidate user-init ELF probes are useful kernel smoke tests, but cannot
-    # satisfy production release acceptance. Require explicit provenance from
-    # the production initramfs extraction/launch path and bind it to this PID.
-    target = label.split("/")[0]
-    payload = list(re.finditer(
-        rf"PRODUCTION INIT PAYLOAD: target={re.escape(target)} source=initramfs sha256=([0-9a-f]{{64}})",
-        text,
-    ))
-    executed = list(re.finditer(
-        rf"PRODUCTION INIT EXECUTED: target={re.escape(target)} pid=([1-9][0-9]*)",
-        text,
-    ))
-    require(payload, f"{label}: production initramfs payload provenance missing (probe ELF is not production evidence)")
-    require(executed, f"{label}: production init execution record missing")
-    require(payload[-1].group(1) == expected_payload_sha,
-            f"{label}: production init payload digest differs from independently recorded extracted payload")
-    require(payload[-1].start() < ack[-1].start(),
-            f"{label}: production payload provenance appears after user execution began")
-    require(executed[-1].start() < ready[-1].start(),
-            f"{label}: production init execution record appears after readiness")
-    require(executed[-1].group(1) == ack[-1].group(1) == ready[-1].group(1),
-            f"{label}: production init, syscall acknowledgement, and readiness PIDs differ")
     return text
 
 
