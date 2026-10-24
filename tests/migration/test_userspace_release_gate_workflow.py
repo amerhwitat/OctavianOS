@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/native-koronos-build.yml"
+PROCESS_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/process.cpp"
 
 
 class UserspaceReleaseWorkflowTests(unittest.TestCase):
@@ -40,6 +41,18 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         section = section.split("      - name:", 1)[0]
         for trace in ("full-iso-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
             self.assertIn(trace, section)
+
+    def test_process_admission_bounds_program_header_table(self):
+        source = PROCESS_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("h->e_phentsize != sizeof(koronos_elf64_phdr)", source)
+        self.assertIn("in(h->e_phoff, ph_bytes, size)", source)
+        self.assertIn("reinterpret_cast<const koronos_elf64_phdr *>(bytes + h->e_phoff)", source)
+
+    def test_pid_wraparound_does_not_alias_a_live_process(self):
+        source = PROCESS_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("static bool pid_in_use(uint32_t pid)", source)
+        self.assertIn("static uint32_t allocate_pid()", source)
+        self.assertIn("!pid_in_use(candidate)", source)
 
 
 if __name__ == "__main__":
