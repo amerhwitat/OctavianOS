@@ -74,6 +74,20 @@ kernel implements and emits these records from the real production payload path,
 must remain blocked. Both Live firmware traces must additionally show
 `USERSPACE TARGET READY: live component=aurora-session` and `AURORA READY`.
 
+Each of the six traces must also include structured file-syscall evidence from the
+same acknowledged PID, after its first CPL3 return and before readiness:
+
+- `USERSPACE FILE SYSCALL: target=<target> pid=<pid> op=open path=/etc/os-release result=fd:<fd>`
+- `USERSPACE FILE SYSCALL: target=<target> pid=<pid> op=read path=/etc/os-release fd=<fd> result=bytes:<positive count>`
+- `USERSPACE FILE SYSCALL: target=<target> pid=<pid> op=close path=/etc/os-release fd=<fd> result=0`
+- `USERSPACE TMP SYSCALL: target=<target> pid=<pid> op=write path=/tmp/daps-probe result=bytes:<positive count>`
+
+The verifier requires OPEN → READ → CLOSE on the same descriptor, successful nonzero
+read/write counts, matching target and PID, and all records inside the acknowledged
+userspace execution window. These records must be emitted from the real syscall/VFS
+implementation; do not add synthetic lines to production logs. Until kernel instrumentation
+and actual userspace operations produce them, DAPS intentionally fails closed.
+
 A passing report means these mechanical evidence requirements were met; reviewers must
 still inspect provenance, QEMU/firmware configuration, disk snapshots, and per-CPU traces
 before approving publication. Never manufacture these records to make the verifier pass.
