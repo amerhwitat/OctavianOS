@@ -88,6 +88,7 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
     uint32_t segment_count = 0;
     uint64_t low = UINT64_MAX;
     uint64_t high = 0;
+    bool entry_executable = false;
 
     for (uint16_t i = 0; i < h->e_phnum; ++i) {
         const auto &s = ph[i];
@@ -96,8 +97,11 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
 
         uint64_t end = 0;
         if (!add_ok(s.p_vaddr, s.p_memsz, &end) || s.p_memsz == 0 ||
-            s.p_vaddr >= stack || end > stack) return -4;
-        if (s.p_align && (s.p_align & (s.p_align - 1))) return -5;
+            s.p_vaddr < 0x0000000100000000ull ||
+            s.p_vaddr >= 0x0000800000000000ull ||
+            end > stack || end > 0x0000800000000000ull) return -4;
+        if (s.p_align && ((s.p_align & (s.p_align - 1)) ||
+            ((s.p_vaddr - s.p_offset) & (s.p_align - 1)))) return -5;
         if (segment_count >= MAX_SEGMENTS) return -6;
         if ((s.p_flags & (PF_W | PF_X)) == (PF_W | PF_X)) return -7;
 
@@ -112,10 +116,23 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
         if (dest.virtual_address < low) low = dest.virtual_address;
         uint64_t aligned_end = 0;
         if (!up(end, &aligned_end)) return -8;
+        /* Reject page-overlapping PT_LOAD ranges: the current page mapper has
+           no safe per-page merge policy for conflicting segment permissions. */
+        for (uint32_t j = 0; j + 1u < segment_count; ++j) {
+            uint64_t prior_end = 0;
+            if (!add_ok(plan.segments[j].virtual_address,
+                        plan.segments[j].memory_size, &prior_end) ||
+                !up(prior_end, &prior_end)) return -8;
+            if (dest.virtual_address < prior_end &&
+                plan.segments[j].virtual_address < aligned_end) return -11;
+        }
+        if ((s.p_flags & PF_X) && h->e_entry >= s.p_vaddr && h->e_entry < end)
+            entry_executable = true;
         if (aligned_end > high) high = aligned_end;
     }
 
-    if (!segment_count || plan.entry < low || plan.entry >= high) return -9;
+    if (!segment_count || plan.entry < low || plan.entry >= high ||
+        plan.entry >= stack || !entry_executable) return -9;
     plan.segment_count = segment_count;
     plan.image_low = low;
     plan.image_high = high;
