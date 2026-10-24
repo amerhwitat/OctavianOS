@@ -71,6 +71,7 @@ jobs:
           install -m 0644 installer/gui/aurora-installer.html "$DEST/gui/aurora-installer.html"
           install -m 0644 installer/gui/aurora-installer.css "$DEST/gui/aurora-installer.css"
           install -m 0644 installer/gui/aurora-installer.js "$DEST/gui/aurora-installer.js"
+          install -m 0644 installer/gui/aurora-installer-ui.json "$DEST/gui/aurora-installer-ui.json"
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -78,7 +79,7 @@ jobs:
           p.write_text(json.dumps({
               "schema": "OCTAVIANOS-INSTALLER-UI-1",
               "entrypoint": "aurora-installer.html",
-              "assets": ["aurora-installer.css", "aurora-installer.js"],
+              "assets": ["aurora-installer.css", "aurora-installer.js", "aurora-installer-ui.json"],
               "execution": "review-only",
               "native_transaction_backend": "not-integrated",
               "installation_success_claimed": False
@@ -86,7 +87,7 @@ jobs:
           PY
           test -s "$DEST/gui/aurora-installer.html"
           test -s "$DEST/gui/aurora-installer.js"
-          sha256sum "$DEST/cross-distro-workflow.json" "$DEST/gui/aurora-installer.html" "$DEST/gui/aurora-installer.css" "$DEST/gui/aurora-installer.js" > "$DEST/gui/SHA256SUMS"
+          sha256sum "$DEST/cross-distro-workflow.json" "$DEST/gui/aurora-installer.html" "$DEST/gui/aurora-installer.css" "$DEST/gui/aurora-installer.js" "$DEST/gui/aurora-installer-ui.json" > "$DEST/gui/SHA256SUMS"
       - name: Build bootable ISO
         run: |
           set -euo pipefail
