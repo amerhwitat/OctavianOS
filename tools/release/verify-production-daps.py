@@ -73,6 +73,17 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     return text
 
 
+def read_evidence_log(root: Path, relative: object, label: str, markers: tuple[str, ...]) -> str:
+    require(isinstance(relative, str) and bool(relative), f"{label}: evidence log reference missing")
+    path = (root / relative).resolve()
+    require(path.is_relative_to(root.resolve()), f"{label}: evidence log path escapes evidence root")
+    require(path.is_file(), f"{label}: evidence log missing: {path}")
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for marker in markers:
+        require(marker in text, f"{label}: required evidence record missing: {marker}")
+    return text
+
+
 def verify(evidence_path: Path) -> None:
     root = evidence_path.resolve().parent
     evidence = read_json(evidence_path)
@@ -106,7 +117,11 @@ def verify(evidence_path: Path) -> None:
     require(install.get("write_verified") is True, "installer write postcondition missing")
     require(install.get("cold_reboot_verified") is True, "installed-disk cold reboot not verified")
     require(install.get("installed_system_ready") is True, "installed system readiness not verified")
-    require(bool(install.get("evidence_log")), "installer persistence log reference missing")
+    read_evidence_log(root, install.get("evidence_log"), "installer persistence", (
+        "INSTALL WRITE VERIFIED",
+        "INSTALLED DISK COLD REBOOT VERIFIED",
+        "INSTALLED SYSTEM READY",
+    ))
 
     recovery = evidence.get("recovery")
     require(isinstance(recovery, dict), "recovery evidence missing")
@@ -114,7 +129,10 @@ def verify(evidence_path: Path) -> None:
     require(recovery.get("iso_sha256") == expected_sha, "recovery evidence references a different ISO")
     require(recovery.get("repair_action_executed") is True, "recovery repair action not executed")
     require(recovery.get("postcondition_verified") is True, "recovery repair postcondition not verified")
-    require(bool(recovery.get("evidence_log")), "recovery evidence log reference missing")
+    read_evidence_log(root, recovery.get("evidence_log"), "recovery repair", (
+        "RECOVERY REPAIR EXECUTED",
+        "RECOVERY POSTCONDITION VERIFIED",
+    ))
 
     smp = evidence.get("smp")
     require(isinstance(smp, dict), "SMP evidence missing")
@@ -123,7 +141,11 @@ def verify(evidence_path: Path) -> None:
     require(isinstance(smp.get("online_ap_cpus"), list) and len(set(smp["online_ap_cpus"])) >= 2,
             "SMP requires at least two distinct online CPU IDs including AP evidence")
     require(smp.get("overlap_observed") is True, "overlapping execution evidence missing")
-    require(bool(smp.get("per_cpu_trace")), "per-CPU execution trace reference missing")
+    smp_log = read_evidence_log(root, smp.get("per_cpu_trace"), "SMP", ("SMP OVERLAP VERIFIED",))
+    observed_cpus = set(re.findall(r"SMP AP ONLINE: cpu=([0-9]+)", smp_log))
+    declared_cpus = {str(cpu) for cpu in smp["online_ap_cpus"]}
+    require(len(observed_cpus) >= 2, "SMP trace must show at least two AP-online CPU records")
+    require(declared_cpus.issubset(observed_cpus), "SMP declared CPU IDs are not all present in per-CPU trace")
 
     print("PRODUCTION DAPS: PASS")
     print(f"ISO SHA-256: {expected_sha}")
