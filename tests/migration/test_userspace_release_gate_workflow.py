@@ -31,7 +31,7 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         )
         self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'", section)
         self.assertIn(
-            "Published only after Live, Installer, and Recovery userspace handoff gates pass.",
+            "Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass.",
             section,
         )
 
