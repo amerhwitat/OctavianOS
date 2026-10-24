@@ -82,7 +82,7 @@ jobs:
               "execution": "review-only",
               "native_transaction_backend": "not-integrated",
               "installation_success_claimed": False
-          }, indent=2) + "\\n", encoding="utf-8")
+          }, indent=2) + "\n", encoding="utf-8")
           PY
           test -s "$DEST/gui/aurora-installer.html"
           test -s "$DEST/gui/aurora-installer.js"
