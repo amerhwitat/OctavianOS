@@ -162,6 +162,15 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    /* Bind the selected ELF to the firmware/bootloader-selected target too.
+       A valid module label alone must not let a Live init run in Installer or
+       Recovery mode (or vice versa). Keep this fail-closed until the boot
+       command line and module metadata agree exactly. */
+    const Target boot_target=parse_target(chimera_multiboot_command_line());
+    if (boot_target==TARGET_NONE || boot_target!=target) {
+        koronos_target_log("[RUN ] ERROR: user init target does not match selected boot target");
+        return -13;
+    }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
