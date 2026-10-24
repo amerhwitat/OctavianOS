@@ -5,6 +5,7 @@ global koronos_user_entry_init
 global koronos_arch_enter_user
 global koronos_syscall_entry
 global koronos_user_timeout_abort
+global koronos_user_page_fault_abort
 extern koronos_syscall_user_dispatch
 extern koronos_bootstrap_pml4
 extern koronos_user_exit_code
@@ -231,6 +232,25 @@ koronos_syscall_user_exit:
     swapgs
     ret
 
+; Abort a ring-3 process on an unhandled user page fault. The common
+; exception stub did not swapgs, so GS_BASE is already in the kernel continuation's
+; expected neutral state. This is a fail-closed fallback until demand paging is
+; connected; it must not be mistaken for successful swap-in.
+koronos_user_page_fault_abort:
+    lea rax, [rel koronos_bootstrap_pml4]
+    mov cr3, rax
+    mov rsp, [rel koronos_cpu_syscall_state + 16]
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    mov eax, -11
+    push qword [rel koronos_cpu_syscall_state + 40]
+    popfq
+    ret
+
 ; Called only by the dedicated IRQ0 stub after the in-kernel deadline expires.
 ; Discard the interrupted user IRQ frame and resume the original C caller as a
 ; failed process, using the same saved kernel continuation as syscall exit.
@@ -281,3 +301,5 @@ koronos_syscall_stack_top:
 section .rodata
 align 4
 koronos_default_mxcsr: dd 0x1F80
+
+section .note.GNU-stack noalloc noexec nowrite progbits
