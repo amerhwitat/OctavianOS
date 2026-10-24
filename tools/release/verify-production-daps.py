@@ -110,10 +110,11 @@ def verify(evidence_path: Path) -> None:
             require(label in traces, f"missing required production trace {label}")
             trace_text[label] = read_trace(root, traces[label], label, expected_sha)
 
-    live = trace_text["live/bios"] + "\n" + trace_text["live/uefi"]
-    require("USERSPACE TARGET READY: live component=aurora-session" in live,
-            "Live: actual Aurora session readiness missing from both firmware traces")
-    require("AURORA READY" in live, "Live: Aurora runtime health marker missing")
+    for firmware in FIRMWARES:
+        live = trace_text[f"live/{firmware}"]
+        require("USERSPACE TARGET READY: live component=aurora-session" in live,
+                f"Live/{firmware}: actual Aurora session readiness missing")
+        require("AURORA READY" in live, f"Live/{firmware}: Aurora runtime health marker missing")
 
     install = evidence.get("installer_persistence")
     require(isinstance(install, dict), "installer_persistence evidence missing")
