@@ -21,18 +21,20 @@ def main() -> int:
     source = ROOT / "kernel/userspace/native_init.c"
     linker = ROOT / "kernel/userspace/native_init.ld"
     prepare = ROOT / "boot/iso/prepare-layout.sh"
+    iso_builder = ROOT / "boot/iso/build-iso.sh"
     grub = ROOT / "boot/iso/grub.cfg"
     live_cfg = ROOT / "boot/jasper/live.cfg"
     recovery_cfg = ROOT / "boot/jasper/recovery.cfg"
     install_cfg = ROOT / "boot/jasper/install.cfg"
 
-    for path in (builder, source, linker, prepare, grub, live_cfg, recovery_cfg, install_cfg):
+    for path in (builder, source, linker, prepare, iso_builder, grub, live_cfg, recovery_cfg, install_cfg):
         if not path.is_file():
             return fail(f"required source/config missing: {path.relative_to(ROOT)}")
 
     build_text = builder.read_text(encoding="utf-8")
     init_text = source.read_text(encoding="utf-8")
     prepare_text = prepare.read_text(encoding="utf-8")
+    iso_build_text = iso_builder.read_text(encoding="utf-8")
     grub_text = grub.read_text(encoding="utf-8")
     live_text = live_cfg.read_text(encoding="utf-8")
     recovery_text = recovery_cfg.read_text(encoding="utf-8")
@@ -47,8 +49,8 @@ def main() -> int:
             return fail(f"builder does not stage {staged_path}")
         if f"target={target}" not in grub_text:
             return fail(f"canonical GRUB does not select target={target}")
-    if 'bash "$ROOT/tools/build-production-init-elfs.sh"' not in prepare_text:
-        return fail("ISO preparation does not invoke target init ELF builder")
+    if 'bash "$ROOT/tools/build-production-init-elfs.sh"' not in iso_build_text:
+        return fail("ISO build orchestrator does not invoke target init ELF builder after layout preparation")
     if "chimera-user-init-elf target=live" not in live_text:
         return fail("Jasper Live config does not dispatch the Live init ELF")
     if "chimera-user-init-elf target=recovery" not in recovery_text:
