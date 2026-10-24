@@ -17,7 +17,10 @@ class ProductionDAPSTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        (self.root / "candidate.iso").write_bytes(b"test-only-fixture-not-a-real-iso")
+        # Minimal synthetic ISO9660 PVD signature fixture; not a bootable OS image.
+        iso_bytes = bytearray(16 * 2048 + 7)
+        iso_bytes[16 * 2048:16 * 2048 + 7] = b"\\x01CD001\\x01"
+        (self.root / "candidate.iso").write_bytes(iso_bytes)
         self.sha = hashlib.sha256((self.root / "candidate.iso").read_bytes()).hexdigest()
         traces = {}
         for target in ("live", "installer", "recovery"):
