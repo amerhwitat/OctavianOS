@@ -329,6 +329,7 @@ jobs:
             multiboot2 /boot/koronos/koronos.elf
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+            module2 /boot/recovery/user-init-recovery.elf chimera-user-init-elf target=recovery
             boot
           }
           GRUB
@@ -339,7 +340,12 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery handoff status missing"; exit 1; }
+          # Exercise the actual target-matched ring-3 ELF, not just module routing.
+          # Native init deliberately exits 78 until production service backends exist;
+          # that fail-closed result is expected here and is not release acceptance.
+          grep -Eq 'USER INIT SYSCALL: target=recovery init_pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native init never acknowledged a user-originated syscall"; exit 1; }
+          grep -Eq 'NATIVE INIT PID: target=recovery pid=[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native init did not report its kernel-owned PID"; exit 1; }
+          grep -Fq 'NATIVE INIT BLOCKED:' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery native init did not fail closed on unavailable services"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
