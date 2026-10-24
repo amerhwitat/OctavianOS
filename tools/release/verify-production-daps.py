@@ -16,6 +16,7 @@ from pathlib import Path
 
 TARGETS = ("live", "installer", "recovery")
 FIRMWARES = ("bios", "uefi")
+KERNEL_MARKER = "[KRN ] KORONOS READY"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
