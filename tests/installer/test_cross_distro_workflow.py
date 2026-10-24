@@ -7,6 +7,7 @@ CONTRACT = ROOT / "installer" / "cross-distro-workflow.json"
 HTML = ROOT / "installer" / "gui" / "aurora-installer.html"
 JS = ROOT / "installer" / "gui" / "aurora-installer.js"
 CSS = ROOT / "installer" / "gui" / "aurora-installer.css"
+UI_CONTRACT = ROOT / "installer" / "gui" / "aurora-installer-ui.json"
 
 
 class CrossDistroInstallerWorkflowTests(unittest.TestCase):
@@ -21,6 +22,8 @@ class CrossDistroInstallerWorkflowTests(unittest.TestCase):
         self.assertFalse(data["storage_safety"]["erase_default"])
         self.assertEqual(data["storage_safety"]["unsupported_operation"], "fail_closed")
         self.assertTrue(data["acceptance"]["require_exact_iso_sha256"])
+        ui = json.loads(UI_CONTRACT.read_text(encoding="utf-8"))
+        self.assertEqual(ui["backend_status"], "review-only; native GUI transaction adapter not integrated")
 
     def test_gui_has_guided_custom_storage_review_and_fail_closed_commit(self):
         html = HTML.read_text(encoding="utf-8")
