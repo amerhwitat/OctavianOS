@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
+      - 'vendor/chimera-ii-os/source/tools/build-production-init-elfs.sh'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
