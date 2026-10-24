@@ -31,6 +31,8 @@ class ProductionDAPSTests(unittest.TestCase):
                     f"USER INIT SYSCALL: target={target} init_pid=42",
                     f"USERSPACE READY: {target} init pid=42",
                     "USERSPACE SYSCALL RETURNED TO RING3",
+                    f"PRODUCTION INIT PAYLOAD: target={target} source=initramfs sha256={'a' * 64}",
+                    f"PRODUCTION INIT EXECUTED: target={target} pid=42",
                 ]
                 if target == "live":
                     lines += [
@@ -74,6 +76,18 @@ class ProductionDAPSTests(unittest.TestCase):
 
     def test_complete_fixture_satisfies_mechanical_contract(self):
         DAPS.verify(self.manifest, report=False)
+
+    def test_rejects_probe_only_trace_without_production_payload_provenance(self):
+        path = self.root / "live-bios.log"
+        path.write_text(
+            "[KRN ] KORONOS READY\\n"
+            "USER INIT SYSCALL: target=live init_pid=42\\n"
+            "USERSPACE READY: live init pid=42\\n"
+            "USERSPACE SYSCALL RETURNED TO RING3\\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
+            DAPS.verify(self.manifest)
 
     def test_rejects_trace_from_different_iso(self):
         self.evidence["traces"]["recovery/uefi"]["iso_sha256"] = "0" * 64
