@@ -5,9 +5,10 @@
 extern "C" {
 #endif
 
-/* Called by the live/bootstrap scheduler task. Returns 0 only when no target
-   ELF was selected or when the selected init exited after its own readiness
-   handshake; negative values describe an explicit launch/acceptance failure. */
+/* Called by the live/bootstrap scheduler task. An untargeted kernel-only smoke
+   boot may return 0 without an init ELF. A selected Live/Installer/Recovery
+   target without its native init ELF fails closed; successful launch returns 0
+   only after the selected init reports readiness and exits cleanly. */
 int koronos_launch_selected_userspace(void);
 int koronos_target_note_user_write(const char *bytes, uint64_t length);
 uint32_t koronos_target_userspace_ready(void);
