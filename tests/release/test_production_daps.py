@@ -23,16 +23,20 @@ class ProductionDAPSTests(unittest.TestCase):
         (self.root / "candidate.iso").write_bytes(iso_bytes)
         self.sha = hashlib.sha256((self.root / "candidate.iso").read_bytes()).hexdigest()
         traces = {}
+        payload_hashes = {}
         for target in ("live", "installer", "recovery"):
+            payload_path = self.root / f"{target}-production-init.elf"
+            payload_path.write_bytes(f"test production init payload for {target}".encode("utf-8"))
+            payload_hashes[target] = hashlib.sha256(payload_path.read_bytes()).hexdigest()
             for firmware in ("bios", "uefi"):
                 label = f"{target}/{firmware}"
                 lines = [
                     "[KRN ] KORONOS READY",
-                    f"USER INIT SYSCALL: target={target} init_pid=42",
-                    f"USERSPACE READY: {target} init pid=42",
-                    "USERSPACE SYSCALL RETURNED TO RING3",
-                    f"PRODUCTION INIT PAYLOAD: target={target} source=initramfs sha256={'a' * 64}",
+                    f"PRODUCTION INIT PAYLOAD: target={target} source=initramfs sha256={payload_hashes[target]}",
                     f"PRODUCTION INIT EXECUTED: target={target} pid=42",
+                    f"USER INIT SYSCALL: target={target} init_pid=42",
+                    "USERSPACE SYSCALL RETURNED TO RING3",
+                    f"USERSPACE READY: {target} init pid=42",
                 ]
                 if target == "live":
                     lines += [
@@ -41,7 +45,11 @@ class ProductionDAPSTests(unittest.TestCase):
                     ]
                 filename = f"{target}-{firmware}.log"
                 (self.root / filename).write_text("\n".join(lines) + "\n", encoding="utf-8")
-                traces[label] = {"iso_sha256": self.sha, "log": filename}
+                traces[label] = {
+                    "iso_sha256": self.sha, "log": filename,
+                    "payload_file": f"{target}-production-init.elf",
+                    "payload_sha256": payload_hashes[target],
+                }
         (self.root / "installer-persistence.log").write_text(
             "INSTALL WRITE VERIFIED\nINSTALLED DISK COLD REBOOT VERIFIED\nINSTALLED SYSTEM READY\n",
             encoding="utf-8")
@@ -87,6 +95,22 @@ class ProductionDAPSTests(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_extracted_init_payload_hash_mismatch(self):
+        self.evidence["traces"]["live/bios"]["payload_sha256"] = "0" * 64
+        self.write_manifest()
+        with self.assertRaisesRegex(DAPS.GateError, "extracted production init ELF hash mismatch"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_readiness_before_cpl3_acknowledgement(self):
+        path = self.root / "live-bios.log"
+        lines = path.read_text(encoding="utf-8").splitlines()
+        ack = next(i for i, line in enumerate(lines) if line.startswith("USER INIT SYSCALL:"))
+        ready = next(i for i, line in enumerate(lines) if line.startswith("USERSPACE READY:"))
+        lines[ack], lines[ready] = lines[ready], lines[ack]
+        path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "readiness precedes its syscall acknowledgement"):
             DAPS.verify(self.manifest)
 
     def test_rejects_trace_from_different_iso(self):
