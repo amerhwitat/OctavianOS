@@ -4,12 +4,20 @@ on:
   push:
     paths:
       - 'boot/**/*.cfg'
+      - 'arch/**'
+      - 'scripts/arch/**'
+      - 'tests/arch/**'
+      - 'docs/native-elf-multiarch.md'
       - 'boot/iso/grub.cfg'
       - 'tests/boot/**'
       - 'installer/**'
       - 'tests/installer/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
       - 'kernel/**'
+      - 'arch/**'
+      - 'scripts/arch/**'
+      - 'tests/arch/**'
+      - 'docs/native-elf-multiarch.md'
       - 'editions/mobile/**'
       - 'tools/release/**'
       - 'tests/qemu/**'
@@ -19,12 +27,20 @@ on:
   pull_request:
     paths:
       - 'boot/**/*.cfg'
+      - 'arch/**'
+      - 'scripts/arch/**'
+      - 'tests/arch/**'
+      - 'docs/native-elf-multiarch.md'
       - 'boot/iso/grub.cfg'
       - 'tests/boot/**'
       - 'installer/**'
       - 'tests/installer/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
       - 'kernel/**'
+      - 'arch/**'
+      - 'scripts/arch/**'
+      - 'tests/arch/**'
+      - 'docs/native-elf-multiarch.md'
       - 'editions/mobile/**'
       - 'tools/release/**'
       - 'tests/qemu/**'
@@ -41,6 +57,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate native ELF architecture matrix and fail-closed selection
+        run: |
+          python3 scripts/arch/verify_elf_matrix.py
+          python3 -m unittest discover -s tests/arch -p 'test_*.py' -v
       - name: Test fail-closed production service-lifecycle DAPS contract
         run: python3 scripts/daps/test_production_acceptance_gate.py
       - name: Test cross-distro installer wizard and fail-closed commit contract
