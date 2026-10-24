@@ -8,6 +8,7 @@ PROCESS_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/process.cpp"
 ELF_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/elf64.cpp"
 LOADER_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/process_loader.cpp"
 SCHEDULER_SOURCE = ROOT / "vendor/chimera-ii-os/source/kernel/core/scheduler.cpp"
+CANDIDATE_PROBE_WORKFLOW = ROOT / ".github/workflows/koronos-userspace-acceptance.yml"
 
 
 class UserspaceReleaseWorkflowTests(unittest.TestCase):
@@ -38,6 +39,13 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
             "Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass.",
             section,
         )
+
+    def test_candidate_ring3_workflow_marks_probe_payload_explicitly(self):
+        source = CANDIDATE_PROBE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET probe=ring3", source)
+        self.assertIn("module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live", source)
+        timeout_line = next(line for line in source.splitlines() if "user-init-timeout.elf" in line)
+        self.assertNotIn("probe=ring3", timeout_line)
 
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
