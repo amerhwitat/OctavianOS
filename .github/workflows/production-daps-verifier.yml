@@ -1,0 +1,35 @@
+name: Production DAPS verifier
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/release/verify-production-daps.py'
+      - 'tests/release/test_production_daps.py'
+      - 'docs/PRODUCTION_DAPS.md'
+      - '.github/workflows/production-daps-verifier.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/release/verify-production-daps.py'
+      - 'tests/release/test_production_daps.py'
+      - 'docs/PRODUCTION_DAPS.md'
+      - '.github/workflows/production-daps-verifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    name: DAPS verifier unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile verifier and regression test
+        run: python -m py_compile tools/release/verify-production-daps.py tests/release/test_production_daps.py
+      - name: Test strict evidence acceptance and rejection paths
+        run: python tests/release/test_production_daps.py

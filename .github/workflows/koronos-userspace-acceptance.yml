@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Probe Smoke (Not Production Acceptance)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: Candidate ring-3 probe / ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -59,8 +59,8 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            multiboot2 /boot/koronos.elf target=$TARGET
+            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET probe=ring3
             boot
           }
           EOF
@@ -133,7 +133,7 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
-            multiboot2 /boot/koronos.elf
+            multiboot2 /boot/koronos.elf target=live
             module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
             boot
           }
