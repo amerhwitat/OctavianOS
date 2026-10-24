@@ -48,6 +48,14 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("in(h->e_phoff, ph_bytes, size)", source)
         self.assertIn("reinterpret_cast<const koronos_elf64_phdr *>(bytes + h->e_phoff)", source)
 
+    def test_elf_entry_must_be_executable_and_load_ranges_must_not_overlap(self):
+        source = PROCESS_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("bool entry_executable = false", source)
+        self.assertIn("!entry_executable", source)
+        self.assertIn("Reject page-overlapping PT_LOAD ranges", source)
+        self.assertIn("s.p_vaddr < 0x0000000100000000ull", source)
+        self.assertIn("end > 0x0000800000000000ull", source)
+
     def test_pid_wraparound_does_not_alias_a_live_process(self):
         source = PROCESS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("static bool pid_in_use(uint32_t pid)", source)
