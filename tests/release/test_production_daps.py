@@ -36,6 +36,10 @@ class ProductionDAPSTests(unittest.TestCase):
                     f"PRODUCTION INIT EXECUTED: target={target} pid=42",
                     f"USER INIT SYSCALL: target={target} init_pid=42",
                     "USERSPACE SYSCALL RETURNED TO RING3",
+                    f"USERSPACE FILE SYSCALL: target={target} pid=42 op=open path=/etc/os-release result=fd:3",
+                    f"USERSPACE FILE SYSCALL: target={target} pid=42 op=read path=/etc/os-release fd=3 result=bytes:16",
+                    f"USERSPACE FILE SYSCALL: target={target} pid=42 op=close path=/etc/os-release fd=3 result=0",
+                    f"USERSPACE TMP SYSCALL: target={target} pid=42 op=write path=/tmp/daps-probe result=bytes:4",
                     f"USERSPACE READY: {target} init pid=42",
                 ]
                 if target == "live":
@@ -95,6 +99,14 @@ class ProductionDAPSTests(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_missing_ring3_rootfs_or_tmp_io_evidence(self):
+        path = self.root / "live-bios.log"
+        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = [line for line in lines if "op=write path=/tmp/daps-probe" not in line]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "ring-3 writable /tmp write evidence missing"):
             DAPS.verify(self.manifest)
 
     def test_rejects_extracted_init_payload_hash_mismatch(self):
