@@ -88,10 +88,10 @@ class ProductionDAPSTests(unittest.TestCase):
     def test_rejects_probe_only_trace_without_production_payload_provenance(self):
         path = self.root / "live-bios.log"
         path.write_text(
-            "[KRN ] KORONOS READY\\n"
-            "USER INIT SYSCALL: target=live init_pid=42\\n"
-            "USERSPACE READY: live init pid=42\\n"
-            "USERSPACE SYSCALL RETURNED TO RING3\\n",
+            "[KRN ] KORONOS READY\n"
+            "USER INIT SYSCALL: target=live init_pid=42\n"
+            "USERSPACE READY: live init pid=42\n"
+            "USERSPACE SYSCALL RETURNED TO RING3\n",
             encoding="utf-8",
         )
         with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
@@ -109,7 +109,7 @@ class ProductionDAPSTests(unittest.TestCase):
         ack = next(i for i, line in enumerate(lines) if line.startswith("USER INIT SYSCALL:"))
         ready = next(i for i, line in enumerate(lines) if line.startswith("USERSPACE READY:"))
         lines[ack], lines[ready] = lines[ready], lines[ack]
-        path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "readiness precedes its syscall acknowledgement"):
             DAPS.verify(self.manifest)
 
@@ -134,7 +134,7 @@ class ProductionDAPSTests(unittest.TestCase):
                 "AURORA READY",
             }
         ]
-        path.write_text("\\n".join(retained) + "\\n", encoding="utf-8")
+        path.write_text("\n".join(retained) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: actual Aurora"):
             DAPS.verify(self.manifest)
 
