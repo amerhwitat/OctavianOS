@@ -56,7 +56,18 @@ referenced postcondition logs and requires these exact records:
 
 Each of the six boot traces must show kernel readiness, a nonzero CPL3-originated
 syscall acknowledgement, matching same-PID userspace readiness, and ring-3 return.
-Both Live firmware traces must additionally show
+To prevent the dedicated `user-init-<target>.elf` smoke probes from being mistaken for
+production acceptance, each trace must also contain both records emitted by the actual
+production initramfs-to-process path:
+
+- `PRODUCTION INIT PAYLOAD: target=<target> source=initramfs sha256=<64 lowercase hex>`
+- `PRODUCTION INIT EXECUTED: target=<target> pid=<same nonzero PID>`
+
+The production-executed PID must match both the CPL3 syscall acknowledgement and the
+userspace readiness PID. The payload digest must identify the actual extracted init ELF;
+a hand-authored manifest entry or probe-only trace is not sufficient evidence. Until the
+kernel implements and emits these records from the real production payload path, DAPS
+must remain blocked. Both Live firmware traces must additionally show
 `USERSPACE TARGET READY: live component=aurora-session` and `AURORA READY`.
 
 A passing report means these mechanical evidence requirements were met; reviewers must
