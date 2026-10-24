@@ -8,6 +8,7 @@ HTML = ROOT / "installer" / "gui" / "aurora-installer.html"
 JS = ROOT / "installer" / "gui" / "aurora-installer.js"
 CSS = ROOT / "installer" / "gui" / "aurora-installer.css"
 UI_CONTRACT = ROOT / "installer" / "gui" / "aurora-installer-ui.json"
+RELEASE = ROOT / ".github" / "workflows" / "release-artifacts.yml"
 
 
 class CrossDistroInstallerWorkflowTests(unittest.TestCase):
@@ -37,6 +38,13 @@ class CrossDistroInstallerWorkflowTests(unittest.TestCase):
         self.assertIn('aria-label="Installation steps"', html)
         self.assertIn("aurora-installer.css", html)
         self.assertIn(":focus-visible", css)
+
+    def test_release_requires_exact_iso_daps_before_publication(self):
+        workflow = RELEASE.read_text(encoding="utf-8")
+        self.assertIn("production-acceptance:", workflow)
+        self.assertIn("needs: [container, iso, production-acceptance]", workflow)
+        self.assertIn("production_acceptance_gate.py", workflow)
+        self.assertIn("installation_success_claimed", workflow)
 
     def test_gui_does_not_claim_native_backend_or_fake_install_success(self):
         js = JS.read_text(encoding="utf-8")
