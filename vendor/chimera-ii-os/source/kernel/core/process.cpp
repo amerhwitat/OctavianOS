@@ -3,6 +3,7 @@
 namespace {
 constexpr uint32_t MAX_SEGMENTS = 16;
 constexpr uint64_t PAGE = 4096;
+constexpr uint64_t USER_MIN = 0x0000000100000000ull;
 constexpr uint64_t USER_LIMIT = 0x0000800000000000ull;
 constexpr uint32_t PT_LOAD = 1u, PF_W = 2u, PF_X = 1u;
 struct Slot { chimera_process_image image{}; bool used = false; };
@@ -50,7 +51,7 @@ extern "C" int chimera_process_init(void) {
 extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
                                            uint16_t machine, uint64_t stack,
                                            chimera_process_image *out) {
-    if (!image || !out || size < sizeof(koronos_elf64_ehdr) || stack < PAGE ||
+    if (!image || !out || size < sizeof(koronos_elf64_ehdr) || stack < USER_MIN ||
         stack >= USER_LIMIT) return -1;
 
     koronos_elf64_ehdr h{};
@@ -81,7 +82,7 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
 
         uint64_t end = 0, aligned_end = 0;
         if (!add_ok(s.p_vaddr, s.p_memsz, &end) ||
-            s.p_vaddr < PAGE || s.p_vaddr >= USER_LIMIT ||
+            s.p_vaddr < USER_MIN || s.p_vaddr >= USER_LIMIT ||
             end > USER_LIMIT || end > p.user_stack_top ||
             !up(end, &aligned_end)) return -5;
         if (s.p_align > 1u &&
