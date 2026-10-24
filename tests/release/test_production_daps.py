@@ -127,9 +127,14 @@ class ProductionDAPSTests(unittest.TestCase):
     def test_rejects_missing_aurora_in_one_firmware(self):
         path = self.root / "live-uefi.log"
         trace = path.read_text(encoding="utf-8")
-        trace = trace.replace("USERSPACE TARGET READY: live component=aurora-session\\n", "")
-        trace = trace.replace("AURORA READY\\n", "")
-        path.write_text(trace, encoding="utf-8")
+        retained = [
+            line for line in trace.splitlines()
+            if line not in {
+                "USERSPACE TARGET READY: live component=aurora-session",
+                "AURORA READY",
+            }
+        ]
+        path.write_text("\\n".join(retained) + "\\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: actual Aurora"):
             DAPS.verify(self.manifest)
 
