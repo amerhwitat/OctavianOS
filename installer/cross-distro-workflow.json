@@ -1,5 +1,5 @@
 {
-  "schema": "CHIMERA_CROSS_DISTRO_INSTALLER_FLOW_V1",
+  "schema": "OCTAVIANOS_CROSS_DISTRO_INSTALLER_FLOW_V1",
   "goal": "A native Chimera installer experience informed by public workflows, not copied distro code or branding.",
   "design_influences": [
     {
@@ -41,8 +41,8 @@
     }
   ],
   "shared_frontend_contract": {
-    "text": "chimera-installer-cli",
-    "gui": "Aurora installer wizard",
+    "text": "octavianos-text-installer",
+    "gui": "OctavianOS Aurora installer wizard",
     "executor": "Installer::build_plan + Installer::execute",
     "parity_rule": "Both frontends submit the same normalized plan and display the same backend result; neither may claim installation success independently."
   },
