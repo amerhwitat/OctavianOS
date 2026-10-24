@@ -39,3 +39,19 @@ The workflow explicitly labels these as candidate probes and says production pay
 Keep PR #126 in draft and do not merge or publish a native OS release based on these results. The release gate must consume an evidence bundle for one immutable ISO SHA-256 and require all six production traces, production-payload provenance, matching nonzero execution/syscall/readiness PIDs, Aurora health, installer persistence, recovery postconditions, and AP-backed SMP evidence. Missing evidence must continue to fail closed.
 
 This status document does not synthesize traces, generate a DAPS bundle, or substitute source inspection/build success for runtime acceptance.
+
+## Follow-up Check — production handoff root cause confirmed
+
+Re-inspection of the exact source and failed full-ISO job confirms this is not another target-routing mismatch:
+
+- Failed production job: [run #40072696889, job 120810032086](https://github.com/amerhwitat/OctavianOS/actions/runs/40072696889). Its three target traces each fail the handoff verifier for missing CPL3 init syscall acknowledgement and actual init-PID readiness.
+- `kernel/core/target_launch.cpp` only launches a module classified as `CHIMERA_MODULE_USER_INIT_ELF`. When a targeted boot has no such module, it logs that the initramfs-to-process extraction backend is unavailable and returns an error. Its current path does not extract a CPIO archive, resolve an ELF `/init` from that archive, or start a shell-script init through an interpreter.
+- `tools/build-live-boot-binaries.sh` still stages a BusyBox `/init` shell script for Live and a shell-based Recovery console. These are not the native ELF init payload that the current process launcher accepts. The production build path and candidate probe path therefore do not converge on the same executable.
+- `kernel/tests/user_init_smoke.c` is intentionally a probe: it calls a small syscall sequence, prints readiness, and exits. It must not be relabeled as the production target init.
+
+### Next implementation dependency
+
+Implement and test the production execution chain as one coherent feature: bounded newc/CPIO parsing; path and entry selection from the actual archive; executable/interpreter and dependency resolution; safe root VFS setup; process-owned address space and ring-3 entry; syscall-backed file descriptors and exit/wait/reap; then PID 1 service supervision. Until the existing shell-based archive can be executed through a real interpreter (or the target ships a genuinely supported ELF init), adding a readiness marker or passing the smoke probe cannot close this blocker.
+
+No production payload or runtime acceptance is claimed by this follow-up. The release decision remains **NOT ACCEPTED**.
+
