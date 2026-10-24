@@ -1,0 +1,38 @@
+{
+  "schema": "OCTAVIANOS-AURORA-INSTALLER-GUI-1",
+  "renderer": "OctavianOS Aurora installer wizard",
+  "panels": [
+    "Welcome",
+    "Language & Keyboard",
+    "Hardware & Firmware",
+    "Network & Source",
+    "System Role & Software",
+    "Guided/Custom Storage",
+    "Accounts & Security",
+    "Bootloader",
+    "Review & Commit",
+    "Installation Progress (backend required)",
+    "Verification",
+    "Reboot"
+  ],
+  "workflow_contract": "../cross-distro-workflow.json",
+  "design_influences": [
+    "Red Hat Anaconda/CentOS",
+    "Linux Mint/Ubuntu",
+    "Debian Installer",
+    "SUSE YaST"
+  ],
+  "storage_modes": [
+    "guided",
+    "custom"
+  ],
+  "safety": {
+    "dry_run_default": true,
+    "erase_default": false,
+    "preserve_existing_os_default": true,
+    "require_stable_target_identity": true,
+    "require_explicit_confirmation": true,
+    "transaction_backend": "fail-closed-until-journal-rollback-readback-and-boot-verification-exist"
+  },
+  "backend_status": "review-only; native GUI transaction adapter not integrated"
+}
