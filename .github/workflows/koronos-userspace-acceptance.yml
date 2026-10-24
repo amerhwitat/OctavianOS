@@ -45,6 +45,8 @@ jobs:
           mkdir -p "$dest"
           rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' chimera-upstream/ "$dest/"
           source_sha="$(git -C chimera-upstream rev-parse HEAD)"
+          expected_sha="$(tr -d '[:space:]' < vendor/chimera-ii-os/UPSTREAM_REVISION)"
+          test "$source_sha" = "$expected_sha" || { echo "ERROR: workflow source pin $source_sha differs from vendor UPSTREAM_REVISION $expected_sha" >&2; exit 1; }
           test "$source_sha" = "24b48f7ddf2b1f244e8f95a9d6b041ac44549889"
           echo "Canonical ChimeraIIOS source: $source_sha" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::Koronos acceptance is building pinned canonical source $source_sha, not an unverified stale vendor tree."
