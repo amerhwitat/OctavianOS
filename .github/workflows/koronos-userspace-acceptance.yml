@@ -187,7 +187,8 @@ jobs:
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
-        if: matrix.firmware == 'bios'
+        env:
+          FIRMWARE: ${{ matrix.firmware }}
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           set -euo pipefail
@@ -209,10 +210,29 @@ jobs:
           EOF
           grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
           LOG="$OUT/qemu-timeout.log"
-          set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
+          QEMU=(qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
             -display none -serial none -monitor none -no-reboot -no-shutdown \
-            -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
+            -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
+          if [ "$FIRMWARE" = uefi ]; then
+            OVMF_CODE=""
+            OVMF_VARS=""
+            for candidate in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
+              if [ -f "$candidate" ]; then
+                vars_candidate="${candidate/CODE/VARS}"
+                if [ -f "$vars_candidate" ]; then OVMF_CODE="$candidate"; OVMF_VARS="$vars_candidate"; break; fi
+              fi
+            done
+            if [ -z "$OVMF_CODE" ] || [ -z "$OVMF_VARS" ]; then
+              echo "ERROR: matching OVMF code/vars images were not installed" >&2
+              find /usr/share -iname 'OVMF_*.fd' -print >&2 || true
+              exit 1
+            fi
+            cp "$OVMF_VARS" "$OUT/OVMF_TIMEOUT_VARS.fd"
+            QEMU+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF_CODE"
+                   -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_TIMEOUT_VARS.fd")
+          fi
+          set +e
+          timeout 15s "${QEMU[@]}"
           qemu_rc=$?
           set -e
           cat "$LOG"
