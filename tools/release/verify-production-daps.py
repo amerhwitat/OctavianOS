@@ -88,6 +88,38 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     ring3_return = text.find("USERSPACE SYSCALL RETURNED TO RING3", ack[-1].start())
     require(ring3_return >= 0, f"{label}: ring-3 return evidence missing")
 
+    # Prove the same PID can use the mounted root VFS and writable /tmp from
+    # ring 3. A generic syscall acknowledgement alone is not a file-I/O proof.
+    pid = ack[-1].group(1)
+    open_records = list(re.finditer(
+        rf"USERSPACE FILE SYSCALL: target={re.escape(target)} pid={pid} op=open path=/etc/os-release result=fd:([1-9][0-9]*)",
+        text,
+    ))
+    require(open_records, f"{label}: ring-3 rootfs OPEN evidence missing")
+    fd = open_records[-1].group(1)
+    read_records = list(re.finditer(
+        rf"USERSPACE FILE SYSCALL: target={re.escape(target)} pid={pid} op=read path=/etc/os-release fd={fd} result=bytes:([1-9][0-9]*)",
+        text,
+    ))
+    close_records = list(re.finditer(
+        rf"USERSPACE FILE SYSCALL: target={re.escape(target)} pid={pid} op=close path=/etc/os-release fd={fd} result=0",
+        text,
+    ))
+    tmp_records = list(re.finditer(
+        rf"USERSPACE TMP SYSCALL: target={re.escape(target)} pid={pid} op=write path=/tmp/daps-probe result=bytes:([1-9][0-9]*)",
+        text,
+    ))
+    require(read_records, f"{label}: ring-3 rootfs READ evidence missing")
+    require(close_records, f"{label}: ring-3 rootfs CLOSE evidence missing")
+    require(tmp_records, f"{label}: ring-3 writable /tmp write evidence missing")
+    ready_at = ready[-1].start()
+    for name, records in (("OPEN", open_records), ("READ", read_records),
+                          ("CLOSE", close_records), ("/tmp WRITE", tmp_records)):
+        require(ring3_return < records[-1].start() < ready_at,
+                f"{label}: ring-3 {name} evidence is outside the acknowledged init execution window")
+    require(open_records[-1].start() < read_records[-1].start() < close_records[-1].start(),
+            f"{label}: rootfs OPEN/READ/CLOSE evidence is out of order")
+
     # Candidate user-init ELF probes are useful kernel smoke tests, but cannot
     # satisfy production release acceptance. Require explicit provenance from
     # the production initramfs extraction/launch path and bind it to this PID.
