@@ -21,12 +21,12 @@ The candidate ISO must be the exact ISO booted by every trace and end-to-end tes
   "iso": "candidate.iso",
   "iso_sha256": "<64 lowercase hex characters>",
   "traces": {
-    "live/bios": {"iso_sha256": "<same hash>", "log": "traces/live-bios.log"},
-    "live/uefi": {"iso_sha256": "<same hash>", "log": "traces/live-uefi.log"},
-    "installer/bios": {"iso_sha256": "<same hash>", "log": "traces/installer-bios.log"},
-    "installer/uefi": {"iso_sha256": "<same hash>", "log": "traces/installer-uefi.log"},
-    "recovery/bios": {"iso_sha256": "<same hash>", "log": "traces/recovery-bios.log"},
-    "recovery/uefi": {"iso_sha256": "<same hash>", "log": "traces/recovery-uefi.log"}
+    "live/bios": {"iso_sha256": "<same hash>", "log": "traces/live-bios.log", "payload_file": "payloads/live-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"},
+    "live/uefi": {"iso_sha256": "<same hash>", "log": "traces/live-uefi.log", "payload_file": "payloads/live-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"},
+    "installer/bios": {"iso_sha256": "<same hash>", "log": "traces/installer-bios.log", "payload_file": "payloads/installer-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"},
+    "installer/uefi": {"iso_sha256": "<same hash>", "log": "traces/installer-uefi.log", "payload_file": "payloads/installer-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"},
+    "recovery/bios": {"iso_sha256": "<same hash>", "log": "traces/recovery-bios.log", "payload_file": "payloads/recovery-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"},
+    "recovery/uefi": {"iso_sha256": "<same hash>", "log": "traces/recovery-uefi.log", "payload_file": "payloads/recovery-init.elf", "payload_sha256": "<SHA-256 of extracted init ELF>"}
   },
   "installer_persistence": {
     "passed": true, "iso_sha256": "<same hash>", "write_verified": true,
@@ -54,8 +54,9 @@ referenced postcondition logs and requires these exact records:
 - Per-CPU SMP trace: `SMP AP ONLINE: cpu=<id>` for at least two distinct CPUs and
   `SMP OVERLAP VERIFIED`.
 
-Each of the six boot traces must show kernel readiness, a nonzero CPL3-originated
-syscall acknowledgement, matching same-PID userspace readiness, and ring-3 return.
+Each of the six boot traces must show, in order, kernel readiness, production payload
+provenance, production init execution, a nonzero CPL3-originated syscall acknowledgement,
+matching same-PID userspace readiness, and ring-3 return.
 To prevent the dedicated `user-init-<target>.elf` smoke probes from being mistaken for
 production acceptance, each trace must also contain both records emitted by the actual
 production initramfs-to-process path:
@@ -64,8 +65,11 @@ production initramfs-to-process path:
 - `PRODUCTION INIT EXECUTED: target=<target> pid=<same nonzero PID>`
 
 The production-executed PID must match both the CPL3 syscall acknowledgement and the
-userspace readiness PID. The payload digest must identify the actual extracted init ELF;
-a hand-authored manifest entry or probe-only trace is not sufficient evidence. Until the
+userspace readiness PID. Each trace record must also name the extracted production init ELF
+under `payload_file` and its lowercase SHA-256 under `payload_sha256`. The verifier hashes
+that file and requires the digest emitted by the kernel to match it. The payload file must be
+independently extracted from the exact ISO named by the manifest; a hand-authored manifest
+entry or probe-only trace is not sufficient evidence. Until the
 kernel implements and emits these records from the real production payload path, DAPS
 must remain blocked. Both Live firmware traces must additionally show
 `USERSPACE TARGET READY: live component=aurora-session` and `AURORA READY`.
