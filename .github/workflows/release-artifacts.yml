@@ -61,6 +61,32 @@ jobs:
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
           python3 tools/release/validate_release_inputs.py --root build/iso-root
+      - name: Stage accessible installer wizard and policy into ISO
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST=build/iso-root/install/installer
+          mkdir -p "$DEST/gui"
+          install -m 0644 installer/cross-distro-workflow.json "$DEST/cross-distro-workflow.json"
+          install -m 0644 installer/gui/aurora-installer.html "$DEST/gui/aurora-installer.html"
+          install -m 0644 installer/gui/aurora-installer.css "$DEST/gui/aurora-installer.css"
+          install -m 0644 installer/gui/aurora-installer.js "$DEST/gui/aurora-installer.js"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("build/iso-root/install/installer/gui/installer-ui-manifest.json")
+          p.write_text(json.dumps({
+              "schema": "OCTAVIANOS-INSTALLER-UI-1",
+              "entrypoint": "aurora-installer.html",
+              "assets": ["aurora-installer.css", "aurora-installer.js"],
+              "execution": "review-only",
+              "native_transaction_backend": "not-integrated",
+              "installation_success_claimed": False
+          }, indent=2) + "\\n", encoding="utf-8")
+          PY
+          test -s "$DEST/gui/aurora-installer.html"
+          test -s "$DEST/gui/aurora-installer.js"
+          sha256sum "$DEST/cross-distro-workflow.json" "$DEST/gui/aurora-installer.html" "$DEST/gui/aurora-installer.css" "$DEST/gui/aurora-installer.js" > "$DEST/gui/SHA256SUMS"
       - name: Build bootable ISO
         run: |
           set -euo pipefail
