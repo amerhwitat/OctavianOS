@@ -23,8 +23,8 @@ def main() -> int:
         "test_native_init_launch_gate.py",
         "test_production_closeout_daps.py",
         "test_target_init_payload_binding.py",
-        "kernel/core/process_loader.cpp",
-        "kernel/core/target_launch.cpp",
+        "process_loader",
+        "target_launch",
         "koronos.elf",
     )
     for token in required:
