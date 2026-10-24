@@ -48,8 +48,8 @@ static bool pid_in_use(uint32_t pid) {
 /* PID wraparound must never alias a live process record. */
 static uint32_t allocate_pid() {
     for (uint32_t attempts = 0; attempts < CHIMERA_PROCESS_MAX + 1u; ++attempts) {
+        if (next_pid == 0 || next_pid > 0x7fffffffu) next_pid = 1;
         uint32_t candidate = next_pid++;
-        if (next_pid == 0) next_pid = 1;
         if (candidate != 0 && !pid_in_use(candidate)) return candidate;
     }
     return 0;
@@ -76,7 +76,6 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
        the pointer. A malformed ELF must not cause an out-of-bounds kernel read. */
     if (h->e_phentsize != sizeof(koronos_elf64_phdr) || h->e_phnum == 0) return -2;
     uint64_t ph_bytes = 0;
-    if (h->e_phnum > UINT64_MAX / sizeof(koronos_elf64_phdr)) return -2;
     ph_bytes = static_cast<uint64_t>(h->e_phnum) * sizeof(koronos_elf64_phdr);
     if (!in(h->e_phoff, ph_bytes, size)) return -2;
 
