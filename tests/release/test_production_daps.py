@@ -73,7 +73,7 @@ class ProductionDAPSTests(unittest.TestCase):
         self.manifest.write_text(json.dumps(self.evidence), encoding="utf-8")
 
     def test_complete_fixture_satisfies_mechanical_contract(self):
-        DAPS.verify(self.manifest)
+        DAPS.verify(self.manifest, report=False)
 
     def test_rejects_trace_from_different_iso(self):
         self.evidence["traces"]["recovery/uefi"]["iso_sha256"] = "0" * 64
