@@ -6,12 +6,14 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'docs/WINDOWS_LINUX_SERVICE_PARITY.md'
+      - 'docs/RUNTIME_BLOCKER_AUDIT_2026-10-24.md'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main, fix/userspace-acceptance-probe-artifacts-20261023]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'docs/WINDOWS_LINUX_SERVICE_PARITY.md'
+      - 'docs/RUNTIME_BLOCKER_AUDIT_2026-10-24.md'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
@@ -36,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: amerhwitat/ChimeraIIOS
-          ref: 054445cbfdd19da3e12d3c9e995ffd59c5263bca
+          ref: 63442aa40f5a8da11fa18b62d72e7717e9c853d0
           path: chimera-upstream
           fetch-depth: 1
       - name: Synchronize canonical source into isolated vendor build tree
@@ -49,7 +51,7 @@ jobs:
           source_sha="$(git -C chimera-upstream rev-parse HEAD)"
           expected_sha="$(tr -d '[:space:]' < vendor/chimera-ii-os/UPSTREAM_REVISION)"
           test "$source_sha" = "$expected_sha" || { echo "ERROR: workflow source pin $source_sha differs from vendor UPSTREAM_REVISION $expected_sha" >&2; exit 1; }
-          test "$source_sha" = "054445cbfdd19da3e12d3c9e995ffd59c5263bca"
+          test "$source_sha" = "63442aa40f5a8da11fa18b62d72e7717e9c853d0"
           echo "Canonical ChimeraIIOS source: $source_sha" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::Koronos acceptance is building pinned canonical source $source_sha, not an unverified stale vendor tree."
       - name: Verify kernel source/build manifest parity
