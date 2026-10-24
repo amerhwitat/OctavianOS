@@ -8,6 +8,8 @@ enum chimera_module_kind { CHIMERA_MODULE_UNKNOWN=0, CHIMERA_MODULE_LIVE_INITRAM
 typedef struct { uint64_t base,size; uint32_t kind; char cmdline[128]; } chimera_boot_module;
 uint32_t chimera_multiboot_scan(uint64_t boot_info);
 uint32_t chimera_multiboot_module_count(void);
+/* Bootloader command line from Multiboot2 tag type 1; empty when absent. */
+const char *chimera_multiboot_command_line(void);
 const chimera_boot_module* chimera_multiboot_module(uint32_t index);
 const chimera_boot_module* chimera_multiboot_find(uint32_t kind);
 #ifdef __cplusplus
