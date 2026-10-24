@@ -22,6 +22,8 @@ on:
       - 'boot/spitfire/**'
       - 'boot/installation/**'
       - 'tools/boot/octavian-progress*'
+      - 'tools/boot/octavian-init-splash.sh'
+      - 'boot/splash/octavian-init-splash.service'
       - 'tools/artwork/**'
       - 'tests/boot/test_octavian_splash_progress.py'
       - '.github/workflows/octavian-splash.yml'
@@ -54,11 +56,12 @@ jobs:
           cp boot/splash/octavian-octopus-background.svg build/boot/splash/
           cp tools/boot/octavian-progress-osd.lua build/boot/splash/
           cp tools/boot/octavian-init-splash.sh build/boot/splash/
-          mkdir -p build/rootfs/boot/splash build/rootfs/usr/bin build/rootfs/usr/share/octavian/boot build/rootfs/usr/lib/systemd/user
+          mkdir -p build/rootfs/boot/splash build/rootfs/usr/bin build/rootfs/usr/share/octavian/boot build/rootfs/usr/lib/systemd/user build/rootfs/usr/lib/systemd/user/graphical-session.target.wants
           cp boot/splash/octavian-init-splash.service build/boot/splash/
           install -m 0755 tools/boot/octavian-init-splash.sh build/rootfs/usr/bin/octavian-init-splash
           install -m 0644 tools/boot/octavian-progress-osd.lua build/rootfs/usr/share/octavian/boot/octavian-progress-osd.lua
           install -m 0644 boot/splash/octavian-init-splash.service build/rootfs/usr/lib/systemd/user/octavian-init-splash.service
+          ln -sf ../octavian-init-splash.service build/rootfs/usr/lib/systemd/user/graphical-session.target.wants/octavian-init-splash.service
           sha256sum build/boot/grub/octavian-octopus-background.png > build/boot/splash/artwork.sha256
       - name: Import and rebrand original Init.mp4 frames
         uses: actions/checkout@v4
