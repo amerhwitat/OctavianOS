@@ -52,6 +52,15 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     require(isinstance(item, dict), f"{label}: trace record must be an object")
     iso_sha = item.get("iso_sha256")
     require(iso_sha == expected_sha, f"{label}: trace ISO SHA-256 differs from candidate")
+    payload_file = (root / str(item.get("payload_file", ""))).resolve()
+    require(payload_file.is_relative_to(root.resolve()), f"{label}: payload path escapes evidence root")
+    require(payload_file.is_file(), f"{label}: extracted production init ELF missing: {payload_file}")
+    expected_payload_sha = item.get("payload_sha256")
+    require(isinstance(expected_payload_sha, str) and SHA256_RE.fullmatch(expected_payload_sha),
+            f"{label}: expected production init payload SHA-256 missing from trace evidence")
+    actual_payload_sha = sha256_file(payload_file)
+    require(actual_payload_sha == expected_payload_sha,
+            f"{label}: extracted production init ELF hash mismatch")
     trace_path = (root / str(item.get("log", ""))).resolve()
     require(trace_path.is_relative_to(root.resolve()), f"{label}: trace path escapes evidence root")
     require(trace_path.is_file(), f"{label}: trace file missing: {trace_path}")
@@ -91,9 +100,6 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
     ))
     require(payload, f"{label}: production initramfs payload provenance missing (probe ELF is not production evidence)")
     require(executed, f"{label}: production init execution record missing")
-    expected_payload_sha = item.get("payload_sha256")
-    require(isinstance(expected_payload_sha, str) and SHA256_RE.fullmatch(expected_payload_sha),
-            f"{label}: expected production init payload SHA-256 missing from trace evidence")
     require(payload[-1].group(1) == expected_payload_sha,
             f"{label}: production init payload digest differs from independently recorded extracted payload")
     require(payload[-1].start() < ack[-1].start(),
