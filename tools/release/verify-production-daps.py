@@ -98,7 +98,7 @@ def verify(evidence_path: Path) -> None:
     with iso_path.open("rb") as stream:
         stream.seek(16 * 2048)
         primary_volume_descriptor = stream.read(7)
-    require(primary_volume_descriptor == b"\\x01CD001\\x01",
+    require(primary_volume_descriptor == b"\x01CD001\x01",
             "candidate does not contain an ISO9660 primary volume descriptor at sector 16")
 
     traces = evidence.get("traces")
