@@ -483,7 +483,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass."
           else
-            gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass."
           fi
