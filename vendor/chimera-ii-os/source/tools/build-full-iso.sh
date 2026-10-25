@@ -125,6 +125,36 @@ cp -a "$ROOT/boot/boot-menu-contract.json" "$STAGE/boot/"
 cp -a "$ROOT/installer" "$STAGE/install/"
 cp -a "$ROOT/userland" "$STAGE/system/userland"
 cp -a "$ROOT/desktop" "$STAGE/system/desktop"
+
+# Embed the exact session JPEGs as byte-preserving offline data URIs. Missing
+# originals block production builds by default; diagnostic builds may explicitly
+# opt out, but remain release-ineligible.
+SESSION_WALLPAPER_SOURCE="${CHIMERA_SESSION_WALLPAPER_DIR:-$ROOT/desktop/aurora/assets/library}"
+SESSION_WALLPAPER_A="$SESSION_WALLPAPER_SOURCE/Duck-ai-image-2026-10-18-07-06(1).jpeg"
+SESSION_WALLPAPER_B="$SESSION_WALLPAPER_SOURCE/Duck-ai-image-2026-10-18-06-36.jpeg"
+if [[ -s "$SESSION_WALLPAPER_A" && -s "$SESSION_WALLPAPER_B" ]]; then
+  SESSION_BRANDING_CSS="$BUILD/dual-os-brand-wallpapers.css"
+  SESSION_BRANDING_MANIFEST="$BUILD/dual-os-brand-wallpapers.json"
+  python3 "$ROOT/tools/wallpapers/embed_wallpapers.py" --session-branding \
+    --source-dir "$SESSION_WALLPAPER_SOURCE" --css "$SESSION_BRANDING_CSS" \
+    --manifest "$SESSION_BRANDING_MANIFEST"
+  for destination in "$STAGE/desktop/aurora/assets" "$STAGE/system/desktop/aurora/assets"; do
+    mkdir -p "$destination"
+    install -m 0644 "$SESSION_BRANDING_CSS" "$destination/dual-os-brand-wallpapers.css"
+    install -m 0644 "$SESSION_BRANDING_MANIFEST" "$destination/dual-os-brand-wallpapers.json"
+  done
+  mkdir -p "$STAGE/boot/visual" "$STAGE/desktop/aurora/assets/library" "$STAGE/system/desktop/aurora/assets/library"
+  install -m 0644 "$SESSION_BRANDING_CSS" "$STAGE/boot/visual/dual-os-brand-wallpapers.css"
+  install -m 0644 "$SESSION_WALLPAPER_A" "$STAGE/desktop/aurora/assets/library/Duck-ai-image-2026-10-18-07-06(1).jpeg"
+  install -m 0644 "$SESSION_WALLPAPER_B" "$STAGE/desktop/aurora/assets/library/Duck-ai-image-2026-10-18-06-36.jpeg"
+  install -m 0644 "$SESSION_WALLPAPER_A" "$STAGE/system/desktop/aurora/assets/library/Duck-ai-image-2026-10-18-07-06(1).jpeg"
+  install -m 0644 "$SESSION_WALLPAPER_B" "$STAGE/system/desktop/aurora/assets/library/Duck-ai-image-2026-10-18-06-36.jpeg"
+elif [[ "${CHIMERA_REQUIRE_SESSION_BRANDING:-1}" == "1" ]]; then
+  echo "ERROR: exact session JPEGs missing; refusing a production ISO without the original offline data URIs." >&2
+  exit 1
+else
+  echo "WARNING: exact session JPEGs missing; diagnostic ISO only, release remains blocked." >&2
+fi
 cp -a "$ROOT/build/desktop/." "$STAGE/desktop/"
 cp -a "$ROOT/services" "$STAGE/system/services"
 cp -a "$ROOT/system/security" "$STAGE/system/security"
