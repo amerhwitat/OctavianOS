@@ -218,11 +218,45 @@ extern "C" int64_t chimera_vfs_write(uint32_t pid,int64_t fd,const void *buffer,
 }
 extern "C" int64_t chimera_vfs_seek(uint32_t pid,int64_t fd,int64_t offset,uint32_t whence) {
     if(!pid||fd<3||fd>=CHIMERA_VFS_MAX_OPEN_FILES+3u)return -9;
-    lock();OpenFile &f=files[(uint32_t)(fd-3)];if(!f.active||f.pid!=pid){unlock();return -9;}
-    uint64_t base=0;if(whence==1u)base=f.offset;else if(whence==2u){Mount m=mounts[f.mount_index];chimera_vfs_stat st{};int rc=m.ops.lookup?m.ops.lookup(m.context,f.path,&st):-38;if(rc){unlock();return rc;}base=st.size;}else if(whence!=0u){unlock();return -22;}
-    uint64_t next;if(offset<0){uint64_t delta=(uint64_t)(-(offset+1))+1u;if(delta>base){unlock();return -22;}next=base-delta;}else{if(base>UINT64_MAX-(uint64_t)offset){unlock();return -75;}next=base+(uint64_t)offset;}
+    const uint32_t slot = (uint32_t)(fd-3);
+    lock();
+    const OpenFile snapshot = files[slot];
+    if(!snapshot.active||snapshot.pid!=pid){unlock();return -9;}
+    if (whence > 2u) { unlock(); return -22; }
+    uint64_t base = 0;
+    if (whence == 1u) {
+        base = snapshot.offset;
+    } else if (whence == 2u) {
+        /* Never invoke a filesystem backend while holding the VFS registry
+         * lock: backends may acquire their own locks or re-enter VFS. Pin the
+         * mount while the callback runs, then revalidate the descriptor before
+         * committing the new offset. */
+        unlock();
+        MountPin pin(snapshot.mount_index);
+        if (!pin.held) return -9;
+        if (!pin.mount.ops.lookup) return -38;
+        chimera_vfs_stat st{};
+        const int rc = pin.mount.ops.lookup(pin.mount.context, snapshot.path, &st);
+        if (rc) return rc;
+        base = st.size;
+        lock();
+        const OpenFile &current = files[slot];
+        if (!current.active || current.pid != pid ||
+            current.generation != snapshot.generation) {
+            unlock();
+            return -9;
+        }
+    } else {
+        /* SEEK_SET is independent of the current file position. */
+        base = 0;
+    }
+    uint64_t next;
+    if(offset<0){uint64_t delta=(uint64_t)(-(offset+1))+1u;if(delta>base){unlock();return -22;}next=base-delta;}
+    else{if(base>UINT64_MAX-(uint64_t)offset){unlock();return -75;}next=base+(uint64_t)offset;}
     if (next > INT64_MAX) { unlock(); return -75; }
-    f.offset=next;unlock();return (int64_t)next;
+    files[slot].offset=next;
+    unlock();
+    return (int64_t)next;
 }
 extern "C" int chimera_vfs_close(uint32_t pid,int64_t fd) {
     if(!pid||fd<3||fd>=CHIMERA_VFS_MAX_OPEN_FILES+3u)return -9;
