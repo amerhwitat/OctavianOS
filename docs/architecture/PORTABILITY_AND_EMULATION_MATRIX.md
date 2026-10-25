@@ -7,7 +7,7 @@ This is a fail-closed engineering contract, not a claim that every RISC/CISC pro
 - **x86-64:** primary ISO architecture. The repository has target payload contracts and QEMU workflow scaffolding; production Live/Aurora, install/reboot, recovery diagnostics, and genuine SMP must be demonstrated by logs from actual staged payloads.
 - **AArch64/mobile:** the mobile edition is an integration contract. A generic QEMU AArch64 boot would prove only the tested virtual machine, not any physical handset or tablet.
 - **RISC-V 64:** a research/porting target until the architecture-specific kernel, interrupt/timer path, drivers and userspace are tested.
-- **x86 32-bit, MIPS, PowerPC, LoongArch and other families:** research/emulation targets until the complete boot-to-userspace evidence exists.
+- **x86 32-bit, MIPS, PowerPC, LoongArch, s390x, SPARC and other families:** research/emulation targets until the complete boot-to-userspace evidence exists.
 
 ## Do not conflate these execution modes
 
