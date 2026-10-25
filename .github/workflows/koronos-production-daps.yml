@@ -10,6 +10,7 @@ on:
       - ".github/workflows/koronos-production-daps.yml"
       - ".github/workflows/publish-octavianos-preview.yml"
       - "tools/tests/test_preview_publish_gate.py"
+      - "tools/tests/test_build_cleanup_contract.py"
   push:
     branches: [main]
     paths:
@@ -20,6 +21,7 @@ on:
       - ".github/workflows/koronos-production-daps.yml"
       - ".github/workflows/publish-octavianos-preview.yml"
       - "tools/tests/test_preview_publish_gate.py"
+      - "tools/tests/test_build_cleanup_contract.py"
   workflow_dispatch:
     inputs:
       evidence_run_id:
@@ -51,6 +53,7 @@ jobs:
         run: |
           python3 tools/tests/test_production_daps_contract.py
           python3 tools/tests/test_preview_publish_gate.py
+          python3 tools/tests/test_build_cleanup_contract.py
 
   production-acceptance:
     if: github.event_name == 'workflow_dispatch'
