@@ -50,6 +50,7 @@ jobs:
       - name: Validate opt-in Kali frontend and offline wallpaper embedding
         run: |
           python -m py_compile vendor/chimera-ii-os/source/tools/kali/chimera-kali
+          python -m py_compile vendor/chimera-ii-os/source/tools/run-production-qemu-matrix.py vendor/chimera-ii-os/source/tools/collect-production-closeout-evidence.py
           python -m py_compile vendor/chimera-ii-os/source/tools/wallpapers/embed_wallpapers.py vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py
           python vendor/chimera-ii-os/source/tools/kali/test_chimera_kali.py -v
           python vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py -v
@@ -58,6 +59,7 @@ jobs:
           python vendor/chimera-ii-os/source/tools/tests/test_syscall_usercopy_contract.py
           python vendor/chimera-ii-os/source/tools/tests/test_progress_bridge_contract.py
           python vendor/chimera-ii-os/source/tools/tests/test_production_qemu_matrix.py
+          python vendor/chimera-ii-os/source/tools/tests/test_collect_production_closeout_evidence.py
           python vendor/chimera-ii-os/source/tests/boot/test_installer_target_routing_contract.py
       - name: Syntax-check imported Python build tools and tests
         run: |
@@ -85,6 +87,7 @@ jobs:
           bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
           bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
           bash -n vendor/chimera-ii-os/source/tools/build-full-iso.sh
+          bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
           bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-desktop-init.sh
           bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-init-splash.sh
           bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-progress.sh
