@@ -375,8 +375,12 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer handoff status missing"; exit 1; }
+          # This routing-only ISO carries installer metadata, not a production
+          # native-init ELF. Verify the kernel recognizes the installer target and
+          # honestly withholds readiness; this is not a storage/write acceptance test.
+          grep -Fq '[LIVE] Installer target detected; live service idle' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target routing marker missing"; exit 1; }
+          grep -Fq '[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer routing smoke did not report missing production init ELF"; exit 1; }
+          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer routing smoke did not fail closed after missing native init"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
