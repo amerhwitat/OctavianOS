@@ -81,6 +81,10 @@ jobs:
           bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
           bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
           bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-desktop-init.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-init-splash.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-progress.sh
+          bash -n vendor/chimera-ii-os/source/system/boot/koronos-progress.sh
           bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
       - name: Configure the vendored native toolchain
         run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
