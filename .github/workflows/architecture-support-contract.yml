@@ -6,6 +6,7 @@ on:
       - "docs/architecture/PORTABILITY_AND_EMULATION_MATRIX.md"
       - "docs/architecture/ELF_EFI_ARCHITECTURE_ARTIFACT_CONTRACT.md"
       - "docs/architecture/AARCH64_LINKER_ENTRY_ABI.md"
+      - "docs/KORONOS_TASK_CONTEXT_SWITCH_PLAN.md"
       - "docs/architecture/EFI_PE_COFF_VALIDATION.md"
       - "tests/architecture/test_support_matrix.py"
       - "tests/architecture/test_elf_validation.py"
