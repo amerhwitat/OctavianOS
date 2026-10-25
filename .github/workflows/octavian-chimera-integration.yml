@@ -53,6 +53,7 @@ jobs:
           python -m py_compile vendor/chimera-ii-os/source/tools/wallpapers/embed_wallpapers.py vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py
           python vendor/chimera-ii-os/source/tools/kali/test_chimera_kali.py -v
           python vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py -v
+          python vendor/chimera-ii-os/source/tools/tests/test_user_copy_syscall_contract.py
       - name: Syntax-check imported Python build tools and tests
         run: |
           python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
