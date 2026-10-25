@@ -35,7 +35,7 @@ class ProductionTraceBindingContract(unittest.TestCase):
                     case_dir.mkdir(parents=True)
                     trace = f"PRODUCTION ISO SHA-256: {digest}\\n[KRN ] KORONOS READY\\n"
                     (case_dir / "raw-trace.log").write_text(trace, encoding="utf-8")
-                    cases.append({"case": case_id, "status": "BLOCKED", "trace": f"{case_id}/raw-trace.log"})
+                    cases.append({"case": case_id, "status": "BLOCKED", "qemu_started": True, "trace": f"{case_id}/raw-trace.log"})
             (matrix / "matrix-report.json").write_text(json.dumps({
                 "schema": "CHM-PRODUCTION-ISO-QEMU-MATRIX-1",
                 "iso_sha256": digest, "iso_sha256_after": digest, "cases": cases,
