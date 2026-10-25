@@ -9,8 +9,9 @@ Usage:
   build-chimera-iso.sh [options] [arguments]
 
 Options:
-  -h, --help    Show this help and exit successfully.
-  --refresh-online-catalogs  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
+  -h, --help                    Show this help and exit successfully.
+  --system-block-size BYTES     Set Koronos system block size (default 4096; powers of two 512..65536).
+  --refresh-online-catalogs, --refresh-isa-catalog  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
@@ -210,7 +211,7 @@ DOS_FETCH_ON_BUILD="${CHIMERA_DOS_FETCH_ON_BUILD:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh-online-catalogs) REFRESH_ONLINE_CATALOGS=1; shift;;
+    --refresh-online-catalogs|--refresh-isa-catalog) REFRESH_ONLINE_CATALOGS=1; shift;;
     --sync-dos-payloads) DOS_FETCH_ON_BUILD=1; shift;;
     --docker-only) BUILD_ISO=0; shift;;
     --iso-only) BUILD_DOCKER=0; shift;;
@@ -227,10 +228,25 @@ while [[ $# -gt 0 ]]; do
     --no-push) export CHIMERA_PUSH=0; shift;;
     --skip-native-iso) export CHIMERA_BUILD_NATIVE_ISO_PIPELINE=0; shift;;
     --install-build-deps) export CHIMERA_INSTALL_BUILD_DEPS=1; shift;;
+    --system-block-size) [[ -n "${2:-}" ]] || { log_error '--system-block-size requires a byte count'; exit 2; }; export KORONOS_SYSTEM_BLOCK_SIZE="$2"; shift 2;;
+    --system-block-size=*) export KORONOS_SYSTEM_BLOCK_SIZE="${1#*=}"; shift;;
     --registry) export REGISTRY_NAME="$2"; shift 2;;
     *) log_error "Unknown option: $1"; exit 2;;
   esac
 done
+
+KORONOS_SYSTEM_BLOCK_SIZE="${KORONOS_SYSTEM_BLOCK_SIZE:-4096}"
+if [[ ! "$KORONOS_SYSTEM_BLOCK_SIZE" =~ ^[0-9]+$ ]]; then
+  log_error 'System block size must be an integer power of two from 512 through 65536.'
+  exit 2
+fi
+KORONOS_SYSTEM_BLOCK_SIZE=$((10#$KORONOS_SYSTEM_BLOCK_SIZE))
+if (( KORONOS_SYSTEM_BLOCK_SIZE < 512 || KORONOS_SYSTEM_BLOCK_SIZE > 65536 ||
+      (KORONOS_SYSTEM_BLOCK_SIZE & (KORONOS_SYSTEM_BLOCK_SIZE - 1)) != 0 )); then
+  log_error 'System block size must be a power of two from 512 through 65536.'
+  exit 2
+fi
+export KORONOS_SYSTEM_BLOCK_SIZE
 
 if [[ -n "${CHIMERA_BUILD_STORAGE_ROOT:-}" ]]; then
   root="${CHIMERA_BUILD_STORAGE_ROOT%/}"
@@ -812,18 +828,6 @@ EOF_INIT_VIDEO
 
   # Keep the complete artwork library inside the installed system and on the
   # ISO so every Aurora screen can use the hardcoded artwork offline.
-  # Ship the curated cross-platform optional-app catalog to both the installed
-  # root filesystem and the ISO artifact. Catalog entries are discovery-only;
-  # this does not install third-party applications or claim native compatibility.
-  local optional_app_catalog="$SCRIPT_DIR/desktop/optional_apps_catalog.json"
-  [[ -s "$optional_app_catalog" ]] || {
-    log_error "Required optional application catalog is missing: $optional_app_catalog"
-    return 1
-  }
-  mkdir -p "$ROOTFS_DIR/usr/share/chimera/desktop" "$ISO_DIR/system/applications"
-  cp -f "$optional_app_catalog" "$ROOTFS_DIR/usr/share/chimera/desktop/optional_apps_catalog.json"
-  cp -f "$optional_app_catalog" "$ISO_DIR/system/applications/optional_apps_catalog.json"
-  chmod 0644 "$ROOTFS_DIR/usr/share/chimera/desktop/optional_apps_catalog.json" "$ISO_DIR/system/applications/optional_apps_catalog.json"
   if [[ -d "$SCRIPT_DIR/desktop/aurora/assets/library" ]]; then
     cp -a "$SCRIPT_DIR/desktop/aurora/assets/library/." \
       "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/"
@@ -831,6 +835,36 @@ EOF_INIT_VIDEO
   if [[ -f "$SCRIPT_DIR/desktop/aurora/assets/library-artwork-manifest.json" ]]; then
     cp -f "$SCRIPT_DIR/desktop/aurora/assets/library-artwork-manifest.json" \
       "$ROOTFS_DIR/usr/share/chimera/aurora/assets/"
+  fi
+
+  # Embed the exact approved wallpaper JPEGs as data URIs for fully offline
+  # desktop startup. The generator verifies the original dimensions and hashes
+  # the bytes; it never resizes or re-encodes the supplied images.
+  local wallpaper_source="$SCRIPT_DIR/desktop/aurora/assets/library"
+  local aurora_wallpaper="$wallpaper_source/aurora-and-mountain.jpg"
+  local marine_wallpaper="$wallpaper_source/octavian-marine-dual-brand.jpg"
+  if [[ -s "$aurora_wallpaper" && -s "$marine_wallpaper" ]]; then
+    local wallpaper_css="$BUILD_DIR/embedded-wallpapers.css"
+    local wallpaper_manifest="$BUILD_DIR/embedded-wallpapers.json"
+    if ! python3 "$SCRIPT_DIR/tools/wallpapers/embed_wallpapers.py" \
+        --source-dir "$wallpaper_source" --css "$wallpaper_css" \
+        --manifest "$wallpaper_manifest" >"$LOG_DIR/embedded-wallpapers.json.log" 2>&1; then
+      log_error "Embedded wallpaper generation failed; refusing malformed desktop assets."
+      cat "$LOG_DIR/embedded-wallpapers.json.log" >&2
+      return 1
+    fi
+    install -m 0644 "$wallpaper_css" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/embedded-wallpapers.css"
+    install -m 0644 "$wallpaper_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/embedded-wallpapers.json"
+    cp -f "$aurora_wallpaper" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/aurora-and-mountain.jpg"
+    cp -f "$marine_wallpaper" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/octavian-marine-dual-brand.jpg"
+    cp -f "$wallpaper_css" "$ISO_DIR/boot/visual/embedded-wallpapers.css"
+    log_info "Embedded original Aurora and Marine wallpapers as offline JPEG data URIs."
+  else
+    log_warning "Exact Aurora/Marine wallpaper JPEG sources are not staged; dark desktop fallback remains active."
+    if [[ "${CHIMERA_REQUIRE_EMBEDDED_WALLPAPERS:-0}" == "1" ]]; then
+      log_error "CHIMERA_REQUIRE_EMBEDDED_WALLPAPERS=1 but exact wallpaper source files are missing."
+      return 1
+    fi
   fi
 
   # Install the same visual aliases used by desktop, installer, recovery and
@@ -1351,8 +1385,19 @@ rows=d.get("commands",[])
 names=[str(x.get("name","")).casefold() for x in rows]
 if not rows or len(names)!=len(set(names)): raise SystemExit("Command manifest empty or contains duplicate names")
 if any(not x.get("mode") or not x.get("provider") for x in rows): raise SystemExit("Command missing runtime/provider classification")
-if d.get("mode_counts",{}).get("native") != 15: raise SystemExit("Native command count differs from compiled multicall contract")
-print(f"[COMMANDS] catalogued={len(rows)} native={d['mode_counts'].get('native',0)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
+expected_native = {"pwd", "echo", "ls", "cp", "mv", "touch", "mkdir", "rm", "cat", "clear", "whoami", "hostname", "date", "true", "false"}
+actual_native = {str(x.get("name", "")).casefold() for x in rows if x.get("mode") == "native"}
+if actual_native != expected_native:
+    missing = sorted(expected_native - actual_native)
+    extra = sorted(actual_native - expected_native)
+    raise SystemExit(
+        "Native multicall contract mismatch: "
+        f"expected={len(expected_native)} actual={len(actual_native)} "
+        f"missing={missing} extra={extra}"
+    )
+if d.get("mode_counts",{}).get("native") != len(expected_native):
+    raise SystemExit("Native command mode_counts does not match the compiled multicall contract")
+print(f"[COMMANDS] catalogued={len(rows)} native={len(actual_native)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
 PYCOMMANDS
 }
 build_command_runtime(){
