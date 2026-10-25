@@ -18,6 +18,8 @@ on:
       - "docs/PRODUCTION_DAPS.md"
       - "vendor/chimera-ii-os/source/kernel/**"
       - ".github/workflows/koronos-production-daps.yml"
+      - ".github/workflows/publish-octavianos-preview.yml"
+      - "tools/tests/test_preview_publish_gate.py"
   workflow_dispatch:
     inputs:
       evidence_run_id:
