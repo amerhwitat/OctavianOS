@@ -29,7 +29,7 @@
   "embedded_defaults": {
     "aurora": {
       "repository": "amerhwitat/ChimeraIIOS",
-      "source_file": "desktop/aurora/assets/library/aurora-and-mountain.jpg",
+      "source_file": "desktop/artwork/wallpapers/aurora-and-mountain.jpg",
       "dimensions": [
         2048,
         1152
@@ -40,7 +40,7 @@
       "selector": ".aurora-wallpaper--default"
     },
     "marine": {
-      "source_file": "desktop/aurora/assets/library/octavian-marine-dual-brand.jpg",
+      "source_file": "desktop/artwork/wallpapers/octavian-marine-dual-brand.jpg",
       "dimensions": [
         1672,
         941
