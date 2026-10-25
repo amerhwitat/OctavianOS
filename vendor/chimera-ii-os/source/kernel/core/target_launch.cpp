@@ -24,6 +24,12 @@ static volatile uint32_t ready_seen = 0;
 static uint32_t active_pid = 0;
 static uint64_t active_root = 0;
 static void *active_address_space = nullptr;
+/* Address spaces whose rollback teardown failed stay explicitly quarantined.
+   They are never treated as released or silently discarded. */
+static void *rollback_quarantined_address_space = nullptr;
+static uint32_t rollback_quarantined_pid = 0;
+static const chimera_elf_load_ops *rollback_quarantined_ops = nullptr;
+static bool rollback_quarantined_destroyed = false;
 static uint32_t syscall_ack_seen = 0;
 static bool attempted = false;
 /* Candidate-only fallback is gated by the explicit probe=ring3 module flag. */
@@ -38,6 +44,7 @@ static chimera_ramfs_node *published_rootfs = nullptr;
 static void *ramfs_frame_alloc(uint64_t bytes, void *context);
 static void ramfs_frame_free(void *ptr, void *context);
 extern "C" void koronos_target_log(const char *message);
+extern "C" void koronos_progress_event(uint32_t percent, const char *phase, const char *message);
 struct RamfsFrameHeader { uint32_t pages; uint32_t magic; uint64_t reserved; };
 constexpr uint32_t RAMFS_FRAME_MAGIC = 0x52414D46u;
 static void *ramfs_frame_alloc(uint64_t bytes, void *) {
@@ -366,6 +373,7 @@ extern "C" uint32_t koronos_target_note_native_syscall(uint64_t user_rip) {
     if (!syscall_ack_seen) {
         syscall_ack_seen = 1u;
         log_user_init_syscall(static_cast<Target>(active_target), pid);
+        koronos_progress_event(95u, "userspace", "Ring-3 process issued a verified syscall");
     }
     return pid;
 }
@@ -396,6 +404,7 @@ extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t
     if (!syscall_ack_seen) {
         syscall_ack_seen = 1u;
         log_user_init_syscall(static_cast<Target>(active_target), pid);
+        koronos_progress_event(95u, "userspace", "Ring-3 process issued a verified syscall");
     }
     return pid;
 }
@@ -408,12 +417,54 @@ extern "C" int koronos_target_note_user_write(const char *bytes, uint64_t length
     if (syscall_ack_seen && active_pid &&
         target_marker(bytes,length,static_cast<Target>(active_target),active_pid)) {
         ready_seen=1;
+        if (active_ring3_probe)
+            koronos_progress_event(97u, "userspace-probe", "Ring-3 probe marker observed; production desktop readiness not implied");
+        else
+            koronos_progress_event(100u, "userspace-ready", "Target-specific userspace readiness marker verified");
         return 1;
     }
     return 0;
 }
 
+/* Exposed for diagnostics and controlled retry. A quarantine remains owned
+   until destroy_address_space reports complete teardown AND the process
+   registry accepts resource release and reap. */
+extern "C" uint32_t koronos_target_rollback_quarantine_pid(void) {
+    return rollback_quarantined_address_space ? rollback_quarantined_pid : 0u;
+}
+extern "C" int koronos_target_retry_rollback_quarantine(void) {
+    if (!rollback_quarantined_address_space || !rollback_quarantined_pid ||
+        !rollback_quarantined_ops || !rollback_quarantined_ops->destroy_address_space)
+        return -1;
+    if (!rollback_quarantined_destroyed) {
+        if (rollback_quarantined_ops->destroy_address_space(nullptr,
+                rollback_quarantined_address_space) != 0) {
+            koronos_target_log("[RUN ] ERROR: quarantined address-space teardown retry failed; ownership retained");
+            return -2;
+        }
+        rollback_quarantined_destroyed = true;
+    }
+    if (chimera_process_mark_resources_released(rollback_quarantined_pid) != 0) {
+        koronos_target_log("[RUN ] ERROR: address space was destroyed but process resource-release transition failed; record retained");
+        return -3;
+    }
+    if (chimera_process_reap(rollback_quarantined_pid) != 0) {
+        koronos_target_log("[RUN ] ERROR: address space was destroyed but process reap failed; record retained");
+        return -4;
+    }
+    rollback_quarantined_address_space = nullptr;
+    rollback_quarantined_pid = 0;
+    rollback_quarantined_ops = nullptr;
+    rollback_quarantined_destroyed = false;
+    koronos_target_log("[RUN ] Quarantined address space teardown retried successfully; process resources released and record reaped");
+    return 0;
+}
+
 extern "C" int koronos_launch_selected_userspace(void) {
+    /* Never begin another target launch while an earlier partial address space
+       is still owned by quarantine. Retry teardown first; failure is fail-closed. */
+    if (rollback_quarantined_address_space &&
+        koronos_target_retry_rollback_quarantine() != 0) return -18;
     if (attempted) return 0;
     attempted=true;
     const chimera_boot_module *selected=nullptr;
@@ -445,6 +496,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    koronos_progress_event(82u, "userspace", "Selected target payload identified");
 
     /* Bind the executable init to the independently classified production
        payload. A target=live ELF must not run with an installer/recovery
@@ -581,6 +633,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
             return -15;
         }
         __atomic_store_n(&published_rootfs, staged_rootfs, __ATOMIC_RELEASE);
+        koronos_progress_event(90u, "userspace", "Read-only root and writable /tmp mounted");
         koronos_target_log("[VFS ] Read-only initramfs root and bounded writable /tmp mounted; process file mutation syscalls enabled");
         if (target == TARGET_LIVE)
             koronos_target_log("USERSPACE ROOTFS MOUNTED: target=live root=read-only tmpfs=/tmp");
@@ -617,11 +670,22 @@ extern "C" int koronos_launch_selected_userspace(void) {
         KORONOS_EM_X86_64,USER_STACK_TOP,USER_STACK_SIZE,ops,nullptr,&loaded);
     if (load_rc!=0) {
         (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
-        /* -17 means rollback teardown itself failed; retain the record rather
-           than pretending its address-space resources were released. */
-        if (load_rc != -17 &&
-            chimera_process_mark_resources_released(static_cast<uint32_t>(pid)) == 0)
+        /* -17 returns the still-owned address-space handle. Quarantine it and
+           keep the process record unreaped until teardown is independently
+           proven; never drop the only reference to partially mapped tables. */
+        if (load_rc == -17) {
+            if (!loaded.address_space || rollback_quarantined_address_space) {
+                koronos_target_log("[RUN ] FATAL: rollback failed and quarantine capacity/handle invariant failed");
+                return -18;
+            }
+            rollback_quarantined_address_space = loaded.address_space;
+            rollback_quarantined_pid = static_cast<uint32_t>(pid);
+            rollback_quarantined_ops = ops;
+            rollback_quarantined_destroyed = false;
+            koronos_target_log("[RUN ] ERROR: ELF rollback teardown failed; address space quarantined and PID retained");
+        } else if (chimera_process_mark_resources_released(static_cast<uint32_t>(pid)) == 0) {
             (void)chimera_process_reap(static_cast<uint32_t>(pid));
+        }
         koronos_target_log("[RUN ] ERROR: selected user init ELF load failed or rollback was incomplete");
         return -6;
     }
@@ -643,6 +707,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     syscall_ack_seen=0;
     ready_seen=0;
     (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING);
+    koronos_progress_event(92u, "userspace", "Native process admitted and execution context prepared");
     // 100 Hz PIT deadline: 1,000 ticks gives user init ten seconds to return
     // and emit readiness. This is enforced by IRQ0 inside the kernel, not by
     // the outer QEMU test timeout.
