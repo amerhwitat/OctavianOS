@@ -8,6 +8,8 @@ on:
       - "docs/PRODUCTION_DAPS.md"
       - "vendor/chimera-ii-os/source/kernel/**"
       - ".github/workflows/koronos-production-daps.yml"
+      - ".github/workflows/publish-octavianos-preview.yml"
+      - "tools/tests/test_preview_publish_gate.py"
   push:
     branches: [main]
     paths:
@@ -44,7 +46,9 @@ jobs:
       - name: Compile production DAPS verifier
         run: python3 -m py_compile tools/release/verify-production-daps.py
       - name: Verify all required production acceptance gates remain fail-closed
-        run: python3 tools/tests/test_production_daps_contract.py
+        run: |
+          python3 tools/tests/test_production_daps_contract.py
+          python3 tools/tests/test_preview_publish_gate.py
 
   production-acceptance:
     if: github.event_name == 'workflow_dispatch'
