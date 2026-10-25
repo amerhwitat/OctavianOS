@@ -7,6 +7,9 @@ struct TestFs { char data[64]; uint64_t size; bool exists; };
 static bool reenter_vfs_on_lookup = false;
 static bool close_process_during_read = false;
 static int close_process_during_read_result = 0;
+static bool reenter_same_fd_read = false;
+static int64_t nested_read_fd = -1;
+static int64_t nested_read_result = 0;
 static int lookup(void *ctx,const char *path,chimera_vfs_stat *out){
     auto *fs=static_cast<TestFs*>(ctx);if(!fs||!out)return -22;
     if (reenter_vfs_on_lookup) {
@@ -20,6 +23,11 @@ static int lookup(void *ctx,const char *path,chimera_vfs_stat *out){
 }
 static int read_file(void *ctx,const char *path,uint64_t off,void *dst,uint64_t len,uint64_t *out){
     auto *fs=static_cast<TestFs*>(ctx);if(strcmp(path,"/note")||!fs->exists)return -2;
+    if (reenter_same_fd_read) {
+        reenter_same_fd_read = false;
+        char nested[1]{};
+        nested_read_result = chimera_vfs_read(7, nested_read_fd, nested, sizeof(nested));
+    }
     if (close_process_during_read) {
         close_process_during_read = false;
         close_process_during_read_result = chimera_vfs_close_process(7);
@@ -59,7 +67,9 @@ int main(){
     if(reenter_vfs_on_lookup)return fail("SEEK_END did not invoke backend lookup");
     if(chimera_vfs_seek(7,fd,0,0)!=0)return fail("seek");
     char out[32]{};close_process_during_read_result=0;close_process_during_read=true;
+    nested_read_fd=fd;nested_read_result=0;reenter_same_fd_read=true;
     if(chimera_vfs_read(7,fd,out,sizeof(msg))!=(int64_t)sizeof(msg))return fail("read");
+    if(nested_read_result!=-16)return fail("same-descriptor reentrant read was not serialized");
     if(close_process_during_read_result!=-16)return fail("process cleanup did not defer active descriptor");
     if(memcmp(msg,out,sizeof(msg)))return fail("readback mismatch");
     if(chimera_vfs_close(8,fd)!=-9)return fail("cross-pid close accepted");
