@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "delivery": "remote-prototype",
-  "note": "Images are remote and are not vendored into the repository or ISO by this catalog.",
+  "delivery": "embedded-defaults-plus-remote-prototype",
+  "note": "Embedded defaults are generated from the original JPEG bytes at ISO build time when the two source files are present. The current repository still requires those exact binary JPEGs to be checked in; remote prototype entries are not a substitute for the embedded assets.",
   "wallpapers": [
     {
       "id": "aurora-ocean-night",
@@ -25,5 +25,33 @@
       "license_url": "https://unsplash.com/license",
       "fallback": "radial-gradient(ellipse at 65% 20%, #1db8cf 0, transparent 42%), linear-gradient(145deg, #03233e, #086b80 60%, #031b2c)"
     }
-  ]
+  ],
+  "embedded_defaults": {
+    "aurora": {
+      "repository": "amerhwitat/ChimeraIIOS",
+      "source_file": "desktop/aurora/assets/library/aurora-and-mountain.jpg",
+      "dimensions": [
+        2048,
+        1152
+      ],
+      "offline": true,
+      "fit": "cover",
+      "dark_fallback": "#07121c",
+      "selector": ".aurora-wallpaper--default"
+    },
+    "marine": {
+      "source_file": "desktop/aurora/assets/library/octavian-marine-dual-brand.jpg",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "offline": true,
+      "fit": "cover",
+      "dark_fallback": "#070914",
+      "selector": ".marine-wallpaper--default"
+    },
+    "generated_css": "vendor/chimera-ii-os/source/desktop/aurora/assets/embedded-wallpapers.css",
+    "generator": "vendor/chimera-ii-os/source/tools/wallpapers/embed_wallpapers.py",
+    "remote_sources_opt_in": true
+  }
 }
