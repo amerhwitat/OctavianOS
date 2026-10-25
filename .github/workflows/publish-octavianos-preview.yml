@@ -1,0 +1,85 @@
+name: Publish OctavianOS Desktop Preview Container
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_run_id:
+        description: "Completed successful GitHub Actions run that uploaded the production DAPS evidence bundle"
+        required: true
+        type: string
+      evidence_artifact_name:
+        description: "Exact artifact name containing evidence.json and immutable production evidence"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  packages: write
+
+concurrency:
+  group: octavianos-preview-publish
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Verify evidence source run completed successfully
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Invalid evidence run ID" >&2; exit 2; }
+          result="$(gh run view "$EVIDENCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --json status,conclusion --jq '.status + ":" + .conclusion')"
+          [[ "$result" == "completed:success" ]] || {
+            echo "Publication blocked: evidence source run is not completed successfully ($result)" >&2
+            exit 1
+          }
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download production evidence from the specified run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.evidence_run_id }}
+          name: ${{ inputs.evidence_artifact_name }}
+          path: build/production-daps
+
+      - name: Run closing production DAPS verifier
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/release/verify-production-daps.py
+          python3 tools/release/verify-production-daps.py --evidence build/production-daps/evidence.json
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish the preview container only after DAPS passes
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/amerhwitat/octavianos-desktop-preview:latest
+            ghcr.io/amerhwitat/octavianos-desktop-preview:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=OctavianOS Desktop Preview
+            org.opencontainers.image.description=Static web desktop preview; not a virtual machine or OS kernel
+            org.opencontainers.image.revision=${{ github.sha }}
