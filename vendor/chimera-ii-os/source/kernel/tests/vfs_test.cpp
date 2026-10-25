@@ -4,8 +4,14 @@
 #include <string.h>
 
 struct TestFs { char data[64]; uint64_t size; bool exists; };
+static bool reenter_vfs_on_lookup = false;
 static int lookup(void *ctx,const char *path,chimera_vfs_stat *out){
     auto *fs=static_cast<TestFs*>(ctx);if(!fs||!out)return -22;
+    if (reenter_vfs_on_lookup) {
+        reenter_vfs_on_lookup = false;
+        chimera_vfs_stat nested{};
+        if (chimera_vfs_stat_path("/note", &nested) != 0) return -5;
+    }
     if(strcmp(path,"/") == 0){out->size=0;out->type=CHIMERA_VFS_DIRECTORY;out->mode=0755;return 0;}
     if(strcmp(path,"/note")!=0||!fs->exists)return -2;
     out->size=fs->size;out->type=CHIMERA_VFS_REGULAR;out->mode=0644;return 0;
@@ -42,6 +48,9 @@ int main(){
     int64_t fd=chimera_vfs_open(7,"/note",CHIMERA_VFS_O_CREAT|CHIMERA_VFS_O_RDWR,0644);
     if(fd<3)return fail("create/open");
     const char msg[]="vfs-write-read";if(chimera_vfs_write(7,fd,msg,sizeof(msg))!=(int64_t)sizeof(msg))return fail("write");
+    reenter_vfs_on_lookup = true;
+    if(chimera_vfs_seek(7,fd,0,2)!=(int64_t)sizeof(msg))return fail("SEEK_END reentrant backend lookup");
+    if(reenter_vfs_on_lookup)return fail("SEEK_END did not invoke backend lookup");
     if(chimera_vfs_seek(7,fd,0,0)!=0)return fail("seek");
     char out[32]{};if(chimera_vfs_read(7,fd,out,sizeof(msg))!=(int64_t)sizeof(msg))return fail("read");
     if(memcmp(msg,out,sizeof(msg)))return fail("readback mismatch");
