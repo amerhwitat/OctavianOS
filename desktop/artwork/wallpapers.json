@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "delivery": "embedded-defaults-plus-remote-prototype",
-  "note": "Embedded defaults are generated from the original JPEG bytes at ISO build time when the two source files are present. The current repository still requires those exact binary JPEGs to be checked in; remote prototype entries are not a substitute for the embedded assets.",
+  "note": "Embedded defaults are generated from the original JPEG bytes at desktop build/ISO build time when the two source files are present. The exact binary JPEGs must be checked in under desktop/artwork/wallpapers; remote prototype entries are not a substitute for embedded assets.",
   "wallpapers": [
     {
       "id": "aurora-ocean-night",
@@ -50,8 +50,9 @@
       "dark_fallback": "#070914",
       "selector": ".marine-wallpaper--default"
     },
-    "generated_css": "vendor/chimera-ii-os/source/desktop/aurora/assets/embedded-wallpapers.css",
-    "generator": "vendor/chimera-ii-os/source/tools/wallpapers/embed_wallpapers.py",
-    "remote_sources_opt_in": true
+    "generated_css": "desktop/artwork/embedded-wallpapers.css",
+    "generator": "tools/wallpapers/embed_wallpapers.py",
+    "remote_sources_opt_in": true,
+    "source_directory": "desktop/artwork/wallpapers"
   }
 }
