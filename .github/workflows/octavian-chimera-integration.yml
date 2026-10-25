@@ -57,6 +57,7 @@ jobs:
           python vendor/chimera-ii-os/source/tools/tests/test_syscall_usercopy_contract.py
           python vendor/chimera-ii-os/source/tools/tests/test_progress_bridge_contract.py
           python vendor/chimera-ii-os/source/tools/tests/test_production_qemu_matrix.py
+          python vendor/chimera-ii-os/source/tests/boot/test_installer_target_routing_contract.py
       - name: Syntax-check imported Python build tools and tests
         run: |
           python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
