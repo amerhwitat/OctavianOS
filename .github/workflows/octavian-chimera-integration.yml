@@ -54,6 +54,7 @@ jobs:
           python vendor/chimera-ii-os/source/tools/kali/test_chimera_kali.py -v
           python vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py -v
           python vendor/chimera-ii-os/source/tools/tests/test_user_copy_syscall_contract.py
+          python vendor/chimera-ii-os/source/tools/tests/test_syscall_usercopy_contract.py
           python vendor/chimera-ii-os/source/tools/tests/test_progress_bridge_contract.py
       - name: Syntax-check imported Python build tools and tests
         run: |
