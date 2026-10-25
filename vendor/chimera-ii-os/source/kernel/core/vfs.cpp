@@ -24,6 +24,7 @@ struct OpenFile {
     uint64_t offset;
     char path[CHIMERA_VFS_MAX_PATH + 1u];
     bool active;
+    bool position_busy;
 };
 static Mount mounts[CHIMERA_VFS_MAX_MOUNTS]{};
 static OpenFile files[CHIMERA_VFS_MAX_OPEN_FILES]{};
@@ -48,17 +49,24 @@ struct DescriptorPin {
     uint32_t slot;
     OpenFile file;
     bool held;
+    int error;
     DescriptorPin(const DescriptorPin &) = delete;
     DescriptorPin &operator=(const DescriptorPin &) = delete;
-    DescriptorPin(uint32_t pid, int64_t fd) : slot(0), file{}, held(false) {
+    DescriptorPin(uint32_t pid, int64_t fd) : slot(0), file{}, held(false), error(-9) {
         if (fd < 3 || fd >= CHIMERA_VFS_MAX_OPEN_FILES + 3u || !pid) return;
         slot = static_cast<uint32_t>(fd - 3);
         lock();
-        const OpenFile &live = files[slot];
+        OpenFile &live = files[slot];
         if (live.active && live.pid == pid && live.active_ops != UINT32_MAX) {
-            file = live;
-            ++files[slot].active_ops;
-            held = true;
+            if (live.position_busy) {
+                error = -16;
+            } else {
+                file = live;
+                ++live.active_ops;
+                live.position_busy = true;
+                held = true;
+                error = 0;
+            }
         }
         unlock();
     }
@@ -66,8 +74,10 @@ struct DescriptorPin {
         if (!held) return;
         lock();
         OpenFile &live = files[slot];
-        if (live.active && live.generation == file.generation && live.active_ops)
-            --live.active_ops;
+        if (live.active && live.generation == file.generation) {
+            live.position_busy = false;
+            if (live.active_ops) --live.active_ops;
+        }
         unlock();
     }
 };
@@ -217,13 +227,13 @@ extern "C" int64_t chimera_vfs_open(uint32_t pid,const char *path,uint32_t flags
     }
     lock();for(uint32_t i=0;i<CHIMERA_VFS_MAX_OPEN_FILES;i++)if(!files[i].active){
         OpenFile &f=files[i];f.pid=pid;f.mount_index=r.index;f.flags=flags;f.offset=(flags&CHIMERA_VFS_O_APPEND)?st.size:0u;
-        f.generation=next_generation++;if(!next_generation)next_generation=1u;f.active_ops=0u;
+        f.generation=next_generation++;if(!next_generation)next_generation=1u;f.active_ops=0u;f.position_busy=false;
         copy_string(f.path,r.relative,length_of(r.relative));f.active=true;unlock();return (int64_t)i+3;
     }unlock();return -24;
 }
 extern "C" int64_t chimera_vfs_read(uint32_t pid,int64_t fd,void *buffer,uint64_t length) {
     if(!pid||fd<3||fd>=CHIMERA_VFS_MAX_OPEN_FILES+3u||(!buffer&&length))return -22;
-    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return -9;
+    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return descriptor.error;
     const OpenFile f=descriptor.file;
     if((f.flags&CHIMERA_VFS_O_ACCMODE)==CHIMERA_VFS_O_WRONLY)return -9;
     MountPin pin(f.mount_index);
@@ -235,7 +245,7 @@ extern "C" int64_t chimera_vfs_read(uint32_t pid,int64_t fd,void *buffer,uint64_
 }
 extern "C" int64_t chimera_vfs_write(uint32_t pid,int64_t fd,const void *buffer,uint64_t length) {
     if(!pid||fd<3||fd>=CHIMERA_VFS_MAX_OPEN_FILES+3u||(!buffer&&length))return -22;
-    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return -9;
+    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return descriptor.error;
     const OpenFile f=descriptor.file;
     if((f.flags&CHIMERA_VFS_O_ACCMODE)==CHIMERA_VFS_O_RDONLY)return -9;
     MountPin pin(f.mount_index);
@@ -249,7 +259,7 @@ extern "C" int64_t chimera_vfs_write(uint32_t pid,int64_t fd,const void *buffer,
 }
 extern "C" int64_t chimera_vfs_seek(uint32_t pid,int64_t fd,int64_t offset,uint32_t whence) {
     if(!pid||fd<3||fd>=CHIMERA_VFS_MAX_OPEN_FILES+3u)return -9;
-    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return -9;
+    DescriptorPin descriptor(pid, fd);if(!descriptor.held)return descriptor.error;
     const uint32_t slot = descriptor.slot;
     const OpenFile snapshot = descriptor.file;
     if (whence > 2u) return -22;
