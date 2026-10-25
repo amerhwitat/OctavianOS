@@ -217,13 +217,26 @@ extern "C" void *koronos_target_active_address_space(void) {
     return active_target != TARGET_NONE ? active_address_space : nullptr;
 }
 
+/* Koronos currently exposes the lower canonical x86-64 user half only.
+   Validate arithmetic before pinning so address+length cannot wrap into a
+   different mapping; the address-space validator still checks page mappings
+   and read/write permissions for the active process root. */
+constexpr uint64_t USER_ADDRESS_LIMIT = 0x0000800000000000ull;
+static bool user_range_bounds_valid(uint64_t address, uint64_t length) {
+    if (!length) return true;
+    if (!address || address >= USER_ADDRESS_LIMIT) return false;
+    if (length - 1u > UINT64_MAX - address) return false;
+    return address + length - 1u < USER_ADDRESS_LIMIT;
+}
+
 /* User-copy primitives pin every covered page and validate permissions against
    the active process root before touching a ring-3 address. Callers use kernel
    staging buffers so filesystem backends never receive user-controlled pointers. */
 static int copy_from_user(void *destination, uint64_t source, uint64_t length) {
     if ((!destination && length) || !active_root || !active_address_space) return -14;
     if (!length) return 0;
-    if (!source || koronos_address_space_pin(active_address_space, source, length, 0u) != 0) return -14;
+    if (!user_range_bounds_valid(source, length)) return -14;
+    if (koronos_address_space_pin(active_address_space, source, length, 0u) != 0) return -14;
     if (koronos_address_space_validate_user_range(active_root, source, length, 0u) != 0) {
         (void)koronos_address_space_unpin(active_address_space, source, length);
         return -14;
@@ -236,7 +249,8 @@ static int copy_from_user(void *destination, uint64_t source, uint64_t length) {
 static int copy_to_user(uint64_t destination, const void *source, uint64_t length) {
     if ((!source && length) || !active_root || !active_address_space) return -14;
     if (!length) return 0;
-    if (!destination || koronos_address_space_pin(active_address_space, destination, length, 1u) != 0) return -14;
+    if (!user_range_bounds_valid(destination, length)) return -14;
+    if (koronos_address_space_pin(active_address_space, destination, length, 1u) != 0) return -14;
     if (koronos_address_space_validate_user_range(active_root, destination, length, 1u) != 0) {
         (void)koronos_address_space_unpin(active_address_space, destination, length);
         return -14;
@@ -279,7 +293,8 @@ extern "C" int64_t koronos_target_fs_read(uint64_t fd, uint64_t user_buffer, uin
     if (!pid || !active_root) return -9;
     if (!count) return 0;
     if (count > 4096u) return -22;
-    if (!user_buffer || koronos_address_space_pin(active_address_space, user_buffer, count, 1u) != 0) return -14;
+    if (!user_range_bounds_valid(user_buffer, count) ||
+        koronos_address_space_pin(active_address_space, user_buffer, count, 1u) != 0) return -14;
     if (koronos_address_space_validate_user_range(active_root, user_buffer, count, 1u) != 0) {
         (void)koronos_address_space_unpin(active_address_space, user_buffer, count); return -14;
     }
@@ -296,7 +311,8 @@ extern "C" int64_t koronos_target_fs_write(uint64_t fd, uint64_t user_buffer, ui
     if (!pid || !active_root) return -9;
     if (!count) return 0;
     if (count > 4096u) return -22;
-    if (!user_buffer || koronos_address_space_pin(active_address_space, user_buffer, count, 0u) != 0) return -14;
+    if (!user_range_bounds_valid(user_buffer, count) ||
+        koronos_address_space_pin(active_address_space, user_buffer, count, 0u) != 0) return -14;
     if (koronos_address_space_validate_user_range(active_root, user_buffer, count, 0u) != 0) {
         (void)koronos_address_space_unpin(active_address_space, user_buffer, count); return -14;
     }
