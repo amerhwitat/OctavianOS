@@ -105,10 +105,11 @@ class ProductionDAPSTests(unittest.TestCase):
         DAPS.verify(self.manifest, report=False)
 
     def test_rejects_probe_only_trace_without_production_payload_provenance(self):
-        (self.root / "live-bios.log").write_text(
-            "[KRN ] KORONOS READY\nUSER INIT SYSCALL: target=live init_pid=42\n"
-            "USERSPACE READY: live init pid=42\nUSERSPACE SYSCALL RETURNED TO RING3\n",
-            encoding="utf-8")
+        trace_path = self.root / "live-bios.log"
+        lines = [line for line in trace_path.read_text(encoding="utf-8").splitlines()
+                 if not line.startswith("PRODUCTION INIT PAYLOAD:")
+                 and not line.startswith("PRODUCTION INIT EXECUTED:")]
+        trace_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
             DAPS.verify(self.manifest)
 
@@ -166,7 +167,7 @@ class ProductionDAPSTests(unittest.TestCase):
         lines = [line for line in path.read_text(encoding="utf-8").splitlines()
                  if line != "AURORA READY"]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: userspace readiness marker missing"):
+        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: AURORA runtime health marker missing"):
             DAPS.verify(self.manifest)
 
 
