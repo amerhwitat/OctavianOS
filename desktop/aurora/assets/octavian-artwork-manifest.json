@@ -106,6 +106,13 @@
         "source": "vendor/chimera-ii-os/source/boot/splash/spitfire_background.svg",
         "browser_consumer": null,
         "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianAuroraBootSplash",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/boot/splash/aurora_boot_splash.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
       }
     ],
     "activation": "Use data-embedded-wallpaper=<asset id> on an img or background container; bundle exports OS_EMBEDDED_ARTWORK and applyOSEmbeddedArtwork.",
