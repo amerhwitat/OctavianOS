@@ -156,6 +156,125 @@ def read_evidence_log(root: Path, relative: object, label: str, markers: tuple[s
     return text
 
 
+def safe_evidence_path(root: Path, relative: object, label: str) -> Path:
+    require(isinstance(relative, str) and bool(relative), f"{label}: path reference missing")
+    path = (root / relative).resolve()
+    require(path.is_relative_to(root.resolve()), f"{label}: path escapes evidence root")
+    require(path.is_file(), f"{label}: file missing: {path}")
+    return path
+
+
+def read_jsonl_events(path: Path, label: str) -> list[dict]:
+    events: list[dict] = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise GateError(f"{label}: cannot read structured event log: {exc}") from exc
+    for number, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise GateError(f"{label}: line {number} is not a JSON event") from exc
+        require(isinstance(event, dict), f"{label}: line {number} must be a JSON object")
+        require(isinstance(event.get("event"), str), f"{label}: line {number} lacks event type")
+        events.append(event)
+    require(events, f"{label}: structured event log is empty")
+    return events
+
+
+def verify_installer_persistence(root: Path, install: object, expected_sha: str) -> None:
+    require(isinstance(install, dict), "installer_persistence evidence missing")
+    require(install.get("iso_sha256") == expected_sha,
+            "installer persistence evidence references a different ISO")
+    # Booleans and human-readable markers are not proof of durable media state.
+    # Require the actual post-install disk image, byte-for-byte readback, and
+    # ordered machine-readable events emitted by the QEMU acceptance harness.
+    disk = safe_evidence_path(root, install.get("disk_image"), "installer disk image")
+    disk_sha = install.get("disk_image_sha256")
+    require(isinstance(disk_sha, str) and SHA256_RE.fullmatch(disk_sha),
+            "installer disk image SHA-256 missing")
+    require(sha256_file(disk) == disk_sha, "installer disk image SHA-256 mismatch")
+    identity = install.get("disk_identity")
+    require(isinstance(identity, str) and identity.strip(),
+            "installer stable disk identity missing")
+    write = install.get("write")
+    require(isinstance(write, dict), "installer structured write evidence missing")
+    offset = write.get("offset_bytes")
+    length = write.get("length_bytes")
+    expected_content_sha = write.get("content_sha256")
+    require(type(offset) is int and offset >= 0, "installer write offset must be a nonnegative integer")
+    require(type(length) is int and length > 0, "installer write length must be a positive integer")
+    require(isinstance(expected_content_sha, str) and SHA256_RE.fullmatch(expected_content_sha),
+            "installer expected write content SHA-256 missing")
+    require(offset + length <= disk.stat().st_size, "installer write range exceeds disk image size")
+
+    readback = safe_evidence_path(root, install.get("readback_file"), "post-reboot disk readback")
+    readback_sha = install.get("readback_sha256")
+    require(isinstance(readback_sha, str) and SHA256_RE.fullmatch(readback_sha),
+            "installer post-reboot readback SHA-256 missing")
+    readback_bytes = readback.read_bytes()
+    require(len(readback_bytes) == length, "installer readback byte count differs from write length")
+    require(hashlib.sha256(readback_bytes).hexdigest() == readback_sha,
+            "installer readback artifact SHA-256 mismatch")
+    require(readback_sha == expected_content_sha,
+            "installer post-reboot readback digest differs from expected written content")
+    with disk.open("rb") as stream:
+        stream.seek(offset)
+        disk_bytes = stream.read(length)
+    require(len(disk_bytes) == length, "installer disk image readback is truncated")
+    require(hashlib.sha256(disk_bytes).hexdigest() == expected_content_sha,
+            "installer disk image does not contain expected persisted bytes at write range")
+    require(disk_bytes == readback_bytes,
+            "installer post-reboot readback bytes differ from the installed disk image")
+
+    event_path = safe_evidence_path(root, install.get("evidence_log"), "installer structured evidence log")
+    events = read_jsonl_events(event_path, "installer persistence")
+    kinds = [event["event"] for event in events]
+    required = ("install_write", "vm_stopped", "vm_started", "disk_readback", "installed_system_ready")
+    positions = {}
+    for kind in required:
+        found = [i for i, event in enumerate(events) if event.get("event") == kind]
+        require(len(found) == 1, f"installer evidence must contain exactly one {kind} event")
+        positions[kind] = found[0]
+    require([positions[k] for k in required] == sorted(positions.values()),
+            "installer write/stop/cold-start/readback/installed-ready events are out of order")
+    write_event = events[positions["install_write"]]
+    require(write_event.get("disk_identity") == identity
+            and write_event.get("offset_bytes") == offset
+            and write_event.get("length_bytes") == length
+            and write_event.get("content_sha256") == expected_content_sha
+            and write_event.get("flush_sync") is True,
+            "installer write event does not prove the expected range, digest, and successful flush/sync")
+    stopped = events[positions["vm_stopped"]]
+    started = events[positions["vm_started"]]
+    require(stopped.get("cold_stop") is True and isinstance(stopped.get("vm_id"), str)
+            and stopped.get("vm_id"), "installer first VM stop is not confirmed as a cold stop")
+    require(isinstance(started.get("vm_id"), str) and started.get("vm_id")
+            and started.get("vm_id") != stopped.get("vm_id"),
+            "installer cold reboot must use a distinct VM instance")
+    require(isinstance(stopped.get("session_id"), str) and stopped.get("session_id")
+            and isinstance(started.get("session_id"), str) and started.get("session_id")
+            and started.get("session_id") != stopped.get("session_id"),
+            "installer cold reboot must use a distinct QEMU session")
+    require(started.get("cold_start") is True
+            and started.get("disk_identity") == identity
+            and started.get("disk_image_sha256") == disk_sha,
+            "installer second VM did not cold-start the same verified disk image")
+    read_event = events[positions["disk_readback"]]
+    require(read_event.get("disk_identity") == identity
+            and read_event.get("offset_bytes") == offset
+            and read_event.get("length_bytes") == length
+            and read_event.get("content_sha256") == expected_content_sha
+            and read_event.get("after_cold_start") is True,
+            "installer readback event is not tied to the same disk/range after cold start")
+    ready = events[positions["installed_system_ready"]]
+    require(ready.get("vm_id") == started.get("vm_id")
+            and ready.get("disk_identity") == identity
+            and ready.get("disk_image_sha256") == disk_sha,
+            "installed-system readiness is not bound to the second VM and same disk artifact")
+
 def verify(evidence_path: Path, report: bool = True) -> None:
     root = evidence_path.resolve().parent
     evidence = read_json(evidence_path)
@@ -188,18 +307,7 @@ def verify(evidence_path: Path, report: bool = True) -> None:
                 f"Live/{firmware}: actual Aurora session readiness missing")
         require("AURORA READY" in live, f"Live/{firmware}: Aurora runtime health marker missing")
 
-    install = evidence.get("installer_persistence")
-    require(isinstance(install, dict), "installer_persistence evidence missing")
-    require(install.get("passed") is True, "installer persistence/cold reboot not accepted")
-    require(install.get("iso_sha256") == expected_sha, "installer persistence evidence references a different ISO")
-    require(install.get("write_verified") is True, "installer write postcondition missing")
-    require(install.get("cold_reboot_verified") is True, "installed-disk cold reboot not verified")
-    require(install.get("installed_system_ready") is True, "installed system readiness not verified")
-    read_evidence_log(root, install.get("evidence_log"), "installer persistence", (
-        "INSTALL WRITE VERIFIED",
-        "INSTALLED DISK COLD REBOOT VERIFIED",
-        "INSTALLED SYSTEM READY",
-    ))
+    verify_installer_persistence(root, evidence.get("installer_persistence"), expected_sha)
 
     recovery = evidence.get("recovery")
     require(isinstance(recovery, dict), "recovery evidence missing")
