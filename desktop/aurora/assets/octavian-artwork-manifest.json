@@ -17,5 +17,33 @@
       "boot_rasterization_required": true
     }
   ],
-  "runtime_note": "The SVG is a source artwork asset. GRUB firmware-stage display requires a PNG/JPEG raster derivative to be generated and embedded by the ISO builder; this manifest does not claim that derivative is present."
+  "runtime_note": "The SVG is a source artwork asset. GRUB firmware-stage display requires a PNG/JPEG raster derivative to be generated and embedded by the ISO builder; this manifest does not claim that derivative is present.",
+  "offline_bundle": {
+    "path": "desktop/artwork/embedded-wallpapers.js",
+    "format": "JavaScript containing Base64 data URIs",
+    "no_network_required": true,
+    "assets": [
+      {
+        "id": "octavianAurora",
+        "mime": "image/svg+xml",
+        "source": "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      },
+      {
+        "id": "marine",
+        "mime": "image/svg+xml",
+        "source": "desktop/marine/assets/marine-desktop.svg"
+      },
+      {
+        "id": "chimeraAurora",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg"
+      },
+      {
+        "id": "auroraGlassJpeg",
+        "mime": "image/jpeg",
+        "source": "vendor/chimera-ii-os/source/boot/visual/aurora-wayland-glass.jpg.b64"
+      }
+    ],
+    "activation": "Use data-embedded-wallpaper=<asset id> on an img or background container; bundle exports OS_EMBEDDED_ARTWORK and applyOSEmbeddedArtwork."
+  }
 }
