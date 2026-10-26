@@ -74,8 +74,17 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
         rf"USER INIT SYSCALL: target={re.escape(target)} init_pid=([1-9][0-9]*)",
         text,
     ))
+    # Production target readiness is emitted only after the real target
+    # component has initialized. Generic USERSPACE READY markers are probe /
+    # bootstrap diagnostics and must never satisfy the production gate.
+    ready_components = {
+        "live": "aurora-session",
+        "installer": "install-executor",
+        "recovery": "recovery-runtime",
+    }
+    component = ready_components[target]
     ready = list(re.finditer(
-        rf"USERSPACE READY: {re.escape(target)} init pid=([1-9][0-9]*)",
+        rf"USERSPACE TARGET READY: {re.escape(target)} component={re.escape(component)} init pid=([1-9][0-9]*)",
         text,
     ))
     require(ack, f"{label}: user-originated CPL3 syscall acknowledgement missing")
