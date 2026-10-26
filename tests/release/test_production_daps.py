@@ -19,7 +19,7 @@ class ProductionDAPSTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         # Synthetic ISO9660 PVD fixture; this is not a bootable OS image.
         iso = bytearray(16 * 2048 + 7)
-        iso[16 * 2048:16 * 2048 + 7] = b"\\x01CD001\\x01"
+        iso[16 * 2048:16 * 2048 + 7] = b"\x01CD001\x01"
         (self.root / "candidate.iso").write_bytes(iso)
         self.sha = hashlib.sha256((self.root / "candidate.iso").read_bytes()).hexdigest()
         traces = {}
@@ -44,7 +44,7 @@ class ProductionDAPSTests(unittest.TestCase):
                 if target == "live":
                     lines += ["USERSPACE TARGET READY: live component=aurora-session", "AURORA READY"]
                 name = f"{target}-{firmware}.log"
-                (self.root / name).write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+                (self.root / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
                 traces[f"{target}/{firmware}"] = {
                     "iso_sha256": self.sha, "log": name,
                     "payload_file": payload.name, "payload_sha256": payload_hashes[target],
@@ -73,11 +73,11 @@ class ProductionDAPSTests(unittest.TestCase):
              "disk_image_sha256":disk_sha},
         ]
         (self.root / "installer-events.jsonl").write_text(
-            "".join(json.dumps(event) + "\\n" for event in events), encoding="utf-8")
+            "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
         (self.root / "recovery-repair.log").write_text(
-            "RECOVERY REPAIR EXECUTED\\nRECOVERY POSTCONDITION VERIFIED\\n", encoding="utf-8")
+            "RECOVERY REPAIR EXECUTED\nRECOVERY POSTCONDITION VERIFIED\n", encoding="utf-8")
         (self.root / "smp.log").write_text(
-            "SMP AP ONLINE: cpu=0\\nSMP AP ONLINE: cpu=1\\nSMP OVERLAP VERIFIED\\n", encoding="utf-8")
+            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\nSMP OVERLAP VERIFIED\n", encoding="utf-8")
         self.evidence = {
             "schema_version": 2, "iso": "candidate.iso", "iso_sha256": self.sha, "traces": traces,
             "installer_persistence": {
@@ -106,8 +106,8 @@ class ProductionDAPSTests(unittest.TestCase):
 
     def test_rejects_probe_only_trace_without_production_payload_provenance(self):
         (self.root / "live-bios.log").write_text(
-            "[KRN ] KORONOS READY\\nUSER INIT SYSCALL: target=live init_pid=42\\n"
-            "USERSPACE READY: live init pid=42\\nUSERSPACE SYSCALL RETURNED TO RING3\\n",
+            "[KRN ] KORONOS READY\nUSER INIT SYSCALL: target=live init_pid=42\n"
+            "USERSPACE READY: live init pid=42\nUSERSPACE SYSCALL RETURNED TO RING3\n",
             encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "production initramfs payload provenance missing"):
             DAPS.verify(self.manifest)
@@ -116,7 +116,7 @@ class ProductionDAPSTests(unittest.TestCase):
         path = self.root / "live-bios.log"
         lines = [line for line in path.read_text(encoding="utf-8").splitlines()
                  if "op=write path=/tmp/daps-probe" not in line]
-        path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "ring-3 writable /tmp write evidence missing"):
             DAPS.verify(self.manifest)
 
@@ -132,7 +132,7 @@ class ProductionDAPSTests(unittest.TestCase):
         ack = next(i for i, line in enumerate(lines) if line.startswith("USER INIT SYSCALL:"))
         ready = next(i for i, line in enumerate(lines) if line.startswith("USERSPACE READY:"))
         lines[ack], lines[ready] = lines[ready], lines[ack]
-        path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "readiness precedes its syscall acknowledgement"):
             DAPS.verify(self.manifest)
 
@@ -152,12 +152,12 @@ class ProductionDAPSTests(unittest.TestCase):
         event_path = self.root / "installer-events.jsonl"
         events = [json.loads(line) for line in event_path.read_text().splitlines()]
         events[2]["vm_id"] = "vm-first"
-        event_path.write_text("".join(json.dumps(e) + "\\n" for e in events))
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events))
         with self.assertRaisesRegex(DAPS.GateError, "distinct VM instance"):
             DAPS.verify(self.manifest)
 
     def test_rejects_missing_ap_overlap_record(self):
-        (self.root / "smp.log").write_text("SMP AP ONLINE: cpu=0\\nSMP AP ONLINE: cpu=1\\n", encoding="utf-8")
+        (self.root / "smp.log").write_text("SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "SMP OVERLAP VERIFIED"):
             DAPS.verify(self.manifest)
 
@@ -165,7 +165,7 @@ class ProductionDAPSTests(unittest.TestCase):
         path = self.root / "live-uefi.log"
         lines = [line for line in path.read_text(encoding="utf-8").splitlines()
                  if line not in {"USERSPACE TARGET READY: live component=aurora-session", "AURORA READY"}]
-        path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: actual Aurora"):
             DAPS.verify(self.manifest)
 
