@@ -327,7 +327,7 @@ jobs:
           test -s "$src/build/boot-artifacts/uefi/BOOTX64.EFI"
           python3 tools/package_os_assets.py --root . --output build/os-asset-bundle --binary-root "$src/build" --binary-root "$src/boot/iso/dist/iso/EFI/BOOT" --command-root "$src/boot/iso/dist/iso" --command-root "$src" --require-elf --require-efi --require-commands
           python3 - <<'PY'
-          import json
+          import json, hashlib
           from pathlib import Path
           p=Path("build/os-asset-bundle")
           a=json.loads((p/"embedded-artwork.json").read_text())
@@ -335,11 +335,11 @@ jobs:
           assert a["assets"], "embedded artwork manifest is empty"
           assert b["elf_count"] > 0, "no valid ELF binaries bundled"
           assert b["efi_count"] > 0, "no valid EFI binaries bundled"
-assert b["command_count"] > 0, "no executable commands bundled"
-for entry in b["commands"]:
-    f = p / entry["path"]
-    assert f.is_file() and hashlib.sha256(f.read_bytes()).hexdigest() == entry["sha256"], entry
-          print(f"OFFLINE ASSET BUNDLE PASS: artwork={len(a['assets'])} ELF={b['elf_count']} EFI={b['efi_count']}")
+          assert b["command_count"] > 0, "no executable commands bundled"
+          for entry in b["commands"]:
+              f = p / entry["path"]
+              assert f.is_file() and hashlib.sha256(f.read_bytes()).hexdigest() == entry["sha256"], entry
+          print(f"OFFLINE ASSET BUNDLE PASS: artwork={len(a['assets'])} ELF={b['elf_count']} EFI={b['efi_count']} commands={b['command_count']}")
           PY
       - name: Upload offline artwork and native ELF/EFI bundle
         uses: actions/upload-artifact@v4
