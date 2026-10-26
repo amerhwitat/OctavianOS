@@ -77,7 +77,7 @@ class ProductionDAPSTests(unittest.TestCase):
         (self.root / "recovery-repair.log").write_text(
             "RECOVERY REPAIR EXECUTED\nRECOVERY POSTCONDITION VERIFIED\n", encoding="utf-8")
         (self.root / "smp.log").write_text(
-            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\nSMP OVERLAP VERIFIED\n", encoding="utf-8")
+            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\nSMP TASK INTERVAL: task=worker-a cpu=0 start_ns=100 end_ns=300\nSMP TASK INTERVAL: task=worker-b cpu=1 start_ns=200 end_ns=400\nSMP OVERLAP VERIFIED\n", encoding="utf-8")
         self.evidence = {
             "schema_version": 2, "iso": "candidate.iso", "iso_sha256": self.sha, "traces": traces,
             "installer_persistence": {
@@ -249,6 +249,34 @@ class ProductionDAPSTests(unittest.TestCase):
         event_path = self.root / "installer-events.jsonl"
         event_path.write_text('{"event":"install_write"}\n{bad-json}\n', encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "is not a JSON event"):
+            DAPS.verify(self.manifest)
+
+
+    def test_rejects_smp_marker_without_overlapping_task_intervals(self):
+        (self.root / "smp.log").write_text(
+            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\n"
+            "SMP TASK INTERVAL: task=worker-a cpu=0 start_ns=100 end_ns=200\n"
+            "SMP TASK INTERVAL: task=worker-b cpu=1 start_ns=200 end_ns=300\n"
+            "SMP OVERLAP VERIFIED\n", encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "no overlapping intervals"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_smp_intervals_on_the_same_cpu(self):
+        (self.root / "smp.log").write_text(
+            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\n"
+            "SMP TASK INTERVAL: task=worker-a cpu=0 start_ns=100 end_ns=300\n"
+            "SMP TASK INTERVAL: task=worker-b cpu=0 start_ns=200 end_ns=400\n"
+            "SMP OVERLAP VERIFIED\n", encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "no overlapping intervals"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_smp_nonpositive_task_interval(self):
+        (self.root / "smp.log").write_text(
+            "SMP AP ONLINE: cpu=0\nSMP AP ONLINE: cpu=1\n"
+            "SMP TASK INTERVAL: task=worker-a cpu=0 start_ns=300 end_ns=100\n"
+            "SMP TASK INTERVAL: task=worker-b cpu=1 start_ns=200 end_ns=400\n"
+            "SMP OVERLAP VERIFIED\n", encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "non-positive duration"):
             DAPS.verify(self.manifest)
 
 if __name__ == "__main__":
