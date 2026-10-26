@@ -26,7 +26,7 @@
       {
         "id": "chimeraAurora",
         "mime": "image/svg+xml",
-        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg",
+        "source": "ChimeraIIOS/desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg",
         "browser_consumer": null,
         "integration_status": "embedded-bundle-only"
       },
