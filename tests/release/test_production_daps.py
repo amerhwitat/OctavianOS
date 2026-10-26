@@ -167,7 +167,7 @@ class ProductionDAPSTests(unittest.TestCase):
         lines = [line for line in path.read_text(encoding="utf-8").splitlines()
                  if line != "AURORA READY"]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: AURORA runtime health marker missing"):
+        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: Aurora runtime health marker missing"):
             DAPS.verify(self.manifest)
 
 
