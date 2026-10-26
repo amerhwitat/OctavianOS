@@ -11,7 +11,7 @@ target_marker_errors = MATRIX["target_marker_errors"]
 
 class ProductionQemuMatrixContract(unittest.TestCase):
     def test_matrix_never_claims_full_production_acceptance(self):
-        source = (ROOT / "vendor/chimera-ii-os/source/tools/run-production-qemu-matrix.py").read_text()
+        source = (ROOT / "tools/run-production-qemu-matrix.py").read_text()
         self.assertIn('"production_acceptance": "NOT ESTABLISHED BY THIS MATRIX"', source)
         self.assertIn('"target_boot_matrix":', source)
         self.assertIn('"qemu_started": process is not None', source)
