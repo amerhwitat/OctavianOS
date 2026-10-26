@@ -280,7 +280,7 @@ def verify_installer_persistence(root: Path, install: object, expected_sha: str)
 def verify(evidence_path: Path, report: bool = True) -> None:
     root = evidence_path.resolve().parent
     evidence = read_json(evidence_path)
-    require(evidence.get("schema_version") == 1, "schema_version must be 1")
+    require(evidence.get("schema_version") == 2, "schema_version must be 2 for artifact-backed installer persistence")
     iso_path = (root / str(evidence.get("iso", ""))).resolve()
     require(iso_path.is_relative_to(root), "ISO path escapes evidence root")
     require(iso_path.is_file(), "candidate ISO is missing")
