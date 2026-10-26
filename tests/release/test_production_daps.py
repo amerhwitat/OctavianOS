@@ -39,10 +39,10 @@ class ProductionDAPSTests(unittest.TestCase):
                     f"USERSPACE FILE SYSCALL: target={target} pid=42 op=read path=/etc/os-release fd=3 result=bytes:16",
                     f"USERSPACE FILE SYSCALL: target={target} pid=42 op=close path=/etc/os-release fd=3 result=0",
                     f"USERSPACE TMP SYSCALL: target={target} pid=42 op=write path=/tmp/daps-probe result=bytes:4",
-                    f"USERSPACE READY: {target} init pid=42",
+                    f"USERSPACE TARGET READY: {target} component={ {'live':'aurora-session','installer':'install-executor','recovery':'recovery-runtime'}[target] } init pid=42",
                 ]
                 if target == "live":
-                    lines += ["USERSPACE TARGET READY: live component=aurora-session", "AURORA READY"]
+                    lines += ["AURORA READY"]
                 name = f"{target}-{firmware}.log"
                 (self.root / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
                 traces[f"{target}/{firmware}"] = {
@@ -130,7 +130,7 @@ class ProductionDAPSTests(unittest.TestCase):
         path = self.root / "live-bios.log"
         lines = path.read_text(encoding="utf-8").splitlines()
         ack = next(i for i, line in enumerate(lines) if line.startswith("USER INIT SYSCALL:"))
-        ready = next(i for i, line in enumerate(lines) if line.startswith("USERSPACE READY:"))
+        ready = next(i for i, line in enumerate(lines) if line.startswith("USERSPACE TARGET READY:"))
         lines[ack], lines[ready] = lines[ready], lines[ack]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         with self.assertRaisesRegex(DAPS.GateError, "readiness precedes its syscall acknowledgement"):
@@ -164,9 +164,9 @@ class ProductionDAPSTests(unittest.TestCase):
     def test_rejects_missing_aurora_in_one_firmware(self):
         path = self.root / "live-uefi.log"
         lines = [line for line in path.read_text(encoding="utf-8").splitlines()
-                 if line not in {"USERSPACE TARGET READY: live component=aurora-session", "AURORA READY"}]
+                 if line != "AURORA READY"]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: actual Aurora"):
+        with self.assertRaisesRegex(DAPS.GateError, "Live/uefi: userspace readiness marker missing"):
             DAPS.verify(self.manifest)
 
 
