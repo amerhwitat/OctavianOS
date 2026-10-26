@@ -5,7 +5,7 @@
 <title>Marine Desktop — OctavianOS</title>
 <style>
 :root{font-family:system-ui,"Segoe UI",sans-serif;color:#f1fbff;background:#03263b;--glass:#0b2d46cc;--line:#a6e6f044;--accent:#67e6df;--task:#102f47d9}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;overflow:hidden;background:#05253a url("assets/marine-desktop.svg") center/cover fixed no-repeat}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;overflow:hidden;background:#05253a url("assets/octavian-marine-productivity.svg") center/cover fixed no-repeat}
 body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,#00243a55,#032c3d18 45%,#00162977);pointer-events:none}
 .topbar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#031c2dc9;backdrop-filter:blur(20px);border-bottom:1px solid #a4e8f022;font-size:12px;position:relative;z-index:2}.brand{font-weight:700;letter-spacing:.03em}.topitems{display:flex;gap:18px;color:#d0edf5}.workspace{position:relative;height:calc(100vh - 38px);padding:28px;z-index:1}
 .icon-grid{display:grid;grid-auto-flow:row;grid-template-columns:90px;gap:22px;width:100px}.deskicon{display:block;text-decoration:none;width:84px;border:1px solid transparent;background:#082f4566;border-radius:14px;padding:12px 5px;color:white;text-align:center;cursor:pointer;text-shadow:0 1px 4px #00131f}.deskicon:hover,.deskicon:focus-visible{background:#b3f3f422;border-color:#c6ffff66;outline:none}.emoji{display:block;font-size:30px;margin-bottom:6px}.deskicon span:last-child{font-size:12px}
@@ -26,7 +26,7 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
 <aside class="widget"><div class="kicker">Marine Desktop · Preview</div><h1>Good day,<br>explorer.</h1><p>A calm, ocean-inspired workspace. Windows-style centered taskbar, Start launcher, desktop shortcuts and glanceable widgets—designed independently of Aurora.</p><p class="preview-note" role="note">Preview only — no session launched. This page demonstrates the Marine desktop interface; it does not start the native operating system.</p><div class="weather"><div><div class="kicker">Ocean status</div><strong>Blue world</strong></div><span style="font-size:36px">🌊</span></div></aside>
 <section class="wallpaper-picker" id="wallpaperPicker" aria-label="Desktop backgrounds" hidden>
  <div class="wallpaper-heading"><div><div class="kicker">PERSONALIZATION</div><h2>Choose a background</h2></div><button id="closeWallpapers" type="button" aria-label="Close backgrounds">×</button></div>
- <button class="wallpaper-option" data-wallpaper="marine"><img src="assets/marine-desktop.svg" alt=""><span><b>Marine Ocean Glass</b><small>Original included artwork</small></span></button>
+ <button class="wallpaper-option" data-wallpaper="marine"><img src="assets/octavian-marine-productivity.svg" alt=""><span><b>Marine Ocean Glass</b><small>Original included artwork</small></span></button>
  <button class="wallpaper-option" data-wallpaper="aurora"><img src="../aurora/assets/octavian-octopus-aurora.svg" alt=""><span><b>Octopus Aurora</b><small>Included Aurora artwork</small></span></button>
  </section>
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
@@ -48,7 +48,7 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
 (() => {
  const menu=document.getElementById('startmenu'), start=document.getElementById('start'), notice=document.getElementById('notice');
  const wallpaperPicker=document.getElementById('wallpaperPicker'), wallpaperButton=document.getElementById('wallpaperButton');
- const wallpaperAssets={marine:'assets/marine-desktop.svg',aurora:'../aurora/assets/octavian-octopus-aurora.svg'};
+ const wallpaperAssets={marine:'assets/octavian-marine-productivity.svg',aurora:'../aurora/assets/octavian-octopus-aurora.svg'};
  const setWallpaper=key=>{if(!wallpaperAssets[key])return;document.body.style.backgroundImage='linear-gradient(130deg,#00243a55,#032c3d18 45%,#00162977),url("'+wallpaperAssets[key]+'")';localStorage.setItem('octavian.desktop.wallpaper',key);document.querySelectorAll('[data-wallpaper]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.wallpaper===key)));window.dispatchEvent(new CustomEvent('octavian-wallpaper-change',{detail:{key}}));};
  wallpaperButton.addEventListener('click',()=>{wallpaperPicker.hidden=!wallpaperPicker.hidden;wallpaperButton.setAttribute('aria-expanded',String(!wallpaperPicker.hidden));});
  document.getElementById('closeWallpapers').addEventListener('click',()=>{wallpaperPicker.hidden=true;wallpaperButton.setAttribute('aria-expanded','false');});
