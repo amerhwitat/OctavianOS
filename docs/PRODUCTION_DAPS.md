@@ -13,11 +13,11 @@ python3 tools/release/verify-production-daps.py --evidence build/production-daps
 All paths in the JSON are relative to the directory containing `evidence.json`.
 The candidate ISO must be the exact ISO booted by every trace and end-to-end test.
 
-## Evidence schema (version 1)
+## Evidence schema (version 2)
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "iso": "candidate.iso",
   "iso_sha256": "<64 lowercase hex characters>",
   "traces": {
