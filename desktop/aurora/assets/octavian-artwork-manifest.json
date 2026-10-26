@@ -24,26 +24,91 @@
     "no_network_required": true,
     "assets": [
       {
+        "id": "chimeraAurora",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
         "id": "octavianAurora",
         "mime": "image/svg+xml",
-        "source": "desktop/aurora/assets/octavian-octopus-aurora.svg"
+        "source": "desktop/aurora/assets/octavian-octopus-aurora.svg",
+        "browser_consumer": "desktop/aurora-wayland-glass/index.html",
+        "integration_status": "browser-consumer-wired"
       },
       {
         "id": "marine",
         "mime": "image/svg+xml",
-        "source": "desktop/marine/assets/marine-desktop.svg"
-      },
-      {
-        "id": "chimeraAurora",
-        "mime": "image/svg+xml",
-        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg"
+        "source": "desktop/marine/assets/marine-desktop.svg",
+        "browser_consumer": "desktop/marine/index.html",
+        "integration_status": "browser-consumer-wired"
       },
       {
         "id": "auroraGlassJpeg",
         "mime": "image/jpeg",
-        "source": "vendor/chimera-ii-os/source/boot/visual/aurora-wayland-glass.jpg.b64"
+        "source": "vendor/chimera-ii-os/source/boot/visual/aurora-wayland-glass.jpg.b64",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianBootSplash",
+        "mime": "image/svg+xml",
+        "source": "boot/splash/octavian-octopus-background.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianMobile",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/web/mobile-landing.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianAuroraDesktop",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-desktop.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianInstaller",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-installer.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianLibrary",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-library.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianWaylandGlassSvg",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-wayland-glass.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianJasperBoot",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/boot/splash/jasper_background.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
+      },
+      {
+        "id": "octavianSpitfireBoot",
+        "mime": "image/svg+xml",
+        "source": "vendor/chimera-ii-os/source/boot/splash/spitfire_background.svg",
+        "browser_consumer": null,
+        "integration_status": "embedded-bundle-only"
       }
     ],
-    "activation": "Use data-embedded-wallpaper=<asset id> on an img or background container; bundle exports OS_EMBEDDED_ARTWORK and applyOSEmbeddedArtwork."
+    "activation": "Use data-embedded-wallpaper=<asset id> on an img or background container; bundle exports OS_EMBEDDED_ARTWORK and applyOSEmbeddedArtwork.",
+    "consumer_note": "The JS bundle is consumed only by the listed browser preview(s). Embedded boot-stage SVG keys are not a substitute for GRUB/ISO raster staging; native/firmware runtime acceptance remains unverified."
   }
 }
