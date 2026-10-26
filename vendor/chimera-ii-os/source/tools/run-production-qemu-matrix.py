@@ -19,12 +19,20 @@ import socket
 import subprocess
 import time
 
-TARGETS = {"live": 0, "installer": 2, "recovery": 5}
+# Reset GRUB to its first top-level entry; index 5 is a nested menu, not Recovery.
+TARGETS = {"live": 0, "installer": 2, "recovery": 8}
 COMPONENTS = {
     "live": "aurora-session",
     "installer": "install-executor",
     "recovery": "recovery-runtime",
 }
+
+
+def target_key_commands(target: str) -> list[str]:
+    """Select a top-level GRUB entry from a deterministic menu origin."""
+    if target not in TARGETS:
+        raise ValueError(f"unknown target: {target}")
+    return ["sendkey home", *("sendkey down" for _ in range(TARGETS[target])), "sendkey ret"]
 
 
 def sha256(path: Path) -> str:
@@ -173,7 +181,7 @@ def run_case(iso: Path, output: Path, digest: str, target: str, firmware: str,
         # GRUB's checked-in menu timeout is eight seconds. Navigate the actual
         # ISO menu, not a reconstructed target ISO or probe ELF.
         time.sleep(2.0)
-        key_commands = ["sendkey down"] * TARGETS[target] + ["sendkey ret"]
+        key_commands = target_key_commands(target)
         try:
             monitor_send(monitor, key_commands)
         except (TimeoutError, OSError) as exc:
