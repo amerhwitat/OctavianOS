@@ -41,5 +41,5 @@ jobs:
       - name: Validate ISO staging
         run: |
           bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
-          grep -q 'optional_app_catalog' vendor/chimera-ii-os/source/build-chimera-iso.sh
+          grep -q 'optional_apps_catalog' vendor/chimera-ii-os/source/build-chimera-iso.sh
           python -m json.tool vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json >/dev/null

@@ -10,5 +10,10 @@
   "local_port_modifications": [
     "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation",
     "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness."
-  ]
+  ],
+  "kernel_source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
+  "kernel_source_ref": "fix/uefi-native-syscall-ack-20261024",
+  "kernel_source_commit": "916508a91827c2629ccb2633b5fa46b0daaff688",
+  "kernel_source_blob_count": 146,
+  "kernel_snapshot_scope": "kernel/** blob contents synchronized and SHA-verified against kernel_source_commit; non-kernel vendor snapshot remains at source_commit"
 }

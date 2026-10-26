@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Probe Smoke (Not Production Acceptance)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: Candidate ring-3 probe / ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -59,8 +59,8 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            multiboot2 /boot/koronos.elf target=$TARGET
+            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET probe=ring3
             boot
           }
           EOF
@@ -113,8 +113,18 @@ jobs:
           ready_pid="${ready_line##*=}"
           ack_pid="${ack_line##*=}"
           test "$ready_pid" = "$ack_pid"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
-          grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
+          # Require the observable trace to prove the sequence, not merely the
+          # presence of individually plausible markers in an arbitrary order.
+          kernel_line="$(grep -nF "[KRN ] KORONOS READY" "$LOG" | head -n 1 | cut -d: -f1)"
+          ack_order_line="$(grep -nF "USER INIT SYSCALL: target=${TARGET} init_pid=${ack_pid}" "$LOG" | head -n 1 | cut -d: -f1)"
+          ring3_return_line="$(grep -nF "USERSPACE SYSCALL RETURNED TO RING3" "$LOG" | head -n 1 | cut -d: -f1)"
+          ready_order_line="$(grep -nF "USERSPACE READY: ${TARGET} init pid=${ready_pid}" "$LOG" | head -n 1 | cut -d: -f1)"
+          clean_exit_line="$(grep -nF "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG" | head -n 1 | cut -d: -f1)"
+          test -n "$kernel_line" && test -n "$ack_order_line" && test -n "$ring3_return_line" && test -n "$ready_order_line" && test -n "$clean_exit_line"
+          test "$kernel_line" -lt "$ack_order_line"
+          test "$ack_order_line" -lt "$ready_order_line"
+          test "$ready_order_line" -lt "$ring3_return_line"
+          test "$ring3_return_line" -lt "$clean_exit_line"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
@@ -133,7 +143,7 @@ jobs:
           set default=0
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
-            multiboot2 /boot/koronos.elf
+            multiboot2 /boot/koronos.elf target=live
             module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
             boot
           }

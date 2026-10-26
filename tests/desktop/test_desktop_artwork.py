@@ -8,7 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 class DesktopArtworkTests(unittest.TestCase):
     def test_wallpaper_catalog_has_sources_and_license(self):
         catalog = json.loads((ROOT / "desktop/artwork/wallpapers.json").read_text())
-        self.assertEqual(catalog["delivery"], "remote-prototype")
+        self.assertEqual(catalog["delivery"], "embedded-defaults-plus-remote-prototype")
         self.assertGreaterEqual(len(catalog["wallpapers"]), 2)
         ids = {item["id"] for item in catalog["wallpapers"]}
         self.assertIn("aurora-ocean-night", ids)
@@ -36,7 +36,7 @@ class DesktopArtworkTests(unittest.TestCase):
         self.assertIn('url("assets/marine-desktop.svg")', page)
         self.assertIn('data-wallpaper="marine"', page)
         self.assertIn('data-wallpaper="aurora"', page)
-        self.assertIn('wallpaperPicker', page)
+        self.assertIn("wallpaperPicker", page)
         self.assertNotIn("images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2", page)
         self.assertTrue((ROOT / "desktop/marine/assets/marine-desktop.svg").is_file())
         self.assertIn("no session launched", page)

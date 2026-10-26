@@ -57,6 +57,41 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+# Compile and stage the explicit target-native CPL3 init ELFs after the ISO tree exists.
+# The kernel must execute these tagged modules, not /init from the initramfs.
+bash "$ROOT/tools/build-production-init-elfs.sh"
+# Embed the complete offline artwork inventory and stage authentic native ELFs
+# into the actual ISO tree. The later CI packaging step adds the EFI loader
+# after it is extracted from the completed ISO; no placeholder binary is used.
+OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
+OFFLINE_ASSETS="$ROOT/build/offline-assets"
+python3 "$OCTAVIAN_ROOT/tools/package_os_assets.py" \
+  --root "$OCTAVIAN_ROOT" --output "$OFFLINE_ASSETS" \
+  --binary-root "$ROOT/build" --binary-root "$DIST/iso/EFI/BOOT" \
+  --command-root "$DIST/iso" --command-root "$ROOT" --command-root "$ROOT/build/boot-artifacts" \
+  --require-elf --require-efi --require-commands
+mkdir -p "$DIST/iso/boot/visual" "$DIST/iso/boot/chimera/native-binaries" \
+         "$DIST/iso/usr/share/chimera/assets/offline-artwork" "$DIST/iso/bin" "$DIST/iso/sbin"
+install -m 0644 "$OFFLINE_ASSETS/embedded-artwork.json" "$DIST/iso/boot/visual/embedded-artwork.json"
+cp -a "$OFFLINE_ASSETS/artwork/." "$DIST/iso/usr/share/chimera/assets/offline-artwork/"
+cp -a "$OFFLINE_ASSETS/binaries/." "$DIST/iso/boot/chimera/native-binaries/"
+if [[ -d "$OFFLINE_ASSETS/commands/bin" ]]; then cp -a "$OFFLINE_ASSETS/commands/bin/." "$DIST/iso/bin/"; fi
+if [[ -d "$OFFLINE_ASSETS/commands/sbin" ]]; then cp -a "$OFFLINE_ASSETS/commands/sbin/." "$DIST/iso/sbin/"; fi
+install -m 0644 "$OFFLINE_ASSETS/binary-manifest.json" "$DIST/iso/boot/chimera/native-binaries/binary-manifest.json"
+python3 - "$OFFLINE_ASSETS" "$DIST/iso" <<'PY_ASSET_VERIFY'
+import hashlib, json, pathlib, sys
+bundle, iso = map(pathlib.Path, sys.argv[1:])
+art = json.loads((bundle / "embedded-artwork.json").read_text(encoding="utf-8"))
+manifest = json.loads((bundle / "binary-manifest.json").read_text(encoding="utf-8"))
+assert art["assets"], "embedded artwork inventory is empty"
+assert manifest["elf_count"] > 0 and manifest["efi_count"] > 0, "ELF/EFI inventory is incomplete"
+assert manifest["command_count"] > 0, "command inventory is empty"
+for entry in manifest["commands"]:
+    dest = iso / entry["install_path"].lstrip("/")
+    assert dest.is_file(), f"command missing from ISO: {entry['install_path']}"
+    assert hashlib.sha256(dest.read_bytes()).hexdigest() == entry["sha256"], f"command hash mismatch: {dest}"
+print(f"ISO COMMAND/ARTWORK PASS: artwork={len(art['assets'])} ELF={manifest['elf_count']} EFI={manifest['efi_count']} commands={manifest['command_count']}")
+PY_ASSET_VERIFY
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"

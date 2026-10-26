@@ -47,6 +47,20 @@ jobs:
         run: python tests/migration/test_chimera_hosted_bridge.py
       - name: Test OctavianOS first-class hosted entry point
         run: python tests/migration/test_chimera_entrypoint.py
+      - name: Validate opt-in Kali frontend and offline wallpaper embedding
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/tools/kali/chimera-kali
+          python -m py_compile vendor/chimera-ii-os/source/tools/run-production-qemu-matrix.py vendor/chimera-ii-os/source/tools/collect-production-closeout-evidence.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/wallpapers/embed_wallpapers.py vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py
+          python vendor/chimera-ii-os/source/tools/kali/test_chimera_kali.py -v
+          python vendor/chimera-ii-os/source/tools/wallpapers/test_embed_wallpapers.py -v
+          python vendor/chimera-ii-os/source/tools/tests/test_user_copy_syscall_contract.py
+          python vendor/chimera-ii-os/source/tools/tests/test_native_init_runtime_contract.py
+          python vendor/chimera-ii-os/source/tools/tests/test_syscall_usercopy_contract.py
+          python vendor/chimera-ii-os/source/tools/tests/test_progress_bridge_contract.py
+          python vendor/chimera-ii-os/source/tools/tests/test_production_qemu_matrix.py
+          python vendor/chimera-ii-os/source/tools/tests/test_collect_production_closeout_evidence.py
+          python vendor/chimera-ii-os/source/tests/boot/test_installer_target_routing_contract.py
       - name: Syntax-check imported Python build tools and tests
         run: |
           python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
@@ -71,6 +85,13 @@ jobs:
           bash -n vendor/chimera-ii-os/source/tools/build/build-native-toolchain.sh
           bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
           bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
+          bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
+          bash -n vendor/chimera-ii-os/source/tools/build-full-iso.sh
+          bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-desktop-init.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-init-splash.sh
+          bash -n vendor/chimera-ii-os/source/desktop/aurora/aurora-progress.sh
+          bash -n vendor/chimera-ii-os/source/system/boot/koronos-progress.sh
           bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
       - name: Configure the vendored native toolchain
         run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain

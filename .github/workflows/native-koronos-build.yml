@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/kernel/core/target_launch.cpp'
+      - 'vendor/chimera-ii-os/source/tools/tests/**'
+      - 'vendor/chimera-ii-os/source/tools/build-production-init-elfs.sh'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
@@ -21,16 +24,9 @@ on:
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
       - 'tools/boot/**'
-      - 'desktop/aurora/assets/**'
-      - 'tools/boot/**'
+      - 'tools/package_os_assets.py'
       - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
-
-
-
-
-
-
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -66,6 +62,7 @@ on:
       - 'tests/boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
+      - 'tests/migration/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
       - 'vendor/chimera-ii-os/source/tools/commands/chimera-cpu-mode.py'
       - 'vendor/chimera-ii-os/source/tools/commands/test-chimera-cpu-mode.py'
@@ -105,6 +102,11 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Test Koronos ELF validator rejection cases
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tools/tests/test_koronos_elf_validator.py
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -142,8 +144,6 @@ jobs:
           timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
-          # A running idle kernel is intentionally stopped by timeout (124).
-          # Any exit status is acceptable only if the kernel's own readiness marker appeared.
           if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
@@ -173,7 +173,7 @@ jobs:
           test -s runtime/cognition/trained-command-isa-rnn.json
           test -s runtime/cognition/runtime-capabilities.json
           python3 - <<'PY'
-          import json
+          import json, hashlib
           from pathlib import Path
           d=json.loads(Path("runtime/cognition/trained-command-isa-rnn.json").read_text())
           m=d["metadata"]
@@ -323,6 +323,36 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      - name: Extract real EFI loader and bundle all offline artwork and native binaries
+        run: |
+          set -euo pipefail
+          src=vendor/chimera-ii-os/source
+          mkdir -p "$src/build/boot-artifacts/uefi"
+          xorriso -osirrox on -indev "$src/boot/iso/dist/output.iso" -extract /EFI/BOOT/BOOTX64.EFI "$src/build/boot-artifacts/uefi/BOOTX64.EFI"
+          test -s "$src/build/boot-artifacts/uefi/BOOTX64.EFI"
+          python3 tools/package_os_assets.py --root . --output build/os-asset-bundle --binary-root "$src/build" --binary-root "$src/boot/iso/dist/iso/EFI/BOOT" --command-root "$src/boot/iso/dist/iso" --command-root "$src" --require-elf --require-efi --require-commands
+          python3 - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          p=Path("build/os-asset-bundle")
+          a=json.loads((p/"embedded-artwork.json").read_text())
+          b=json.loads((p/"binary-manifest.json").read_text())
+          assert a["assets"], "embedded artwork manifest is empty"
+          assert b["elf_count"] > 0, "no valid ELF binaries bundled"
+          assert b["efi_count"] > 0, "no valid EFI binaries bundled"
+          assert b["command_count"] > 0, "no executable commands bundled"
+          for entry in b["commands"]:
+              f = p / entry["path"]
+              assert f.is_file() and hashlib.sha256(f.read_bytes()).hexdigest() == entry["sha256"], entry
+          print(f"OFFLINE ASSET BUNDLE PASS: artwork={len(a['assets'])} ELF={b['elf_count']} EFI={b['efi_count']} commands={b['command_count']}")
+          PY
+      - name: Upload offline artwork and native ELF/EFI bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-offline-artwork-elf-efi-bundle
+          path: build/os-asset-bundle/
+          if-no-files-found: error
+          retention-days: 14
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -348,7 +378,12 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          # This routing-only ISO intentionally contains the recovery initramfs and
+          # manifest, but no production native-init ELF. Assert the honest fail-closed
+          # behavior here; production ring-3 execution is tested by the separate
+          # userspace gate and must not be inferred from this routing smoke.
+          grep -Fq '[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery routing smoke did not report the missing production init ELF module"; exit 1; }
+          grep -Fq '[RUN ] Recovery target init failed before readiness; failing closed' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery routing smoke did not fail closed after missing native init"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -376,8 +411,12 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          # This routing-only ISO carries installer metadata, not a production
+          # native-init ELF. Verify the kernel recognizes the installer target and
+          # honestly withholds readiness; this is not a storage/write acceptance test.
+          grep -Fq '[LIVE] Installer target detected; live service idle' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer target routing marker missing"; exit 1; }
+          grep -Fq '[RUN ] ERROR: production target payload is present but no USER_INIT_ELF module was supplied' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer routing smoke did not report missing production init ELF"; exit 1; }
+          grep -Fq '[RUN ] Installer target init failed before readiness; failing closed' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer routing smoke did not fail closed after missing native init"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -400,6 +439,14 @@ jobs:
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload production DAPS evidence bundle when generated
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-production-daps-evidence
+          path: vendor/chimera-ii-os/source/build/production-daps/**
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload native ISO candidate for review (not a release)
@@ -445,9 +492,28 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  verify-production-daps:
+    name: Verify production DAPS before release
+    needs: build-koronos
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production DAPS verifier
+        uses: actions/checkout@v4
+      - name: Prepare fail-closed DAPS evidence directory
+        run: mkdir -p production-daps
+      - name: Download production DAPS evidence bundle when available
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-production-daps-evidence
+          path: production-daps
+      - name: Require all production acceptance evidence
+        run: python3 tools/release/verify-production-daps.py --evidence production-daps/evidence.json
+
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
+    needs: [build-koronos, verify-userspace-handoff, verify-production-daps]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -468,7 +534,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass."
           else
-            gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live/Installer/Recovery userspace handoff and production DAPS evidence gates pass."
           fi

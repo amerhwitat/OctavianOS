@@ -1,0 +1,10 @@
+# OctavianOS Dockerfile serves only the static web desktop preview.
+# Default-deny repository files so generated kernel/ISO/build output is never
+# uploaded as Docker context; explicitly allow the two runtime asset trees.
+*
+!Dockerfile
+!.dockerignore
+!web/
+!web/**
+!desktop/
+!desktop/**
