@@ -24,6 +24,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
       - 'tools/boot/**'
+      - 'tools/package_os_assets.py'
       - 'desktop/aurora/assets/**'
       - 'tests/migration/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
@@ -317,6 +318,32 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      - name: Extract real EFI loader and bundle all offline artwork and native binaries
+        run: |
+          set -euo pipefail
+          src=vendor/chimera-ii-os/source
+          mkdir -p "$src/build/boot-artifacts/uefi"
+          xorriso -osirrox on -indev "$src/boot/iso/dist/output.iso" -extract /EFI/BOOT/BOOTX64.EFI "$src/build/boot-artifacts/uefi/BOOTX64.EFI"
+          test -s "$src/build/boot-artifacts/uefi/BOOTX64.EFI"
+          python3 tools/package_os_assets.py --root . --output build/os-asset-bundle --binary-root "$src/build" --require-elf --require-efi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("build/os-asset-bundle")
+          a=json.loads((p/"embedded-artwork.json").read_text())
+          b=json.loads((p/"binary-manifest.json").read_text())
+          assert a["assets"], "embedded artwork manifest is empty"
+          assert b["elf_count"] > 0, "no valid ELF binaries bundled"
+          assert b["efi_count"] > 0, "no valid EFI binaries bundled"
+          print(f"OFFLINE ASSET BUNDLE PASS: artwork={len(a['assets'])} ELF={b['elf_count']} EFI={b['efi_count']}")
+          PY
+      - name: Upload offline artwork and native ELF/EFI bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-offline-artwork-elf-efi-bundle
+          path: build/os-asset-bundle/
+          if-no-files-found: error
+          retention-days: 14
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
