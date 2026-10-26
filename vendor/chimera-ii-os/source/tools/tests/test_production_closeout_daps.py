@@ -14,7 +14,7 @@ def main() -> int:
         return 1
     init = init_path.read_text(encoding="utf-8")
     launch = launch_path.read_text(encoding="utf-8")
-    if "NATIVE INIT BLOCKED:" not in init or "call1(1, 78)" not in init:
+    if "NATIVE INIT BLOCKED:" not in init or "call1(1, code)" not in init or "stop_after_exit_failure(78)" not in init:
         print("PRODUCTION CLOSEOUT FAIL: unavailable services must cause explicit nonzero exit", file=sys.stderr)
         return 1
     if "USERSPACE READY:" in init or "AURORA READY" in init:
