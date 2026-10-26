@@ -68,15 +68,15 @@ OFFLINE_ASSETS="$ROOT/build/offline-assets"
 python3 "$OCTAVIAN_ROOT/tools/package_os_assets.py" \
   --root "$OCTAVIAN_ROOT" --output "$OFFLINE_ASSETS" \
   --binary-root "$ROOT/build" --binary-root "$DIST/iso/EFI/BOOT" \
-  --command-root "$DIST/iso" --command-root "$ROOT/build/boot-artifacts" \
+  --command-root "$DIST/iso" --command-root "$ROOT" --command-root "$ROOT/build/boot-artifacts" \
   --require-elf --require-efi --require-commands
 mkdir -p "$DIST/iso/boot/visual" "$DIST/iso/boot/chimera/native-binaries" \
          "$DIST/iso/usr/share/chimera/assets/offline-artwork" "$DIST/iso/bin" "$DIST/iso/sbin"
 install -m 0644 "$OFFLINE_ASSETS/embedded-artwork.json" "$DIST/iso/boot/visual/embedded-artwork.json"
 cp -a "$OFFLINE_ASSETS/artwork/." "$DIST/iso/usr/share/chimera/assets/offline-artwork/"
 cp -a "$OFFLINE_ASSETS/binaries/." "$DIST/iso/boot/chimera/native-binaries/"
-cp -a "$OFFLINE_ASSETS/commands/bin/." "$DIST/iso/bin/"
-cp -a "$OFFLINE_ASSETS/commands/sbin/." "$DIST/iso/sbin/"
+if [[ -d "$OFFLINE_ASSETS/commands/bin" ]]; then cp -a "$OFFLINE_ASSETS/commands/bin/." "$DIST/iso/bin/"; fi
+if [[ -d "$OFFLINE_ASSETS/commands/sbin" ]]; then cp -a "$OFFLINE_ASSETS/commands/sbin/." "$DIST/iso/sbin/"; fi
 install -m 0644 "$OFFLINE_ASSETS/binary-manifest.json" "$DIST/iso/boot/chimera/native-binaries/binary-manifest.json"
 python3 - "$OFFLINE_ASSETS" "$DIST/iso" <<'PY_ASSET_VERIFY'
 import hashlib, json, pathlib, sys
