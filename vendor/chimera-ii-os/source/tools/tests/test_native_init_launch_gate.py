@@ -38,7 +38,7 @@ def main() -> int:
         return fail("native init must not treat syscall 10 (MMAP) as a mount operation")
     if "USERSPACE READY:" in native_init:
         return fail("fail-closed bootstrap must not fabricate readiness")
-    if "call1(1, 78)" not in native_init or "NATIVE INIT BLOCKED:" not in native_init:
+    if "call1(1, code)" not in native_init or "stop_after_exit_failure(78)" not in native_init or "NATIVE INIT BLOCKED:" not in native_init:
         return fail("bootstrap must retain its explicit unavailable-service exit")
 
     if "if (count==0)" not in launch:
