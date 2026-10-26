@@ -87,6 +87,8 @@ def read_trace(root: Path, item: dict, label: str, expected_sha: str) -> str:
             f"{label}: syscall acknowledgement PID and ready PID differ")
     ring3_return = text.find("USERSPACE SYSCALL RETURNED TO RING3", ack[-1].start())
     require(ring3_return >= 0, f"{label}: ring-3 return evidence missing")
+    require(executed[-1].start() < ring3_return,
+            f"{label}: ring-3 return precedes production init execution")
 
     # Candidate user-init ELF probes are useful kernel smoke tests, but cannot
     # satisfy production release acceptance. Require explicit provenance from
