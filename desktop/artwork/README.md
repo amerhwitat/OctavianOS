@@ -1,6 +1,6 @@
 # Desktop wallpaper artwork
 
-This catalog uses remotely hosted Unsplash photos as optional prototype wallpapers. Each entry links to the photographer's source page and the Unsplash License. The images remain hosted by Unsplash; this change does not claim that image binaries have been vendored into the repository or the ISO.
+The wallpaper catalog is offline-first. Aurora defaults to the tracked `desktop/aurora/assets/octavian-octopus-aurora.svg` artwork and Marine defaults to `desktop/marine/assets/marine-desktop.svg`. These local assets are packaged with the repository and do not require network access for desktop startup. Unsplash entries remain optional online enhancements only; the runtime must prefer each entry's `local_fallback` and never block boot waiting for a remote image.
 
 ## Aurora Wayland Glass Desktop
 
@@ -16,9 +16,9 @@ Both source pages identify the photos as free to use under the [Unsplash License
 
 ## Production packaging
 
-Remote wallpapers require an internet connection and may be unavailable, changed, or rate-limited. For offline installer/live media, fetch the original image from its source page during a controlled asset-import step, verify the file and license, record its SHA-256 and attribution, and store it under the existing artwork contract. Do not reintroduce the obsolete aurora-background.jpg convention. The current change leaves the kernel/bootloader artwork pipeline untouched.
+Prefer the checked-in local SVGs for offline desktop, installer and live-media startup. Keep remote URLs optional and use the catalog's `local_fallback` when unavailable; never require a network fetch to render a wallpaper. Do not reintroduce the obsolete `aurora-background.jpg` convention. ISO staging still needs explicit asset packaging and checksum validation for every shipped image.
 
-Use responsive cover positioning and a dark translucent overlay so desktop icons remain legible. Provide a local fallback gradient when remote loading fails.
+Use responsive cover positioning and a dark translucent overlay so desktop icons remain legible. The catalog's local fallback paths are the source of truth for offline operation.
 
 ## Original OctavianOS artwork
 
