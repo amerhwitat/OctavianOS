@@ -114,3 +114,20 @@ and actual userspace operations produce them, DAPS intentionally fails closed.
 A passing report means these mechanical evidence requirements were met; reviewers must
 still inspect provenance, QEMU/firmware configuration, disk snapshots, and per-CPU traces
 before approving publication. Never manufacture these records to make the verifier pass.
+
+
+### SMP overlap evidence format
+
+The \`smp.per_cpu_trace\` artifact must contain at least two \`SMP AP ONLINE: cpu=N\`
+records and task-owned interval records in this format:
+
+\`SMP TASK INTERVAL: task=worker-a cpu=0 start_ns=100 end_ns=300\`
+
+Each interval must have a positive duration, reference an observed online CPU, and
+represent a distinct task. The verifier calculates overlap using monotonic integer
+timestamps and requires a pair of distinct tasks on distinct CPUs satisfying
+\`A.start_ns < B.end_ns\` and \`B.start_ns < A.end_ns\`. The summary marker and
+manifest Boolean are supplemental only; neither substitutes for interval records.
+Intervals must be emitted by the runtime harness from actual task execution, not
+synthesized from planned dispatch or serial traces.
+
