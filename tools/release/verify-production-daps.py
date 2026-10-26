@@ -346,6 +346,30 @@ def verify(evidence_path: Path, report: bool = True) -> None:
     require(len(observed_cpus) >= 2, "SMP trace must show at least two AP-online CPU records")
     require(declared_cpus.issubset(observed_cpus), "SMP declared CPU IDs are not all present in per-CPU trace")
 
+    # A summary marker/Boolean is not proof of concurrent execution. Require
+    # task-owned intervals on distinct online CPUs and calculate overlap.
+    interval_re = re.compile(
+        r"SMP TASK INTERVAL: task=([A-Za-z0-9_.:-]+) cpu=([0-9]+) "
+        r"start_ns=([0-9]+) end_ns=([0-9]+)"
+    )
+    intervals = []
+    for match in interval_re.finditer(smp_log):
+        task, cpu, start_ns, end_ns = match.groups()
+        start, end = int(start_ns), int(end_ns)
+        require(start < end, f"SMP task interval for {task} has non-positive duration")
+        require(cpu in observed_cpus, f"SMP task interval for {task} uses a CPU not observed online")
+        intervals.append((task, cpu, start, end))
+    require(len(intervals) >= 2, "SMP trace must contain at least two task execution intervals")
+    overlap_pair = any(
+        left[0] != right[0]
+        and left[1] != right[1]
+        and left[2] < right[3]
+        and right[2] < left[3]
+        for index, left in enumerate(intervals)
+        for right in intervals[index + 1:]
+    )
+    require(overlap_pair, "SMP trace has no overlapping intervals for distinct tasks on distinct CPUs")
+
     if report:
         print("PRODUCTION DAPS: PASS")
         print(f"ISO SHA-256: {expected_sha}")
