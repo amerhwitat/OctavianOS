@@ -1,29 +1,12 @@
 {
-  "schema_version": 1,
-  "delivery": "remote-prototype",
-  "note": "Images are remote and are not vendored into the repository or ISO by this catalog.",
-  "wallpapers": [
-    {
-      "id": "aurora-ocean-night",
-      "desktop": "aurora-wayland-glass",
-      "title": "Green aurora over a calm ocean",
-      "photographer": "Kristaps Ungurs",
-      "source_page": "https://unsplash.com/photos/aurora-borealis-over-calm-ocean-2xx7so0d3cY",
-      "image_url": "https://images.unsplash.com/photo-1786335091902-eb0166246cbe?auto=format&fit=crop&w=2400&q=85",
-      "license": "Unsplash License",
-      "license_url": "https://unsplash.com/license",
-      "fallback": "radial-gradient(ellipse at 60% 20%, #28c9b8 0, transparent 38%), linear-gradient(135deg, #061c39, #092d49 55%, #03131f)"
-    },
-    {
-      "id": "marine-turtle-reef",
-      "desktop": "marine",
-      "title": "Sea turtle over coral reef",
-      "photographer": "Kristin Hoel",
-      "source_page": "https://unsplash.com/photos/a-sea-turtle-swimming-over-a-coral-reef-pyw39Zn6wWo",
-      "image_url": "https://images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2?auto=format&fit=crop&w=2400&q=85",
-      "license": "Unsplash License",
-      "license_url": "https://unsplash.com/license",
-      "fallback": "radial-gradient(ellipse at 65% 20%, #1db8cf 0, transparent 42%), linear-gradient(145deg, #03233e, #086b80 60%, #031b2c)"
-    }
+  "schema_version":2,
+  "delivery":"vendored-source-assets-plus-remote-catalog",
+  "note":"The project includes original, locally vendored SVG source artwork for Aurora, Marine and mobile. Optional remote catalog entries remain opt-in; firmware splash rasterization is a separate build step.",
+  "wallpapers":[
+    {"id":"octavian-aurora-glass","desktop":"aurora-wayland-glass","title":"OctavianOS Aurora — Glass Desktop","path":"desktop/aurora/assets/octavian-aurora-glass.svg","source":"repository","format":"svg","license":"CC0-1.0","dimensions":"3840x2160"},
+    {"id":"octavian-marine-productivity","desktop":"marine","title":"OctavianOS Marine — Productivity Desktop","path":"desktop/marine/assets/octavian-marine-productivity.svg","source":"repository","format":"svg","license":"CC0-1.0","dimensions":"3840x2160"},
+    {"id":"octavian-mobile-edition","desktop":"mobile","title":"OctavianOS Mobile Edition","path":"desktop/mobile/assets/octavian-mobile-edition.svg","source":"repository","format":"svg","license":"CC0-1.0","dimensions":"1440x2560"},
+    {"id":"aurora-ocean-night","desktop":"aurora-wayland-glass","title":"Green aurora over a calm ocean","photographer":"Kristaps Ungurs","source_page":"https://unsplash.com/photos/aurora-borealis-over-calm-ocean-2xx7so0d3cY","image_url":"https://images.unsplash.com/photo-1786335091902-eb0166246cbe?auto=format&fit=crop&w=2400&q=85","license":"Unsplash License","license_url":"https://unsplash.com/license","fallback":"radial-gradient(ellipse at 60% 20%, #28c9b8 0, transparent 38%), linear-gradient(135deg, #061c39, #092d49 55%, #03131f)","remote_opt_in":true},
+    {"id":"marine-turtle-reef","desktop":"marine","title":"Sea turtle over coral reef","photographer":"Kristin Hoel","source_page":"https://unsplash.com/photos/a-sea-turtle-swimming-over-a-coral-reef-pyw39Zn6wWo","image_url":"https://images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2?auto=format&fit=crop&w=2400&q=85","license":"Unsplash License","license_url":"https://unsplash.com/license","fallback":"radial-gradient(ellipse at 65% 20%, #1db8cf 0, transparent 42%), linear-gradient(145deg, #03233e, #086b80 60%, #031b2c)","remote_opt_in":true}
   ]
 }
