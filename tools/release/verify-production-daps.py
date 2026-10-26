@@ -230,6 +230,8 @@ def verify_installer_persistence(root: Path, install: object, expected_sha: str)
             "installer disk image does not contain expected persisted bytes at write range")
     require(disk_bytes == readback_bytes,
             "installer post-reboot readback bytes differ from the installed disk image")
+    require(sha256_file(disk) == disk_sha,
+            "installer disk image changed while persistence evidence was being verified")
 
     event_path = safe_evidence_path(root, install.get("evidence_log"), "installer structured evidence log")
     events = read_jsonl_events(event_path, "installer persistence")
