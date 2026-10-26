@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "delivery": "remote-prototype",
-  "note": "Images are remote and are not vendored into the repository or ISO by this catalog.",
+  "delivery": "offline-local-first-with-optional-remote-enhancement",
+  "note": "Prefer the checked-in local_fallback artwork so Aurora and Marine render offline at boot; image_url is optional and must never be required for startup.",
   "wallpapers": [
     {
       "id": "aurora-ocean-night",
@@ -10,6 +10,8 @@
       "photographer": "Kristaps Ungurs",
       "source_page": "https://unsplash.com/photos/aurora-borealis-over-calm-ocean-2xx7so0d3cY",
       "image_url": "https://images.unsplash.com/photo-1786335091902-eb0166246cbe?auto=format&fit=crop&w=2400&q=85",
+      "local_fallback": "vendor/chimera-ii-os/source/desktop/aurora/assets/library/Aurora Wayland Desktop - boot background.jpg",
+      "offline_first": true,
       "license": "Unsplash License",
       "license_url": "https://unsplash.com/license",
       "fallback": "radial-gradient(ellipse at 60% 20%, #28c9b8 0, transparent 38%), linear-gradient(135deg, #061c39, #092d49 55%, #03131f)"
@@ -21,6 +23,8 @@
       "photographer": "Kristin Hoel",
       "source_page": "https://unsplash.com/photos/a-sea-turtle-swimming-over-a-coral-reef-pyw39Zn6wWo",
       "image_url": "https://images.unsplash.com/photo-1717293520171-b1d8b5d5e3f2?auto=format&fit=crop&w=2400&q=85",
+      "local_fallback": "vendor/chimera-ii-os/source/desktop/aurora/assets/library/Aurora Wayland Desktop Showcase.png",
+      "offline_first": true,
       "license": "Unsplash License",
       "license_url": "https://unsplash.com/license",
       "fallback": "radial-gradient(ellipse at 65% 20%, #1db8cf 0, transparent 42%), linear-gradient(145deg, #03233e, #086b80 60%, #031b2c)"
