@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Unit tests for strict production ISO QEMU matrix evidence parsing."""
 from pathlib import Path
+import re
 import runpy
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 MATRIX = runpy.run_path(str(ROOT / "tools/run-production-qemu-matrix.py"), run_name="matrix_test")
 target_marker_errors = MATRIX["target_marker_errors"]
+target_key_commands = MATRIX["target_key_commands"]
 
 
 class ProductionQemuMatrixContract(unittest.TestCase):
@@ -16,6 +18,50 @@ class ProductionQemuMatrixContract(unittest.TestCase):
         self.assertIn('"target_boot_matrix":', source)
         self.assertIn('"qemu_started": process is not None', source)
         self.assertIn('"qemu_started": False', source)
+
+    def test_target_selection_resets_grub_menu_before_navigation(self):
+        self.assertEqual(target_key_commands("live"), ["sendkey home", "sendkey ret"])
+        self.assertEqual(
+            target_key_commands("installer"),
+            ["sendkey home", "sendkey down", "sendkey down", "sendkey ret"],
+        )
+        self.assertEqual(
+            target_key_commands("recovery"),
+            ["sendkey home", "sendkey down", "sendkey down", "sendkey down",
+             "sendkey down", "sendkey down", "sendkey down", "sendkey down",
+             "sendkey down", "sendkey ret"],
+        )
+        with self.assertRaises(ValueError):
+            target_key_commands("unknown")
+
+    def test_target_indices_match_top_level_grub_boot_entries(self):
+        grub = (ROOT / "boot/iso/grub.cfg").read_text()
+        ids = re.findall(r'^menuentry ".*?" --id ([A-Za-z0-9_-]+) \{', grub, re.M)
+        self.assertEqual(ids[0], "aurora-live")
+        self.assertEqual(ids[2], "install")
+        self.assertEqual(ids[5], "recovery")
+        self.assertEqual(ids[8], "diagnostics")
+        self.assertEqual(MATRIX["TARGETS"], {"live": 0, "installer": 2, "recovery": 8})
+
+    def test_every_direct_grub_boot_has_one_target_matched_native_init(self):
+        grub = (ROOT / "boot/iso/grub.cfg").read_text()
+        entries = re.split(r'(?=^menuentry )', grub, flags=re.M)
+        checked = 0
+        for entry in entries:
+            kernel = re.search(
+                r'^\s*multiboot2 .*? target=(live|installer|recovery)(?:\s|$)',
+                entry, re.M
+            )
+            if not kernel:
+                continue
+            target = kernel.group(1)
+            init_modules = re.findall(
+                r'^\s*module2 .*?chimera-user-init-elf target=(live|installer|recovery)\s*$',
+                entry, re.M
+            )
+            self.assertEqual(init_modules, [target], entry.splitlines()[0])
+            checked += 1
+        self.assertGreater(checked, 0)
 
     def test_matching_real_runtime_markers_are_accepted_by_parser(self):
         trace = """[KRN ] KORONOS READY
