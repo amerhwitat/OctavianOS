@@ -16,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "tools/release/verify-production-daps.py"
+      - "tests/release/test_production_daps.py"
       - "tools/tests/test_production_daps_contract.py"
       - "docs/PRODUCTION_DAPS.md"
       - "vendor/chimera-ii-os/source/kernel/**"
