@@ -185,7 +185,7 @@ class ProductionDAPSTests(unittest.TestCase):
             DAPS.verify(self.manifest)
 
     def test_rejects_readback_artifact_digest_mismatch(self):
-        (self.root / "post-reboot-readback.bin").write_bytes(b"not-the-installed-bytes")
+        (self.root / "post-reboot-readback.bin").write_bytes(b"X" * len(b"installed-system-persistence-proof"))
         with self.assertRaisesRegex(DAPS.GateError, "readback artifact SHA-256 mismatch"):
             DAPS.verify(self.manifest)
 
