@@ -92,9 +92,23 @@ class WallpaperEmbedContract(unittest.TestCase):
     def test_missing_exact_session_attachment_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / next(iter(SESSION_BRANDING))).write_bytes(fake_jpeg(1672, 941))
-            with self.assertRaises(FileNotFoundError):
-                generate_session_branding(root, root / "out.css", root / "out.json")
+            filename = next(iter(SESSION_BRANDING))
+            data = fake_jpeg(1672, 941)
+            (root / filename).write_bytes(data)
+            # Make the present fixture an accepted test original so execution
+            # reaches the genuinely absent second attachment and raises
+            # FileNotFoundError, rather than failing earlier on its hash.
+            original_specs = embed_module.SESSION_BRANDING
+            fixture_specs = {
+                key: {**spec, **({"expected_sha256": hashlib.sha256(data).hexdigest()} if key == filename else {})}
+                for key, spec in SESSION_BRANDING.items()
+            }
+            try:
+                embed_module.SESSION_BRANDING = fixture_specs
+                with self.assertRaises(FileNotFoundError):
+                    generate_session_branding(root, root / "out.css", root / "out.json")
+            finally:
+                embed_module.SESSION_BRANDING = original_specs
 
     def test_missing_default_source_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
