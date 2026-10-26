@@ -57,6 +57,17 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+# Embed the complete offline artwork inventory and stage authentic native ELFs
+# into the actual ISO tree. The later CI packaging step adds the EFI loader
+# after it is extracted from the completed ISO; no placeholder binary is used.
+OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
+OFFLINE_ASSETS="$ROOT/build/offline-assets"
+python3 "$OCTAVIAN_ROOT/tools/package_os_assets.py" --root "$OCTAVIAN_ROOT" --output "$OFFLINE_ASSETS" --binary-root "$ROOT/build" --require-elf
+mkdir -p "$DIST/iso/boot/visual" "$DIST/iso/boot/chimera/native-binaries" "$DIST/iso/usr/share/chimera/assets/offline-artwork"
+install -m 0644 "$OFFLINE_ASSETS/embedded-artwork.json" "$DIST/iso/boot/visual/embedded-artwork.json"
+cp -a "$OFFLINE_ASSETS/artwork/." "$DIST/iso/usr/share/chimera/assets/offline-artwork/"
+cp -a "$OFFLINE_ASSETS/binaries/." "$DIST/iso/boot/chimera/native-binaries/"
+install -m 0644 "$OFFLINE_ASSETS/binary-manifest.json" "$DIST/iso/boot/chimera/native-binaries/binary-manifest.json"
 # Compile and stage the explicit target-native CPL3 init ELFs after the ISO tree exists.
 # The kernel must execute these tagged modules, not /init from the initramfs.
 bash "$ROOT/tools/build-production-init-elfs.sh"
