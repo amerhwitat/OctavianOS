@@ -171,5 +171,85 @@ class ProductionDAPSTests(unittest.TestCase):
             DAPS.verify(self.manifest)
 
 
+
+    def test_rejects_legacy_schema_v1(self):
+        self.evidence["schema_version"] = 1
+        self.write_manifest()
+        with self.assertRaisesRegex(DAPS.GateError, "schema_version must be 2"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_write_range_outside_disk_image(self):
+        self.evidence["installer_persistence"]["write"]["offset_bytes"] = 4096
+        self.write_manifest()
+        with self.assertRaisesRegex(DAPS.GateError, "write range exceeds disk image size"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_readback_artifact_digest_mismatch(self):
+        (self.root / "post-reboot-readback.bin").write_bytes(b"not-the-installed-bytes")
+        with self.assertRaisesRegex(DAPS.GateError, "readback artifact SHA-256 mismatch"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_write_event_without_successful_flush_sync(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[0]["flush_sync"] = False
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "successful flush/sync"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_duplicate_required_persistence_event(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events.append(dict(events[0]))
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "exactly one install_write event"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_persistence_events_out_of_order(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[1], events[2] = events[2], events[1]
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "events are out of order"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_reboot_reusing_same_qemu_session(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[2]["session_id"] = events[1]["session_id"]
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "distinct QEMU session"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_cold_start_with_different_disk_identity(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[2]["disk_identity"] = "different-disk"
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "same verified disk image"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_readback_event_with_wrong_range_digest(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[3]["content_sha256"] = "0" * 64
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "not tied to the same disk/range"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_installed_ready_event_for_wrong_vm(self):
+        event_path = self.root / "installer-events.jsonl"
+        events = [json.loads(line) for line in event_path.read_text().splitlines()]
+        events[4]["vm_id"] = "vm-first"
+        event_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "not bound to the second VM"):
+            DAPS.verify(self.manifest)
+
+    def test_rejects_malformed_jsonl_event(self):
+        event_path = self.root / "installer-events.jsonl"
+        event_path.write_text('{"event":"install_write"}\n{bad-json}\n', encoding="utf-8")
+        with self.assertRaisesRegex(DAPS.GateError, "is not a JSON event"):
+            DAPS.verify(self.manifest)
+
 if __name__ == "__main__":
     unittest.main()
