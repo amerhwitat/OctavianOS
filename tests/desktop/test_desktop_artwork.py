@@ -8,11 +8,21 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 class DesktopArtworkTests(unittest.TestCase):
     def test_wallpaper_catalog_has_sources_and_license(self):
         catalog = json.loads((ROOT / "desktop/artwork/wallpapers.json").read_text())
-        self.assertEqual(catalog["delivery"], "remote-prototype")
+        self.assertIn(catalog["delivery"], {"remote-prototype", "mixed-remote-catalog-and-embedded-offline-artwork"})
         self.assertGreaterEqual(len(catalog["wallpapers"]), 2)
         ids = {item["id"] for item in catalog["wallpapers"]}
         self.assertIn("aurora-ocean-night", ids)
         self.assertIn("marine-turtle-reef", ids)
+        if catalog["delivery"] == "mixed-remote-catalog-and-embedded-offline-artwork":
+            bundle = catalog["embedded_bundle"]
+            self.assertTrue(bundle["no_network_required"])
+            bundle_path = ROOT / bundle["path"]
+            self.assertTrue(bundle_path.is_file())
+            script = bundle_path.read_text()
+            for asset_id in ("chimeraAurora", "octavianAurora", "marine", "auroraGlassJpeg"):
+                self.assertIn(asset_id, script)
+            self.assertIn("data:image/svg+xml;base64,", script)
+            self.assertIn("data:image/jpeg;base64,", script)
         for item in catalog["wallpapers"]:
             self.assertTrue(item["image_url"].startswith("https://images.unsplash.com/"))
             self.assertTrue(item["source_page"].startswith("https://unsplash.com/"))
