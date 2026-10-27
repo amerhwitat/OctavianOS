@@ -177,14 +177,14 @@ extern "C" int koronos_launch_selected_userspace(void) {
         reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),selected->size,
         KORONOS_EM_X86_64,USER_STACK_TOP,USER_STACK_SIZE,ops,nullptr,&loaded);
     if (load_rc!=0) {
-        (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_abort_start(static_cast<uint32_t>(pid));
         koronos_target_log("[RUN ] ERROR: selected user init ELF load failed");
         return -6;
     }
     const uint64_t root=koronos_address_space_root(loaded.address_space);
     if (!root) {
         ops->destroy_address_space(nullptr,loaded.address_space);
-        (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_abort_start(static_cast<uint32_t>(pid));
         koronos_target_log("[RUN ] ERROR: selected user init has no owned CR3 root");
         return -7;
     }
@@ -199,7 +199,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     // the outer QEMU test timeout.
     if (koronos_user_timeout_arm(1000u) != 0) {
         ops->destroy_address_space(nullptr,loaded.address_space);
-        (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_abort_start(active_pid);
         active_target=TARGET_NONE;
         koronos_target_log("[RUN ] ERROR: failed to arm PIT-backed in-kernel user timeout");
         return -10;
