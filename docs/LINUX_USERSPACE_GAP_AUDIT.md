@@ -36,3 +36,31 @@ OctavianOS desktop targets (Aurora and Marine) are product/session targets, not 
 ## Compatibility statement
 
 Until a Linux syscall ABI or compatibility layer and its conformance suite are implemented, classify Linux application support as **not established**. Keep native OctavianOS apps and Linux-compatible apps distinct in the catalog, and label unsupported/not-tested states explicitly. Do not publish an OS release merely because the website, artwork, ISO composition, or kernel build succeeds.
+
+
+## systemd comparison: kernel, manager, units and targets
+
+Linux and systemd are separate layers. The Linux kernel provides process/thread and memory primitives, scheduling, syscalls, VFS, device and networking interfaces. systemd runs as userspace PID 1 and manages service processes, dependency ordering, readiness, restarts and shutdown. Units include services, sockets, mounts, devices, timers, paths, slices/scopes and targets. Kernel modules/drivers are not the same thing as service units. Targets are dependency/synchronization groups—not executables and not proof of health.
+
+Koronos should follow that separation, but should not claim full systemd compatibility unless it implements the unit formats and behavior:
+
+1. The kernel must supply real process creation/exec/exit/reap, scheduling, address spaces, safe syscalls, VFS and device interfaces.
+2. A real userspace PID 1/service manager must launch actual executable images and track process identity and exit status. Registry entries alone do not start services.
+3. Service descriptors should declare ID, executable, arguments, dependencies, target membership, criticality, restart budget, readiness probe, shutdown policy and security/resource constraints.
+4. Validate unknown, duplicate, self-referential and cyclic dependencies; launch dependencies first; wait for readiness; roll back newly started services if a critical dependency fails.
+5. Runtime states must reflect observed behavior. RUNNING/READY requires successful process launch plus a passing health/readiness check; registration alone must never set it.
+6. Targets should aggregate required services and explicit postconditions. `live.target`, `installer.target`, `recovery.target`, and `graphical.target` are proposed Koronos concepts, not a claim that these targets exist today.
+7. Keep object types distinct: Multiboot2 boot module, loadable kernel driver/module, and userspace service executable have different loaders, validation and lifecycles.
+8. Test dependency ordering/cycles, launch errors, readiness timeout, unexpected exit/restart budget, shutdown ordering, duplicate instances, and critical-service rollback.
+
+## Proposed Koronos service/target contract (design, not implemented behavior)
+
+- A real production init process runs as PID 1 through the supported user-mode entry path.
+- Each target manifest binds a target ID to validated service descriptors and required health postconditions.
+- Every READY service has a tracked process identity and a successful configured readiness check.
+- A target is READY only when all required services are READY and target-level postconditions pass.
+- Logs include monotonic timestamp, target/service ID, PID, transition, exit status, restart count and failure reason.
+- Missing executable, invalid manifest, dependency cycle, failed required service, timeout, or missing display/storage capability prevents readiness and returns a useful diagnostic.
+- Unit tests are necessary but insufficient: production release verification must observe these transitions in the booted candidate ISO.
+
+The existing registry/dependency planner is not a systemd-equivalent manager until process launch, health monitoring, restart/shutdown, and target postconditions are implemented and tested.
