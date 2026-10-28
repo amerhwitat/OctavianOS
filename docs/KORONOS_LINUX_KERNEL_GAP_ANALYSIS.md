@@ -20,7 +20,8 @@ Status: implementation plan and evidence ledger. This document is not a claim th
 1. Align the kernel's readiness-string parser with the acceptance verifier's ABI: `USERSPACE READY: target=<target> init_pid=<pid>`. The old parser expected `USERSPACE READY: <target> init pid=<pid>`, which did not match the verifier.
 2. Bind the loaded production ELF's address-space object, CR3 root, entry point, and stack to its admitted PID before setting `RUNNING`; reject `RUNNING` if no runtime is bound, and unbind before address-space reclamation.
 3. Validate the complete native `WRITE` user range against the active process address space before calling the console backend. Invalid/unmapped ranges return `-EFAULT` (`-14`).
-4. Add regression tests for process/address-space binding order, readiness ABI, and range validation before reading user memory.
+4. Add bounded ELF program-header validation and require the entry point to lie in an executable segment before process admission.
+5. Add regression tests for process/address-space binding order, ELF admission bounds, readiness ABI, and range validation before reading user memory.
 
 These changes fix two concrete interface/safety defects; they do **not** implement the remaining syscall set, VFS descriptor layer, process scheduler/context switching, service supervision, GUI runtime, installer/recovery semantics, or SMP.
 
