@@ -10,6 +10,32 @@
 #error "Select CHIMERA_TARGET_LIVE, CHIMERA_TARGET_INSTALLER, or CHIMERA_TARGET_RECOVERY"
 #endif
 
+static long native_syscall3(long number, long a0, long a1, long a2) {
+    register long result __asm__("rax") = number;
+    register long arg0 __asm__("rdi") = a0;
+    register long arg1 __asm__("rsi") = a1;
+    register long arg2 __asm__("rdx") = a2;
+    __asm__ volatile("syscall"
+                     : "+a"(result)
+                     : "D"(arg0), "S"(arg1), "d"(arg2)
+                     : "rcx", "r11", "memory");
+    return result;
+}
+
+static int vfs_seek_roundtrip(void) {
+    static const char path[] = "/etc/chimera/target";
+    char first = 0, second = 0;
+    const long fd = native_syscall3(20, (long)path, 0, 0); /* OPEN, O_RDONLY */
+    if (fd < 3) return -1;
+    const long first_read = native_syscall3(8, fd, (long)&first, 1); /* READ */
+    const long rewind = native_syscall3(22, fd, 0, 0); /* SEEK_SET */
+    const long second_read = native_syscall3(8, fd, (long)&second, 1);
+    const long close_rc = native_syscall3(21, fd, 0, 0); /* CLOSE */
+    if (first_read != 1 || rewind != 0 || second_read != 1 ||
+        first != second || close_rc != 0) return -1;
+    return 0;
+}
+
 __attribute__((noreturn, used)) void _start(void) {
 #if defined(CHIMERA_TEST_HANG)
     /* Deliberately hostile acceptance payload: no syscalls, no readiness,
@@ -35,6 +61,14 @@ __attribute__((noreturn, used)) void _start(void) {
                          : "+a"(number)
                          : "D"(failure_code)
                          : "rcx", "r11", "memory");
+        for (;;) __asm__ volatile("pause" ::: "memory");
+    }
+
+    /* Exercise the real mounted CPIO descriptor path before the probe reports readiness. */
+    if (vfs_seek_roundtrip() != 0) {
+        register long failure_number __asm__("rax") = 1;
+        register long failure_code __asm__("rdi") = 1;
+        __asm__ volatile("syscall" : "+a"(failure_number) : "D"(failure_code) : "rcx", "r11", "memory");
         for (;;) __asm__ volatile("pause" ::: "memory");
     }
 
