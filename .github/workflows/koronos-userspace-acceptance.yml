@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Candidate Ring-3 Smoke (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: Candidate ring-3 smoke — ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
