@@ -85,3 +85,17 @@ The six failures were Live/BIOS, Live/UEFI, Installer/BIOS, Installer/UEFI, Reco
 Do not change the verifier to accept `NATIVE INIT BLOCKED`, emit a synthetic readiness marker, or weaken the production gate. The first implementation milestone remains architecture-correct resumable execution: per-task saved trap/register state, owned kernel stack, address-space identity/lifetime, and a real context switch through the architecture entry/return path. Then implement process creation/exec/wait/reap and writable VFS/tmpfs with ring-3 syscall tests. Only after those primitives are real can init supervise production services and report readiness. Provider, installer, recovery, and AP/SMP work remain subsequent acceptance milestones.
 
 The current session inspected the failed job logs and updated this evidence record; it did not implement or compile those runtime primitives. PR #136 remains draft/unmerged and release remains blocked.
+
+
+## Latest revalidation on evidence-update head (2026-10-28 16:39 UTC)
+
+The workflows triggered by evidence-update commit `76e9b5f545d49e426b7213074be3334e3f837efb` have now completed:
+
+- [Native Koronos kernel build / full-ISO run 40727315297](https://github.com/amerhwitat/OctavianOS/actions/runs/40727315297): the freestanding kernel build, ELF/Multiboot2 checks, QEMU kernel marker, ISO composition, and target-routing smoke tests passed. The separate production userspace verification job failed.
+- [Chimera source integration run 40727315299](https://github.com/amerhwitat/OctavianOS/actions/runs/40727315299): passed.
+- [Boot target routing run 40727315262](https://github.com/amerhwitat/OctavianOS/actions/runs/40727315262): passed.
+- [Ring-3 probe run 40727315085](https://github.com/amerhwitat/OctavianOS/actions/runs/40727315085): passed, but is explicitly not production acceptance.
+
+The new full-ISO trace artifact (ID `12833841418`) downloaded and passed GitHub's SHA-256 digest verification: `sha256:a2368f0e6523f9bf81e42bc003ae9300f106422035baf6edd6f695e517edbe19`. The independent verifier then failed all six target/firmware cases with `FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)`. Prerelease publication was skipped. This reproduces the runtime blocker on the latest tested merge commit; artifact integrity and successful build/boot-routing steps do not change the acceptance result.
+
+**Action remains unchanged:** keep PR #136 draft and unmerged. Do not weaken the verifier, manufacture readiness, or publish. The current source still does not implement architecture-owned resumable context switching, process creation/exec/blocking wait, writable VFS/tmpfs, persistent service supervision/providers, installer persistence, recovery repair postcondition, or AP-backed overlapping SMP. No runtime implementation or local build is claimed by this evidence update.
