@@ -69,6 +69,7 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("offset < 0", process)
         self.assertIn("UINT64_MAX - delta", process)
         self.assertIn("descriptor.offset = result", process)
+        self.assertIn("if(d.offset>d.file.size){*read_count=0;return 0;}", process)
     def test_elf_admission_checks_program_header_bounds_and_executable_entry(self):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("h->e_phoff>size", process)
