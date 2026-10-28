@@ -17,12 +17,14 @@ static int find(const chimera_service_manifest*s,uint32_t n,const char*id){
 }
 extern "C" int chimera_service_validate(const chimera_service_manifest*s,uint32_t n){
     if(!s||!n)return -1;
+    if(n>CHIMERA_SERVICE_MAX_UNITS)return -5;
     for(uint32_t i=0;i<n;++i){
         if(s[i].abi_version!=CHIMERA_SERVICE_ABI||!s[i].id)return -2;
+        if(s[i].dependency_count && !s[i].dependencies)return -4;
         for(uint32_t j=i+1;j<n;++j)
             if(same(s[i].id,s[j].id))return -3;
         for(uint32_t d=0;d<s[i].dependency_count;++d)
-            if(find(s,n,s[i].dependencies[d])<0)return -4;
+            if(!s[i].dependencies[d]||find(s,n,s[i].dependencies[d])<0)return -4;
     }
     return 0;
 }
