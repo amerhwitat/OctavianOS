@@ -130,3 +130,46 @@ This is an implementation gap analysis, not a claim that Koronos is Linux- or Wi
 - Microsoft service applications: https://learn.microsoft.com/windows/win32/services/service-programs
 
 The current production verifier remains the authoritative status for the candidate: all six production userspace cases failed because init explicitly blocked; a candidate probe pass does not change that result.
+
+
+## Detailed userspace ABI parity matrix (source inspection, 2026-10-28)
+
+This table describes the currently inspected implementation, not intended future behavior. Linux comparisons refer to the documented Linux userspace ABI; syscall numbers are ABI-specific and are not interchangeable.
+
+| Userspace contract | Koronos source status | Linux userspace expectation | Release impact / required implementation |
+|---|---|---|---|
+| Process identity | Native `GETPID` reads the active kernel process record; the generic compatibility dispatcher rejects it without a process context | `getpid(2)` returns the caller's actual PID | Preserve a single authoritative process identity through context switches, fork, exec, and wait |
+| User-origin proof | DPL3 `int 0x80` acknowledgement checks saved CS.RPL and validates active PID/CR3/RIP | Linux syscall entry records the calling task and user register frame | Keep the privilege-origin check; extend it to every task's saved trap frame instead of one global active process |
+| Console output | `WRITE` supports fd 0..2 with a 4096-byte cap and address-space range validation | `write(2)` operates on process-owned descriptors and may write to arbitrary valid open objects | Add per-task descriptor-table ownership, partial writes, and backend errors; console-only writes are not a full file ABI |
+| File open/read/close/seek | `OPEN` is read-only, `READ` and `CLOSE` use process records, `SEEK` uses per-process offsets; CPIO root is read-only | `open(2)`, `read(2)`, `close(2)`, `lseek(2)` use VFS objects, permissions and filesystem operations | Add writable filesystem operations, shared open-file-description semantics where required, permissions, path traversal policy, and storage-backed filesystems |
+| User memory safety | Address ranges are checked against the current CR3; a bounded copy validates ranges before direct copy | Kernel user-copy paths must handle faults and mapping changes without trusting userspace pointers | Implement fault-safe copyin/copyout/pin-or-lock semantics and bind validation to the actual task address space |
+| Yield/scheduling | Native `YIELD` returns `ENOSYS`; callback stepping is not a saved-context switch | `sched_yield(2)` yields the running task to the scheduler | Save/restore general registers, RFLAGS, RIP/RSP, privilege return state, FPU/SIMD state as enabled, kernel stack, and address-space root; only report success after a real scheduling transition |
+| Fork/exec/wait | `FORK`, `EXECVE`, `WAITPID` return `ENOSYS` in the native dispatcher | `fork(2)`, `execve(2)`, `waitpid(2)` provide child creation, transactional image replacement, blocking notification and reaping | Implement copy-on-write or safe address-space clone, atomic exec commit/rollback, parent-child links, blocking sleep/wakeup, exit status and exactly-once reap |
+| Exit lifecycle | Native exit returns a sentinel to the synchronous launcher; runtime is then unbound and address space reclaimed | `exit(2)` terminates a task; waitable child state survives until reaped | Route exit through scheduler/task lifecycle; do not reclaim a running stack/address space; retain zombie status until parent or init reaps |
+| PID 1 / services | Native init verifies target metadata then explicitly exits 78 because service supervision and providers are absent | Linux PID 1 adopts orphans and supervises the system's service graph through userspace init/service manager | Implement a persistent init process, service dependency graph, restart/failure policy, reaping and independently tested health probes |
+| Signals, pipes, sockets, polling, threads | No complete process runtime/IPC contract demonstrated by the inspected paths | Common Linux applications depend on signals, pipes, sockets, `poll/epoll`, futexes and threads | Track these as separate compatibility milestones; do not claim broad Linux userspace compatibility based on the small native syscall subset |
+| Device and storage I/O | Production device/storage service providers are not available to native init | Linux exposes device operations through kernel drivers, block layer, VFS and userspace APIs | Provide real device drivers/service endpoints, write ordering and flush semantics before installer durability tests |
+| Desktop session | No production-ready compositor/session health proof in the reviewed launch path | A desktop stack requires process supervision, IPC, device/input/display support and working graphics APIs | Require a running Aurora/Marine session plus external frame/input health evidence, not a log string alone |
+
+### Runtime ownership and context-switch invariants
+
+The present launch path in `target_launch.cpp` loads and binds one process, sets it RUNNING, calls `koronos_arch_enter_user()` synchronously, then unbinds and destroys the address space when that call returns. This is a bounded user-mode probe/launcher, not a scheduler-owned resumable task. The active target, PID, CR3 and acknowledgement flags are global single-process state, so they must not be treated as safe for concurrent tasks or SMP.
+
+Before implementing `FORK/EXECVE/WAITPID`, the x86-64 entry path needs one documented trap-frame layout shared by syscall and interrupt assembly, a per-task kernel stack, saved user RIP/RSP/RFLAGS and callee/caller register state as required by the entry ABI, address-space root ownership, and a scheduler transition that can suspend task A and resume task B. CR3 changes must occur with the correct TLB/PCID rules, and FPU/SIMD state must be managed consistently with enabled CPU features. Interrupt return must restore a frame belonging to the selected task. A scheduler callback returning is not proof of any of these properties.
+
+The current global active-process validation must become task-local. Every syscall must resolve its caller from the saved entry context, validate user pointers against that caller's address space, and operate on that caller's descriptor table. For SMP, scheduler/process state needs locking or per-CPU ownership rules; one global `active_pid` cannot represent two simultaneously running CPUs.
+
+### Production acceptance sequence and evidence
+
+For each immutable Live, Installer and Recovery ISO under BIOS and UEFI, require all of the following from the actual packaged init ELF and runtime:
+1. Record ISO SHA-256 and extracted init ELF SHA-256 before boot.
+2. Observe kernel readiness, then a DPL3-originated syscall acknowledgement from the production init PID.
+3. Observe a nonzero PID obtained from the kernel process table and prove subsequent user syscalls resolve to that same task and CR3.
+4. Exercise rootfs open/read/close and writable `/tmp`; test invalid pointers and descriptor isolation as negative cases.
+5. Observe a real supervised PID 1 service graph and target-specific postconditions. Live must include independently measured Aurora/Marine session health; Installer must survive flush and cold reboot; Recovery must demonstrate a recorded before/after repair invariant.
+6. Capture AP startup and overlapping work on at least two CPUs with per-CPU evidence.
+7. Fail on any missing artifact, timeout, nonzero init exit, mismatch in hash/PID/order, unmeasured postcondition or synthetic marker. Candidate probes remain supplemental and cannot satisfy the production matrix.
+
+### Explicit current disposition
+
+The reviewed code still contains an intentional `NATIVE INIT BLOCKED` / exit-78 path. Do not remove it until the real service manager and required providers exist. The documentation update is an implementation plan and source-level parity assessment, not evidence that these runtime features have been implemented. Production acceptance and prerelease remain blocked.
