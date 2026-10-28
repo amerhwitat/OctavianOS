@@ -203,3 +203,22 @@ This checklist does not claim the repository currently satisfies these requireme
 ### Next implementation gate
 
 Do not close this issue by changing verifier expectations or readiness strings. First implement and independently test the runtime prerequisites in the architecture and syscall contracts: resumable per-task trap/context state with a valid kernel stack and address-space switch; process-bound exit plus lifecycle-safe fork/exec/wait/reap; user-pointer validation and writable tmpfs/VFS descriptors; then a persistent PID 1 service supervisor that starts and checks real target services. Only after those components pass focused tests should the same immutable ISO be exercised through the unchanged six-case verifier. Installer persistence, recovery repair, and real multi-CPU overlap remain separate acceptance requirements.
+
+
+## Architecture implementation audit — current source, not a readiness claim
+
+The next code phase must integrate with the existing x86-64 entry ABI rather than add a parallel, unused context-switch path.
+
+- `vendor/chimera-ii-os/source/kernel/arch/x86_64/user_entry.asm` currently installs one global `koronos_tss64`, one global `koronos_syscall_stack_bottom/top`, and one global `koronos_cpu_syscall_state`. `koronos_arch_enter_user` stores a single kernel continuation and bootstrap CR3 in that global state, writes the same global TSS.RSP0, then enters user mode. This is a single-active-user-continuation mechanism, not a per-task/per-CPU context model.
+- The syscall entry saves a register frame on the shared syscall stack and returns to the same user context unless the process exits. The exit and timeout paths restore the single saved C continuation and bootstrap CR3. They cannot yet suspend task A, run task B, then resume task A with independent kernel stacks and address spaces.
+- `vendor/chimera-ii-os/source/kernel/core/scheduler.cpp` tracks callback state and pending cooperative actions; it invokes task callbacks to completion rather than saving an interrupted CPU frame and switching to another task. Its serial-range API explicitly does not prove SMP.
+- `address_space.cpp` provides an address-space backend and clone/validation operations, but having multiple page-table roots is not sufficient: the entry code, TSS.RSP0, kernel stack ownership, scheduler current-task identity, and CR3 must change as one reviewed transition. The implementation must not destroy the active address space or stack before switching away.
+- The existing ring-3 probe matrix is useful for entry/return and timeout regression checks, but its own workflow labels it non-production. It must not be relabeled as a task-switch test until two independently initialized tasks actually yield/resume with register canaries and distinct stacks/CR3 roots.
+
+### Required architecture API contract before implementation
+
+Define and review a stable task context shared by C/C++ and assembly, with compile-time offset checks for every assembly-consumed field. It must capture the callee-saved kernel registers and stack pointer needed for a suspended kernel continuation; separately define the user trap frame and its origin/privilege metadata. The scheduler must only switch while executing on a valid kernel stack, with interrupts and locks handled under one documented protocol. A per-CPU structure must own the active task pointer, kernel entry stack, and TSS.RSP0; the selected task's address-space root and TSS stack must be installed consistently before any return to CPL3. First entry must use an initialized user frame; resumed entry must restore the saved frame, not restart the ELF entry. Timer/preemption may not interrupt an unsafe half-transition.
+
+Implementation is incomplete until CI builds the kernel and QEMU tests demonstrate two-task yield/resume, preserved register canaries, distinct CR3 values and kernel stacks, correct TSS.RSP0 on entry, syscall round-trip, timer delivery, controlled user fault containment, and safe exit/reap. If the existing boot mappings do not keep all kernel entry/scheduler data mapped in each address space, that must be fixed before CR3 switching is enabled.
+
+This audit intentionally adds no fake context-switch implementation and does not change the exit-78 guard or acceptance verifier. It records the concrete integration constraints found in the current source so the next runtime patch can be reviewed against the actual assembly ABI.
