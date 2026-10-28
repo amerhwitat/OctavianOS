@@ -62,6 +62,8 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("h->e_phoff>size", process)
         self.assertIn("h->e_phnum>4096u", process)
         self.assertIn("!entry_executable", process)
+        self.assertIn("static bool pid_in_use", process)
+        self.assertIn("p.pid=allocate_pid()", process)
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
         self.assertEqual(result.returncode, 1)
