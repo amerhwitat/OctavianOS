@@ -239,3 +239,45 @@ Commit `89b01736e425637c0d7743e2398d5ba9523cfe12` introduced `include/chimera/ta
 ### Required next code gate
 
 Implement and review first-run context construction plus task-owned stack allocation and destruction; expose the actual per-CPU TSS.RSP0 slot from per-CPU architecture state; connect the switch primitive to a scheduler that can suspend/resume tasks; then add QEMU two-task register-canary, distinct-stack/CR3, syscall/timer/fault and exit/reap tests. Only after that can the process lifecycle, writable VFS/tmpfs, persistent PID 1 supervision, and six-case production run proceed.
+
+
+## Koronos service manager comparison and parallel-start groundwork
+
+### Linux systemd model used as the reference
+
+The design follows the documented systemd concepts, not an attempt to copy systemd's implementation wholesale:
+
+- **Targets** group a boot goal (for example, a graphical session or multi-user console).
+- **Requirement edges** and **ordering edges** are distinct. A service may be required without requiring serial startup; units with no ordering edge can be started concurrently.
+- **Dependency graph jobs** are resolved as a transaction; ordering constraints are honored regardless of declaration order.
+- **Service state and health** are not equivalent to a registration record. A unit becomes healthy only after its actual start path and health check succeed.
+- **Failure/restart policy** is per unit, and critical failures must prevent the selected target from being reported ready.
+
+References: [systemd boot process](https://freedesktop.org/software/systemd/man/latest/bootup.html), [systemd unit dependencies](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html), [systemd targets](https://www.freedesktop.org/software/systemd/man/latest/systemd.target.html).
+
+### New Koronos service-manager code
+
+The current service registry previously validated a dependency graph and emitted one topological order, while `chimera_kore_bootstrap()` intentionally marked device, storage, security, logging, and Kore providers BLOCKED. It had no actual service process executor.
+
+The new commits add:
+
+- `chimera_service_resolve_waves()`: validates a bounded manifest (maximum 64 units), detects missing/null dependencies and cycles, and groups all currently eligible units into the same dependency wave. Independent units therefore occupy the same wave rather than being artificially serialized by declaration order.
+- `chimera_service_transition()`: validates conservative lifecycle state transitions instead of accepting arbitrary state changes.
+- `chimera_service_all_healthy()`: checks actual recorded RUNNING state for every requested unit; registration alone cannot satisfy the check.
+- Hosted regression cases for parallel-ready wave grouping, complete dependency coverage, cycle rejection, and state-transition/health behavior.
+
+### Explicit implementation boundary
+
+This is **dependency/job planning groundwork**, not a claim that Koronos services now execute concurrently. The current scheduler runs a callback to completion and the kernel has not integrated a persistent service executor with real resumable process contexts, blocking waits, restart supervision, service-specific health probes, or AP-backed workers. The service-wave result gives a future executor the jobs it may dispatch concurrently; it does not itself run them.
+
+The target-specific production service set also remains unimplemented as runnable providers. Live, Installer, and Recovery must each select a target manifest and pull in the correct service graph; desktop targets must add display/compositor/session dependencies. Until real providers and their health checks exist, the existing BLOCKED states and native-init exit-78 guard remain correct. Do not emit `USERSPACE READY` based on a resolved graph or planned jobs.
+
+### Next required service-manager gates
+
+1. Add target manifests for Live, Installer, Recovery, and installed desktop; distinguish required versus optional dependencies and ordering constraints.
+2. Implement a persistent PID 1 supervisor using the real process create/exec/wait/reap APIs; start all jobs in each eligible wave without ordering edges between peers.
+3. Add service start/stop/restart policy, exit-status capture, health probes, timeout handling, dependency failure propagation, and orderly shutdown.
+4. Prove overlapping service execution with QEMU traces once resumable task contexts and AP workers are real.
+5. Require target-specific service health, desktop session health, installer persistence, and recovery postconditions in all six production ISO traces.
+
+No service was marked RUNNING by these changes, no service provider was fabricated, and no production readiness or release acceptance is inferred.
