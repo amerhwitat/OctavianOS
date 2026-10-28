@@ -152,6 +152,9 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             const uint64_t address = frame->rsi;
             const uint64_t length = frame->rdx;
             if (fd > 2u || length > USER_COPY_LIMIT) return static_cast<uint64_t>(-22ll);
+            /* Validate every page before the console backend dereferences user memory. */
+            if (length && koronos_target_validate_user_range(address, length, 0u) != 0)
+                return static_cast<uint64_t>(-14ll); // EFAULT
             return static_cast<uint64_t>(koronos_console_write_user(address, length));
         }
         case CHM_SYS_OPEN: {
