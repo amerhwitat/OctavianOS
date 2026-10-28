@@ -30,6 +30,12 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertNotIn('const char *a="USERSPACE READY: ";', source)
         self.assertNotIn('const char *b=" init pid=";', source)
 
+    def test_elf_admission_checks_program_header_bounds_and_executable_entry(self):
+        process = PROCESS_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("h->e_phoff>size", process)
+        self.assertIn("h->e_phnum>4096u", process)
+        self.assertIn("!entry_executable", process)
+
     def test_process_runtime_is_bound_before_running_and_unbound_before_reclaim(self):
         header = PROCESS_HEADER.read_text(encoding="utf-8")
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
