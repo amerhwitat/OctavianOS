@@ -52,3 +52,11 @@ This is a runtime/service-availability failure, not a reason to weaken the verif
 ## Required acceptance matrix
 
 For each of Live, Installer, and Recovery under both BIOS and UEFI, retain a trace tied to the exact ISO SHA-256 and production init ELF SHA-256. The trace must show, in order: kernel ready; CPL3-originated syscall acknowledgement; matching nonzero native-init PID; target readiness emitted by the running init; and target-specific postconditions. Add independent evidence for Aurora/Marine session health, installer cold-reboot persistence, recovery repair invariants, and AP overlap on at least two CPUs. Missing artifacts, missing markers, timeout, nonzero init exit, or any unmeasured postcondition must fail closed.
+
+## Concrete root cause of the six-case readiness failure (2026-10-28)
+
+The production failure is deterministic in the current source, not an unexplained QEMU issue. `vendor/chimera-ii-os/source/kernel/userspace/native_init.c` validates `/etc/chimera/target`, emits `NATIVE INIT ROOTFS VERIFIED`, then unconditionally emits `NATIVE INIT BLOCKED` and exits with status 78. This is an intentional fail-closed stub. Changing the message alone cannot make the production gate pass, and removing the unconditional block or emitting readiness without real services would be a false positive.
+
+The blocker message now names the actual unavailable capabilities: scheduler-owned resumable process contexts; `FORK`, `EXECVE`, and blocking `WAITPID`; writable filesystem backend; and native storage, security, logging, graphics service providers. The syscall ABI regression test now asserts these limitations remain explicit and that unsupported process syscalls stay `ENOSYS`.
+
+This change improves diagnosability and regression protection only. It does **not** implement the listed services or complete production acceptance. The next implementation must supply real backends and a supervised service startup path, with service-specific success/failure results and actual target postconditions. Keep the release gate red until the production archive's actual `/init` can reach those postconditions.
