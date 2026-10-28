@@ -2,7 +2,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-import re
 from pathlib import Path
 
 SCRIPT = Path(__file__).with_name("verify-userspace-handoff.py")
@@ -23,12 +22,9 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         scheduler = (Path(__file__).resolve().parents[2]
                      / "vendor/chimera-ii-os/source/kernel/core/scheduler.cpp")
         source = scheduler.read_text(encoding="utf-8")
-        match = re.search(
-            r'extern "C" uint32_t chimera_sched_run_parallel\\([^)]*\\)\\s*\\{(.*?)\\n\\}',
-            source, re.S,
-        )
-        self.assertIsNotNone(match, "parallel scheduler entry point must be present")
-        body = match.group(1)
+        signature = 'extern "C" uint32_t chimera_sched_run_parallel('
+        self.assertIn(signature, source, "parallel scheduler entry point must be present")
+        body = source.split(signature, 1)[1].split("\\n}", 1)[0]
         self.assertIn("return 0;", body)
         self.assertNotIn("chimera_sched_run_once", body,
                          "serial callbacks must not be reported as genuine SMP")
