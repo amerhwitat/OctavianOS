@@ -151,3 +151,40 @@ The production workflow downloaded the trace artifact successfully and then fail
 7. Build one immutable ISO, hash the ISO and production init ELF, and run the unchanged independent verifier against all six BIOS/UEFI target cases.
 
 No runtime implementation or local kernel build is claimed by this root-cause update. It records source-backed causes and evidence boundaries; the release remains BLOCKED until the actual prerequisites are implemented and tested.
+
+
+## Architecture integration checklist: x86_64 user entry, TSS/IST, CR3, and scheduler return (2026-10-28)
+
+This checklist narrows the first implementation milestone. It is an integration contract, not evidence that these mechanisms are implemented.
+
+### 1. Establish the architecture invariants before adding a context switch
+
+- **GDT/TSS:** confirm the active GDT contains a valid 64-bit TSS descriptor, that the TSS is loaded with `ltr`, and that the TSS storage remains mapped and alive. On each CPU, initialize that CPU's `RSP0` to the top of a dedicated, mapped kernel stack for the task that will enter from CPL3. Do not point multiple concurrently running CPUs at one mutable TSS or shared entry stack.
+- **IDT:** audit every gate used by user execution. User-callable syscall gates must have the intended DPL and selector; exceptions and hardware interrupts must use valid kernel selectors and mapped entry code. Document which gates switch stacks automatically and which do not.
+- **IST:** assign dedicated IST stacks only to exceptions that need an independent emergency stack (commonly double fault, NMI, and machine check where supported by the kernel's policy). Each IST stack must be mapped, aligned, per-CPU, and large enough for the worst-case entry path. Do not assume IST replaces a valid TSS/RSP0 for ordinary CPL3-to-CPL0 transitions.
+- **Entry ABI:** document the exact register frame pushed by `INT 0x80`, exceptions, timer IRQs, and any `SYSCALL` entry. The hardware frames differ; normalize them in assembly before passing them to C/C++, and preserve the original user RIP, CS, RFLAGS, RSP, and SS where applicable.
+- **Interrupt discipline:** specify whether interrupts are disabled during the sensitive transition and exactly when they may be re-enabled. Prevent timer preemption while a per-CPU current-task pointer, kernel stack, TSS.RSP0, and active address-space identity disagree.
+
+### 2. Make the switch one coherent architecture operation
+
+A scheduler decision alone is not a context switch. The architecture switch must save the outgoing callee-saved registers and resumable interrupt/syscall frame; select a valid incoming task; activate its address space; update the per-CPU current task and TSS.RSP0; then restore the incoming frame and return through the matching architecture return path. The implementation must define lock ownership and interrupt state across the entire sequence, and must never resume a task whose kernel stack or page-table root has been freed.
+
+- **CR3/address-space contract:** each runnable user process must own or reference-count a valid page-table root. The kernel entry/return mappings, IDT/GDT/TSS, interrupt stacks, per-CPU data, and scheduler code/data needed after the CR3 write must remain mapped in every relevant address space. Validate user mappings and permissions before access; do not treat a numeric user pointer check as sufficient protection against a concurrent unmap.
+- **TLB/PCID policy:** document whether PCID is enabled. If enabled, define tag allocation and invalidation rules; if disabled, still prove that CR3 writes and address-space lifetime are correct. No stale user translation may cross process ownership.
+- **First entry:** initialize a new task's user register frame and user stack only after the ELF load is fully validated and committed. Enter CPL3 through the architecture's reviewed `iretq` path (or the repository's equivalent reviewed mechanism); never return through a frame shape that was built for a different gate.
+- **Exit and faults:** process exit must not free the currently executing kernel stack or active page-table root. Switch to another valid context first, then release resources. Page faults and double faults must produce a bounded diagnostic path; failure to reach the diagnostic path is a boot blocker, not a pass.
+
+### 3. Required incremental evidence
+
+1. Static/compile checks for GDT/TSS descriptor construction, selector values, IDT gate types/DPL/IST indices, and entry-frame layout.
+2. QEMU tests for CPL3 entry, syscall round-trip, timer interrupt from CPL3, and controlled user page fault; capture RIP, CS, RSP, CR2 where applicable, CPU ID, current PID, and active CR3 in diagnostics.
+3. A two-task test that repeatedly yields and resumes with register canaries, independent address spaces, distinct kernel stacks, and a verified TSS.RSP0 change. The test must fail if callbacks merely run to completion.
+4. Exit/reap and fault tests proving no active stack or page table is freed prematurely, plus invalid-user-pointer tests proving faults are contained rather than escalating to double/triple fault.
+5. Only after those tests pass: implement fork/exec/wait/wakeup and descriptor lifetime, then writable VFS/tmpfs, service supervision, target-specific postconditions, and AP-backed SMP overlap.
+6. Run the immutable full-ISO production matrix and unchanged independent verifier. The six target/firmware traces must bind to one exact ISO SHA-256 and the corresponding production init ELF hashes.
+
+### 4. Stop conditions
+
+Keep the production init exit-78 guard and release gate unchanged if any of these are missing: a real saved/restored context; valid per-CPU TSS and entry stacks; verified CR3/address-space lifetime; ring-3 fault containment; real process lifecycle; writable filesystem; persistent service supervision and provider health. A passing probe, source-contract test, QEMU kernel-ready marker, or target-routing smoke test is not a substitute for these postconditions.
+
+This checklist does not claim the repository currently satisfies these requirements. The current full-ISO acceptance result remains 0/6, with prerelease publication skipped.
