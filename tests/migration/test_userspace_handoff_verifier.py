@@ -58,6 +58,15 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         exit_start = launch.index("const int exit_code=")
         self.assertLess(launch.index("chimera_process_unbind_runtime(active_pid)", exit_start), launch.index("ops->destroy_address_space(nullptr,loaded.address_space)", exit_start))
 
+    def test_ring3_probe_exercises_real_readonly_vfs_seek_roundtrip(self):
+        probe = USER_INIT_SMOKE.read_text(encoding="utf-8")
+        self.assertIn("vfs_seek_roundtrip", probe)
+        self.assertIn("/etc/chimera/target", probe)
+        self.assertIn("native_syscall3(20", probe)
+        self.assertIn("native_syscall3(8", probe)
+        self.assertIn("native_syscall3(22", probe)
+        self.assertIn("native_syscall3(21", probe)
+        self.assertIn("const long init_pid = number", probe)
     def test_seek_syscall_uses_validated_process_descriptor_and_signed_offsets(self):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         syscall = SYSCALL_SOURCE.read_text(encoding="utf-8")
