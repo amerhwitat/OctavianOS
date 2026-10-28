@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'tests/migration/verify-userspace-handoff.py'
+      - 'tests/migration/test_userspace_handoff_verifier.py'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
@@ -32,8 +34,21 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+      - name: Test fail-closed userspace handoff verifier
+        run: python3 tests/migration/test_userspace_handoff_verifier.py
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Require all target init artifacts before ISO composition
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          for target in live installer recovery; do
+            artifact="build/koronos/x86_64/user-init-${target}.elf"
+            test -s "$artifact" || { echo "ERROR: missing required target init artifact: $artifact" >&2; exit 1; }
+            readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $artifact is not ET_EXEC" >&2; exit 1; }
+            sha256sum "$artifact"
+          done
+          test -s build/koronos/x86_64/user-init-timeout.elf || { echo 'ERROR: missing non-cooperative timeout probe' >&2; exit 1; }
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
