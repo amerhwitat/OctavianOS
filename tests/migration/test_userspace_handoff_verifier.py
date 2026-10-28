@@ -10,6 +10,7 @@ ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
 READY = "USERSPACE READY: target={target} init_pid={pid}\n"
 TARGET_LAUNCH = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/target_launch.cpp"
 SYSCALL_SOURCE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/syscall.cpp"
+SYSCALL_HEADER = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/include/chimera/syscall.h"
 PROCESS_HEADER = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/include/chimera/process.h"
 PROCESS_SOURCE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/process.cpp"
 USER_INIT_SMOKE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/tests/user_init_smoke.c"
@@ -71,7 +72,8 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         syscall = SYSCALL_SOURCE.read_text(encoding="utf-8")
         header = PROCESS_HEADER.read_text(encoding="utf-8")
-        self.assertIn("CHM_SYS_SEEK = 22", header)
+        syscall_header = SYSCALL_HEADER.read_text(encoding="utf-8")
+        self.assertIn("CHM_SYS_SEEK = 22", syscall_header)
         self.assertIn("chimera_process_seek", header)
         self.assertIn("case CHM_SYS_SEEK:", syscall)
         self.assertIn("frame->rdx > 2u", syscall)
