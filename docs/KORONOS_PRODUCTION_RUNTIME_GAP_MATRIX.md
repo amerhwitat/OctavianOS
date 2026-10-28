@@ -68,3 +68,20 @@ The isolated [ring-3 probe run 40721412276](https://github.com/amerhwitat/Octavi
 The current head therefore still does **not** demonstrate all six production traces, real resumable scheduling, process creation/exec/blocking wait, writable ring-3 `/tmp`, persistent service supervision and desktop health, installer cold-reboot persistence, seeded-fault recovery repair, or AP-backed overlapping execution. The previous six-case `NATIVE INIT BLOCKED` evidence remains a valid known failure; no evidence found in this recheck supersedes it with a production pass.
 
 **Action:** continue implementation in dependency order; keep PR #136 draft and unmerged; do not publish. The next full acceptance run must report the exact ISO SHA-256 and production init ELF hashes for every trace and pass the independent verifier unchanged.
+
+
+## Failure detail from acceptance job 122938887014 (2026-10-28)
+
+The failed job downloaded the trace artifact from run 40721412073 successfully (artifact digest `sha256:ebd0620934da649cc7c9915837153783f59d8465c03189674f4a335e536b3ad2`). It then ran `tests/migration/verify-userspace-handoff.py` for each target/firmware pair. All six cases returned the same explicit production failure:
+
+```
+FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)
+```
+
+The six failures were Live/BIOS, Live/UEFI, Installer/BIOS, Installer/UEFI, Recovery/BIOS, and Recovery/UEFI. The verifier exited 1; prerelease publication remained skipped. This is not a missing-artifact or download problem: the trace artifact existed, but its recorded runtime explicitly blocked readiness.
+
+### Required implementation response
+
+Do not change the verifier to accept `NATIVE INIT BLOCKED`, emit a synthetic readiness marker, or weaken the production gate. The first implementation milestone remains architecture-correct resumable execution: per-task saved trap/register state, owned kernel stack, address-space identity/lifetime, and a real context switch through the architecture entry/return path. Then implement process creation/exec/wait/reap and writable VFS/tmpfs with ring-3 syscall tests. Only after those primitives are real can init supervise production services and report readiness. Provider, installer, recovery, and AP/SMP work remain subsequent acceptance milestones.
+
+The current session inspected the failed job logs and updated this evidence record; it did not implement or compile those runtime primitives. PR #136 remains draft/unmerged and release remains blocked.
