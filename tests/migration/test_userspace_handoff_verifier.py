@@ -18,6 +18,22 @@ def run(target, trace):
 
 
 class UserspaceHandoffVerifierTests(unittest.TestCase):
+
+    def test_kernel_target_marker_matches_fail_closed_verifier_abi(self):
+        source = TARGET_LAUNCH.read_text(encoding="utf-8")
+        self.assertIn('const char *a="USERSPACE READY: target=";', source)
+        self.assertIn('const char *b=" init_pid=";', source)
+        self.assertNotIn('const char *a="USERSPACE READY: ";', source)
+        self.assertNotIn('const char *b=" init pid=";', source)
+
+    def test_native_write_validates_entire_user_range_before_read(self):
+        source = SYSCALL_SOURCE.read_text(encoding="utf-8")
+        validate = "koronos_target_validate_user_range(address, length, 0u)"
+        read_user = "koronos_console_write_user(address, length)"
+        self.assertIn(validate, source)
+        self.assertLess(source.index(validate), source.index(read_user))
+        self.assertIn("static_cast<uint64_t>(-14ll)", source)
+
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
         self.assertEqual(result.returncode, 1)
