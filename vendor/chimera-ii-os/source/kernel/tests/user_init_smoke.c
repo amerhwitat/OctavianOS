@@ -64,6 +64,7 @@ __attribute__((noreturn, used)) void _start(void) {
         for (;;) __asm__ volatile("pause" ::: "memory");
     }
 
+    const long init_pid = number; /* Preserve GETPID across helper syscalls. */
     /* Exercise the real mounted CPIO descriptor path before the probe reports readiness. */
     if (vfs_seek_roundtrip() != 0) {
         register long failure_number __asm__("rax") = 1;
@@ -80,7 +81,7 @@ __attribute__((noreturn, used)) void _start(void) {
 
     char reversed[20];
     size_t digits = 0;
-    unsigned long pid = (unsigned long)number;
+    unsigned long pid = (unsigned long)init_pid;
     while (pid && digits < sizeof(reversed)) {
         reversed[digits++] = (char)('0' + (pid % 10u));
         pid /= 10u;
@@ -106,7 +107,7 @@ __attribute__((noreturn, used)) void _start(void) {
         pid_message[pid_used++] = pid_prefix[i];
     char pid_reversed[20];
     size_t pid_digits = 0;
-    unsigned long diagnostic_pid = (unsigned long)number;
+    unsigned long diagnostic_pid = (unsigned long)init_pid;
     while (diagnostic_pid && pid_digits < sizeof(pid_reversed)) {
         pid_reversed[pid_digits++] = (char)('0' + (diagnostic_pid % 10u));
         diagnostic_pid /= 10u;
