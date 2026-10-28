@@ -268,10 +268,20 @@ koronos_arch_context_switch:
     mov rax, [rsi + 0]
     test rax, rax
     jz .context_switch_bad
+    mov rcx, [rsi + 80]
+    cmp rcx, 1
+    ja .context_switch_bad
     mov rcx, rax
     and rcx, 0xF
+    cmp qword [rsi + 80], 1
+    je .context_switch_first_run_align
     cmp rcx, 8
-    jne .context_switch_bad               ; SysV function-entry RSP is 8 mod 16
+    jne .context_switch_bad               ; saved switch-call entry RSP is 8 mod 16
+    jmp .context_switch_rsp_valid
+.context_switch_first_run_align:
+    test rcx, rcx
+    jnz .context_switch_bad               ; synthetic return frame is 0 mod 16
+.context_switch_rsp_valid:
     mov rax, [rsi + 56]
     test rax, rax
     jz .context_switch_bad
@@ -313,6 +323,21 @@ koronos_arch_context_switch:
     mov r14, [rsi + 40]
     mov r15, [rsi + 48]
     ret
+
+; First-run continuation trampoline. Context initialization places
+; entry in R12 and argument in R13, both callee-saved across the entry call.
+; A task entry must yield/block/exit rather than return; returning is fail-stop.
+global koronos_arch_task_bootstrap
+koronos_arch_task_bootstrap:
+    mov rax, r12
+    mov rdi, r13
+    sub rsp, 8                              ; align stack before SysV CALL
+    call rax
+    add rsp, 8
+.task_returned_halt:
+    cli
+    hlt
+    jmp .task_returned_halt
 
 .context_switch_bad:
     ; Invalid context is a kernel integration bug. Do not return through an
