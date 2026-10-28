@@ -46,8 +46,11 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         validate = "koronos_target_validate_user_range(address, length, 0u)"
         read_user = "koronos_console_write_user(address, length)"
         self.assertIn(validate, source)
-        self.assertLess(source.index(validate), source.index(read_user))
-        self.assertIn("static_cast<uint64_t>(-14ll)", source)
+        start = source.index("case CHM_SYS_WRITE:")
+        end = source.index("case CHM_SYS_EXIT:", start)
+        write_case = source[start:end]
+        self.assertLess(write_case.index(validate), write_case.index(read_user))
+        self.assertIn("static_cast<uint64_t>(-14ll)", write_case)
 
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
