@@ -44,6 +44,11 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("h->e_phoff>size", process)
         self.assertIn("h->e_phnum>4096u", process)
         self.assertIn("!entry_executable", process)
+        self.assertIn("seg.p_vaddr < USER_LOW", process)
+        self.assertIn("seg.p_vaddr % seg.p_align", process)
+        self.assertIn("page-rounded virtual ranges overlap", process)
+        self.assertIn("allocate_pid()", process)
+        self.assertIn("pid_in_use", process)
 
     def test_process_runtime_is_bound_before_running_and_unbound_before_reclaim(self):
         header = PROCESS_HEADER.read_text(encoding="utf-8")
