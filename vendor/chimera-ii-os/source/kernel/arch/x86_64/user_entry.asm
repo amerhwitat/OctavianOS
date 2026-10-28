@@ -250,6 +250,65 @@ koronos_user_timeout_abort:
     swapgs
     ret
 
+; Cooperative kernel-continuation switch.
+; ABI offsets are pinned by include/chimera/task_context.h static assertions.
+; This primitive is intentionally not wired into the callback scheduler yet:
+; callers must provide initialized contexts, per-CPU TSS.RSP0 storage, serialized
+; execution, and kernel mappings in both address spaces.
+global koronos_arch_context_switch
+koronos_arch_context_switch:
+    test rdi, rdi
+    jz .context_switch_bad
+    test rsi, rsi
+    jz .context_switch_bad
+    test rdx, rdx
+    jz .context_switch_bad
+
+    ; Save the outgoing continuation and SysV callee-saved registers.
+    mov [rdi + 8], rbx
+    mov [rdi + 16], rbp
+    mov [rdi + 24], r12
+    mov [rdi + 32], r13
+    mov [rdi + 40], r14
+    mov [rdi + 48], r15
+    mov [rdi + 0], rsp
+    mov rax, cr3
+    mov [rdi + 56], rax
+
+    ; The TSS slot must belong to the CPU currently executing this routine.
+    ; Publish the incoming kernel stack before changing address spaces.
+    mov rax, [rsi + 64]
+    test rax, rax
+    jz .context_switch_bad
+    mov [rdx], rax
+
+    mov rax, [rsi + 56]
+    test rax, rax
+    jz .context_switch_bad
+    mov rcx, cr3
+    cmp rcx, rax
+    je .context_switch_same_cr3
+    mov cr3, rax
+.context_switch_same_cr3:
+    mov rsp, [rsi + 0]
+    test rsp, rsp
+    jz .context_switch_bad
+    mov rbx, [rsi + 8]
+    mov rbp, [rsi + 16]
+    mov r12, [rsi + 24]
+    mov r13, [rsi + 32]
+    mov r14, [rsi + 40]
+    mov r15, [rsi + 48]
+    ret
+
+.context_switch_bad:
+    ; Invalid context is a kernel integration bug. Do not return through an
+    ; unknown stack or claim a successful switch.
+    cli
+.context_switch_halt:
+    hlt
+    jmp .context_switch_halt
+
 section .data
 align 16
 koronos_gdt64:
