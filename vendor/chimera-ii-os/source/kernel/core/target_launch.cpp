@@ -69,10 +69,10 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     const char *name = target_name(target);
     char prefix[80];
     uint64_t p=0;
-    const char *a="USERSPACE READY: ";
+    const char *a="USERSPACE READY: target=";
     while (*a) prefix[p++]=*a++;
     while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
+    const char *b=" init_pid=";
     while (*b) prefix[p++]=*b++;
     if (length < p+2u) return false;
     bool found=false;
@@ -107,6 +107,11 @@ static uint32_t validate_active_user_context(uint64_t user_rip) {
 }
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
     return validate_active_user_context(user_rip);
+}
+extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
+                                                   uint32_t write_access) {
+    if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    return koronos_address_space_validate_user_range(active_root, address, length, write_access);
 }
 extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs) {
     /* This acknowledgement is only reachable from the DPL3 INT 0x80 gate.
