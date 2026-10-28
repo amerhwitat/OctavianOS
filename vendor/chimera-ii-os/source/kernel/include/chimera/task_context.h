@@ -15,7 +15,9 @@ extern "C" {
  * Both CR3 roots must keep the kernel code, context objects, TSS field, and
  * the selected kernel stack mapped before this primitive is enabled.
  */
-enum { KORONOS_CONTEXT_FIRST_RUN = 1u };\n\ntypedef struct koronos_arch_task_context {
+enum { KORONOS_CONTEXT_FIRST_RUN = 1u };
+
+typedef struct koronos_arch_task_context {
     uint64_t kernel_rsp;          /* 0: continuation return address at call boundary */
     uint64_t rbx;                 /* 8 */
     uint64_t rbp;                 /* 16 */
@@ -64,7 +66,11 @@ _Static_assert(sizeof(koronos_arch_task_context) == 88, "context ABI: size");
  * serialize this operation on that CPU and ensure all referenced memory is
  * mapped in both address spaces. Returns in the newly selected continuation.
  */
-int koronos_arch_task_context_init(koronos_arch_task_context *context,\n                                   void *stack_base, size_t stack_size,\n                                   uint64_t cr3_root,\n                                   void (*entry)(void *), void *argument);\nvoid koronos_arch_context_switch(koronos_arch_task_context *old_context,
+int koronos_arch_task_context_init(koronos_arch_task_context *context,
+                                   void *stack_base, size_t stack_size,
+                                   uint64_t cr3_root,
+                                   void (*entry)(void *), void *argument);
+void koronos_arch_context_switch(koronos_arch_task_context *old_context,
                                  const koronos_arch_task_context *next_context,
                                  uint64_t *tss_rsp0_slot);
 
