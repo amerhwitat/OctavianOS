@@ -25,6 +25,7 @@ extern "C" const chimera_cpio_archive *chimera_vfs_root_archive(void) { return n
 extern "C" int chimera_process_open_readonly(uint32_t, const chimera_cpio_archive *, const char *) { return -CHIMERA_ENOSYS; }
 extern "C" int chimera_process_read(uint32_t, int, void *, uint64_t, uint64_t *) { return -CHIMERA_ENOSYS; }
 extern "C" int chimera_process_close(uint32_t, int) { return -CHIMERA_ENOSYS; }
+extern "C" int chimera_process_seek(uint32_t, int, int64_t, uint32_t, uint64_t *) { return -CHIMERA_ENOSYS; }
 
 int main() {
     assert(chimera_compat_init(1u, 64u) == 0);
