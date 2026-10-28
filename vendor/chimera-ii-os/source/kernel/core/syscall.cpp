@@ -193,6 +193,18 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return static_cast<uint64_t>(static_cast<int64_t>(
                 chimera_process_close(pid, static_cast<int>(frame->rdi))));
         }
+        case CHM_SYS_SEEK: {
+            if (frame->rdi > INT32_MAX || frame->rdx > 2u)
+                return static_cast<uint64_t>(-22ll);
+            const uint32_t pid = koronos_target_active_pid();
+            if (!pid) return static_cast<uint64_t>(-3ll);
+            uint64_t new_offset = 0;
+            const int rc = chimera_process_seek(pid, static_cast<int>(frame->rdi),
+                static_cast<int64_t>(frame->rsi), static_cast<uint32_t>(frame->rdx),
+                &new_offset);
+            if (rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(rc));
+            return new_offset;
+        }
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
             koronos_user_exit_code = frame->rdi & 0xFFu;
