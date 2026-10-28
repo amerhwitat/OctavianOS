@@ -2,6 +2,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import re
 from pathlib import Path
 
 SCRIPT = Path(__file__).with_name("verify-userspace-handoff.py")
@@ -18,6 +19,22 @@ def run(target, trace):
 
 
 class UserspaceHandoffVerifierTests(unittest.TestCase):
+    def test_scheduler_never_labels_serial_stepping_as_parallel_execution(self):
+        scheduler = (Path(__file__).resolve().parents[2]
+                     / "vendor/chimera-ii-os/source/kernel/core/scheduler.cpp")
+        source = scheduler.read_text(encoding="utf-8")
+        match = re.search(
+            r'extern "C" uint32_t chimera_sched_run_parallel\\([^)]*\\)\\s*\\{(.*?)\\n\\}',
+            source, re.S,
+        )
+        self.assertIsNotNone(match, "parallel scheduler entry point must be present")
+        body = match.group(1)
+        self.assertIn("return 0;", body)
+        self.assertNotIn("chimera_sched_run_once", body,
+                         "serial callbacks must not be reported as genuine SMP")
+        self.assertIn("chimera_sched_run_serial_range", source,
+                      "serial stepping must have an explicitly serial API")
+
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
         self.assertEqual(result.returncode, 1)
