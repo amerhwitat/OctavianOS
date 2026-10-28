@@ -68,6 +68,14 @@ def main() -> int:
         return fail("MMAP/MUNMAP unexpectedly acquired unreviewed dispatcher implementations")
     if "case CHM_SYS_GETPID:" not in native_dispatch or "case CHM_SYS_WRITE:" not in native_dispatch:
         return fail("native GETPID/WRITE support required by the current init handshake is missing")
+
+    yield_match = re.search(
+        r"case CHM_SYS_YIELD:(.*?)(?=\\n        case CHM_SYS_|\\n        default:)",
+        native_dispatch,
+        re.DOTALL,
+    )
+    if not yield_match or "return static_cast<uint64_t>(-38ll);" not in yield_match.group(1):
+        return fail("native YIELD must remain ENOSYS until it performs a real resumable context switch")
     if "case CHM_SYS_SEEK:" not in native_dispatch:
         return fail("native SEEK ABI is declared but its process descriptor backend is missing")
     if "case CHM_SYS_MOUNT:" in native_dispatch or "case CHM_SYS_DEVCTL:" in native_dispatch:
