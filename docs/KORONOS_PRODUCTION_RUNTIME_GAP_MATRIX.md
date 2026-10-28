@@ -222,3 +222,20 @@ Define and review a stable task context shared by C/C++ and assembly, with compi
 Implementation is incomplete until CI builds the kernel and QEMU tests demonstrate two-task yield/resume, preserved register canaries, distinct CR3 values and kernel stacks, correct TSS.RSP0 on entry, syscall round-trip, timer delivery, controlled user fault containment, and safe exit/reap. If the existing boot mappings do not keep all kernel entry/scheduler data mapped in each address space, that must be fixed before CR3 switching is enabled.
 
 This audit intentionally adds no fake context-switch implementation and does not change the exit-78 guard or acceptance verifier. It records the concrete integration constraints found in the current source so the next runtime patch can be reviewed against the actual assembly ABI.
+
+
+## Runtime code increment — cooperative continuation primitive (not production acceptance)
+
+Commit `89b01736e425637c0d7743e2398d5ba9523cfe12` introduced `include/chimera/task_context.h` with a shared context layout and C/C++ compile-time offset/size assertions. Commit `8f1b60a4fcbbc0a08aa9cf1fa45e7998b35ed43f` added `koronos_arch_context_switch` to the existing NASM entry object; subsequent commits added host ABI compilation and incoming-context validation. The build script now compiles/runs `kernel/tests/task_context_abi_test.cpp` and requires the assembly symbol to be linked.
+
+**Scope and limitations are explicit:**
+
+- The primitive saves/restores the SysV callee-saved registers and kernel continuation RSP, validates the incoming RSP alignment, CR3 page alignment, and kernel stack top, updates a caller-supplied active-CPU TSS.RSP0 slot, and switches CR3 before resuming the incoming continuation.
+- It assumes the caller supplies a valid per-CPU TSS slot, initialized continuation stack, CPU-local serialization, and kernel mappings shared by both roots. It does not allocate stacks, initialize a first-run trampoline, define/restore a complete interrupt/user trap frame, handle asynchronous preemption, or enforce task/process lifetime.
+- The existing TSS in `user_entry.asm` is still global, and `scheduler.cpp` still dispatches callbacks to completion. The new primitive is therefore not yet connected to the production scheduler or the current single-user-init launch path. It is a real architecture primitive, not proof of resumable userspace tasks.
+- The ABI test checks layout only. It does not demonstrate context switching, TSS stack selection, timer delivery, fault containment, or SMP. Those require an architecture/QEMU test harness and must remain outstanding until the test actually runs.
+- The exit-78 native-init guard and unchanged six-case verifier remain mandatory. No production readiness or release status is inferred from this increment.
+
+### Required next code gate
+
+Implement and review first-run context construction plus task-owned stack allocation and destruction; expose the actual per-CPU TSS.RSP0 slot from per-CPU architecture state; connect the switch primitive to a scheduler that can suspend/resume tasks; then add QEMU two-task register-canary, distinct-stack/CR3, syscall/timer/fault and exit/reap tests. Only after that can the process lifecycle, writable VFS/tmpfs, persistent PID 1 supervision, and six-case production run proceed.
