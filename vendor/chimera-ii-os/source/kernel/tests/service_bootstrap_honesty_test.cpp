@@ -32,6 +32,20 @@ int main() {
     for(uint32_t i=offsets[1];i<offsets[2];i++){saw_c|=std::strcmp(ids[i],"c")==0;saw_d|=std::strcmp(ids[i],"d")==0;}
     if(check(saw_a&&saw_b&&saw_c&&saw_d,"all units scheduled in dependency-safe waves"))return 1;
 
+    const char *too_many_deps[]={"a","b","c"};
+    const chimera_service_manifest malformed[] = {
+      {CHIMERA_SERVICE_ABI,"bounded",CHM_SVC_DECLARED,CHM_RESTART_NEVER,0,2,too_many_deps}
+    };
+    if(check(chimera_service_validate(malformed,1)==-4,"dependency count bounded by manifest size"))return 1;
+    const chimera_service_manifest empty_id[] = {
+      {CHIMERA_SERVICE_ABI,"",CHM_SVC_DECLARED,CHM_RESTART_NEVER,0,0,nullptr}
+    };
+    if(check(chimera_service_validate(empty_id,1)==-2,"empty service ID rejected"))return 1;
+    const chimera_service_manifest invalid_state[] = {
+      {CHIMERA_SERVICE_ABI,"bad-state",99,CHM_RESTART_NEVER,0,0,nullptr}
+    };
+    if(check(chimera_service_validate(invalid_state,1)==-2,"invalid initial state rejected"))return 1;
+
     const char *cycle_a[]={"y"}, *cycle_b[]={"x"};
     const chimera_service_manifest cycle[] = {
       {CHIMERA_SERVICE_ABI,"x",CHM_SVC_DECLARED,CHM_RESTART_NEVER,1,1,cycle_a},
