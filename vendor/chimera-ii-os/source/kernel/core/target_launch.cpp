@@ -296,7 +296,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     (void)chimera_process_unbind_runtime(active_pid);
     ops->destroy_address_space(nullptr,loaded.address_space);
     const int finish_rc = exit_code==0 ? chimera_process_exit(active_pid, 0u) :
-        chimera_process_fault(active_pid, static_cast<uint32_t>(exit_code));
+        chimera_process_fault(active_pid, exit_code < 0 ? 1u : static_cast<uint32_t>(exit_code));
     if (finish_rc != 0) koronos_target_log("[PROC] ERROR: terminal process state/exit status could not be recorded");
     active_target=TARGET_NONE;
     active_pid=0;
