@@ -12,6 +12,8 @@ TARGET_LAUNCH = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/
 SYSCALL_SOURCE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/syscall.cpp"
 PROCESS_HEADER = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/include/chimera/process.h"
 PROCESS_SOURCE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/core/process.cpp"
+USER_INIT_SMOKE = Path(__file__).parents[2] / "vendor/chimera-ii-os/source/kernel/tests/user_init_smoke.c"
+ACCEPTANCE_WORKFLOW = Path(__file__).parents[2] / ".github/workflows/koronos-userspace-acceptance.yml"
 
 
 def run(target, trace):
@@ -22,6 +24,13 @@ def run(target, trace):
 
 
 class UserspaceHandoffVerifierTests(unittest.TestCase):
+
+    def test_ring3_probe_and_workflow_use_same_readiness_abi(self):
+        probe = USER_INIT_SMOKE.read_text(encoding="utf-8")
+        workflow = ACCEPTANCE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('"USERSPACE READY: target=" CHIMERA_TARGET_NAME " init_pid="', probe)
+        self.assertIn('USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*', workflow)
+        self.assertNotIn('USERSPACE READY: ${TARGET} init pid=', workflow)
 
     def test_kernel_target_marker_matches_fail_closed_verifier_abi(self):
         source = TARGET_LAUNCH.read_text(encoding="utf-8")
