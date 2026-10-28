@@ -113,3 +113,41 @@ A step-level recheck of [full-ISO workflow 40727315297](https://github.com/amerh
 This re-audit did not change the verifier or convert any non-production probe into acceptance evidence. The source-level implementation blockers remain: architecture-owned resumable task context and trap return; process creation/exec/blocking wait/reap; writable VFS and ring-3 `/tmp`; persistent service providers and supervision; measured desktop health; installer cold-reboot persistence; seeded-fault recovery; and AP-backed overlapping execution.
 
 **Decision:** PR #136 remains draft and unmerged. No release is authorized. Do not remove native init's intentional fail-closed blocker until the required services and lifecycle are actually implemented. This commit records the step-level CI evidence only; it does not claim a runtime fix or local compilation.
+
+
+## Recursive root-cause analysis of production acceptance failure (2026-10-28)
+
+### Finding: the observed failure is the intended production-init refusal, not an artifact transport or firmware-specific failure
+
+The production workflow downloaded the trace artifact successfully and then failed at “Require actual user-mode init acknowledgement for every target.” The checked source explains why the later readiness requirement cannot pass: `vendor/chimera-ii-os/source/kernel/userspace/native_init.c` has an unconditional production block after its rootfs read probe. It writes `NATIVE INIT BLOCKED: service supervision unavailable...` and invokes exit syscall 1 with status 78. There is no branch in this init that starts the missing services or emits `USERSPACE READY`. Thus the 0/6 result is deterministic from the current production init behavior, assuming this source-built payload is the one in the candidate.
+
+### Causal chain
+
+1. **The kernel build succeeds, but build success only validates compilation and boot entry.** The full-ISO job's successful build and module-routing steps do not establish a working userspace service lifecycle.
+2. **Target launch can load and enter one user ELF, but this is a single-process launch path.** `target_launch.cpp` admits one ELF, loads it, binds its address space to one process record, marks it RUNNING, and calls `koronos_arch_enter_user(...)` directly. On return it tears down that one address space. This is not a persistent PID 1 service manager.
+3. **The init reaches ring 3 and performs a real syscall handshake, but it does not become ready.** `native_init.c` first invokes `int $0x80`, asks GETPID, writes its PID diagnostic, then performs read-only OPEN/READ/CLOSE of `/etc/chimera/target`. Those steps may prove user entry and a read-only CPIO path, but they do not prove writable rootfs, service supervision, or desktop health.
+4. **The source then explicitly refuses readiness.** After successful target-file validation, `native_init.c` unconditionally writes the service-supervision blocker and exits 78. The kernel only recognizes a `USERSPACE READY: target=... init_pid=...` marker after the CPL3 acknowledgement and matching PID diagnostic; the init never emits it. The independent verifier correctly fails rather than treating the CPL3 syscall or rootfs read as readiness.
+5. **The missing runtime capabilities explain why the explicit block exists.** `process.h` labels admission as load-plan-only; lifecycle API exposes `waitpid_poll` and explicitly says it is non-blocking. `process.cpp` owns admission metadata, runtime binding and read-only CPIO descriptors, but does not provide real fork/exec/blocking wait/reap scheduling. `syscall.cpp` returns ENOSYS for YIELD, FORK, EXECVE and WAITPID; OPEN accepts only read-only flags. `vfs_cpio.cpp` exposes immutable archive reads and a single immutable root mount, not writable tmpfs/VFS operations.
+6. **The scheduler is callback stepping, not a process context scheduler.** `scheduler.cpp` invokes task callbacks and applies requested READY/BLOCKED/EXITED state after the callback returns. It does not save/restore a suspended ring-3 register frame and address-space ownership per task. Its parallel API returns zero until real AP startup and independent per-CPU execution exist.
+7. **The failure is shared by all six target/firmware combinations.** The unconditional init blocker is target-independent except for the embedded target name, and it is reached after BIOS/UEFI routing. Consequently Live, Installer and Recovery all lack the same required readiness postcondition; changing firmware routing or retrying artifact download cannot repair this cause.
+8. **Publication skip is downstream and correct.** The release job depends on production acceptance. Since no trace contains the required userspace-ready marker and all six verifier invocations fail, publication is skipped by design. It is not a separate publication failure.
+
+### Root-cause classification
+
+- **Direct cause:** production `native_init.c` deliberately exits 78 after printing `NATIVE INIT BLOCKED`, without starting a supervised service tree or emitting readiness.
+- **Architectural causes:** no scheduler-owned resumable CPU context/address-space switching; no complete process lifecycle; no blocking wait/wakeup; no writable filesystem backend; no persistent PID 1 supervision.
+- **Downstream missing postconditions:** actual storage/security/logging/graphics providers, Aurora/Marine session health, installer persistence, recovery repair proof, and AP/SMP overlap.
+- **Not the cause shown by this run:** artifact download failure, an unbuilt kernel, or evidence that BIOS alone or UEFI alone is broken. The observed evidence does not support those hypotheses.
+- **Verifier assessment:** do not weaken it. Its diagnostic explicitly distinguishes `NATIVE INIT BLOCKED` from a missing user launch and is correctly rejecting an init that ran but refused to claim production readiness.
+
+### Fix sequence tied to the causal chain
+
+1. Implement and architecture-test a saved task context, owned kernel stack, address-space switch, and safe suspend/resume through syscall/interrupt return.
+2. Integrate task scheduling with process creation, transactional exec, blocking wait/wakeup, exit/reap, and descriptor cleanup; only return success for operations that actually work.
+3. Implement fault-safe user memory access and a mounted writable VFS/tmpfs (including writable `/tmp`); retain read-only CPIO as a boot source, not the complete rootfs contract.
+4. Implement persistent PID 1 supervision and real storage/security/logging/graphics providers with observable health/failure/restart semantics.
+5. Add target-specific installer persistence and recovery-repair postconditions; add a real Aurora/Marine handoff with display and input health.
+6. Implement real AP startup and prove overlapping work on two or more CPUs.
+7. Build one immutable ISO, hash the ISO and production init ELF, and run the unchanged independent verifier against all six BIOS/UEFI target cases.
+
+No runtime implementation or local kernel build is claimed by this root-cause update. It records source-backed causes and evidence boundaries; the release remains BLOCKED until the actual prerequisites are implemented and tested.
