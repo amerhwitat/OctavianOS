@@ -23,6 +23,7 @@ uint32_t chimera_process_count(void);
 /* Lifecycle metadata only: waitpid_poll is non-blocking and never claims scheduler sleep/wakeup. */
 int chimera_process_set_parent(uint32_t child_pid,uint32_t parent_pid);
 int chimera_process_exit(uint32_t pid,uint32_t exit_code);
+int chimera_process_fault(uint32_t pid,uint32_t exit_code);
 int chimera_process_waitpid_poll(uint32_t parent_pid,uint32_t child_pid,uint32_t *exit_code);
 /* Kernel-buffer helpers only; these are not user-pointer-safe syscall entry points. */
 int chimera_process_open_readonly(uint32_t pid,const chimera_cpio_archive *archive,const char *path);
