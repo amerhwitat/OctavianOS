@@ -5,14 +5,36 @@ extern "C" int chimera_process_admit_elf(const void*image,uint64_t size,uint16_t
 extern "C" int chimera_process_get(uint32_t pid,chimera_process_image*out){if(!out||!pid)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){*out=slots[i].image;return 0;}return -2;}
 extern "C" int chimera_process_set_state(uint32_t pid,chimera_process_state state){if(!pid||state<CHIMERA_PROCESS_ADMITTED||state>CHIMERA_PROCESS_FAULTED)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){if(state==CHIMERA_PROCESS_RUNNING&&!slots[i].runtime.bound)return -3;if((state==CHIMERA_PROCESS_EXITED||state==CHIMERA_PROCESS_FAULTED)&&slots[i].runtime.bound)return -4;slots[i].image.state=state;if(state==CHIMERA_PROCESS_EXITED||state==CHIMERA_PROCESS_FAULTED){if(state==CHIMERA_PROCESS_FAULTED&&slots[i].image.exit_code==0)slots[i].image.exit_code=1;for(uint32_t d=0;d<16;d++)slots[i].fds[d]={};}return 0;}return -2;}
 extern "C" uint32_t chimera_process_count(void){return count;}
-extern "C" int chimera_process_bind_runtime(uint32_t pid,void*address_space,uint64_t root,uint64_t entry,uint64_t stack_top){
- if(!pid||!address_space||!root||(root&(PAGE-1))||entry<0x0000000100000000ull||entry>=0x0000800000000000ull||stack_top<0x0000000100000000ull||stack_top>=0x0000800000000000ull||(stack_top&0xFu))return -1;
- for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++){Slot&s=slots[i];if(!s.used||s.image.pid!=pid)continue;
-  if(s.runtime.bound||(s.image.state!=CHIMERA_PROCESS_ADMITTED&&s.image.state!=CHIMERA_PROCESS_READY)||s.image.entry!=entry)return -2;
-  bool executable=false;for(uint32_t j=0;j<s.image.segment_count;j++){const chimera_elf_load_segment&seg=s.image.segments[j];uint64_t end=0;if((seg.flags&PF_X)&&add_ok(seg.virtual_address,seg.memory_size,&end)&&entry>=seg.virtual_address&&entry<end){executable=true;break;}}
-  if(!executable)return -3;s.runtime={address_space,root,entry,stack_top,1u,0u};return 0;
- }
- return -4;
+extern "C" int chimera_process_bind_runtime(uint32_t pid, void *address_space,
+                                                   uint64_t root, uint64_t entry,
+                                                   uint64_t stack_top) {
+    if (!pid || !address_space || !root || (root & (PAGE - 1)) ||
+        entry < 0x0000000100000000ull || entry >= 0x0000800000000000ull ||
+        stack_top < 0x0000000100000000ull || stack_top >= 0x0000800000000000ull ||
+        (stack_top & 0xFu)) return -1;
+    for (uint32_t i = 0; i < CHIMERA_PROCESS_MAX; ++i) {
+        Slot &slot = slots[i];
+        if (!slot.used || slot.image.pid != pid) continue;
+        if (slot.runtime.bound ||
+            (slot.image.state != CHIMERA_PROCESS_ADMITTED &&
+             slot.image.state != CHIMERA_PROCESS_READY) ||
+            slot.image.entry != entry) return -2;
+        bool executable = false;
+        for (uint32_t j = 0; j < slot.image.segment_count; ++j) {
+            const chimera_elf_load_segment &segment = slot.image.segments[j];
+            uint64_t segment_end = 0;
+            if ((segment.flags & PF_X) &&
+                add_ok(segment.virtual_address, segment.memory_size, &segment_end) &&
+                entry >= segment.virtual_address && entry < segment_end) {
+                executable = true;
+                break;
+            }
+        }
+        if (!executable) return -3;
+        slot.runtime = {address_space, root, entry, stack_top, 1u, 0u};
+        return 0;
+    }
+    return -4;
 }
 extern "C" int chimera_process_get_runtime(uint32_t pid,chimera_process_runtime*out){
  if(!pid||!out){return -1;}
