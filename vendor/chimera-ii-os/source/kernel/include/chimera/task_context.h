@@ -15,7 +15,7 @@ extern "C" {
  * Both CR3 roots must keep the kernel code, context objects, TSS field, and
  * the selected kernel stack mapped before this primitive is enabled.
  */
-typedef struct koronos_arch_task_context {
+enum { KORONOS_CONTEXT_FIRST_RUN = 1u };\n\ntypedef struct koronos_arch_task_context {
     uint64_t kernel_rsp;          /* 0: continuation return address at call boundary */
     uint64_t rbx;                 /* 8 */
     uint64_t rbp;                 /* 16 */
@@ -26,7 +26,7 @@ typedef struct koronos_arch_task_context {
     uint64_t cr3;                 /* 56: physical PML4 root, low 12 bits clear */
     uint64_t kernel_stack_top;    /* 64: top of this task's owned ring-0 stack */
     uint64_t user_trap_frame;     /* 72: reserved for later trap/iret integration */
-    uint64_t flags;               /* 80: reserved; must be zero for this primitive */
+    uint64_t flags;               /* 80: KORONOS_CONTEXT_FIRST_RUN for synthetic entry */
 } koronos_arch_task_context;
 
 #if defined(__cplusplus)
@@ -64,7 +64,7 @@ _Static_assert(sizeof(koronos_arch_task_context) == 88, "context ABI: size");
  * serialize this operation on that CPU and ensure all referenced memory is
  * mapped in both address spaces. Returns in the newly selected continuation.
  */
-void koronos_arch_context_switch(koronos_arch_task_context *old_context,
+int koronos_arch_task_context_init(koronos_arch_task_context *context,\n                                   void *stack_base, size_t stack_size,\n                                   uint64_t cr3_root,\n                                   void (*entry)(void *), void *argument);\nvoid koronos_arch_context_switch(koronos_arch_task_context *old_context,
                                  const koronos_arch_task_context *next_context,
                                  uint64_t *tss_rsp0_slot);
 
