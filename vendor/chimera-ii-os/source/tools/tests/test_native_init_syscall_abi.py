@@ -53,6 +53,7 @@ def main() -> int:
         "CHM_SYS_WAITPID": 19,
         "CHM_SYS_OPEN": 20,
         "CHM_SYS_CLOSE": 21,
+        "CHM_SYS_SEEK": 22,
     }
     if entries != expected:
         return fail(f"native syscall table changed unexpectedly: {entries!r}")
@@ -67,6 +68,8 @@ def main() -> int:
         return fail("MMAP/MUNMAP unexpectedly acquired unreviewed dispatcher implementations")
     if "case CHM_SYS_GETPID:" not in native_dispatch or "case CHM_SYS_WRITE:" not in native_dispatch:
         return fail("native GETPID/WRITE support required by the current init handshake is missing")
+    if "case CHM_SYS_SEEK:" not in native_dispatch:
+        return fail("native SEEK ABI is declared but its process descriptor backend is missing")
     if "case CHM_SYS_MOUNT:" in native_dispatch or "case CHM_SYS_DEVCTL:" in native_dispatch:
         return fail("unsupported mount/devctl placeholder was added to the native dispatcher")
 
