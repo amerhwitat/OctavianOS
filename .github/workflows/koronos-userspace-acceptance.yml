@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Candidate Ring-3 Smoke (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: Candidate ring-3 smoke — ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -34,6 +34,14 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Compile and run ELF process admission regression tests
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -Ikernel/include \
+            kernel/tests/process_admission_test.cpp kernel/core/process.cpp kernel/core/elf64.cpp \
+            -o /tmp/koronos-process-admission-test
+          /tmp/koronos-process-admission-test
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -106,7 +114,7 @@ jobs:
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           # Require a real, nonzero PID supplied by the running probe, not a
           # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          ready_line="$(grep -Eo "USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
@@ -149,7 +157,7 @@ jobs:
           cat "$LOG"
           grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
           grep -Fq "[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed" "$LOG"
-          ! grep -Fq "USERSPACE READY: live" "$LOG"
+          ! grep -Fq "USERSPACE READY: target=live" "$LOG"
           echo "Accepted in-kernel non-cooperative timeout (outer QEMU exit=$qemu_rc)"
 
       - name: Upload boot diagnostics
