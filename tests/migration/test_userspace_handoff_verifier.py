@@ -52,6 +52,7 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         launch = TARGET_LAUNCH.read_text(encoding="utf-8")
         self.assertIn("chimera_process_bind_runtime", header)
         self.assertIn("chimera_process_get_runtime", header)
+        self.assertIn("chimera_process_get_runtime(active_pid, &runtime)", launch)
         self.assertIn("state==CHIMERA_PROCESS_RUNNING&&!slots[i].runtime.bound", process)
         self.assertLess(launch.index("chimera_process_bind_runtime"), launch.index("CHIMERA_PROCESS_RUNNING"))
         exit_start = launch.index("const int exit_code=")
