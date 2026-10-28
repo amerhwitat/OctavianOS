@@ -300,6 +300,7 @@ koronos_arch_context_switch:
     mov [rdi + 32], r13
     mov [rdi + 40], r14
     mov [rdi + 48], r15
+    mov qword [rdi + 80], 0                ; saved contexts are resumed continuations
     mov [rdi + 0], rsp
     mov rax, cr3
     mov [rdi + 56], rax
@@ -324,6 +325,14 @@ koronos_arch_context_switch:
     mov r15, [rsi + 48]
     ret
 
+.context_switch_bad:
+    ; Invalid context is a kernel integration bug. Do not return through an
+    ; unknown stack or claim a successful switch.
+    cli
+.context_switch_halt:
+    hlt
+    jmp .context_switch_halt
+
 ; First-run continuation trampoline. Context initialization places
 ; entry in R12 and argument in R13, both callee-saved across the entry call.
 ; A task entry must yield/block/exit rather than return; returning is fail-stop.
@@ -338,14 +347,6 @@ koronos_arch_task_bootstrap:
     cli
     hlt
     jmp .task_returned_halt
-
-.context_switch_bad:
-    ; Invalid context is a kernel integration bug. Do not return through an
-    ; unknown stack or claim a successful switch.
-    cli
-.context_switch_halt:
-    hlt
-    jmp .context_switch_halt
 
 section .data
 align 16
