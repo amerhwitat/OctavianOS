@@ -70,7 +70,7 @@ def main() -> int:
         return fail("native GETPID/WRITE support required by the current init handshake is missing")
 
     yield_match = re.search(
-        r"case CHM_SYS_YIELD:(.*?)(?=\\n        case CHM_SYS_|\\n        default:)",
+        r"case CHM_SYS_YIELD:(.*?)(?=\n        case CHM_SYS_|\n        default:)",
         native_dispatch,
         re.DOTALL,
     )
