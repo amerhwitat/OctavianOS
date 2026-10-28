@@ -37,3 +37,18 @@ Koronos should implement those contracts in its own architecture and native ABI,
 ## Release policy
 
 Do not merge or publish on the strength of source presence, compile-only checks, or ring-3 candidate probes. Keep publication blocked until the six immutable-ISO production traces, desktop health, cold-reboot persistence, recovery repair, and two-CPU overlap evidence pass.
+
+## Latest execution evidence (2026-10-28)
+
+The latest PR validation for commit `677229acf040f1a76dbf5c857dd71a03ad0e1626` is not a production pass:
+
+- Source integration and boot-target routing contract workflows passed.
+- The native Koronos build job completed successfully, but its downstream **Verify real Live, Installer, and Recovery userspace** job failed.
+- The verifier reported `FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)` for all six target/firmware traces. The prerelease/publish job was skipped by the fail-closed gate.
+- The candidate ring-3 probe matrix is a separate workflow and is explicitly not production acceptance.
+
+This is a runtime/service-availability failure, not a reason to weaken the verifier or synthesize readiness. The next implementation step is to identify and satisfy each concrete `NATIVE INIT BLOCKED` prerequisite in the production init path, then rerun the immutable full-ISO matrix. Do not mark item 1 complete merely because an ELF can be loaded and entered in ring 3: the production archive's actual `/init` must execute through a supported ELF/interpreter path and the target service manager must reach its real postconditions.
+
+## Required acceptance matrix
+
+For each of Live, Installer, and Recovery under both BIOS and UEFI, retain a trace tied to the exact ISO SHA-256 and production init ELF SHA-256. The trace must show, in order: kernel ready; CPL3-originated syscall acknowledgement; matching nonzero native-init PID; target readiness emitted by the running init; and target-specific postconditions. Add independent evidence for Aurora/Marine session health, installer cold-reboot persistence, recovery repair invariants, and AP overlap on at least two CPUs. Missing artifacts, missing markers, timeout, nonzero init exit, or any unmeasured postcondition must fail closed.
