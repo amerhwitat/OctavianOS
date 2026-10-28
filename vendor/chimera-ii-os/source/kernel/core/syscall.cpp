@@ -93,6 +93,7 @@ volatile uint64_t koronos_user_exit_code = 0;
 }
 extern "C" uint32_t koronos_target_active_pid(void);
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip);
+extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length, uint32_t write_access);
 extern "C" int64_t koronos_console_write_user(uint64_t address, uint64_t length);
 extern "C" void koronos_target_log(const char *message);
 
@@ -128,6 +129,11 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             const uint64_t address = frame->rsi;
             const uint64_t length = frame->rdx;
             if (fd > 2u || length > 4096u) return static_cast<uint64_t>(-22ll);
+            /* Validate the complete user range against the active process page
+             * tables before the console backend reads it. A low canonical VA
+             * or a mapped first byte is not sufficient for a multi-page write. */
+            if (length && koronos_target_validate_user_range(address, length, 0u) != 0)
+                return static_cast<uint64_t>(-14ll); // EFAULT
             return static_cast<uint64_t>(koronos_console_write_user(address, length));
         }
         case CHM_SYS_EXIT:

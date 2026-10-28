@@ -69,10 +69,10 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
     const char *name = target_name(target);
     char prefix[80];
     uint64_t p=0;
-    const char *a="USERSPACE READY: ";
+    const char *a="USERSPACE READY: target=";
     while (*a) prefix[p++]=*a++;
     while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
+    const char *b=" init_pid=";
     while (*b) prefix[p++]=*b++;
     if (length < p+2u) return false;
     bool found=false;
@@ -107,6 +107,11 @@ static uint32_t validate_active_user_context(uint64_t user_rip) {
 }
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
     return validate_active_user_context(user_rip);
+}
+extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
+                                                   uint32_t write_access) {
+    if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    return koronos_address_space_validate_user_range(active_root, address, length, write_access);
 }
 extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs) {
     /* This acknowledgement is only reachable from the DPL3 INT 0x80 gate.
@@ -188,19 +193,38 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: selected user init has no owned CR3 root");
         return -7;
     }
+    /* The process record and loaded ELF must refer to the same live address space. */
+    if (chimera_process_bind_runtime(static_cast<uint32_t>(pid), loaded.address_space,
+                                     root, loaded.entry, loaded.user_stack_top) != 0) {
+        ops->destroy_address_space(nullptr,loaded.address_space);
+        (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        koronos_target_log("[RUN ] ERROR: failed to bind production ELF to process runtime");
+        return -8;
+    }
     active_target=target;
     active_pid=static_cast<uint32_t>(pid);
     active_root=root;
     syscall_ack_seen=0;
     ready_seen=0;
-    (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING);
+    if (chimera_process_set_state(active_pid,CHIMERA_PROCESS_RUNNING) != 0) {
+        (void)chimera_process_unbind_runtime(active_pid);
+        ops->destroy_address_space(nullptr,loaded.address_space);
+        active_target=TARGET_NONE;
+        active_pid=0;
+        active_root=0;
+        koronos_target_log("[RUN ] ERROR: process could not enter RUNNING state with a bound address space");
+        return -9;
+    }
     // 100 Hz PIT deadline: 1,000 ticks gives user init ten seconds to return
     // and emit readiness. This is enforced by IRQ0 inside the kernel, not by
     // the outer QEMU test timeout.
     if (koronos_user_timeout_arm(1000u) != 0) {
+        (void)chimera_process_unbind_runtime(active_pid);
         ops->destroy_address_space(nullptr,loaded.address_space);
         (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
         active_target=TARGET_NONE;
+        active_pid=0;
+        active_root=0;
         koronos_target_log("[RUN ] ERROR: failed to arm PIT-backed in-kernel user timeout");
         return -10;
     }
@@ -211,9 +235,11 @@ extern "C" int koronos_launch_selected_userspace(void) {
     const uint64_t user_entry_stack = loaded.user_stack_top - sizeof(uint64_t);
     const int exit_code=koronos_arch_enter_user(root,loaded.entry,user_entry_stack);
     koronos_user_timeout_disarm();
+    (void)chimera_process_unbind_runtime(active_pid);
     ops->destroy_address_space(nullptr,loaded.address_space);
     (void)chimera_process_set_state(active_pid,exit_code==0 ? CHIMERA_PROCESS_EXITED : CHIMERA_PROCESS_FAULTED);
     active_target=TARGET_NONE;
+    active_pid=0;
     active_root=0;
     if (exit_code == -10) {
         koronos_target_log("[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed");
