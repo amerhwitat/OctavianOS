@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'tests/migration/test_userspace_handoff_verifier.py'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
@@ -34,6 +35,8 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf busybox-static cpio
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Test process runtime, ELF bounds, and syscall/readiness contracts
+        run: python3 tests/migration/test_userspace_handoff_verifier.py
       - name: Build compressed initramfs and raw native VFS roots
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
