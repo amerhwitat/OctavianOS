@@ -43,7 +43,7 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("h.e_phoff > size", process)
         self.assertIn("phdr_end > size", process)
-        self.assertIn("h->e_phnum>4096u", process)
+        self.assertIn("h.e_phnum > 4096u", process)
         self.assertIn("!entry_executable", process)
         self.assertIn("seg.p_vaddr < USER_LOW", process)
         self.assertIn("seg.p_vaddr % seg.p_align", process)
