@@ -142,9 +142,12 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return pid ? static_cast<uint64_t>(pid) : static_cast<uint64_t>(-38ll);
         }
         case CHM_SYS_YIELD:
-            // The bootstrap user entry is single-process until the scheduler owns
-            // address-space context switches; yielding is currently a safe no-op.
-            return 0;
+            /* Do not report a successful yield while this path has no resumable
+             * process context or scheduler-owned address-space switch. The
+             * current scheduler can cooperatively step callbacks, but that is
+             * not a process-context switch. Keep this operation explicitly
+             * unavailable until the syscall frame can be suspended and resumed. */
+            return static_cast<uint64_t>(-38ll); // ENOSYS
         case CHM_SYS_TIME_TICKS:
             return chimera_timer_now();
         case CHM_SYS_WRITE: {
