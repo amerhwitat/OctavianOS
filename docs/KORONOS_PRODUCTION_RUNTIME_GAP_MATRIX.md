@@ -188,3 +188,18 @@ A scheduler decision alone is not a context switch. The architecture switch must
 Keep the production init exit-78 guard and release gate unchanged if any of these are missing: a real saved/restored context; valid per-CPU TSS and entry stacks; verified CR3/address-space lifetime; ring-3 fault containment; real process lifecycle; writable filesystem; persistent service supervision and provider health. A passing probe, source-contract test, QEMU kernel-ready marker, or target-routing smoke test is not a substitute for these postconditions.
 
 This checklist does not claim the repository currently satisfies these requirements. The current full-ISO acceptance result remains 0/6, with prerelease publication skipped.
+
+
+## Latest recheck — Native Koronos workflow 40738193386
+
+**Observed at 2026-10-28 17:48 UTC.** This is newer than the earlier run referenced above.
+
+- [Native Koronos kernel build / full-ISO acceptance](https://github.com/amerhwitat/OctavianOS/actions/runs/40738193386): `build-koronos` succeeded; the production verification job failed; prerelease publication was skipped.
+- The production job downloaded artifact `octavianos-full-iso-qemu-trace`, SHA-256 `d0dbcbc317bf087b40cc443561ceccae1e7366a86fafcbbb136caadef24e1df2`.
+- The unchanged verifier `tests/migration/verify-userspace-handoff.py` was run against all six trace paths: `acceptance-{live,installer,recovery}-{bios,uefi}/debugcon.log`. Every case failed with `FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)`.
+- This confirms the failure is not a missing trace artifact or a kernel/ELF build failure. The current native init source explicitly prints the service-supervision blocker after its ring-3 syscall acknowledgement and read-only target-file validation, then exits with status 78. Removing that guard or adding a readiness string without working supervision would falsify acceptance and is not an acceptable fix.
+- The ring-3 probe matrix remains non-production evidence; boot-target routing and source-integration checks do not substitute for full-ISO service readiness.
+
+### Next implementation gate
+
+Do not close this issue by changing verifier expectations or readiness strings. First implement and independently test the runtime prerequisites in the architecture and syscall contracts: resumable per-task trap/context state with a valid kernel stack and address-space switch; process-bound exit plus lifecycle-safe fork/exec/wait/reap; user-pointer validation and writable tmpfs/VFS descriptors; then a persistent PID 1 service supervisor that starts and checks real target services. Only after those components pass focused tests should the same immutable ISO be exercised through the unchanged six-case verifier. Installer persistence, recovery repair, and real multi-CPU overlap remain separate acceptance requirements.
