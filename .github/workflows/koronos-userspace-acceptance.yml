@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'tests/migration/test_userspace_handoff_verifier.py'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
@@ -34,6 +35,8 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf busybox-static cpio
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Test process runtime, ELF bounds, and syscall/readiness contracts
+        run: python3 tests/migration/test_userspace_handoff_verifier.py
       - name: Build compressed initramfs and raw native VFS roots
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -132,11 +135,20 @@ jobs:
           # literal pid=1 baked into the image or a kernel-authored marker.
           ready_line="$(grep -Eo "USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          pid_line="$(grep -Eo "NATIVE INIT PID: target=${TARGET} pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
+          test -n "$pid_line"
           ready_pid="${ready_line##*=}"
           ack_pid="${ack_line##*=}"
+          diagnostic_pid="${pid_line##*=}"
           test "$ready_pid" = "$ack_pid"
+          test "$ready_pid" = "$diagnostic_pid"
+          ack_line_number="$(grep -nF "$ack_line" "$LOG" | tail -n 1 | cut -d: -f1)"
+          pid_line_number="$(grep -nF "$pid_line" "$LOG" | tail -n 1 | cut -d: -f1)"
+          ready_line_number="$(grep -nF "$ready_line" "$LOG" | tail -n 1 | cut -d: -f1)"
+          test "$ack_line_number" -lt "$pid_line_number"
+          test "$pid_line_number" -lt "$ready_line_number"
           grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"

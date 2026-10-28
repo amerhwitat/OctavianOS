@@ -62,7 +62,7 @@ __attribute__((noreturn, used)) void _start(void) {
   static const char started[] = "NATIVE INIT STARTED: " CHIMERA_INIT_TARGET_NAME "\n";
   static const char rootfs_verified[] = "NATIVE INIT ROOTFS VERIFIED: target=" CHIMERA_INIT_TARGET_NAME "\n";
   static const char rootfs_blocked[] = "NATIVE INIT BLOCKED: native read-only rootfs open/read/close validation failed; refusing readiness.\n";
-  static const char blocked[] = "NATIVE INIT BLOCKED: required native storage, security, logging and graphics services are not available; refusing to claim USERSPACE READY.\n";
+  static const char blocked[] = "NATIVE INIT BLOCKED: service supervision unavailable; scheduler-owned resumable process contexts and FORK/EXECVE/blocking WAITPID are not implemented; writable filesystem backend is unavailable; native storage, security, logging and graphics service providers are unavailable. Refusing USERSPACE READY.\n";
   static const char target_path[] = "/etc/chimera/target";
   /* DPL3 interrupt acknowledges the actual ring-3 origin; GETPID must come
      from the kernel-owned process record and may never be fabricated. */

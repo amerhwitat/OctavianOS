@@ -55,9 +55,12 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
             *return_value = error_value();
             return -1;
         case CHM_SYS_YIELD:
-            chimera_sched_yield();
-            *return_value = 0;
-            return 0;
+            /* A scheduler callback is not a saved-context switch. Until the
+             * current task can be suspended and resumed with its address space,
+             * report ENOSYS rather than treating a bookkeeping callback as yield. */
+            ++g_rejected;
+            *return_value = error_value();
+            return -1;
         case CHM_SYS_TIME_TICKS:
             *return_value = chimera_timer_now();
             return 0;
@@ -142,9 +145,12 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return pid ? static_cast<uint64_t>(pid) : static_cast<uint64_t>(-38ll);
         }
         case CHM_SYS_YIELD:
-            // The bootstrap user entry is single-process until the scheduler owns
-            // address-space context switches; yielding is currently a safe no-op.
-            return 0;
+            /* Do not report a successful yield while this path has no resumable
+             * process context or scheduler-owned address-space switch. The
+             * current scheduler can cooperatively step callbacks, but that is
+             * not a process-context switch. Keep this operation explicitly
+             * unavailable until the syscall frame can be suspended and resumed. */
+            return static_cast<uint64_t>(-38ll); // ENOSYS
         case CHM_SYS_TIME_TICKS:
             return chimera_timer_now();
         case CHM_SYS_WRITE: {
@@ -152,6 +158,9 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             const uint64_t address = frame->rsi;
             const uint64_t length = frame->rdx;
             if (fd > 2u || length > USER_COPY_LIMIT) return static_cast<uint64_t>(-22ll);
+            /* Validate every page before the console backend dereferences user memory. */
+            if (length && koronos_target_validate_user_range(address, length, 0u) != 0)
+                return static_cast<uint64_t>(-14ll); // EFAULT
             return static_cast<uint64_t>(koronos_console_write_user(address, length));
         }
         case CHM_SYS_OPEN: {
@@ -189,6 +198,18 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             if (!pid) return static_cast<uint64_t>(-3ll);
             return static_cast<uint64_t>(static_cast<int64_t>(
                 chimera_process_close(pid, static_cast<int>(frame->rdi))));
+        }
+        case CHM_SYS_SEEK: {
+            if (frame->rdi > INT32_MAX || frame->rdx > 2u)
+                return static_cast<uint64_t>(-22ll);
+            const uint32_t pid = koronos_target_active_pid();
+            if (!pid) return static_cast<uint64_t>(-3ll);
+            uint64_t new_offset = 0;
+            const int rc = chimera_process_seek(pid, static_cast<int>(frame->rdi),
+                static_cast<int64_t>(frame->rsi), static_cast<uint32_t>(frame->rdx),
+                &new_offset);
+            if (rc != 0) return static_cast<uint64_t>(static_cast<int64_t>(rc));
+            return new_offset;
         }
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:

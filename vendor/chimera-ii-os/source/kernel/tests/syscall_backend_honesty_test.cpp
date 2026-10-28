@@ -25,6 +25,7 @@ extern "C" const chimera_cpio_archive *chimera_vfs_root_archive(void) { return n
 extern "C" int chimera_process_open_readonly(uint32_t, const chimera_cpio_archive *, const char *) { return -CHIMERA_ENOSYS; }
 extern "C" int chimera_process_read(uint32_t, int, void *, uint64_t, uint64_t *) { return -CHIMERA_ENOSYS; }
 extern "C" int chimera_process_close(uint32_t, int) { return -CHIMERA_ENOSYS; }
+extern "C" int chimera_process_seek(uint32_t, int, int64_t, uint32_t, uint64_t *) { return -CHIMERA_ENOSYS; }
 
 int main() {
     assert(chimera_compat_init(1u, 64u) == 0);
@@ -37,8 +38,10 @@ int main() {
     /* Exit cannot be a successful no-op; teardown must be wired first. */
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_EXIT, args, &rv) == -1);
     assert(rv == (uint64_t)(-(int64_t)CHIMERA_ENOSYS));
-    assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_YIELD, args, &rv) == 0);
-    assert(rv == 0 && yielded == 1);
+    /* Scheduler callbacks do not prove a saved-context switch/resume. */
+    assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_YIELD, args, &rv) == -1);
+    assert(rv == (uint64_t)(-(int64_t)CHIMERA_ENOSYS));
+    assert(yielded == 0);
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_TIME_TICKS, args, &rv) == 0);
     assert(rv == 123456u);
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_MMAP, args, &rv) == -1);
