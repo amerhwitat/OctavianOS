@@ -1,0 +1,49 @@
+# Koronos production runtime gap matrix
+
+**Status date:** 2026-10-28  
+**Release decision:** BLOCKED — do not merge or publish a release from this candidate.
+
+This document records observed evidence, distinguishes implemented source paths from runtime acceptance, and defines the evidence required to reopen the release gate. A source-contract test or ring-3 probe is not production acceptance.
+
+## Latest observed CI evidence
+
+- [Native build / full-ISO userspace acceptance](https://github.com/amerhwitat/OctavianOS/actions/runs/40716583891): `build-koronos` passed; the production userspace acceptance job failed.
+- [Ring-3 probe matrix](https://github.com/amerhwitat/OctavianOS/actions/runs/40716583844): all six isolated probe jobs passed. Their job names explicitly mark them **not production**.
+- The failed production job downloaded `octavianos-full-iso-qemu-trace` and ran `tests/migration/verify-userspace-handoff.py` for Live, Installer, and Recovery under BIOS and UEFI. All six cases failed with: `FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)`.
+- The production workflow consequently skipped prerelease publication. This is the correct fail-closed outcome.
+
+## Evidence classification
+
+| Area | What current evidence supports | What remains unproven / blocking |
+|---|---|---|
+| Kernel and ELF build | Native build job passed on this run. | A successful build is not a successful userspace boot. |
+| Target/firmware routing | Routing and source-integration checks passed in the previously observed runs. | Must still pass on the exact final candidate revision. |
+| Ring-3 syscall probe | Six isolated probe jobs passed. | Does not prove a production init process can be scheduled, block, resume, or supervise services. |
+| Root filesystem | Production trace exercises read access to a CPIO-backed rootfs marker. | Writable filesystem backend, mounted writable `/tmp`, and process-owned descriptor semantics are not proven. |
+| Scheduler/process lifecycle | Scheduler source has task selection and pending cooperative actions. | This is not proof of scheduler-owned resumable CPU context/address-space switching; FORK/EXECVE/WAITPID lifecycle remains a blocker. |
+| Services and desktop | No production-ready marker was accepted by the full-ISO verifier. | Real service providers, persistent supervision, and measured Aurora/Marine desktop health are absent or unproven. |
+| Installer | Target path is exercised by the six-case workflow. | Install to storage, cold reboot, and verify persisted state. |
+| Recovery | Target path is exercised by the six-case workflow. | Seed a known fault, perform repair, and verify the repaired postcondition. |
+| SMP | No qualifying evidence in the cited runs. | Demonstrate AP startup and overlapping execution on at least two CPUs; sequential traces do not qualify. |
+| Release artifact | No release was published by the failed workflow. | One immutable ISO digest, exact production init ELF hashes, all six passing traces, and independent verifier success. |
+
+## Required implementation order
+
+1. **Process execution:** implement architecture-correct saved CPU context, scheduler-owned task switching, address-space switching, safe interrupt/syscall return, and task lifecycle. Do not report YIELD success until a task can actually yield and later resume.
+2. **Process syscalls:** implement and test the real process/descriptor ownership model and required FORK, EXECVE, and WAITPID semantics. Unsupported operations must return a truthful error.
+3. **Writable VFS:** implement a writable filesystem backend and mount contract; exercise create/write/seek/read/stat/chmod/chown/truncate/close/rename/unlink/mkdir/rmdir through ring-3 descriptors, including writable `/tmp`.
+4. **Service providers and supervision:** supply actual storage, security, logging, and graphics providers; start services under a persistent supervisor and verify restart/exit handling and the Aurora/Marine handoff from runtime health evidence.
+5. **Installer and recovery:** test a real disk write followed by cold reboot and persisted-state verification; separately seed a recovery fault and prove the repair postcondition.
+6. **SMP:** prove AP online state from hardware startup and capture overlapping work on two or more CPUs with synchronization that rules out sequential execution.
+7. **Production acceptance:** build one immutable ISO; record its SHA-256 and exact production init ELF hashes; run Live/Installer/Recovery × BIOS/UEFI; require a genuine CPL3-originated syscall acknowledgement and the same nonzero init PID in readiness evidence; run the independent verifier unchanged.
+
+## Release gate invariants
+
+- Do not manufacture readiness markers, substitute test ELFs, weaken the verifier, or infer runtime behavior from source presence.
+- Keep unsupported syscalls fail-closed and report the actual error.
+- Do not merge or publish until every required production postcondition passes on the same immutable candidate.
+- Record failed logs and artifact hashes so a failure is reproducible.
+
+## Exit criteria
+
+Release status may change from **BLOCKED** only when the seven-step sequence above has attached, reviewable evidence and all six production traces pass the unchanged independent verifier. Until then, this document and the draft PR are status records, not a release attestation.
