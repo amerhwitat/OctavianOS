@@ -91,6 +91,15 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("p.pid=allocate_pid()", process)
         self.assertNotIn("next_pid=1;const uint32_t candidate=next_pid++", process)
 
+    def test_target_launch_records_real_exit_and_fault_codes_after_reclaim(self):
+        process_header = PROCESS_HEADER.read_text(encoding="utf-8")
+        process = PROCESS_SOURCE.read_text(encoding="utf-8")
+        launch = TARGET_LAUNCH.read_text(encoding="utf-8")
+        self.assertIn("chimera_process_fault(uint32_t pid,uint32_t exit_code)", process_header)
+        self.assertIn("slots[i].image.exit_code=code&0xFFu;slots[i].image.state=CHIMERA_PROCESS_FAULTED", process)
+        self.assertIn("chimera_process_exit(active_pid, 0u)", launch)
+        self.assertIn("chimera_process_fault(active_pid, static_cast<uint32_t>(exit_code))", launch)
+        self.assertLess(launch.index("ops->destroy_address_space(nullptr,loaded.address_space)"), launch.index("chimera_process_exit(active_pid, 0u)"))
     def test_process_lifecycle_rejects_terminal_revival_and_invalid_transitions(self):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("const bool terminal=current==CHIMERA_PROCESS_EXITED||current==CHIMERA_PROCESS_FAULTED", process)
