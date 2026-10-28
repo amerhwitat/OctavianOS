@@ -264,6 +264,23 @@ koronos_arch_context_switch:
     test rdx, rdx
     jz .context_switch_bad
 
+    ; Validate the incoming continuation before mutating outgoing state or TSS.
+    mov rax, [rsi + 0]
+    test rax, rax
+    jz .context_switch_bad
+    test rax, 0xF
+    jz .context_switch_bad                ; SysV function-entry RSP is 8 mod 16
+    mov rax, [rsi + 56]
+    test rax, rax
+    jz .context_switch_bad
+    test rax, 0xFFF
+    jnz .context_switch_bad               ; CR3 root must be page aligned
+    mov rax, [rsi + 64]
+    test rax, rax
+    jz .context_switch_bad
+    test rax, 0xF
+    jnz .context_switch_bad               ; kernel stack top is 16-byte aligned
+
     ; Save the outgoing continuation and SysV callee-saved registers.
     mov [rdi + 8], rbx
     mov [rdi + 16], rbp
@@ -278,21 +295,15 @@ koronos_arch_context_switch:
     ; The TSS slot must belong to the CPU currently executing this routine.
     ; Publish the incoming kernel stack before changing address spaces.
     mov rax, [rsi + 64]
-    test rax, rax
-    jz .context_switch_bad
     mov [rdx], rax
 
     mov rax, [rsi + 56]
-    test rax, rax
-    jz .context_switch_bad
     mov rcx, cr3
     cmp rcx, rax
     je .context_switch_same_cr3
     mov cr3, rax
 .context_switch_same_cr3:
     mov rsp, [rsi + 0]
-    test rsp, rsp
-    jz .context_switch_bad
     mov rbx, [rsi + 8]
     mov rbp, [rsi + 16]
     mov r12, [rsi + 24]
