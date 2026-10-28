@@ -58,3 +58,13 @@ Commits:
 - `76a065e7be656f31dc93c685579be3036e8dc464` — regression assertion for yield honesty.
 
 This correction removes a false-success path; it does **not** implement scheduler context switching and does not resolve the production release blockers listed above. CI results for these commits must be inspected before treating even this correction as validated.
+
+## Recheck on the current PR head (2026-10-28)
+
+PR #136 head at recheck: `ccec5a5df07e1eef2b395047a0c041af0ee73e30`. The native full-ISO workflow [40721412073](https://github.com/amerhwitat/OctavianOS/actions/runs/40721412073) completed with the freestanding Koronos build, ELF/Multiboot2 validation, QEMU kernel readiness, ISO composition, and target-routing smoke steps passing. Its separate **Verify real Live, Installer, and Recovery userspace** job failed at **Require actual user-mode init acknowledgement for every target**. Prerelease publication was skipped. This is a fresh confirmation that build/boot routing is not production readiness.
+
+The isolated [ring-3 probe run 40721412276](https://github.com/amerhwitat/OctavianOS/actions/runs/40721412276) passed its probe job, including the source-contract regression and bounded timeout test. Its job is explicitly labelled **not production**; it does not override the failed full-ISO acceptance job.
+
+The current head therefore still does **not** demonstrate all six production traces, real resumable scheduling, process creation/exec/blocking wait, writable ring-3 `/tmp`, persistent service supervision and desktop health, installer cold-reboot persistence, seeded-fault recovery repair, or AP-backed overlapping execution. The previous six-case `NATIVE INIT BLOCKED` evidence remains a valid known failure; no evidence found in this recheck supersedes it with a production pass.
+
+**Action:** continue implementation in dependency order; keep PR #136 draft and unmerged; do not publish. The next full acceptance run must report the exact ISO SHA-256 and production init ELF hashes for every trace and pass the independent verifier unchanged.
