@@ -34,6 +34,14 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Compile and run ELF process admission regression tests
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -Ikernel/include \
+            kernel/tests/process_admission_test.cpp kernel/core/process.cpp kernel/core/elf64.cpp \
+            -o /tmp/koronos-process-admission-test
+          /tmp/koronos-process-admission-test
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
