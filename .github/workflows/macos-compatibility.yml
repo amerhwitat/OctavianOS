@@ -7,6 +7,7 @@ on:
       - "tests/macos_compat/**"
       - ".github/workflows/macos-compatibility.yml"
       - "build-chimera-iso.sh"
+      - "vendor/chimera-ii-os/source/build-chimera-iso.sh"
   push:
     branches: [main, "feat/perception-cv-bridge-2026-10"]
     paths:
@@ -15,6 +16,7 @@ on:
       - "tests/macos_compat/**"
       - ".github/workflows/macos-compatibility.yml"
       - "build-chimera-iso.sh"
+      - "vendor/chimera-ii-os/source/build-chimera-iso.sh"
   workflow_dispatch:
 permissions:
   contents: read
