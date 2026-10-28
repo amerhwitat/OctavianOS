@@ -86,8 +86,17 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         self.assertIn("h->e_phoff>size", process)
         self.assertIn("h->e_phnum>4096u", process)
         self.assertIn("!entry_executable", process)
-        self.assertIn("static bool pid_in_use", process)
+        self.assertIn("uint64_t next_pid=1", process)
+        self.assertIn("next_pid>0x7fffffffu", process)
         self.assertIn("p.pid=allocate_pid()", process)
+        self.assertNotIn("next_pid=1;const uint32_t candidate=next_pid++", process)
+
+    def test_process_lifecycle_rejects_terminal_revival_and_invalid_transitions(self):
+        process = PROCESS_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("const bool terminal=current==CHIMERA_PROCESS_EXITED||current==CHIMERA_PROCESS_FAULTED", process)
+        self.assertIn("if(terminal)return -3", process)
+        self.assertIn("if(!allowed)return -4", process)
+        self.assertIn("if(state==CHIMERA_PROCESS_RUNNING&&!slots[i].runtime.bound)return -5", process)
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
         self.assertEqual(result.returncode, 1)
