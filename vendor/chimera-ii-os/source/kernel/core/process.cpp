@@ -105,3 +105,31 @@ extern "C" int chimera_process_close(uint32_t pid,int fd){
  }
  return -2;
 }
+
+extern "C" int chimera_process_seek(uint32_t pid, int fd, int64_t offset,
+                                    uint32_t whence, uint64_t *new_offset) {
+    if (!pid || !new_offset || fd < 3 || fd >= 19 || whence > 2u) return -22;
+    for (uint32_t i = 0; i < CHIMERA_PROCESS_MAX; ++i) {
+        if (!slots[i].used || slots[i].image.pid != pid) continue;
+        Descriptor &descriptor = slots[i].fds[static_cast<uint32_t>(fd - 3)];
+        if (!descriptor.used) return -9;
+        uint64_t base = 0;
+        if (whence == 1u) base = descriptor.offset;
+        else if (whence == 2u) base = descriptor.file.size;
+        uint64_t result = 0;
+        if (offset < 0) {
+            const uint64_t magnitude = static_cast<uint64_t>(-(offset + 1)) + 1u;
+            if (magnitude > base) return -22;
+            result = base - magnitude;
+        } else {
+            const uint64_t delta = static_cast<uint64_t>(offset);
+            if (base > UINT64_MAX - delta) return -22;
+            result = base + delta;
+        }
+        if (result > static_cast<uint64_t>(INT64_MAX)) return -22;
+        descriptor.offset = result;
+        *new_offset = result;
+        return 0;
+    }
+    return -3;
+}
