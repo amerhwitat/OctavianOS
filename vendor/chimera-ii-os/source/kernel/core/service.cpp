@@ -52,6 +52,39 @@ extern "C" int chimera_service_resolve(const chimera_service_manifest*s,uint32_t
     }
     return 0;
 }
+extern "C" int chimera_service_resolve_waves(const chimera_service_manifest*s,uint32_t n,chimera_service_waves*w){
+    if(!w||!w->unit_ids||!w->offsets||n==0||n>CHIMERA_SERVICE_MAX_UNITS||
+       w->capacity<n||w->offsets_capacity<n+1u)return -1;
+    const int valid=chimera_service_validate(s,n);
+    if(valid<0)return valid;
+    uint8_t done[CHIMERA_SERVICE_MAX_UNITS]={};
+    uint32_t completed=0, waves=0;
+    w->offsets[0]=0;
+    while(completed<n){
+        uint32_t selected=0;
+        for(uint32_t i=0;i<n;i++){
+            if(done[i])continue;
+            bool ready=true;
+            for(uint32_t d=0;d<s[i].dependency_count;d++){
+                const int dep=find(s,n,s[i].dependencies[d]);
+                if(dep<0||!done[(uint32_t)dep]){ready=false;break;}
+            }
+            if(ready){w->unit_ids[completed+selected]=s[i].id;selected++;}
+        }
+        if(!selected)return -6; // cycle or impossible dependency graph
+        /* Mark the entire wave only after selection, so peers remain concurrent. */
+        for(uint32_t j=0;j<selected;j++){
+            const char*id=w->unit_ids[completed+j];
+            const int idx=find(s,n,id);
+            if(idx<0||done[(uint32_t)idx])return -7;
+            done[(uint32_t)idx]=1;
+        }
+        completed+=selected;
+        w->offsets[++waves]=completed;
+    }
+    w->wave_count=waves;
+    return 0;
+}
 extern "C" int chimera_service_set_state(const char*id,uint32_t state){
     if(!id)return -1;
     for(uint32_t i=0;i<g_state_count;++i){
@@ -63,6 +96,31 @@ extern "C" int chimera_service_set_state(const char*id,uint32_t state){
     if(g_state_count>=64)return -2;
     g_states[g_state_count++]={id,state};
     return 0;
+}
+extern "C" int chimera_service_transition(const char*id,uint32_t expected,uint32_t next){
+    if(!id||expected>CHM_SVC_RECOVERING||next>CHM_SVC_RECOVERING)return -1;
+    const uint32_t current=chimera_service_get_state(id);
+    if(current!=expected)return -2;
+    /* Only explicit, conservative state edges are accepted. */
+    bool allowed=false;
+    switch(current){
+      case CHM_SVC_DECLARED: allowed=(next==CHM_SVC_BLOCKED||next==CHM_SVC_STARTING||next==CHM_SVC_FAILED);break;
+      case CHM_SVC_BLOCKED: allowed=(next==CHM_SVC_STARTING||next==CHM_SVC_FAILED);break;
+      case CHM_SVC_STARTING: allowed=(next==CHM_SVC_RUNNING||next==CHM_SVC_FAILED||next==CHM_SVC_BLOCKED);break;
+      case CHM_SVC_RUNNING: allowed=(next==CHM_SVC_STOPPING||next==CHM_SVC_FAILED||next==CHM_SVC_RECOVERING);break;
+      case CHM_SVC_STOPPING: allowed=(next==CHM_SVC_STOPPED||next==CHM_SVC_FAILED);break;
+      case CHM_SVC_STOPPED: allowed=(next==CHM_SVC_STARTING||next==CHM_SVC_FAILED);break;
+      case CHM_SVC_FAILED: allowed=(next==CHM_SVC_RECOVERING||next==CHM_SVC_STARTING);break;
+      case CHM_SVC_RECOVERING: allowed=(next==CHM_SVC_STARTING||next==CHM_SVC_FAILED||next==CHM_SVC_STOPPED);break;
+      default: break;
+    }
+    if(!allowed)return -3;
+    return chimera_service_set_state(id,next);
+}
+extern "C" int chimera_service_all_healthy(const char*const*ids,uint32_t n){
+    if(!ids||!n)return 0;
+    for(uint32_t i=0;i<n;i++)if(!ids[i]||chimera_service_get_state(ids[i])!=CHM_SVC_RUNNING)return 0;
+    return 1;
 }
 extern "C" uint32_t chimera_service_get_state(const char*id){
     for(uint32_t i=0;i<g_state_count;++i)
