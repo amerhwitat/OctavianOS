@@ -38,8 +38,10 @@ int main() {
     /* Exit cannot be a successful no-op; teardown must be wired first. */
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_EXIT, args, &rv) == -1);
     assert(rv == (uint64_t)(-(int64_t)CHIMERA_ENOSYS));
-    assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_YIELD, args, &rv) == 0);
-    assert(rv == 0 && yielded == 1);
+    /* Scheduler callbacks do not prove a saved-context switch/resume. */
+    assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_YIELD, args, &rv) == -1);
+    assert(rv == (uint64_t)(-(int64_t)CHIMERA_ENOSYS));
+    assert(yielded == 0);
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_TIME_TICKS, args, &rv) == 0);
     assert(rv == 123456u);
     assert(chimera_syscall_dispatch(CHM_ENTRY_NATIVE, 64, CHM_SYS_MMAP, args, &rv) == -1);
