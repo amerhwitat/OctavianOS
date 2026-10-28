@@ -84,12 +84,19 @@ extern "C" int chimera_process_admit_elf(const void *image, uint64_t size,
                                           uint16_t machine, uint64_t stack,
                                           chimera_process_image *out) {
     if (!image || !out || stack < PAGE) return -1;
-    if (!koronos_elf64_validate(image, size, machine)) return -2;
-
+    if (size < sizeof(koronos_elf64_ehdr)) return -2;
     koronos_elf64_ehdr h{};
     copy_bytes(&h, image, sizeof(h));
-    if (h.e_type != KORONOS_ET_EXEC || h.e_phnum == 0 ||
+    if (!koronos_elf64_valid(&h) || h.e_ehsize < sizeof(h) ||
+        h.e_machine != machine || h.e_phentsize != sizeof(koronos_elf64_phdr) ||
+        h.e_type != KORONOS_ET_EXEC || h.e_phnum == 0 ||
         h.e_phnum > 4096u) return -2;
+    if (h.e_phoff > size) return -2;
+    uint64_t phdr_bytes = 0, phdr_end = 0;
+    if (!add_ok(static_cast<uint64_t>(h.e_phnum) * sizeof(koronos_elf64_phdr),
+                0, &phdr_bytes) ||
+        !add_ok(h.e_phoff, phdr_bytes, &phdr_end) || phdr_end > size)
+        return -2;
 
     const auto *bytes = static_cast<const uint8_t *>(image);
     chimera_process_image p{};
