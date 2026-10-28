@@ -268,8 +268,10 @@ koronos_arch_context_switch:
     mov rax, [rsi + 0]
     test rax, rax
     jz .context_switch_bad
-    test rax, 0xF
-    jz .context_switch_bad                ; SysV function-entry RSP is 8 mod 16
+    mov rcx, rax
+    and rcx, 0xF
+    cmp rcx, 8
+    jne .context_switch_bad               ; SysV function-entry RSP is 8 mod 16
     mov rax, [rsi + 56]
     test rax, rax
     jz .context_switch_bad
