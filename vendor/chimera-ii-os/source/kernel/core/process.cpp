@@ -15,10 +15,12 @@ extern "C" int chimera_process_bind_runtime(uint32_t pid,void*address_space,uint
  return -4;
 }
 extern "C" int chimera_process_get_runtime(uint32_t pid,chimera_process_runtime*out){
- if(!pid||!out)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){*out=slots[i].runtime;return 0;}return -2;
+ if(!pid||!out){return -1;}
+ for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++){if(slots[i].used&&slots[i].image.pid==pid){*out=slots[i].runtime;return 0;}}return -2;
 }
 extern "C" int chimera_process_unbind_runtime(uint32_t pid){
- if(!pid)return -1;for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){slots[i].runtime={};return 0;}return -2;
+ if(!pid){return -1;}
+ for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++){if(slots[i].used&&slots[i].image.pid==pid){slots[i].runtime={};return 0;}}return -2;
 }
 
 extern "C" int chimera_process_set_parent(uint32_t child_pid,uint32_t parent_pid){
@@ -35,7 +37,8 @@ extern "C" int chimera_process_set_parent(uint32_t child_pid,uint32_t parent_pid
 extern "C" int chimera_process_exit(uint32_t pid,uint32_t code){
  if(!pid)return -1;
  for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){
-  if(slots[i].runtime.bound)return -4;if(slots[i].image.state==CHIMERA_PROCESS_EXITED||slots[i].image.state==CHIMERA_PROCESS_FAULTED)return -3;
+  if(slots[i].runtime.bound){return -4;}
+  if(slots[i].image.state==CHIMERA_PROCESS_EXITED||slots[i].image.state==CHIMERA_PROCESS_FAULTED){return -3;}
   slots[i].image.exit_code=code&0xFFu;slots[i].image.state=CHIMERA_PROCESS_EXITED;for(uint32_t d=0;d<16;d++)slots[i].fds[d]={};return 0;
  }
  return -2;
@@ -49,7 +52,8 @@ extern "C" int chimera_process_waitpid_poll(uint32_t parent,uint32_t child,uint3
  }
  if(!p||!c||c->image.parent_pid!=parent)return -2;
  if(c->image.reaped)return -4;
- if(c->runtime.bound)return -5;if(c->image.state!=CHIMERA_PROCESS_EXITED&&c->image.state!=CHIMERA_PROCESS_FAULTED)return -3;
+ if(c->runtime.bound){return -5;}
+ if(c->image.state!=CHIMERA_PROCESS_EXITED&&c->image.state!=CHIMERA_PROCESS_FAULTED){return -3;}
  *code=c->image.exit_code;c->image.reaped=1;for(uint32_t d=0;d<16;d++)c->fds[d]={};c->used=false;if(count)--count;return 0;
 }
 
