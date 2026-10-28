@@ -58,6 +58,17 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         exit_start = launch.index("const int exit_code=")
         self.assertLess(launch.index("chimera_process_unbind_runtime(active_pid)", exit_start), launch.index("ops->destroy_address_space(nullptr,loaded.address_space)", exit_start))
 
+    def test_seek_syscall_uses_validated_process_descriptor_and_signed_offsets(self):
+        process = PROCESS_SOURCE.read_text(encoding="utf-8")
+        syscall = SYSCALL_SOURCE.read_text(encoding="utf-8")
+        header = PROCESS_HEADER.read_text(encoding="utf-8")
+        self.assertIn("CHM_SYS_SEEK = 22", header)
+        self.assertIn("chimera_process_seek", header)
+        self.assertIn("case CHM_SYS_SEEK:", syscall)
+        self.assertIn("frame->rdx > 2u", syscall)
+        self.assertIn("offset < 0", process)
+        self.assertIn("UINT64_MAX - delta", process)
+        self.assertIn("descriptor.offset = result", process)
     def test_elf_admission_checks_program_header_bounds_and_executable_entry(self):
         process = PROCESS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("h->e_phoff>size", process)
