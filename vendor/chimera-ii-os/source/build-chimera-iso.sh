@@ -228,7 +228,12 @@ done
 # Apple's SDK is host tooling, never an ISO payload. Keep this opt-in and exit
 # after the user-facing installer/verification workflow rather than starting an OS build.
 if (( INSTALL_MACOS_SDK )); then
-  bash "$SCRIPT_DIR/tools/macos-compat/install-sdk.sh" install
+  SDK_INSTALLER="$SCRIPT_DIR/tools/macos-compat/install-sdk.sh"
+  if [[ ! -f "$SDK_INSTALLER" ]]; then
+    SDK_INSTALLER="$SCRIPT_DIR/../../../tools/macos-compat/install-sdk.sh"
+  fi
+  [[ -f "$SDK_INSTALLER" ]] || { log_error "macOS SDK installer not found: $SDK_INSTALLER"; exit 2; }
+  bash "$SDK_INSTALLER" install
   exit $?
 fi
 
