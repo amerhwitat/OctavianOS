@@ -28,6 +28,7 @@ int chimera_process_waitpid_poll(uint32_t parent_pid,uint32_t child_pid,uint32_t
 int chimera_process_open_readonly(uint32_t pid,const chimera_cpio_archive *archive,const char *path);
 int chimera_process_read(uint32_t pid,int fd,void *kernel_buffer,uint64_t capacity,uint64_t *read_count);
 int chimera_process_close(uint32_t pid,int fd);
+int chimera_process_seek(uint32_t pid,int fd,int64_t offset,uint32_t whence,uint64_t *new_offset);
 #ifdef __cplusplus
 }
 #endif
