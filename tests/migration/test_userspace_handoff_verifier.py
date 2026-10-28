@@ -24,7 +24,7 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
         source = scheduler.read_text(encoding="utf-8")
         signature = 'extern "C" uint32_t chimera_sched_run_parallel('
         self.assertIn(signature, source, "parallel scheduler entry point must be present")
-        body = source.split(signature, 1)[1].split("\\n}", 1)[0]
+        body = source.split(signature, 1)[1].split("\n}", 1)[0]
         self.assertIn("return 0;", body)
         self.assertNotIn("chimera_sched_run_once", body,
                          "serial callbacks must not be reported as genuine SMP")
