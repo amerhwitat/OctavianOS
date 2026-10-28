@@ -116,10 +116,14 @@ extern "C" uint32_t koronos_target_active_pid(void) {
 }
 static uint32_t validate_active_user_context(uint64_t user_rip) {
     if (active_target == TARGET_NONE || !active_pid || !active_root) return 0u;
+    chimera_process_runtime runtime{};
+    if (chimera_process_get_runtime(active_pid, &runtime) != 0 || !runtime.bound ||
+        runtime.root_physical != active_root || runtime.entry == 0 || runtime.user_stack_top == 0)
+        return 0u;
     if (user_rip < 0x0000000100000000ull || user_rip >= 0x0000800000000000ull) return 0u;
     uint64_t current_cr3 = 0;
     __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
-    return ((current_cr3 & 0x000FFFFFFFFFF000ull) == active_root) ? active_pid : 0u;
+    return ((current_cr3 & 0x000FFFFFFFFFF000ull) == runtime.root_physical) ? active_pid : 0u;
 }
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
     return validate_active_user_context(user_rip);
@@ -127,10 +131,13 @@ extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip) {
 extern "C" int koronos_target_validate_user_range(uint64_t address, uint64_t length,
                                                     uint32_t write_access) {
     if (active_target == TARGET_NONE || !active_pid || !active_root) return -1;
+    chimera_process_runtime runtime{};
+    if (chimera_process_get_runtime(active_pid, &runtime) != 0 || !runtime.bound ||
+        runtime.root_physical != active_root) return -1;
     uint64_t current_cr3 = 0;
     __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
-    if ((current_cr3 & 0x000FFFFFFFFFF000ull) != active_root) return -1;
-    return koronos_address_space_validate_user_range(active_root, address, length,
+    if ((current_cr3 & 0x000FFFFFFFFFF000ull) != runtime.root_physical) return -1;
+    return koronos_address_space_validate_user_range(runtime.root_physical, address, length,
                                                        write_access);
 }
 extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs) {
