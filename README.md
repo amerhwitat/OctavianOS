@@ -138,3 +138,16 @@ The latest step-level poll of [ChimeraIIOS run #1388](https://github.com/amerhwi
 ## Corrected final result — production verifier failed (2026-10-19)
 
 The final result of [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) is **FAILURE**. The build, ISO composition, ISO validation, payload/artwork checks, Koronos boot smoke, trace upload, compression, and ISO artifact upload succeeded. However, the handoff and six-case scripts emitted `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`. The same failure occurred in all six Live/Installer/Recovery × BIOS/UEFI cases. The six-case script step's GitHub Actions step conclusion says success because it exports `accepted=false` without exiting nonzero; the final fail-closed release gate correctly caught that output and failed. The GitHub Release publication step was skipped. Artifacts are available: ISO `chimera-ii-os-live-installer` (ID 12166940637) and traces `chimera-target-userspace-traces` (ID 12166193261). No production acceptance pass; release remains BLOCKED. Earlier progress notes saying the matrix passed were premature and are superseded by this final log evidence.
+
+
+## Optional macOS application SDK (not an ISO dependency)
+
+The Koronos kernel and bootable ISO must be built with the project's freestanding toolchain; Apple's macOS SDK is not a kernel SDK and is not required to build the OS image. If this repository later builds a separate native macOS companion application, obtain Xcode or Apple's Command Line Tools directly on an Apple-branded Mac and accept Apple's current license there:
+
+- [Apple: install Xcode Command Line Tools](https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/)
+- [Apple Developer downloads](https://developer.apple.com/download/)
+- [Xcode and Apple SDKs Agreement](https://www.apple.com/legal/sla/docs/xcode.pdf)
+
+On the Mac, the Command Line Tools installer can be requested with `xcode-select --install`. Verify the selected toolchain with `xcode-select -p` and `xcrun --sdk macosx --show-sdk-path`. The package is installed by Apple under `/Library/Developer/CommandLineTools`; full Xcode uses its own developer directory. Installation requires local interaction and the applicable Apple license.
+
+**Do not download an SDK from third-party mirrors, commit the SDK into this repository, bundle SDK headers/libraries into a public ISO, or upload it as a build artifact.** Keep the SDK on the licensed development host. CI should build the freestanding OS without it; any separate macOS app job must run on an appropriately licensed macOS host and must not publish the SDK itself. This note documents the supported boundary; it does not claim the SDK is installed or that a native macOS application target currently exists.
