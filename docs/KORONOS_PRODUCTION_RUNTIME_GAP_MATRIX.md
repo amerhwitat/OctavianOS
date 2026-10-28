@@ -99,3 +99,17 @@ The workflows triggered by evidence-update commit `76e9b5f545d49e426b7213074be33
 The new full-ISO trace artifact (ID `12833841418`) downloaded and passed GitHub's SHA-256 digest verification: `sha256:a2368f0e6523f9bf81e42bc003ae9300f106422035baf6edd6f695e517edbe19`. The independent verifier then failed all six target/firmware cases with `FAIL: missing production service readiness (init explicitly reported NATIVE INIT BLOCKED)`. Prerelease publication was skipped. This reproduces the runtime blocker on the latest tested merge commit; artifact integrity and successful build/boot-routing steps do not change the acceptance result.
 
 **Action remains unchanged:** keep PR #136 draft and unmerged. Do not weaken the verifier, manufacture readiness, or publish. The current source still does not implement architecture-owned resumable context switching, process creation/exec/blocking wait, writable VFS/tmpfs, persistent service supervision/providers, installer persistence, recovery repair postcondition, or AP-backed overlapping SMP. No runtime implementation or local build is claimed by this evidence update.
+
+
+## Re-audit of failed production job (2026-10-28 19:00 UTC)
+
+A step-level recheck of [full-ISO workflow 40727315297](https://github.com/amerhwitat/OctavianOS/actions/runs/40727315297) confirms the failure is in the production acceptance gate, not in kernel compilation or artifact transport:
+
+- `build-koronos`: **success**. Native freestanding build, ELF/Multiboot2 validation, QEMU kernel readiness, ISO composition, target-routing smoke tests, and trace upload completed.
+- `Verify real Live, Installer, and Recovery userspace`: **failure** at **Require actual user-mode init acknowledgement for every target** after downloading the traces successfully.
+- `Publish prerelease only after userspace acceptance`: **skipped**.
+- All six Live/Installer/Recovery × BIOS/UEFI cases remain failed because production init reported `NATIVE INIT BLOCKED`. The existing trace artifact digest remains `sha256:a2368f0e6523f9bf81e42bc003ae9300f106422035baf6edd6f695e517edbe19`.
+
+This re-audit did not change the verifier or convert any non-production probe into acceptance evidence. The source-level implementation blockers remain: architecture-owned resumable task context and trap return; process creation/exec/blocking wait/reap; writable VFS and ring-3 `/tmp`; persistent service providers and supervision; measured desktop health; installer cold-reboot persistence; seeded-fault recovery; and AP-backed overlapping execution.
+
+**Decision:** PR #136 remains draft and unmerged. No release is authorized. Do not remove native init's intentional fail-closed blocker until the required services and lifecycle are actually implemented. This commit records the step-level CI evidence only; it does not claim a runtime fix or local compilation.
