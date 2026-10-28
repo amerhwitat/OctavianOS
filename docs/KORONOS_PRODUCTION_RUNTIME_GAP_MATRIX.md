@@ -47,3 +47,14 @@ This document records observed evidence, distinguishes implemented source paths 
 ## Exit criteria
 
 Release status may change from **BLOCKED** only when the seven-step sequence above has attached, reviewable evidence and all six production traces pass the unchanged independent verifier. Until then, this document and the draft PR are status records, not a release attestation.
+
+
+## Runtime honesty correction (2026-10-28)
+
+The compatibility syscall dispatcher previously returned success for `CHM_SYS_YIELD` after invoking a scheduler callback. That callback does not save and restore a task's CPU context or address space, so it was not evidence of a real yield. The dispatcher now returns `ENOSYS` until scheduler-owned suspend/resume exists, and `syscall_backend_honesty_test.cpp` asserts that the callback is not invoked and success is not reported.
+
+Commits:
+- `f8f84bf1db83d0c277df1a907d32cd4a8ff7542d` — fail closed for unsupported compatibility yield.
+- `76a065e7be656f31dc93c685579be3036e8dc464` — regression assertion for yield honesty.
+
+This correction removes a false-success path; it does **not** implement scheduler context switching and does not resolve the production release blockers listed above. CI results for these commits must be inspected before treating even this correction as validated.
