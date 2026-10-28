@@ -19,12 +19,18 @@ extern "C" int chimera_service_validate(const chimera_service_manifest*s,uint32_
     if(!s||!n)return -1;
     if(n>CHIMERA_SERVICE_MAX_UNITS)return -5;
     for(uint32_t i=0;i<n;++i){
-        if(s[i].abi_version!=CHIMERA_SERVICE_ABI||!s[i].id)return -2;
+        if(s[i].abi_version!=CHIMERA_SERVICE_ABI||!s[i].id||s[i].id[0]==0)return -2;
+        if(s[i].state>CHM_SVC_RECOVERING||
+           (s[i].restart!=CHM_RESTART_NEVER&&s[i].restart!=CHM_RESTART_FAILURE))return -2;
+        /* A unit cannot depend on more distinct units than this manifest contains.
+           Bound this before walking the caller-provided dependency array. */
+        if(s[i].dependency_count>n)return -4;
         if(s[i].dependency_count && !s[i].dependencies)return -4;
         for(uint32_t j=i+1;j<n;++j)
             if(same(s[i].id,s[j].id))return -3;
         for(uint32_t d=0;d<s[i].dependency_count;++d)
-            if(!s[i].dependencies[d]||find(s,n,s[i].dependencies[d])<0)return -4;
+            if(!s[i].dependencies[d]||s[i].dependencies[d][0]==0||
+               find(s,n,s[i].dependencies[d])<0)return -4;
     }
     return 0;
 }
