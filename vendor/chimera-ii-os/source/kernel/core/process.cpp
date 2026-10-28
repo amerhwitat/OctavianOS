@@ -92,6 +92,7 @@ extern "C" int chimera_process_read(uint32_t pid,int fd,void*buffer,uint64_t cap
  if(!pid||fd<3||fd>=19||!read_count||(!buffer&&capacity))return -1;
  for(uint32_t i=0;i<CHIMERA_PROCESS_MAX;i++)if(slots[i].used&&slots[i].image.pid==pid){
   Descriptor&d=slots[i].fds[static_cast<uint32_t>(fd-3)];if(!d.used)return -9;
+  if(d.offset>d.file.size){*read_count=0;return 0;}
   int r=chimera_cpio_read(&d.file,d.offset,buffer,capacity,read_count);
   if(r!=CHIMERA_CPIO_OK)return r;
   d.offset+=*read_count;return 0;
