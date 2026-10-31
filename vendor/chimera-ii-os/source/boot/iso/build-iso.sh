@@ -38,6 +38,14 @@ chimera_copy_if_distinct() {
 }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Canonical system block-size contract. Forward this unchanged into the kernel
+# build and all downstream ISO stages; never silently accept malformed values.
+CHIMERA_SYSTEM_BLOCK_SIZE="${CHIMERA_SYSTEM_BLOCK_SIZE:-${SYSTEM_BLOCK_SIZE:-4096}}"
+if [[ ! "$CHIMERA_SYSTEM_BLOCK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: CHIMERA_SYSTEM_BLOCK_SIZE must be a positive integer (got: $CHIMERA_SYSTEM_BLOCK_SIZE)" >&2
+  exit 2
+fi
+export CHIMERA_SYSTEM_BLOCK_SIZE SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE"
 ISO_ROOT="$ROOT/boot/iso"
 DIST="$ISO_ROOT/dist"
 WORK="$ISO_ROOT/work"
@@ -46,7 +54,7 @@ mkdir -p "$DIST" "$WORK/tmp"
 export TMPDIR="$WORK/tmp"
 
 printf '%s\n' '[1/7] Build and validate the Koronos Multiboot2 kernel'
-bash "$ROOT/kernel/build-koronos.sh"
+CHIMERA_SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" bash "$ROOT/kernel/build-koronos.sh"
 KORONOS_ELF="$ROOT/build/koronos/x86_64/koronos.elf"
 test -s "$KORONOS_ELF"
 command -v grub-file >/dev/null || { echo "grub-file is required." >&2; exit 2; }
@@ -99,33 +107,12 @@ cp -f "$MEDIA/manifest.json" "$VISUAL_OUT/aurora-manifest.json"
 cp -f "$MEDIA/progress/"*.json "$VISUAL_OUT/"
 cp -f "$MEDIA/Init.mp4" "$VISUAL_OUT/Init.mp4"
 
-# OctavianOS-specific firmware artwork: render the original Octopus Aurora SVG
-# and embed the resulting PNG in the ISO, rather than only publishing a CI artifact.
-OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
-OCTAVIAN_ARTWORK="$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-octopus-aurora.svg"
-OCTAVIAN_RENDERER="$OCTAVIAN_ROOT/tools/boot/render_boot_artwork.py"
-if [[ -f "$OCTAVIAN_ARTWORK" && -f "$OCTAVIAN_RENDERER" ]]; then
-  OCTAVIAN_BOOT_PNG="$VISUAL_OUT/octavian-octopus-aurora.png"
-  python3 "$OCTAVIAN_RENDERER" --source "$OCTAVIAN_ARTWORK" --output "$OCTAVIAN_BOOT_PNG"
-  test -s "$OCTAVIAN_BOOT_PNG" || { echo "ERROR: OctavianOS boot artwork was not rendered." >&2; exit 2; }
-  # Make the Octavian artwork the actual GRUB background, while retaining the
-  # named source derivative and manifest for inspection.
-  cp -f "$OCTAVIAN_BOOT_PNG" "$VISUAL_OUT/aurora-boot.png"
-  cp -f "$OCTAVIAN_ROOT/desktop/aurora/assets/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
-fi
-
 # Hard-stage the same deterministic artwork/media in every native boot namespace.
 # This prevents Spit Fire/Jasper/GRUB from depending on a later rootfs mount.
 for stage in spitfire jasper grub koronos; do
   mkdir -p "$DIST/iso/boot/$stage"
   cp -f "$MEDIA/Init.mp4" "$DIST/iso/boot/$stage/Init.mp4"
-  if [[ -s "$VISUAL_OUT/octavian-octopus-aurora.png" ]]; then
-    cp -f "$VISUAL_OUT/octavian-octopus-aurora.png" "$DIST/iso/boot/$stage/aurora-boot.png"
-    cp -f "$VISUAL_OUT/octavian-octopus-aurora.png" "$DIST/iso/boot/$stage/octavian-octopus-aurora.png"
-    cp -f "$VISUAL_OUT/octavian-artwork-manifest.json" "$DIST/iso/boot/$stage/"
-  else
-    cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
-  fi
+  cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
 done
 cp -f "$ROOT/boot/splash/spitfire_background.svg" "$DIST/iso/boot/spitfire/"
 cp -f "$ROOT/boot/splash/jasper_background.svg" "$DIST/iso/boot/jasper/"
@@ -151,10 +138,6 @@ for visual in \
   test -s "$DIST/iso/boot/visual/$visual" || { echo "ERROR: Aurora visual asset missing: $visual" >&2; exit 2; }
 done
 test -s "$DIST/iso/boot/visual/aurora-media/manifest.json"
-if [[ -f "$OCTAVIAN_ARTWORK" ]]; then
-  test -s "$DIST/iso/boot/visual/octavian-octopus-aurora.png" || { echo "ERROR: OctavianOS Octopus Aurora PNG missing from ISO staging tree." >&2; exit 2; }
-  test -s "$DIST/iso/boot/visual/octavian-artwork-manifest.json" || { echo "ERROR: OctavianOS artwork manifest missing from ISO staging tree." >&2; exit 2; }
-fi
 for stage in spitfire jasper grub koronos; do
   test -s "$DIST/iso/boot/$stage/Init.mp4" || { echo "ERROR: Init.mp4 missing from $stage stage." >&2; exit 2; }
   test -s "$DIST/iso/boot/$stage/aurora-boot.png" || { echo "ERROR: Aurora artwork missing from $stage stage." >&2; exit 2; }

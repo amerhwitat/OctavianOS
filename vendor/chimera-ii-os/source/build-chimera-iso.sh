@@ -10,7 +10,7 @@ Usage:
 
 Options:
   -h, --help    Show this help and exit successfully.
-  --refresh-online-catalogs  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
+  --refresh-online-catalogs, --refresh-isa-catalog  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
@@ -22,6 +22,21 @@ CHIMERA_HELP
   exit 0
 fi
 set -Eeuo pipefail
+
+# Canonical system block-size contract shared by every boot and ISO stage.
+# Default to 4096 bytes (4 KiB); honor an explicit canonical value or legacy
+# alias only when the caller supplies one.
+if [[ -z "${CHIMERA_SYSTEM_BLOCK_SIZE:-}" && -z "${SYSTEM_BLOCK_SIZE:-}" ]]; then
+  printf '[INFO] No system block size supplied; defaulting to 4096 bytes (4 KiB).\n'
+fi
+CHIMERA_SYSTEM_BLOCK_SIZE="${CHIMERA_SYSTEM_BLOCK_SIZE:-${SYSTEM_BLOCK_SIZE:-4096}}"
+if [[ ! "$CHIMERA_SYSTEM_BLOCK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+  printf '[ERROR] CHIMERA_SYSTEM_BLOCK_SIZE must be a positive integer (got: %s)\n' "$CHIMERA_SYSTEM_BLOCK_SIZE" >&2
+  exit 2
+fi
+# Export both names so all downstream scripts and legacy contract checks agree.
+SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE"
+export CHIMERA_SYSTEM_BLOCK_SIZE SYSTEM_BLOCK_SIZE
 
 # CHIMERA_ROOTFS_EXPORT_V3
 chimera_export_docker_rootfs() {
@@ -200,7 +215,7 @@ DOS_FETCH_ON_BUILD="${CHIMERA_DOS_FETCH_ON_BUILD:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh-online-catalogs) REFRESH_ONLINE_CATALOGS=1; shift;;
+    --refresh-online-catalogs|--refresh-isa-catalog) REFRESH_ONLINE_CATALOGS=1; shift;;
     --sync-dos-payloads) DOS_FETCH_ON_BUILD=1; shift;;
     --docker-only) BUILD_ISO=0; shift;;
     --iso-only) BUILD_DOCKER=0; shift;;
@@ -573,7 +588,7 @@ create_boot_menu(){
   else
     log_info "ISA research refresh skipped by CHIMERA_ISA_RESEARCH=0."
   fi
-  "$SCRIPT_DIR/kernel/build-koronos.sh"
+  CHIMERA_SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" bash "$SCRIPT_DIR/kernel/build-koronos.sh"
   local k="$SCRIPT_DIR/build/koronos/x86_64/koronos.elf"; [[ -s "$k" ]] || { log_error 'Koronos ELF missing'; exit 1; }
   mkdir -p "$ISO_DIR/boot/koronos" "$ISO_DIR/boot/jasper" "$ISO_DIR/boot/spitfire" "$ISO_DIR/boot/grub" "$ISO_DIR/boot/live" "$ISO_DIR/EFI/BOOT"
   chimera_copy_if_distinct "$k" "$ISO_DIR/boot/kernel.bin"; chimera_copy_if_distinct "$k" "$ISO_DIR/boot/koronos/koronos.elf"
@@ -623,12 +638,137 @@ prepare_branding(){
            "$ISO_DIR/boot/visual" \
            "$ISO_DIR/boot/grub"
 
-  # Build the complete deterministic Aurora visual set. Supplied Library artwork
-  # wins; generated SVG artwork remains the offline fallback.
+  # Discover and stage repository artwork recursively. Do not assume that
+  # user-supplied artwork lives in one hard-coded directory: repositories often
+  # contain artwork under desktop, assets, docs, mobile, themes, and app folders.
+  # Keep original filenames/relative paths, exclude VCS/build/vendor caches, and
+  # prefer the named original session wallpaper when present. If it is absent,
+  # keep the generated offline artwork rather than failing on a stale filename.
+  local artwork_stage="$BUILD_DIR/aurora-artwork-library"
+  local artwork_manifest="$artwork_stage/artwork-index.txt"
+  local preferred_wallpaper=""
+  rm -rf -- "$artwork_stage"
+  mkdir -p "$artwork_stage"
+  : > "$artwork_manifest"
+  while IFS= read -r -d '' asset; do
+    local rel dest
+    rel="${asset#"$SCRIPT_DIR"/}"
+    dest="$artwork_stage/$rel"
+    mkdir -p "$(dirname "$dest")"
+    if cp -p -- "$asset" "$dest"; then
+      printf '%s\n' "$rel" >> "$artwork_manifest"
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        duck-ai-image-2026-10-18-06-36.jpeg)
+          preferred_wallpaper="$dest"
+          ;;
+      esac
+    fi
+  done < <(find "$SCRIPT_DIR" \
+    \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+    \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  if [[ -s "$artwork_manifest" ]]; then
+    log_info "Discovered $(wc -l < "$artwork_manifest" | tr -d ' ') artwork files recursively."
+    mkdir -p "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork" \
+             "$ISO_DIR/desktop/aurora/assets/library/repository-artwork" \
+             "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library" \
+             "$ISO_DIR/desktop/aurora/branding/artwork-library" \
+             "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library" \
+             "$ISO_DIR/system/branding/artwork-library"
+    # Keep a complete offline copy in the desktop library AND the canonical
+    # branding namespace, so boot/installer/desktop consumers never need network
+    # access or a particular source-tree layout.
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/system/branding/artwork-library/"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/system/branding/artwork-index.txt"
+    # Record hashes for reproducible offline auditing and detect damaged assets.
+    if command -v sha256sum >/dev/null 2>&1; then
+      (cd "$artwork_stage" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum) \
+        > "$ISO_DIR/system/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ISO_DIR/desktop/aurora/branding/artwork-sha256.txt"
+    fi
+  else
+    log_warning "No raster/SVG artwork files found by recursive scan; generated Aurora artwork remains the fallback."
+  fi
+
+  # Resolve the default wallpaper without depending on a single legacy filename.
+  # Explicit CHIMERA_AURORA_ASSET has priority, then the original session image,
+  # then descriptive wallpaper/background names; generated assets remain fallback.
+  local discovered_wallpaper=""
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "${CHIMERA_AURORA_ASSET}" ]]; then
+    discovered_wallpaper="$CHIMERA_AURORA_ASSET"
+  elif [[ -n "$preferred_wallpaper" && -s "$preferred_wallpaper" ]]; then
+    discovered_wallpaper="$preferred_wallpaper"
+  else
+    while IFS= read -r -d '' asset; do
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        *wallpaper*|*background*|*aurora*desktop*)
+          discovered_wallpaper="$asset"
+          break
+          ;;
+      esac
+    done < <(find "$SCRIPT_DIR" \
+      \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+      \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  fi
+  if [[ -n "$discovered_wallpaper" && -s "$discovered_wallpaper" ]]; then
+    export CHIMERA_AURORA_ASSET="$discovered_wallpaper"
+    log_info "Selected recursively discovered Aurora wallpaper: ${discovered_wallpaper#"$SCRIPT_DIR"/}"
+  fi
+
+  # Build the deterministic Aurora visual set, then actively apply the selected
+  # repository artwork to boot + desktop + showcase + menu surfaces. Discovery
+  # alone is not enough: each consumer needs a normalized raster image staged
+  # under the exact filename it loads at boot/runtime.
   local visual="$BUILD_DIR/aurora-media"
   rm -rf -- "$visual"
   if [[ -x "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" ]]; then
     bash "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" "$visual"
+  fi
+
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "$CHIMERA_AURORA_ASSET" ]]; then
+    local selected_art="$CHIMERA_AURORA_ASSET"
+    local applied_art="$BUILD_DIR/aurora-selected-artwork.png"
+    local png_magic
+    png_magic="$(head -c 8 "$selected_art" 2>/dev/null | od -An -tx1 | tr -d ' \\n')"
+    if [[ "$png_magic" == "89504e470d0a1a0a" ]]; then
+      cp -f -- "$selected_art" "$applied_art"
+    elif command -v convert >/dev/null 2>&1; then
+      if ! convert "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    elif command -v magick >/dev/null 2>&1; then
+      if ! magick "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    fi
+
+    if [[ -s "$applied_art" ]] && [[ "$(head -c 8 "$applied_art" | od -An -tx1 | tr -d ' \\n')" == "89504e470d0a1a0a" ]]; then
+      for surface in \
+        "$visual/backgrounds/boot.png" \
+        "$visual/backgrounds/desktop.png" \
+        "$visual/backgrounds/showcase.png" \
+        "$visual/menus/default.png"; do
+        mkdir -p "$(dirname "$surface")"
+        cp -f "$applied_art" "$surface"
+      done
+      log_info "Applied discovered artwork to Aurora boot, desktop, showcase, and menu surfaces."
+    else
+      log_warning "Selected artwork could not be normalized to PNG; retaining generated Aurora surfaces."
+    fi
   fi
 
   # Stage every boot/menu screen explicitly. GRUB/Jasper/Spit Fire only consume
@@ -993,7 +1133,15 @@ build_native_iso_pipeline(){
   local native_script="$SCRIPT_DIR/boot/iso/build-iso.sh"
   local native_iso="$SCRIPT_DIR/boot/iso/dist/output.iso"
   [[ -x "$native_script" || -f "$native_script" ]] || { log_error "Native ISO pipeline is missing: $native_script"; return 1; }
-  CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
+  # Forward the target system block size through the canonical native ISO boundary.
+  # 4096 bytes (4 KiB) is the default; callers may override it explicitly.
+  local system_block_size="${CHIMERA_SYSTEM_BLOCK_SIZE:-4096}"
+  [[ "$system_block_size" =~ ^[1-9][0-9]*$ ]] || { log_error "Invalid CHIMERA_SYSTEM_BLOCK_SIZE: $system_block_size"; return 2; }
+  # Pass both the canonical name and the compatibility alias explicitly: the
+  # native ISO builder and its contract verifier must see the same 4 KiB default.
+  CHIMERA_SYSTEM_BLOCK_SIZE="$system_block_size" \
+    SYSTEM_BLOCK_SIZE="$system_block_size" \
+    CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
     bash "$native_script" 2>&1 | tee "$LOG_DIR/native-iso-pipeline.log"
   [[ -s "$native_iso" && -s "$native_iso.sha256" ]] || { log_error "Native ISO pipeline did not produce ISO and SHA-256 checksum"; return 1; }
   (cd "$(dirname "$native_iso")" && sha256sum -c "$(basename "$native_iso").sha256") || { log_error "Native ISO checksum verification failed"; return 1; }
@@ -1305,8 +1453,19 @@ rows=d.get("commands",[])
 names=[str(x.get("name","")).casefold() for x in rows]
 if not rows or len(names)!=len(set(names)): raise SystemExit("Command manifest empty or contains duplicate names")
 if any(not x.get("mode") or not x.get("provider") for x in rows): raise SystemExit("Command missing runtime/provider classification")
-if d.get("mode_counts",{}).get("native") != 15: raise SystemExit("Native command count differs from compiled multicall contract")
-print(f"[COMMANDS] catalogued={len(rows)} native={d['mode_counts'].get('native',0)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
+expected_native = {"pwd", "echo", "ls", "cp", "mv", "touch", "mkdir", "rm", "cat", "clear", "whoami", "hostname", "date", "true", "false"}
+actual_native = {str(x.get("name", "")).casefold() for x in rows if x.get("mode") == "native"}
+if actual_native != expected_native:
+    missing = sorted(expected_native - actual_native)
+    extra = sorted(actual_native - expected_native)
+    raise SystemExit(
+        "Native multicall contract mismatch: "
+        f"expected={len(expected_native)} actual={len(actual_native)} "
+        f"missing={missing} extra={extra}"
+    )
+if d.get("mode_counts",{}).get("native") != len(expected_native):
+    raise SystemExit("Native command mode_counts does not match the compiled multicall contract")
+print(f"[COMMANDS] catalogued={len(rows)} native={len(actual_native)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
 PYCOMMANDS
 }
 build_command_runtime(){

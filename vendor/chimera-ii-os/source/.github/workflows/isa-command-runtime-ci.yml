@@ -12,6 +12,7 @@ on:
       - 'tools/isa/test_riscv_codec.py'
       - 'tools/isa/rv32_machine.py'
       - 'tools/isa/test_rv32_machine.py'
+      - 'tools/isa/test_rv32i_execution_vectors.py'
       - 'tools/binary/**'
       - 'tools/memory/chimera_swap.py'
       - 'tools/memory/test_chimera_swap.py'
@@ -27,10 +28,10 @@ on:
       - 'tools/validate_isa_catalog.py'
       - 'tools/commands/generate_runtime_manifest.py'
       - 'tools/commands/chimera-run'
-      - 'tools/commands/chimera-cpu-mode.py'
-      - 'tools/commands/chimera-cpu-mode'
-      - 'tools/commands/test-chimera-cpu-mode.py'
-      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
+      - 'tools/commands/install-command-providers.sh'
+      - 'tools/commands/os-command-runtime.json'
+      - 'tools/commands/test-cross-os-runtime.py'
+      - 'tools/commands/README-cross-os-runtime.md'
       - 'tools/commands/chimera-dos-adapter.py'
       - 'tools/commands/test-chimera-dos-adapter.py'
       - 'tools/commands/DOS-COMPATIBILITY.md'
@@ -38,13 +39,13 @@ on:
       - 'tools/commands/dos-payload-builder.py'
       - 'tools/commands/test-dos-payload-builder.py'
       - 'tools/commands/DOS-ONLINE-PAYLOADS.md'
-      - 'tools/commands/install-command-providers.sh'
       - 'boot/iso/prepare-layout.sh'
-      - 'tools/commands/os-command-runtime.json'
-      - 'tools/commands/test-cross-os-runtime.py'
-      - 'tools/commands/README-cross-os-runtime.md'
       - 'build-chimera-iso.sh'
       - 'tools/commands/chimera-run'
+      - 'tools/commands/chimera-cpu-mode.py'
+      - 'tools/commands/chimera-cpu-mode'
+      - 'tools/commands/test-chimera-cpu-mode.py'
+      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
       - 'tools/commands/os-command-runtime.json'
       - 'tools/commands/test-cross-os-runtime.py'
       - 'tools/commands/README-cross-os-runtime.md'
@@ -56,6 +57,17 @@ on:
       - 'src/chimera-command-compat/**'
       - 'tools/build-chimera-command-compat.sh'
       - 'system/commands/compatibility-binary-policy.json'
+      - 'system/commands/native-command-candidates.json'
+      - 'tools/commands/import_command_candidates.py'
+      - 'tools/commands/command_candidate_router.py'
+      - 'tools/commands/test_import_command_candidates.py'
+      - 'tools/commands/test_command_candidate_router.py'
+      - 'tools/isa/run_import_pipeline.py'
+      - 'tools/isa/isa_candidate_router.py'
+      - 'tools/isa/test_isa_candidate_router.py'
+      - 'tools/isa/import_riscv_opcodes.py'
+      - 'tests/isa/test_import_riscv_opcodes.py'
+      - 'tools/cognition/**'
       - '.github/workflows/isa-command-runtime-ci.yml'
   pull_request:
     paths:
@@ -68,12 +80,28 @@ on:
       - 'tools/isa/test_riscv_codec.py'
       - 'tools/isa/rv32_machine.py'
       - 'tools/isa/test_rv32_machine.py'
+      - 'tools/isa/test_rv32i_execution_vectors.py'
       - 'tools/isa/rv32i-coverage.json'
       - 'tools/isa/validate_rv32i_coverage.py'
       - 'tools/isa/cisc-coverage.json'
       - 'tools/isa/validate_isa_coverage.py'
       - 'tools/validate_isa_catalog.py'
       - 'tools/commands/generate_runtime_manifest.py'
+      - 'tools/commands/chimera-run'
+      - 'tools/commands/chimera-cpu-mode.py'
+      - 'tools/commands/chimera-cpu-mode'
+      - 'tools/commands/test-chimera-cpu-mode.py'
+      - 'tools/commands/CPU-MODES-AND-TOPOLOGY.md'
+      - 'tools/commands/os-command-runtime.json'
+      - 'tools/commands/test-cross-os-runtime.py'
+      - 'tools/commands/chimera-dos-adapter.py'
+      - 'tools/commands/test-chimera-dos-adapter.py'
+      - 'tools/commands/DOS-COMPATIBILITY.md'
+      - 'tools/commands/dos-legacy-payload-manifest.json'
+      - 'tools/commands/dos-payload-builder.py'
+      - 'tools/commands/test-dos-payload-builder.py'
+      - 'tools/commands/DOS-ONLINE-PAYLOADS.md'
+      - 'boot/iso/prepare-layout.sh'
       - 'system/commands/chimera-command-list.json'
       - 'system/commands/ss64-command-catalog.ar.json'
       - 'system/commands/ss64-command-catalog.json'
@@ -84,9 +112,10 @@ on:
       - '.github/workflows/isa-command-runtime-ci.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   validate-and-compile:
+    if: ${{ !contains(github.event.head_commit.message, '[catalog-bot]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,6 +126,7 @@ jobs:
         run: |
           bash -n build-chimera-iso.sh
           bash -n tools/build-chimera-command-compat.sh
+          bash -n tools/commands/install-command-providers.sh
       - name: Test RV32I encoder, decoder, and interpreter subset
         run: |
           python3 -m unittest tools/isa/test_riscv_codec.py -v
@@ -105,6 +135,8 @@ jobs:
       - name: Test RV32 machine memory, traps, ORI, and FENCE constraints
         run: |
           python3 -m unittest tools/isa/test_rv32_machine.py -v
+          python3 -m unittest tools/isa/test_rv32i_execution_vectors.py -v
+          python3 tools/isa/validate_rv32_machine_tested_subset.py
       - name: Test swap and NCB binary tooling
         run: |
           python3 -m unittest tools/memory/test_chimera_swap.py -v
@@ -125,17 +157,17 @@ jobs:
       - name: Validate cross-OS command registry and runtime dispatcher
         run: |
           python3 -m json.tool tools/commands/os-command-runtime.json >/dev/null
-          python3 -m py_compile tools/commands/chimera-run tools/commands/generate_runtime_manifest.py tools/commands/test-cross-os-runtime.py
-          python3 -m py_compile tools/commands/chimera-cpu-mode.py tools/commands/test-chimera-cpu-mode.py
+          python3 -m py_compile tools/commands/chimera-run tools/commands/chimera-dos-adapter.py tools/commands/test-chimera-dos-adapter.py tools/commands/generate_runtime_manifest.py tools/commands/test-cross-os-runtime.py
           python3 tools/commands/test-cross-os-runtime.py -v
-          python3 tools/commands/test-chimera-cpu-mode.py -v
-          python3 -m py_compile tools/commands/chimera-dos-adapter.py tools/commands/test-chimera-dos-adapter.py tools/commands/dos-payload-builder.py tools/commands/test-dos-payload-builder.py
           python3 tools/commands/test-chimera-dos-adapter.py -v
-          python3 tools/commands/test-dos-payload-builder.py -v
-          python3 -m json.tool tools/commands/dos-legacy-payload-manifest.json >/dev/null
-          bash -n tools/commands/install-command-providers.sh boot/iso/prepare-layout.sh build-chimera-iso.sh
+          python3 -m py_compile tools/commands/chimera-cpu-mode.py tools/commands/test-chimera-cpu-mode.py
+          python3 tools/commands/test-chimera-cpu-mode.py -v
           cmp -s tools/commands/chimera-cpu-mode.py rootfs/usr/share/chimera/commands/chimera-cpu-mode.py
           bash -n rootfs/usr/sbin/chimera-cpu-mode
+          python3 -m json.tool tools/commands/dos-legacy-payload-manifest.json >/dev/null
+          python3 -m py_compile tools/commands/dos-payload-builder.py tools/commands/test-dos-payload-builder.py
+          python3 tools/commands/test-dos-payload-builder.py -v
+          bash -n boot/iso/prepare-layout.sh
       - name: Validate generated command capability manifest
         run: |
           python3 tools/commands/generate_runtime_manifest.py
@@ -148,6 +180,32 @@ jobs:
           assert d["mode_counts"].get("native", 0) >= 15
           assert all(c.get("provider") and c.get("mode") for c in d["commands"])
           print("Command capability inventory valid:", d["command_count"], d["mode_counts"])
+          PY
+      - name: Import sourced ISA forms and cross-OS command candidates
+        run: |
+          python3 tools/isa/import_riscv_opcodes.py --max-files 500 --allow-cached
+          python3 -m unittest tests/isa/test_import_riscv_opcodes.py -v
+          python3 tools/isa/build_universal_catalog.py --input isa/sources/imports/riscv-opcodes.json
+          python3 -m py_compile tools/cognition/local_llm.py tools/cognition/test_local_llm.py tools/isa/isa_candidate_router.py tools/isa/test_isa_candidate_router.py tools/commands/command_candidate_router.py
+          python3 -m py_compile tools/cognition/trainable_rnn_lm.py tools/cognition/train_command_isa_rnn.py tools/cognition/test_train_command_isa_rnn.py
+          python3 -m unittest tools.cognition.test_local_llm -v
+          python3 -m unittest tools.cognition.test_trainable_rnn_lm -v
+          python3 -m unittest tools.cognition.test_train_command_isa_rnn -v
+          python3 -m unittest tools.isa.test_isa_candidate_router -v
+          python3 tools/isa/isa_candidate_router.py "riscv add" --limit 10
+          python3 tools/commands/import_command_candidates.py
+          python3 -m py_compile tools/commands/import_command_candidates.py tools/commands/command_candidate_router.py tools/commands/test_import_command_candidates.py tools/commands/test_command_candidate_router.py
+          python3 -m unittest tools.commands.test_import_command_candidates tools.commands.test_command_candidate_router -v
+          python3 tools/commands/command_candidate_router.py "list files" --limit 10
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("system/commands/native-command-candidates.json").read_text(encoding="utf-8"))
+          assert p["counts"]["total"] == len(p["commands"])
+          assert p["counts"]["native_implemented"] == 15
+          assert p["counts"]["candidate_only"] > 1000
+          assert all((c["execution_allowed"] is False and c["learning"]["state"] == "unresolved") for c in p["commands"] if c["status"] == "candidate-only")
+          print("Imported native/candidate command inventory:", p["counts"])
           PY
       - name: Compile kernel ISA lookup registry
         run: |
@@ -192,3 +250,51 @@ jobs:
           test -x /tmp/chimera-command-rootfs/usr/bin/chimera-cmd
           test -L /tmp/chimera-command-rootfs/usr/bin/mv
           test -s /tmp/chimera-command-rootfs/etc/chimera/commands/registry.tsv
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/commands/native-command-candidates.json
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/commands/command_candidate_router.py
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/commands/chimera_rnn.py
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/commands/local_llm.py
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/commands/trainable_rnn_lm.py
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/cognition/trained-command-isa-rnn.json
+          grep -q -- "--rnn-model" /tmp/chimera-command-rootfs/usr/bin/chimera-learn-command
+          grep -q -- "--rnn-model" /tmp/chimera-command-rootfs/usr/bin/chimera-learn-isa
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/isa/local_llm.py
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/isa/trainable_rnn_lm.py
+          test -x /tmp/chimera-command-rootfs/usr/bin/chimera-learn-command
+          CHIMERA_ROOT_PREFIX=/tmp/chimera-command-rootfs /tmp/chimera-command-rootfs/usr/bin/chimera-learn-command "list files" --limit 5 --queue /tmp/chimera-command-pending.jsonl > /tmp/chimera-command-rnn.json
+          cat /tmp/chimera-command-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/chimera-command-rnn.json
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/isa/universal-instruction-catalog.json
+          test -s /tmp/chimera-command-rootfs/usr/share/chimera/isa/isa_candidate_router.py
+          test -x /tmp/chimera-command-rootfs/usr/bin/chimera-learn-isa
+          CHIMERA_ROOT_PREFIX=/tmp/chimera-command-rootfs /tmp/chimera-command-rootfs/usr/bin/chimera-learn-isa "riscv add" --limit 5 --queue /tmp/chimera-isa-pending.jsonl > /tmp/chimera-isa-rnn.json
+          cat /tmp/chimera-isa-rnn.json
+          grep -q '"mode": "trained-character-rnn"' /tmp/chimera-isa-rnn.json
+          mkdir -p build/runtime
+          cp /tmp/chimera-command-rootfs/usr/share/chimera/cognition/trained-command-isa-rnn.json build/runtime/trained-command-isa-rnn.json
+
+      - name: Persist regenerated source-backed catalogs
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add isa/sources/imports/riscv-opcodes.json isa/generated/universal-instruction-catalog.json system/commands/native-command-candidates.json system/commands/command-runtime-capabilities.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(isa): persist sourced ISA and command imports [catalog-bot]"
+            git push
+          else
+            echo "Generated catalogs already match the committed sources."
+          fi
+      - name: Upload imported ISA and command catalogs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chimera-ISA-Command-Import-${{ github.sha }}
+          path: |
+            isa/sources/imports/riscv-opcodes.json
+            isa/generated/universal-instruction-catalog.json
+            system/commands/native-command-candidates.json
+            system/commands/command-runtime-capabilities.json
+            build/runtime/trained-command-isa-rnn.json
+          if-no-files-found: error
+          retention-days: 30
