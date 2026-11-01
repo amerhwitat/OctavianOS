@@ -109,3 +109,10 @@ The loader additionally rejects non-page-aligned stack sizes and has explicit ho
 The shared Koronos address-space backend is now compiled by the vendored build and uses the verified physmap API for all physical page-table and frame aliases. The backend clones the four-GiB supervisor bootstrap hierarchy, allocates owned page tables/user frames, applies U/RW/NX permissions, and supplies the existing transactional ELF loader callbacks. Boot runs the inactive-address-space self-test before any target launch attempt.
 
 This is not a scheduler-owned process VM system: the test address space is never loaded into CR3, there is no per-task kernel stack or saved context, no TLB shootdown/deferred-free protocol, and no concurrent/SMP teardown. The single global user-entry state remains a separate blocker.
+
+
+## Cross-repository candidate CI evidence (2026-11-02)
+
+The corresponding ChimeraIIOS candidate implementation is PR #125, head `506c76baafcc45fc08dd14fad5b1723f2d0fd24b`. Its recorded GitHub Actions runs completed successfully for the kernel build, ELF loader unit tests, boot/ISO validation and userspace acceptance workflow. This is useful candidate-level compile/probe evidence, not proof of per-CPU execution, scheduler-owned tasks, general physical memory support or production OS acceptance.
+
+The candidate's known design limits remain: fixed 4-GiB physical frame ceiling; identity/direct-map assumptions in allocator and page-table access; a bootstrap page-table clone limited to a particular low identity map; one global TSS/syscall stack/transition block; synchronous target launch; no scheduler-backed yield/block/wait lifecycle; and process records still labeled load-plan-only. OctavianOS must not promote this vendor snapshot to a production runtime until each limitation is resolved and verified with ownership/rollback fault injection, SMP-safe entry and task switching, and BIOS+UEFI runtime tests.
