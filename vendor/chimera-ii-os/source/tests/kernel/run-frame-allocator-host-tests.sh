@@ -10,3 +10,12 @@ trap 'rm -f "$OUT"' EXIT
   -o "$OUT"
 "$OUT"
 "$OUT" above4g
+
+OUT_PHYSMAP="${TMPDIR:-/tmp}/koronos-physmap-test.$$"
+trap 'rm -f "$OUT" "$OUT_PHYSMAP"' EXIT
+"${CXX:-c++}" -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+  -I"$ROOT/kernel/include" \
+  "$ROOT/tests/kernel/physmap_range_test.cpp" \
+  "$ROOT/kernel/core/physmap.cpp" \
+  -o "$OUT_PHYSMAP"
+"$OUT_PHYSMAP"
