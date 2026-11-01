@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "chimera/address_space.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/physmap.h"
 #include "chimera/koronos_abi.h"
 extern "C" uint8_t koronos_bootstrap_pml4[];
 namespace {
@@ -53,7 +54,7 @@ static void copy_bytes(void *dst, const void *src, size_t n) {
 }
 static uint64_t *table_ptr(uint64_t physical) {
     if (!physical || physical >= KORONOS_FRAME_PHYS_LIMIT || (physical & PAGE_MASK)) return nullptr;
-    return reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(physical));
+    return static_cast<uint64_t *>(koronos_phys_to_virt(physical, PAGE_SIZE));
 }
 static bool track_table(AddressSpace *space, uint64_t physical) {
     if (!space || !physical || space->table_count >= MAX_TABLE_FRAMES) return false;
@@ -226,7 +227,7 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
         if (!pte || (*pte & ENTRY_PRESENT)) { unlock_backend(); return -5; }
         *pte = (physical + i * PAGE_SIZE) | leaf_flags;
     }
-    *kernel_alias = reinterpret_cast<void *>(static_cast<uintptr_t>(physical));
+    *kernel_alias = koronos_phys_to_virt(physical, size);
     unlock_backend();
     return 0;
 }
