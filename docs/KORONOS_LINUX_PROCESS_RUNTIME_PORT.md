@@ -103,3 +103,9 @@ The vendored `process_loader.cpp` and `process_loader.h` now match ChimeraIIOS a
 A shared host regression verifies successful segment copy/BSS/stack setup, W^X rejection, page overlap rejection, low-address rejection, and rollback when stack mapping fails. The vendored host-test runner includes this regression. This tests the loader contract with a fake mapper; it does not prove the real page-table backend's rollback or a scheduler-owned process lifecycle.
 
 The loader additionally rejects non-page-aligned stack sizes and has explicit host fault-injection coverage for failure on the first segment mapping as well as the final stack mapping. The staged address space is destroyed in both cases and the caller's output object remains untouched.
+
+## Page-table backend status
+
+The shared Koronos address-space backend is now compiled by the vendored build and uses the verified physmap API for all physical page-table and frame aliases. The backend clones the four-GiB supervisor bootstrap hierarchy, allocates owned page tables/user frames, applies U/RW/NX permissions, and supplies the existing transactional ELF loader callbacks. Boot runs the inactive-address-space self-test before any target launch attempt.
+
+This is not a scheduler-owned process VM system: the test address space is never loaded into CR3, there is no per-task kernel stack or saved context, no TLB shootdown/deferred-free protocol, and no concurrent/SMP teardown. The single global user-entry state remains a separate blocker.
