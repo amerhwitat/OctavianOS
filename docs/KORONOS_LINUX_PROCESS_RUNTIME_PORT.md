@@ -79,3 +79,11 @@ OctavianOS must not be treated as the unquestioned source of truth merely becaus
 ## Immediate safe gate
 
 Until the allocator's physical-address ceiling and mapping model, page-table teardown/rollback, per-CPU entry state and scheduler-owned task lifecycle are fixed and verified, keep native init fail-closed and do not interpret a ring-3 smoke probe as production readiness.
+
+## Frame allocator implementation sync (2026-11-01)
+
+The vendored `kernel/core/frame_allocator.cpp` and `kernel/include/chimera/frame_allocator.h` have now been synchronized byte-for-byte with ChimeraIIOS PR #218. The change tightens Multiboot2 parsing, rejects usable memory above the current 4-GiB bootstrap ceiling instead of silently truncating it, reserves framebuffer ranges independent of tag order, and validates ownership on free.
+
+The matching host test is vendored at `tests/kernel/frame_allocator_test.cpp`; `tests/kernel/run-frame-allocator-host-tests.sh` compiles and runs both the allocation/reservation scenario and the above-4-GiB rejection scenario. The vendored canonical `kernel/build-koronos.sh` invokes this runner before compiling Koronos.
+
+This establishes source parity for the allocator implementation, public header and host test only. It does not establish parity for the rest of Koronos, and the 4-GiB ceiling remains a deliberate limitation pending a physical-to-virtual mapping design and wider-frame allocator.
