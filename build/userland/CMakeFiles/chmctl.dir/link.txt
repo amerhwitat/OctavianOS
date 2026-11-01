@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chmctl.dir/link.d CMakeFiles/chmctl.dir/commands/chmctl.cpp.o -o chmctl  libaurora_utf.a

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Dependency Detector
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/ISO-Tool/python/iso_tool/dependency_detector.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-dependency_detector.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/ISO-Tool/python/iso_tool/dependency_detector.py
+X-OctavianOS-GuiWrapper=true

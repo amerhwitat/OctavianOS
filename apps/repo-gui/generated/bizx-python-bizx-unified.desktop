@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Unified
+Comment=OctavianOS repo app (BizX) — GUI launcher for BizX/python/bizx/unified.py
+Exec=/opt/octavianos/apps/repo-gui/generated/bizx-python-bizx-unified.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=BizX
+X-OctavianOS-Source=BizX/python/bizx/unified.py
+X-OctavianOS-GuiWrapper=true

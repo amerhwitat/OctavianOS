@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-resource-manager.dir/link.d "CMakeFiles/chm-resource-manager.dir/__/system/resource/chimera_resource_manager.cpp.o" -o chm-resource-manager  libaurora_utf.a

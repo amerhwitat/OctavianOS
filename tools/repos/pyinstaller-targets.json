@@ -1,0 +1,77 @@
+{
+  "schema": "octavianos.pyinstaller-targets/1",
+  "comment": "Curated Python apps packaged as standalone one-file executables for OctavianOS. Paths are relative to the repos root.",
+  "targets": [
+    {
+      "id": "pdfreaderpy-gui",
+      "repo": "PDFreaderPY",
+      "script": "PDFreaderPY/pdfreader_gui.py",
+      "name": "pdfreaderpy",
+      "console": false,
+      "hidden": [
+        "fitz",
+        "PIL",
+        "PIL.Image",
+        "PIL.ImageTk"
+      ]
+    },
+    {
+      "id": "crypto-research-gui",
+      "repo": "bruteforce",
+      "script": "bruteforce/crypto_research_gui.py",
+      "name": "crypto-research",
+      "console": false,
+      "hidden": []
+    },
+    {
+      "id": "eth-crypto-gui",
+      "repo": "eth-key-check",
+      "script": "eth-key-check/crypto_gui.py",
+      "name": "eth-crypto-console",
+      "console": false,
+      "hidden": [
+        "crypto_catalog"
+      ]
+    },
+    {
+      "id": "nlp-search-gui",
+      "repo": "nlp",
+      "script": "nlp/search_gui.py",
+      "name": "nlp-search",
+      "console": false,
+      "hidden": []
+    },
+    {
+      "id": "iso-tool-gui",
+      "repo": "nlp",
+      "script": "nlp/ISO-Tool/python/iso_tool/unified_gui.py",
+      "name": "iso-tool",
+      "console": false,
+      "hidden": []
+    },
+    {
+      "id": "chimera-runtime",
+      "repo": "test",
+      "script": "test/chimera_py/main.py",
+      "name": "chimera-runtime",
+      "console": true,
+      "hidden": []
+    },
+    {
+      "id": "bizx-unified",
+      "repo": "BizX",
+      "script": "BizX/python/bizx/unified.py",
+      "name": "bizx-unified",
+      "console": false,
+      "hidden": []
+    },
+    {
+      "id": "octavian-app-runner",
+      "repo": "OctavianOS",
+      "script": "/workspace/OctavianOS/apps/repo-gui/octavian_app_runner.py",
+      "name": "octavian-app-runner",
+      "console": false,
+      "hidden": []
+    }
+  ]
+}

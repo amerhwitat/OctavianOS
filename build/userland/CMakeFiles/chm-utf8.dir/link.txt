@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-utf8.dir/link.d "CMakeFiles/chm-utf8.dir/commands/chm-utf8.cpp.o" -o chm-utf8  libaurora_utf.a

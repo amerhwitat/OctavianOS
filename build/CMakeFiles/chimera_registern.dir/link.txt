@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera_registern.a CMakeFiles/chimera_registern.dir/arch/registern/RegisterN.cpp.o CMakeFiles/chimera_registern.dir/arch/registern/ChimeraCorePool.cpp.o CMakeFiles/chimera_registern.dir/arch/registern/HostIsaBackend.cpp.o
+/usr/bin/ranlib libchimera_registern.a

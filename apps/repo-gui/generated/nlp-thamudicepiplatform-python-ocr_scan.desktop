@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ocr Scan
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/ThamudicEpiPlatform/python/ocr_scan.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-thamudicepiplatform-python-ocr_scan.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/ThamudicEpiPlatform/python/ocr_scan.py
+X-OctavianOS-GuiWrapper=true

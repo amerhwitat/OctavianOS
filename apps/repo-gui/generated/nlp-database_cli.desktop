@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Database Cli
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/database_cli.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-database_cli.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/database_cli.py
+X-OctavianOS-GuiWrapper=true

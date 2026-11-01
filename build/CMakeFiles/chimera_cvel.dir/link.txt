@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera_cvel.a CMakeFiles/chimera_cvel.dir/src/virtualization/cvel.cpp.o
+/usr/bin/ranlib libchimera_cvel.a

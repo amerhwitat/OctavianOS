@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Thamudicscanner Allinone Voice
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/python/ThamudicScanner_AllInOne_Voice.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-python-thamudicscanner_allinone_voice.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/python/ThamudicScanner_AllInOne_Voice.py
+X-OctavianOS-GuiWrapper=true

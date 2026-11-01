@@ -1,0 +1,2 @@
+/usr/bin/ar qc libaurora_utf.a CMakeFiles/aurora_utf.dir/__/desktop/aurora/i18n/aurora_utf.cpp.o CMakeFiles/aurora_utf.dir/__/desktop/aurora/i18n/aurora_emoji.cpp.o CMakeFiles/aurora_utf.dir/__/desktop/aurora/icons/chimera_icons.cpp.o
+/usr/bin/ranlib libaurora_utf.a

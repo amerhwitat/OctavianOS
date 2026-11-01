@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "source_url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/index.html",
+  "retrieved_unix": 1792425066,
+  "discovery_only": true,
+  "notice": "Discovery does not approve redistribution, download binaries, or assert runtime compatibility.",
+  "links": [
+    {
+      "title": "Repositories",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/index.html"
+    },
+    {
+      "title": "Latest",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/index.html#games"
+    },
+    {
+      "title": "Games",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/index.html"
+    },
+    {
+      "title": "* BlockDrop - A falling block game modified 2025-09-11.0 , version 0.2 BSD 3-Clause License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/blkdrop/20250911.0/index.html"
+    },
+    {
+      "title": "* Bolitaire - A Freecell card game modified 2025-05-23.3 , version 0.63 GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/bolitare/20250523.3/index.html"
+    },
+    {
+      "title": "* Boom - A GPL port of the Doom source code modified 2025-04-09.8 , version 2.02a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/boom/20250409.8/index.html"
+    },
+    {
+      "title": "* DOS Defender - DOS Defender is an x86 real mode 2D shooter modified 2025-04-09.8 , version 1.1.0 Unlicense (Public Domain)",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/dosdef/20250409.8/index.html"
+    },
+    {
+      "title": "* Dr. Mind - PC adaptation of a well-known board game. modified 2025-04-10.0 , version 1.0 Creative Commons Attribution-NoDerivatives 4.0 International Public License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/drmind/20250410.0/index.html"
+    },
+    {
+      "title": "* Dungeons of Noudar 3D - A first person 2.5D dungeon-crawler modified 2025-04-10.0 , version 1.2 Modified BSD (2-Clause) License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/noudar/20250410.0/index.html"
+    },
+    {
+      "title": "* Eliza - One of the earliest AI chatterbots modified 2025-04-09.8 , version 1.01a Public Domain",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/eliza/20250409.8/index.html"
+    },
+    {
+      "title": "* Emeritus Pong - A clone of the good old \"Pong\" game modified 2025-04-09.8 , version 0.92 GNU General Public License, Version 3",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/empong/20250409.8/index.html"
+    },
+    {
+      "title": "* EV4DE - Fly a ship through space and avoid asteroids modified 2025-04-09.8 , version 1.2a GNU General Public License, Version 3",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/ev4de/20250409.8/index.html"
+    },
+    {
+      "title": "* EW Snake - A version of the classic snake game modified 2025-04-09.8 , version 0.5a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/ewsnake/20250409.8/index.html"
+    },
+    {
+      "title": "* FancyMines - Minesweeper-like game with themes modified 2025-04-09.9 , version 1.00 GNU General Public License, Version 3",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/fmines/20250409.9/index.html"
+    },
+    {
+      "title": "* Floppy Bird - Fly a bird through obstacles by tapping the spacebar on your keyboard. modified 2025-04-09.9 , version 1.0a MIT License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/flpybird/20250409.9/index.html"
+    },
+    {
+      "title": "* Four in a row - vertical board game modified 2025-05-23.2 , version 2023-08-15 GNU Affero General Public License, version 3 or later",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/row4/20250523.2/index.html"
+    },
+    {
+      "title": "* Freedoom - Doom source port derived from MBF and Boom modified 2025-04-09.9 , version 3.30c Open source, see Licenses",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/freedoom/20250409.9/index.html"
+    },
+    {
+      "title": "* GNU Chess - GNU Chess is a communal chess program modified 2025-05-27.3 , version 4.0 patch 60 GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/gnuchess/20250527.3/index.html"
+    },
+    {
+      "title": "* hangman - Multilingual hangman modified 2025-04-09.9 , version 1.05b GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/hangman/20250409.9/index.html"
+    },
+    {
+      "title": "* INVADERS - Space Invaders game clone modified 2025-04-10.0 , version 1.1l Open Source",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/psrinvad/20250410.0/index.html"
+    },
+    {
+      "title": "* Iter Vehemens ad Necem (IVAN) - A graphical rogue-like game (IVAN) modified 2025-06-04.0 , version 0.50 GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/ivan/20250604.0/index.html"
+    },
+    {
+      "title": "* Kiloblaster - Kiloblaster is a fast-paced space shooter arcade game modified 2025-04-10.0 , version 2.0a Kiloblaster and Xargon Freeware License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/kiloblas/20250410.0/index.html"
+    },
+    {
+      "title": "* KRaptor - Open-source Raptor-like game with several levels modified 2025-05-27.3 , version Apr_2004 MIT license",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/kraptor/20250527.3/index.html"
+    },
+    {
+      "title": "* Linley's Dungeon Crawl - A fun game in the grand tradition of games like Rogue, Hack and Moria. modified 2025-05-27.3 , version 4.0.0b26 Crawl General Public License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/lincrawl/20250527.3/index.html"
+    },
+    {
+      "title": "* Liquid War - A unique multiplayer wargame modified 2025-04-09.9 , version 5.6.4 GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/liquiwar/20250409.9/index.html"
+    },
+    {
+      "title": "* Mirror Magic - An arcade style game like \"Deflektor\" modified 2025-04-10.0 , version 2.0.2a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/mirmagic/20250410.0/index.html"
+    },
+    {
+      "title": "* The Mistral Report: Invisible Affairs - Espionage-themed turn-based retro RPG modified 2025-04-10.0 , version 1.1 GNU General Public License, Version 3",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/mistral/20250410.0/index.html"
+    },
+    {
+      "title": "* NetHack - Single player dungeon exploration game modified 2026-05-28.4 , version 5.0.0 NetHack General Public License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/nethack/20260528.4/index.html"
+    },
+    {
+      "title": "* NGE Nibbles - Version of the classic snake game modified 2025-04-10.0 , version 0.1.0a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/nge_nibb/20250410.0/index.html"
+    },
+    {
+      "title": "* SaysWho - A simple memory game. modified 2025-06-02.6 , version v0.2 BSD 3-Clause License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/sayswho/20250602.6/index.html"
+    },
+    {
+      "title": "* Senet - A very old game, dating back to ancient Egypt modified 2025-04-10.1 , version 1.0a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/senet/20250410.1/index.html"
+    },
+    {
+      "title": "* Smiley - A simple Pong-style game modified 2025-04-10.1 , version 2021-11-10 alpha BSD 3-Clause License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/smiley/20250410.1/index.html"
+    },
+    {
+      "title": "* sudoku86 - A 16-bit Sudoku game for 8086/8088 CPUs modified 2025-04-10.1 , version 1.0.3a Simplified (2-Clause) BSD License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/sudoku86/20250410.1/index.html"
+    },
+    {
+      "title": "* TETRIS Queen - A clone of the TETRIS game, and tribute to the band Queen modified 2025-04-10.0 , version 1.4.1a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/qtetris/20250410.0/index.html"
+    },
+    {
+      "title": "* Vertigo - Flight simulator that focuses on realism of the flight model modified 2025-04-10.1 , version 0.26a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/vertigo/20250410.1/index.html"
+    },
+    {
+      "title": "* Vitetris - A terminal-based Tetris clone modified 2025-04-10.1 , version 0.55a Simplified (2-Clause) BSD License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/vitetris/20250410.1/index.html"
+    },
+    {
+      "title": "* Wing - A Galaga-like space shooter modified 2025-04-10.1 , version 0.7a GNU General Public License, Version 2",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/wing/20250410.1/index.html"
+    },
+    {
+      "title": "* zmiy - A snake game for DOS and 8086 modified 2025-04-10.1 , version 0.85.2a Simplified (2-Clause) BSD License",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/en/games/zmiy/20250410.1/index.html"
+    },
+    {
+      "title": "Deutsch",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/de/games/index.html"
+    },
+    {
+      "title": "fran\u00e7ais",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/fr/games/index.html"
+    },
+    {
+      "title": "T\u00fcrk\u00e7e",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/tr/games/index.html"
+    },
+    {
+      "title": "Svenska",
+      "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/latest/html/sv/games/index.html"
+    },
+    {
+      "title": "Please support them",
+      "url": "https://www.ibiblio.org/freedos.org/patreon/"
+    },
+    {
+      "title": "Home",
+      "url": "https://www.ibiblio.org/freedos.org/"
+    },
+    {
+      "title": "Questions",
+      "url": "https://www.ibiblio.org/forums/"
+    },
+    {
+      "title": "About",
+      "url": "https://www.ibiblio.org/freedos.org/about/"
+    }
+  ]
+}

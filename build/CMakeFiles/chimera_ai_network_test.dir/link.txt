@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_ai_network_test.dir/link.d CMakeFiles/chimera_ai_network_test.dir/tests/network/test_ai_network.cpp.o -o chimera_ai_network_test  libchimera_machine.a

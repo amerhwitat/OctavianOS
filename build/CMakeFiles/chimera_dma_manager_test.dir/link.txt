@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_dma_manager_test.dir/link.d CMakeFiles/chimera_dma_manager_test.dir/tests/unit/test_dma_manager.cpp.o -o chimera_dma_manager_test  libchimera_machine.a

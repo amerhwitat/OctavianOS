@@ -1,0 +1,1528 @@
+{
+  "schema": "chimera-ii-isa-encoder-decoder-sample",
+  "schema_version": 1,
+  "source_registry": "tools/isa/isa_bitfields.json",
+  "instruction_count": 30,
+  "instructions": [
+    {
+      "mnemonic": "ADD",
+      "opcode": "0x0001",
+      "opcode_bits": "0x01",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x01010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "SUB",
+      "opcode": "0x0002",
+      "opcode_bits": "0x02",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x02010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "AND",
+      "opcode": "0x0003",
+      "opcode_bits": "0x03",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x03010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "OR",
+      "opcode": "0x0004",
+      "opcode_bits": "0x04",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x04010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "XOR",
+      "opcode": "0x0005",
+      "opcode_bits": "0x05",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x05010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "NOT",
+      "opcode": "0x0006",
+      "opcode_bits": "0x06",
+      "encoding": "R",
+      "operands": "rd,rs",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 reserved]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "reserved",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x06010200",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "SHL",
+      "opcode": "0x0007",
+      "opcode_bits": "0x07",
+      "encoding": "R",
+      "operands": "rd,rs,imm",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 imm8]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "imm8",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x07010204",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "SHR",
+      "opcode": "0x0008",
+      "opcode_bits": "0x08",
+      "encoding": "R",
+      "operands": "rd,rs,imm",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 imm8]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "imm8",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x08010204",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "ROL",
+      "opcode": "0x0009",
+      "opcode_bits": "0x09",
+      "encoding": "R",
+      "operands": "rd,rs,imm",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 imm8]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "imm8",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x09010204",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "ROR",
+      "opcode": "0x000A",
+      "opcode_bits": "0x0A",
+      "encoding": "R",
+      "operands": "rd,rs,imm",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 imm8]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "imm8",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0A010204",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MUL",
+      "opcode": "0x000B",
+      "opcode_bits": "0x0B",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0B010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MULHI",
+      "opcode": "0x000C",
+      "opcode_bits": "0x0C",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0C010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MULMOD",
+      "opcode": "0x000D",
+      "opcode_bits": "0x0D",
+      "encoding": "R",
+      "operands": "rd,rs,rt,mod",
+      "privilege": "priv",
+      "isa_family": "R8192",
+      "encoding_template": "[47:40 opcode][39:32 rd][31:24 rs][23:16 rt][15:0 mod16]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 40,
+          "end": 47,
+          "width": 8,
+          "mask": "0xFF0000000000",
+          "shift": 40
+        },
+        {
+          "name": "rd",
+          "start": 32,
+          "end": 39,
+          "width": 8,
+          "mask": "0xFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rs",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rt",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "mod16",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0xFFFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0D01020300FF",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MODEXP",
+      "opcode": "0x000E",
+      "opcode_bits": "0x0E",
+      "encoding": "M",
+      "operands": "rd,rs,imm",
+      "privilege": "priv",
+      "isa_family": "R8192",
+      "encoding_template": "[63:56 opcode][55:48 rd][47:40 rs][39:0 imm40]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 56,
+          "end": 63,
+          "width": 8,
+          "mask": "0xFF00000000000000",
+          "shift": 56
+        },
+        {
+          "name": "rd",
+          "start": 48,
+          "end": 55,
+          "width": 8,
+          "mask": "0xFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "rs",
+          "start": 40,
+          "end": 47,
+          "width": 8,
+          "mask": "0xFF0000000000",
+          "shift": 40
+        },
+        {
+          "name": "imm40",
+          "start": 0,
+          "end": 39,
+          "width": 40,
+          "mask": "0xFFFFFFFFFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0E0102030000000A",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "BARRETT",
+      "opcode": "0x000F",
+      "opcode_bits": "0x0F",
+      "encoding": "R",
+      "operands": "rd,rs,mod",
+      "privilege": "priv",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 mod8]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "mod8",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x0F010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "DIV",
+      "opcode": "0x0010",
+      "opcode_bits": "0x10",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x10010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "REM",
+      "opcode": "0x0011",
+      "opcode_bits": "0x11",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x11010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "CMP",
+      "opcode": "0x0012",
+      "opcode_bits": "0x12",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x12010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "CMPEQ",
+      "opcode": "0x0013",
+      "opcode_bits": "0x13",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x13010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "CMPLT",
+      "opcode": "0x0014",
+      "opcode_bits": "0x14",
+      "encoding": "R",
+      "operands": "rd,rs,rt",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 rt]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "rt",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x14010203",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MOV",
+      "opcode": "0x0015",
+      "opcode_bits": "0x15",
+      "encoding": "R",
+      "operands": "rd,rs",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[31:24 opcode][23:16 rd][15:8 rs][7:0 reserved]",
+      "encoding_status": "template",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 24,
+          "end": 31,
+          "width": 8,
+          "mask": "0xFF000000",
+          "shift": 24
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 23,
+          "width": 8,
+          "mask": "0xFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 8,
+          "end": 15,
+          "width": 8,
+          "mask": "0xFF00",
+          "shift": 8
+        },
+        {
+          "name": "reserved",
+          "start": 0,
+          "end": 7,
+          "width": 8,
+          "mask": "0xFF",
+          "shift": 0
+        }
+      ],
+      "example_binary": "0x15010200",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "LOAD",
+      "opcode": "0x0016",
+      "opcode_bits": "0x16",
+      "encoding": "L",
+      "operands": "rd,addr,len",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "STORE",
+      "opcode": "0x0017",
+      "opcode_bits": "0x17",
+      "encoding": "L",
+      "operands": "addr,rs,len",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "PREFETCH",
+      "opcode": "0x0018",
+      "opcode_bits": "0x18",
+      "encoding": "I",
+      "operands": "addr",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MEMCPY",
+      "opcode": "0x0019",
+      "opcode_bits": "0x19",
+      "encoding": "M",
+      "operands": "dst,src,len",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "MEMSET",
+      "opcode": "0x001A",
+      "opcode_bits": "0x1A",
+      "encoding": "M",
+      "operands": "dst,val,len",
+      "privilege": "user",
+      "isa_family": "R8192",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "PIN_PAGES",
+      "opcode": "0x001B",
+      "opcode_bits": "0x1B",
+      "encoding": "S",
+      "operands": "user_vaddr,len",
+      "privilege": "priv",
+      "isa_family": "SPOTNIK",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "UNPIN_PAGES",
+      "opcode": "0x001C",
+      "opcode_bits": "0x1C",
+      "encoding": "S",
+      "operands": "handle",
+      "privilege": "priv",
+      "isa_family": "SPOTNIK",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "DMA_MAP",
+      "opcode": "0x001D",
+      "opcode_bits": "0x1D",
+      "encoding": "S",
+      "operands": "page,dev",
+      "privilege": "priv",
+      "isa_family": "SPOTNIK",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    },
+    {
+      "mnemonic": "DMA_UNMAP",
+      "opcode": "0x001E",
+      "opcode_bits": "0x1E",
+      "encoding": "S",
+      "operands": "dma_addr",
+      "privilege": "priv",
+      "isa_family": "SPOTNIK",
+      "encoding_template": "[127:64 immediate][63:48 rt][47:32 rs][31:16 rd][15:0 opcode] (canonical host ABI)",
+      "encoding_status": "canonical_abi_only",
+      "bitfields": [
+        {
+          "name": "opcode",
+          "start": 0,
+          "end": 15,
+          "width": 16,
+          "mask": "0x000000000000FFFF",
+          "shift": 0
+        },
+        {
+          "name": "rd",
+          "start": 16,
+          "end": 31,
+          "width": 16,
+          "mask": "0x00000000FFFF0000",
+          "shift": 16
+        },
+        {
+          "name": "rs",
+          "start": 32,
+          "end": 47,
+          "width": 16,
+          "mask": "0x0000FFFF00000000",
+          "shift": 32
+        },
+        {
+          "name": "rt",
+          "start": 48,
+          "end": 63,
+          "width": 16,
+          "mask": "0xFFFF000000000000",
+          "shift": 48
+        },
+        {
+          "name": "immediate",
+          "start": 64,
+          "end": 127,
+          "width": 64,
+          "mask": "0xFFFFFFFFFFFFFFFF0000000000000000",
+          "shift": 64
+        }
+      ],
+      "example_binary": "",
+      "validation_errors": [],
+      "source_ref": "internal"
+    }
+  ]
+}

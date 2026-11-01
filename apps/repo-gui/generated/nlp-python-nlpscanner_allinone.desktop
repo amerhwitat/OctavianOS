@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Nlpscanner Allinone
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/python/NLPScanner_AllInOne.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-python-nlpscanner_allinone.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/python/NLPScanner_AllInOne.py
+X-OctavianOS-GuiWrapper=true

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_memory_bus_test.dir/link.d CMakeFiles/chimera_memory_bus_test.dir/tests/unit/test_memory_bus.cpp.o -o chimera_memory_bus_test  libchimera_machine.a

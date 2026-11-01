@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera-pe-inspect.dir/link.d "CMakeFiles/chimera-pe-inspect.dir/pe_inspect.cpp.o" -o chimera-pe-inspect  libchimera-win-pe.a

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_unit.dir/link.d CMakeFiles/chimera_unit.dir/tests/unit/test_core.cpp.o -o chimera_unit  libchimera_machine.a

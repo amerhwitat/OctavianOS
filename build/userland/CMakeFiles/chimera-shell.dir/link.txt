@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera-shell.dir/link.d "CMakeFiles/chimera-shell.dir/shell/main.cpp.o" -o chimera-shell  libchimera_shell.a libaurora_utf.a

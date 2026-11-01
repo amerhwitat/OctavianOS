@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Main
+Comment=OctavianOS repo app (BizXtreme) — GUI launcher for BizXtreme/UnifiedGame/launcher/python/main.py
+Exec=/opt/octavianos/apps/repo-gui/generated/bizxtreme-unifiedgame-launcher-python-main.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=BizXtreme
+X-OctavianOS-Source=BizXtreme/UnifiedGame/launcher/python/main.py
+X-OctavianOS-GuiWrapper=true

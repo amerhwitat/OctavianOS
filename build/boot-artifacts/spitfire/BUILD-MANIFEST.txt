@@ -1,0 +1,3 @@
+Spit Fire native BIOS artifacts:
+SF0: 512-byte MBR stage; SF1+SF2: linked stage2 (3 sectors).
+Kernel handoff contract: stage2 produces koronos_boot_context; GRUB is the canonical ISO kernel loader.

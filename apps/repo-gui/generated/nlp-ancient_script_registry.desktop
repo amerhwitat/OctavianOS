@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ancient Script Registry
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/ancient_script_registry.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-ancient_script_registry.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/ancient_script_registry.py
+X-OctavianOS-GuiWrapper=true

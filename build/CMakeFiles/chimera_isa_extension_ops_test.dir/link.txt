@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_isa_extension_ops_test.dir/link.d CMakeFiles/chimera_isa_extension_ops_test.dir/tests/isa/test_isa_extension_ops.cpp.o -o chimera_isa_extension_ops_test

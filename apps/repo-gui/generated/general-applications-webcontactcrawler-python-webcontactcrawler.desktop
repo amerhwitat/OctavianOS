@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Webcontactcrawler
+Comment=OctavianOS repo app (general) — GUI launcher for general/applications/WebContactCrawler/python/webcontactcrawler.py
+Exec=/opt/octavianos/apps/repo-gui/generated/general-applications-webcontactcrawler-python-webcontactcrawler.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=general
+X-OctavianOS-Source=general/applications/WebContactCrawler/python/webcontactcrawler.py
+X-OctavianOS-GuiWrapper=true

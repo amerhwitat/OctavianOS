@@ -1,0 +1,348 @@
+{
+  "schema": "octavianos.repo-gui-launchers/1",
+  "count": 38,
+  "launchers": [
+    {
+      "slug": "bizx-python-bizx-game_launcher",
+      "title": "Game Launcher",
+      "repo": "BizX",
+      "source": "BizX/python/bizx/game_launcher.py",
+      "launcher": "apps/repo-gui/generated/bizx-python-bizx-game_launcher.py",
+      "desktop": "apps/repo-gui/generated/bizx-python-bizx-game_launcher.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "bizx-python-bizx-unified",
+      "title": "Unified",
+      "repo": "BizX",
+      "source": "BizX/python/bizx/unified.py",
+      "launcher": "apps/repo-gui/generated/bizx-python-bizx-unified.py",
+      "desktop": "apps/repo-gui/generated/bizx-python-bizx-unified.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "bizx-python-bizx-__main__",
+      "title": "Main",
+      "repo": "BizX",
+      "source": "BizX/python/bizx/__main__.py",
+      "launcher": "apps/repo-gui/generated/bizx-python-bizx-__main__.py",
+      "desktop": "apps/repo-gui/generated/bizx-python-bizx-__main__.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "bizxtreme-unifiedgame-launcher-python-main",
+      "title": "Main",
+      "repo": "BizXtreme",
+      "source": "BizXtreme/UnifiedGame/launcher/python/main.py",
+      "launcher": "apps/repo-gui/generated/bizxtreme-unifiedgame-launcher-python-main.py",
+      "desktop": "apps/repo-gui/generated/bizxtreme-unifiedgame-launcher-python-main.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "bizxtreme-python-bizxtreme-game_launcher",
+      "title": "Game Launcher",
+      "repo": "BizXtreme",
+      "source": "BizXtreme/python/bizxtreme/game_launcher.py",
+      "launcher": "apps/repo-gui/generated/bizxtreme-python-bizxtreme-game_launcher.py",
+      "desktop": "apps/repo-gui/generated/bizxtreme-python-bizxtreme-game_launcher.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "pdfreaderpy-ancient_object_catalog_bridge",
+      "title": "Ancient Object Catalog Bridge",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/ancient_object_catalog_bridge.py",
+      "launcher": "apps/repo-gui/generated/pdfreaderpy-ancient_object_catalog_bridge.py",
+      "desktop": "apps/repo-gui/generated/pdfreaderpy-ancient_object_catalog_bridge.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "pdfreaderpy-ancient_script_ingest",
+      "title": "Ancient Script Ingest",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/ancient_script_ingest.py",
+      "launcher": "apps/repo-gui/generated/pdfreaderpy-ancient_script_ingest.py",
+      "desktop": "apps/repo-gui/generated/pdfreaderpy-ancient_script_ingest.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "eth-key-check-project",
+      "title": "Project",
+      "repo": "eth-key-check",
+      "source": "eth-key-check/project.py",
+      "launcher": "apps/repo-gui/generated/eth-key-check-project.py",
+      "desktop": "apps/repo-gui/generated/eth-key-check-project.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "general-seo-tool-seo_tool-gui",
+      "title": "Gui",
+      "repo": "general",
+      "source": "general/SEO-Tool/SEO_Tool/gui.py",
+      "launcher": "apps/repo-gui/generated/general-seo-tool-seo_tool-gui.py",
+      "desktop": "apps/repo-gui/generated/general-seo-tool-seo_tool-gui.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "general-seo-tool-seo_tool-cli",
+      "title": "Cli",
+      "repo": "general",
+      "source": "general/SEO-Tool/SEO_Tool/cli.py",
+      "launcher": "apps/repo-gui/generated/general-seo-tool-seo_tool-cli.py",
+      "desktop": "apps/repo-gui/generated/general-seo-tool-seo_tool-cli.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "general-emailkeywordcrawler-python-main",
+      "title": "Main",
+      "repo": "general",
+      "source": "general/EmailKeywordCrawler/python/main.py",
+      "launcher": "apps/repo-gui/generated/general-emailkeywordcrawler-python-main.py",
+      "desktop": "apps/repo-gui/generated/general-emailkeywordcrawler-python-main.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "general-applications-webcontactcrawler-python-gui_server",
+      "title": "Gui Server",
+      "repo": "general",
+      "source": "general/applications/WebContactCrawler/python/gui_server.py",
+      "launcher": "apps/repo-gui/generated/general-applications-webcontactcrawler-python-gui_server.py",
+      "desktop": "apps/repo-gui/generated/general-applications-webcontactcrawler-python-gui_server.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "general-applications-webcontactcrawler-python-webcontactcrawler",
+      "title": "Webcontactcrawler",
+      "repo": "general",
+      "source": "general/applications/WebContactCrawler/python/webcontactcrawler.py",
+      "launcher": "apps/repo-gui/generated/general-applications-webcontactcrawler-python-webcontactcrawler.py",
+      "desktop": "apps/repo-gui/generated/general-applications-webcontactcrawler-python-webcontactcrawler.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-relation",
+      "title": "Relation",
+      "repo": "nlp",
+      "source": "nlp/relation.py",
+      "launcher": "apps/repo-gui/generated/nlp-relation.py",
+      "desktop": "apps/repo-gui/generated/nlp-relation.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-search_engines",
+      "title": "Search Engines",
+      "repo": "nlp",
+      "source": "nlp/search_engines.py",
+      "launcher": "apps/repo-gui/generated/nlp-search_engines.py",
+      "desktop": "apps/repo-gui/generated/nlp-search_engines.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-btc_scanner",
+      "title": "Btc Scanner",
+      "repo": "nlp",
+      "source": "nlp/btc_scanner.py",
+      "launcher": "apps/repo-gui/generated/nlp-btc_scanner.py",
+      "desktop": "apps/repo-gui/generated/nlp-btc_scanner.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-ancient_script_registry",
+      "title": "Ancient Script Registry",
+      "repo": "nlp",
+      "source": "nlp/ancient_script_registry.py",
+      "launcher": "apps/repo-gui/generated/nlp-ancient_script_registry.py",
+      "desktop": "apps/repo-gui/generated/nlp-ancient_script_registry.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-database_cli",
+      "title": "Database Cli",
+      "repo": "nlp",
+      "source": "nlp/database_cli.py",
+      "launcher": "apps/repo-gui/generated/nlp-database_cli.py",
+      "desktop": "apps/repo-gui/generated/nlp-database_cli.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudic_scanner",
+      "title": "Thamudic Scanner",
+      "repo": "nlp",
+      "source": "nlp/thamudic_scanner.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudic_scanner.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudic_scanner.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudic_scanner_gui",
+      "title": "Thamudic Scanner Gui",
+      "repo": "nlp",
+      "source": "nlp/thamudic_scanner_gui.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudic_scanner_gui.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudic_scanner_gui.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-run_thamudic",
+      "title": "Run Thamudic",
+      "repo": "nlp",
+      "source": "nlp/run_thamudic.py",
+      "launcher": "apps/repo-gui/generated/nlp-run_thamudic.py",
+      "desktop": "apps/repo-gui/generated/nlp-run_thamudic.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudic_web_app",
+      "title": "Thamudic Web App",
+      "repo": "nlp",
+      "source": "nlp/thamudic_web_app.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudic_web_app.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudic_web_app.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-python-thamudicscanner_allinone_voice",
+      "title": "Thamudicscanner Allinone Voice",
+      "repo": "nlp",
+      "source": "nlp/python/ThamudicScanner_AllInOne_Voice.py",
+      "launcher": "apps/repo-gui/generated/nlp-python-thamudicscanner_allinone_voice.py",
+      "desktop": "apps/repo-gui/generated/nlp-python-thamudicscanner_allinone_voice.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-python-nlpscanner_allinone",
+      "title": "Nlpscanner Allinone",
+      "repo": "nlp",
+      "source": "nlp/python/NLPScanner_AllInOne.py",
+      "launcher": "apps/repo-gui/generated/nlp-python-nlpscanner_allinone.py",
+      "desktop": "apps/repo-gui/generated/nlp-python-nlpscanner_allinone.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-python-thamudicscanner_allinone",
+      "title": "Thamudicscanner Allinone",
+      "repo": "nlp",
+      "source": "nlp/python/ThamudicScanner_AllInOne.py",
+      "launcher": "apps/repo-gui/generated/nlp-python-thamudicscanner_allinone.py",
+      "desktop": "apps/repo-gui/generated/nlp-python-thamudicscanner_allinone.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-python-thamudic-ocr_worker",
+      "title": "Ocr Worker",
+      "repo": "nlp",
+      "source": "nlp/python/thamudic/ocr_worker.py",
+      "launcher": "apps/repo-gui/generated/nlp-python-thamudic-ocr_worker.py",
+      "desktop": "apps/repo-gui/generated/nlp-python-thamudic-ocr_worker.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-build_workspace",
+      "title": "Build Workspace",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/build_workspace.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-build_workspace.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-build_workspace.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-detect_toolchains",
+      "title": "Detect Toolchains",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/detect_toolchains.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-detect_toolchains.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-detect_toolchains.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-launch_gui",
+      "title": "Launch Gui",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/launch_gui.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-launch_gui.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-launch_gui.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-iso_tool-dependency_detector",
+      "title": "Dependency Detector",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/iso_tool/dependency_detector.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-dependency_detector.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-dependency_detector.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-iso_tool-source_translator",
+      "title": "Source Translator",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/iso_tool/source_translator.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-source_translator.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-source_translator.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-iso-tool-python-iso_tool-build_entrypoint",
+      "title": "Build Entrypoint",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/python/iso_tool/build_entrypoint.py",
+      "launcher": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-build_entrypoint.py",
+      "desktop": "apps/repo-gui/generated/nlp-iso-tool-python-iso_tool-build_entrypoint.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-crypot-app-app",
+      "title": "App",
+      "repo": "nlp",
+      "source": "nlp/crypot-app/app.py",
+      "launcher": "apps/repo-gui/generated/nlp-crypot-app-app.py",
+      "desktop": "apps/repo-gui/generated/nlp-crypot-app-app.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudicscan-server-run",
+      "title": "Run",
+      "repo": "nlp",
+      "source": "nlp/ThamudicScan/server/run.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudicscan-server-run.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudicscan-server-run.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-nlp-crypot-app-wallet_address_lab",
+      "title": "Wallet Address Lab",
+      "repo": "nlp",
+      "source": "nlp/nlp/crypot-app/wallet_address_lab.py",
+      "launcher": "apps/repo-gui/generated/nlp-nlp-crypot-app-wallet_address_lab.py",
+      "desktop": "apps/repo-gui/generated/nlp-nlp-crypot-app-wallet_address_lab.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-nlp-crypot-app-address_target_analyzer",
+      "title": "Address Target Analyzer",
+      "repo": "nlp",
+      "source": "nlp/nlp/crypot-app/address_target_analyzer.py",
+      "launcher": "apps/repo-gui/generated/nlp-nlp-crypot-app-address_target_analyzer.py",
+      "desktop": "apps/repo-gui/generated/nlp-nlp-crypot-app-address_target_analyzer.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudicepiplatform-python-ocr_scan",
+      "title": "Ocr Scan",
+      "repo": "nlp",
+      "source": "nlp/ThamudicEpiPlatform/python/ocr_scan.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudicepiplatform-python-ocr_scan.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudicepiplatform-python-ocr_scan.desktop",
+      "kind": "python-gui-wrapper"
+    },
+    {
+      "slug": "nlp-thamudicepiplatform-python-client",
+      "title": "Client",
+      "repo": "nlp",
+      "source": "nlp/ThamudicEpiPlatform/python/client.py",
+      "launcher": "apps/repo-gui/generated/nlp-thamudicepiplatform-python-client.py",
+      "desktop": "apps/repo-gui/generated/nlp-thamudicepiplatform-python-client.desktop",
+      "kind": "python-gui-wrapper"
+    }
+  ]
+}

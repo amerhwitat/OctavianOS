@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Search Engines
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/search_engines.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-search_engines.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/search_engines.py
+X-OctavianOS-GuiWrapper=true

@@ -1,0 +1,4 @@
+5d84b80607c7b3f0876dfc4796cd0a0ae20c1382a45b5266b32e9afa7ea9b47a  /mnt/c/tmp/ChimeraIIOS/build/boot-artifacts/spitfire/spitfire-sf0-mbr.bin
+9b53f7a8503cdfcc8e2e4d425f6970a5ad4ba0f7ad221f229397ead0ae63a0bd  /mnt/c/tmp/ChimeraIIOS/build/boot-artifacts/spitfire/spitfire-stage2.bin
+e1ce5da4977f2c40930ed63a4521331812529b64310279a11a3c80ab4bfb483d  /mnt/c/tmp/ChimeraIIOS/build/boot-artifacts/spitfire/spitfire-sf1-longmode.o
+5b6acdc660c762c98e717987bab529494e6d67803aa8e0f727cda646d1813571  /mnt/c/tmp/ChimeraIIOS/build/boot-artifacts/spitfire/spitfire-sf2-loader.o

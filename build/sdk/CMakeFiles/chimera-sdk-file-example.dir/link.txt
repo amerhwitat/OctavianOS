@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera-sdk-file-example.dir/link.d "CMakeFiles/chimera-sdk-file-example.dir/examples/c/file_app.c.o" -o chimera-sdk-file-example  libchimera_sdk.a

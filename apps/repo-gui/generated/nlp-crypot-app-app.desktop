@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=App
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/crypot-app/app.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-crypot-app-app.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/crypot-app/app.py
+X-OctavianOS-GuiWrapper=true

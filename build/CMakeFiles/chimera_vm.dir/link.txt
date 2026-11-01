@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_vm.dir/link.d CMakeFiles/chimera_vm.dir/tools/virtualization/chimera_vm.cpp.o -o chimera_vm  libchimera_cvel.a

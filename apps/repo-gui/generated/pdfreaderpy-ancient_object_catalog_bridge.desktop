@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ancient Object Catalog Bridge
+Comment=OctavianOS repo app (PDFreaderPY) — GUI launcher for PDFreaderPY/ancient_object_catalog_bridge.py
+Exec=/opt/octavianos/apps/repo-gui/generated/pdfreaderpy-ancient_object_catalog_bridge.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=PDFreaderPY
+X-OctavianOS-Source=PDFreaderPY/ancient_object_catalog_bridge.py
+X-OctavianOS-GuiWrapper=true

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/aurora-launcher.dir/link.d "CMakeFiles/aurora-launcher.dir/__/desktop/aurora/aurora-launcher.cpp.o" -o aurora-launcher

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-awk.dir/link.d "CMakeFiles/chm-awk.dir/__/system/languages/chm_awk.cpp.o" -o chm-awk

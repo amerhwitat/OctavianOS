@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera-win-pe.a "CMakeFiles/chimera-win-pe.dir/pe_loader.cpp.o"
+/usr/bin/ranlib libchimera-win-pe.a

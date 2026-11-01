@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Run Thamudic
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/run_thamudic.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-run_thamudic.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/run_thamudic.py
+X-OctavianOS-GuiWrapper=true

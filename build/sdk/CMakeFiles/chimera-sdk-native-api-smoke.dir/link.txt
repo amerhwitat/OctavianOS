@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera-sdk-native-api-smoke.dir/link.d "CMakeFiles/chimera-sdk-native-api-smoke.dir/tests/native_api_smoke.cpp.o" -o chimera-sdk-native-api-smoke  libchimera_sdk.a

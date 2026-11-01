@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Btc Scanner
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/btc_scanner.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-btc_scanner.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/btc_scanner.py
+X-OctavianOS-GuiWrapper=true

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Octavian Console — System Administration</title>
+<style>
+:root{
+  --bg:#0b0f17; --bg2:#111826; --bg3:#161f30; --line:#243149;
+  --fg:#e6edf7; --dim:#8b9bb4; --accent:#4da3ff; --accent2:#2f7fd4;
+  --ok:#3ddc84; --warn:#ffb020; --err:#ff5c5c; --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg)}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+a{color:var(--accent);text-decoration:none}
+
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%,#12203a,#070a10 70%);z-index:100}
+#gate .card{width:380px;background:var(--bg2);border:1px solid var(--line);border-radius:16px;
+  padding:32px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+#gate h1{margin:0 0 4px;font-size:22px;letter-spacing:.3px}
+#gate p.sub{margin:0 0 24px;color:var(--dim);font-size:13px}
+#gate label{display:block;font-size:12px;color:var(--dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em}
+#gate input{width:100%;padding:11px 13px;background:var(--bg3);border:1px solid var(--line);
+  border-radius:8px;color:var(--fg);outline:none}
+#gate input:focus{border-color:var(--accent)}
+#gate button{width:100%;margin-top:22px;padding:12px;background:var(--accent);border:0;border-radius:8px;
+  color:#04101f;font-weight:700;cursor:pointer}
+#gate button:hover{background:#69b4ff}
+#gate .err{color:var(--err);font-size:13px;margin-top:12px;min-height:18px}
+#gate .hint{margin-top:18px;font-size:12px;color:var(--dim);line-height:1.5;border-top:1px solid var(--line);padding-top:14px}
+
+#shell{display:none;height:100%;grid-template-columns:232px 1fr;grid-template-rows:52px 1fr}
+#shell.on{display:grid}
+header{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 18px;
+  background:var(--bg2);border-bottom:1px solid var(--line)}
+header .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.3px}
+header .brand .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#4da3ff,#7a5cff);
+  display:grid;place-items:center;font-size:14px}
+header .spacer{flex:1}
+header .pill{font-size:12px;color:var(--dim);background:var(--bg3);border:1px solid var(--line);
+  padding:5px 11px;border-radius:20px}
+header .user{display:flex;align-items:center;gap:8px;font-size:13px}
+header .user .av{width:28px;height:28px;border-radius:50%;background:var(--accent2);display:grid;place-items:center;font-weight:700}
+header .logout{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:7px;padding:6px 12px;cursor:pointer}
+header .logout:hover{color:var(--fg);border-color:var(--accent)}
+
+nav{background:var(--bg2);border-right:1px solid var(--line);padding:14px 10px;overflow:auto}
+nav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);padding:12px 12px 6px}
+nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:var(--fg);
+  font-size:14px;cursor:pointer;margin-bottom:2px}
+nav a .ic{width:18px;text-align:center;opacity:.9}
+nav a:hover{background:var(--bg3)}
+nav a.active{background:linear-gradient(90deg,rgba(77,163,255,.18),transparent);color:#fff;
+  box-shadow:inset 2px 0 0 var(--accent)}
+
+main{overflow:auto;padding:24px 28px 60px}
+main h2{margin:0 0 4px;font-size:22px}
+main .lede{color:var(--dim);font-size:14px;margin:0 0 22px}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
+.panel h3{margin:0 0 14px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}#shell{grid-template-columns:64px 1fr}nav a span.t{display:none}}
+
+.stat{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:16px}
+.stat .k{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+.stat .v{font-size:24px;font-weight:700;margin-top:6px}
+.stat .s{font-size:12px;color:var(--dim);margin-top:4px}
+
+.meter{height:9px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-top:10px;border:1px solid var(--line)}
+.meter > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7a5cff);width:0;transition:width .4s}
+.meter.warn > i{background:linear-gradient(90deg,var(--warn),#ff7a45)}
+.meter.err > i{background:linear-gradient(90deg,var(--err),#ff2d55)}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;
+  letter-spacing:.06em;padding:9px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid rgba(36,49,73,.6);vertical-align:middle}
+tr:hover td{background:rgba(77,163,255,.05)}
+.badge{display:inline-block;font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:600}
+.badge.ok{background:rgba(61,220,132,.14);color:var(--ok)}
+.badge.err{background:rgba(255,92,92,.14);color:var(--err)}
+.badge.warn{background:rgba(255,176,32,.14);color:var(--warn)}
+.badge.dim{background:rgba(139,155,180,.14);color:var(--dim)}
+
+.btn{background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:700}
+.btn.primary:hover{background:#69b4ff}
+.btn.danger{border-color:rgba(255,92,92,.5);color:var(--err)}
+.btn.danger:hover{background:rgba(255,92,92,.12)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+#term{background:#05080d;border:1px solid var(--line);border-radius:10px;height:420px;overflow:auto;
+  padding:14px;font-family:"JetBrains Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap}
+#term .p{color:var(--accent)}
+#term .e{color:var(--err)}
+#term .o{color:#c9d6e8}
+#term .in{color:#fff}
+#term-in{display:flex;gap:8px;margin-top:10px}
+#term-in input{flex:1;background:#05080d;border:1px solid var(--line);border-radius:8px;padding:11px 13px;
+  color:#fff;font-family:"JetBrains Mono",Menlo,monospace;outline:none}
+#term-in input:focus{border-color:var(--accent)}
+
+#logs{background:#05080d;border:1px solid var(--line);border-radius:10px;height:380px;overflow:auto;
+  padding:12px;font-family:"JetBrains Mono",Menlo,monospace;font-size:12.5px;line-height:1.6}
+#logs .ln{display:flex;gap:10px}
+#logs .ts{color:var(--dim);flex:none}
+#logs .svc{color:var(--accent);flex:none}
+#logs .msg{color:#c9d6e8}
+
+.toast-wrap{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:200}
+.toast{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:8px;padding:12px 16px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:sl .25s}
+@keyframes sl{from{transform:translateX(30px);opacity:0}}
+.toast.ok{border-left-color:var(--ok)}.toast.err{border-left-color:var(--err)}
+
+.kv{display:grid;grid-template-columns:180px 1fr;gap:8px 14px;font-size:13.5px}
+.kv .k{color:var(--dim)}
+.hidden{display:none!important}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+code{background:var(--bg3);padding:2px 6px;border-radius:5px;font-size:12.5px}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <h1>Octavian Console</h1>
+    <p class="sub">System administration &amp; monitoring</p>
+    <label for="u">User name</label>
+    <input id="u" autocomplete="username" placeholder="root">
+    <label for="p">Password</label>
+    <input id="p" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button id="login">Log in</button>
+    <div class="err" id="gate-err"></div>
+    <div class="hint">
+      Authenticates against the local system accounts
+      (<code>/etc/shadow</code> via PAM). Members of
+      <code>sudo</code> / <code>wheel</code> get full administrative rights.
+    </div>
+  </div>
+</div>
+
+<div id="shell">
+  <header>
+    <div class="brand"><span class="logo">◈</span> Octavian Console</div>
+    <span class="pill" id="hostpill">loading…</span>
+    <div class="spacer"></div>
+    <span class="pill" id="modePill">demo</span>
+    <div class="user"><span class="av" id="avatar">?</span><span id="who">—</span></div>
+    <button class="logout" id="logout">Log out</button>
+  </header>
+
+  <nav id="nav">
+    <div class="grp">System</div>
+    <a data-view="overview" class="active"><span class="ic">▤</span><span class="t">Overview</span></a>
+    <a data-view="services"><span class="ic">⚙</span><span class="t">Services</span></a>
+    <a data-view="logs"><span class="ic">▦</span><span class="t">Logs</span></a>
+    <a data-view="terminal"><span class="ic">▸</span><span class="t">Terminal</span></a>
+    <div class="grp">Configuration</div>
+    <a data-view="network"><span class="ic">⇄</span><span class="t">Networking</span></a>
+    <a data-view="accounts"><span class="ic">◉</span><span class="t">Accounts</span></a>
+    <a data-view="storage"><span class="ic">▣</span><span class="t">Storage</span></a>
+    <div class="grp">Maintenance</div>
+    <a data-view="software"><span class="ic">⬇</span><span class="t">Software updates</span></a>
+    <a data-view="apps"><span class="ic">▧</span><span class="t">Applications</span></a>
+    <div class="grp">Links</div>
+    <a href="../desktop/aurora-wayland-glass/index.html"><span class="ic">↗</span><span class="t">Aurora desktop</span></a>
+    <a href="../desktop/marine/index.html"><span class="ic">↗</span><span class="t">Marine desktop</span></a>
+    <a href="../repos/index.html"><span class="ic">↗</span><span class="t">Repo App Explorer</span></a>
+  </nav>
+
+  <main id="main"><div class="spin"></div></main>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const API = (location.protocol === "file:") ? null : "/api";
+const state = { user: null, admin: false, demo: true, view: "overview" };
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const pct = (a,b) => b ? Math.min(100, Math.round(a/b*100)) : 0;
+const fmtBytes = n => { if(!n) return "0 B"; const u=["B","KiB","MiB","GiB","TiB"]; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++} return n.toFixed(i?1:0)+" "+u[i]; };
+const fmtUptime = s => { s=Math.floor(s); const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60); return (d?d+"d ":"")+h+"h "+m+"m"; };
+
+function toast(msg, kind="") {
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .3s"; }, 3200);
+  setTimeout(() => el.remove(), 3600);
+}
+
+async function api(path, opts={}) {
+  if (!API) throw new Error("no-api");
+  const r = await fetch(API + path, {
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!r.ok) { let m = r.status + " " + r.statusText; try { m = (await r.json()).error || m; } catch {} throw new Error(m); }
+  return r.json();
+}
+
+const DEMO = {
+  overview: {
+    hostname: "octavian", kernel: "6.6.0-koronos", os: "OctavianOS 1.0.0 (Chimera II)",
+    arch: "x86_64", uptime: 98765, load: [0.42, 0.31, 0.28],
+    cpu: { model: "QEMU Virtual CPU @ 3.2GHz", cores: 4, usage: 23 },
+    mem: { total: 8*1024**3, used: 3.1*1024**3, swapTotal: 2*1024**3, swapUsed: 0.1*1024**3 },
+    disk: { total: 64*1024**3, used: 22*1024**3 },
+    users: 3, processes: 214, packages: 1284, updates: 12
+  },
+  services: [
+    { name: "octavian-kiosk.service", load: "loaded", active: "active", sub: "running", desc: "OctavianOS kiosk session (Xorg + Chromium)" },
+    { name: "octavian-console.service", load: "loaded", active: "active", sub: "running", desc: "Octavian Console web administration" },
+    { name: "octavian-repos.service", load: "loaded", active: "active", sub: "running", desc: "Repo App Explorer static host" },
+    { name: "sshd.service", load: "loaded", active: "active", sub: "running", desc: "OpenSSH server daemon" },
+    { name: "NetworkManager.service", load: "loaded", active: "active", sub: "running", desc: "Network Manager" },
+    { name: "systemd-journald.service", load: "loaded", active: "active", sub: "running", desc: "Journal service" },
+    { name: "cron.service", load: "loaded", active: "active", sub: "running", desc: "Regular background program processing daemon" },
+    { name: "bluetooth.service", load: "loaded", active: "inactive", sub: "dead", desc: "Bluetooth service" },
+    { name: "docker.service", load: "not-found", active: "inactive", sub: "dead", desc: "Docker container runtime" }
+  ],
+  logs: [
+    ["systemd","Started OctavianOS kiosk session."],
+    ["octavian-console","Console listening on 0.0.0.0:9090"],
+    ["kernel","koronos: microkernel boot complete, 4 CPUs online"],
+    ["NetworkManager","device (eth0): state change: activated -> activated"],
+    ["sshd","Server listening on 0.0.0.0 port 22."],
+    ["systemd","Reached target Multi-User System."],
+    ["cron","(root) CMD (run-parts /etc/cron.hourly)"],
+    ["octavian-repos","Serving /opt/octavianos/repos on :8081"],
+    ["kernel","EXT4-fs (sda1): mounted filesystem with ordered data mode"],
+    ["systemd","Started Octavian Console web administration."]
+  ],
+  network: {
+    hostname: "octavian", interfaces: [
+      { name: "eth0", state: "UP", mac: "52:54:00:12:34:56", ip4: "10.0.2.15/24", ip6: "fe80::5054:ff:fe12:3456/64", rx: 128*1024**2, tx: 34*1024**2 },
+      { name: "lo", state: "UP", mac: "00:00:00:00:00:00", ip4: "127.0.0.1/8", ip6: "::1/128", rx: 4*1024**2, tx: 4*1024**2 }
+    ],
+    dns: ["10.0.2.3","1.1.1.1"], gateway: "10.0.2.2"
+  },
+  accounts: [
+    { user: "root", uid: 0, gid: 0, home: "/root", shell: "/bin/bash", groups: ["root"], locked: false, admin: true },
+    { user: "octavian", uid: 1000, gid: 1000, home: "/home/octavian", shell: "/bin/bash", groups: ["octavian","sudo","audio","video"], locked: false, admin: true },
+    { user: "kiosk", uid: 1001, gid: 1001, home: "/home/kiosk", shell: "/bin/bash", groups: ["kiosk"], locked: false, admin: false },
+    { user: "nobody", uid: 65534, gid: 65534, home: "/nonexistent", shell: "/usr/sbin/nologin", groups: ["nogroup"], locked: true, admin: false }
+  ],
+  storage: [
+    { device: "/dev/sda1", mount: "/", fs: "ext4", size: 64*1024**3, used: 22*1024**3, type: "disk" },
+    { device: "tmpfs", mount: "/run", fs: "tmpfs", size: 800*1024**2, used: 2*1024**2, type: "tmpfs" },
+    { device: "/dev/sr0", mount: "/run/live/medium", fs: "iso9660", size: 900*1024**2, used: 900*1024**2, type: "rom" }
+  ],
+  updates: [
+    { name: "linux-image-koronos", from: "6.6.0", to: "6.6.1", kind: "security" },
+    { name: "octavian-desktop", from: "1.0.0", to: "1.0.1", kind: "bugfix" },
+    { name: "python3.11", from: "3.11.2", to: "3.11.9", kind: "security" },
+    { name: "openjdk-17-jre", from: "17.0.10", to: "17.0.13", kind: "security" },
+    { name: "nodejs", from: "18.19.0", to: "18.20.4", kind: "bugfix" }
+  ],
+  apps: [
+    { name: "Aurora Wayland Glass", kind: "desktop", path: "../desktop/aurora-wayland-glass/index.html" },
+    { name: "Marine Desktop", kind: "desktop", path: "../desktop/marine/index.html" },
+    { name: "Default Suite (24 apps)", kind: "suite", path: "default-suite.html" },
+    { name: "Application Center", kind: "store", path: "application-center.html" },
+    { name: "Paint Studio", kind: "app", path: "paint-studio.html" },
+    { name: "Document Desk", kind: "app", path: "document-desk.html" },
+    { name: "Media Deck", kind: "app", path: "media-deck.html" },
+    { name: "Snake Arcade", kind: "game", path: "snake-arcade.html" },
+    { name: "Repo App Explorer", kind: "catalog", path: "../repos/index.html" }
+  ]
+};
+
+async function doLogin() {
+  const u = $("#u").value.trim(), p = $("#p").value;
+  const err = $("#gate-err"); err.textContent = "";
+  if (!u) { err.textContent = "Enter a user name."; return; }
+  const btn = $("#login"); btn.disabled = true; btn.textContent = "Authenticating…";
+  try {
+    if (API) {
+      const r = await api("/login", { method: "POST", body: { user: u, password: p } });
+      state.user = r.user; state.admin = !!r.admin; state.demo = false;
+    } else {
+      if (!p) throw new Error("Password required");
+      state.user = u; state.admin = true; state.demo = true;
+    }
+    enterShell();
+  } catch (e) {
+    err.textContent = e.message === "no-api"
+      ? "Backend unavailable — running in demo mode."
+      : "Authentication failed: " + e.message;
+    if (e.message === "no-api") { state.user = u; state.admin = true; state.demo = true; enterShell(); }
+  } finally {
+    btn.disabled = false; btn.textContent = "Log in";
+  }
+}
+
+function enterShell() {
+  $("#gate").classList.add("hidden");
+  $("#shell").classList.add("on");
+  $("#who").textContent = state.user;
+  $("#avatar").textContent = (state.user[0] || "?").toUpperCase();
+  $("#modePill").textContent = state.demo ? "demo" : "live";
+  $("#modePill").style.color = state.demo ? "var(--warn)" : "var(--ok)";
+  loadOverview();
+  setInterval(() => { if (state.view === "overview") loadOverview(true); }, 5000);
+}
+
+async function get(key) {
+  if (state.demo || !API) return DEMO[key];
+  try { return await api("/" + key); }
+  catch (e) { toast("API error, showing cached data: " + e.message, "err"); return DEMO[key]; }
+}
+
+const views = {};
+
+views.overview = async () => {
+  const d = await get("overview");
+  const cpuP = d.cpu.usage, memP = pct(d.mem.used, d.mem.total), diskP = pct(d.disk.used, d.disk.total);
+  $("#hostpill").textContent = d.hostname + " · " + d.arch;
+  $("#main").innerHTML = `
+    <h2>Overview</h2>
+    <p class="lede">${esc(d.os)} — kernel <code>${esc(d.kernel)}</code> — up ${fmtUptime(d.uptime)}</p>
+    <div class="grid g4">
+      <div class="stat"><div class="k">CPU</div><div class="v">${cpuP}%</div>
+        <div class="s">${esc(d.cpu.model)} · ${d.cpu.cores} cores</div>
+        <div class="meter ${cpuP>85?'err':cpuP>65?'warn':''}"><i style="width:${cpuP}%"></i></div></div>
+      <div class="stat"><div class="k">Memory</div><div class="v">${fmtBytes(d.mem.used)}</div>
+        <div class="s">of ${fmtBytes(d.mem.total)} · swap ${fmtBytes(d.mem.swapUsed)}</div>
+        <div class="meter ${memP>85?'err':memP>65?'warn':''}"><i style="width:${memP}%"></i></div></div>
+      <div class="stat"><div class="k">Disk</div><div class="v">${fmtBytes(d.disk.used)}</div>
+        <div class="s">of ${fmtBytes(d.disk.total)}</div>
+        <div class="meter ${diskP>85?'err':diskP>65?'warn':''}"><i style="width:${diskP}%"></i></div></div>
+      <div class="stat"><div class="k">Load average</div><div class="v">${d.load[0].toFixed(2)}</div>
+        <div class="s">${d.load.map(x=>x.toFixed(2)).join(" · ")}</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel"><h3>System information</h3>
+        <div class="kv">
+          <div class="k">Host name</div><div>${esc(d.hostname)}</div>
+          <div class="k">Operating system</div><div>${esc(d.os)}</div>
+          <div class="k">Kernel</div><div><code>${esc(d.kernel)}</code></div>
+          <div class="k">Architecture</div><div>${esc(d.arch)}</div>
+          <div class="k">Uptime</div><div>${fmtUptime(d.uptime)}</div>
+          <div class="k">Logged-in users</div><div>${d.users}</div>
+          <div class="k">Processes</div><div>${d.processes}</div>
+        </div>
+      </div>
+      <div class="panel"><h3>Maintenance</h3>
+        <div class="kv">
+          <div class="k">Installed packages</div><div>${d.packages}</div>
+          <div class="k">Available updates</div><div><span class="badge ${d.updates?'warn':'ok'}">${d.updates} pending</span></div>
+          <div class="k">Console mode</div><div>${state.demo?'Demo dataset':'Live system'}</div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn primary" onclick="go('software')">Review updates</button>
+          <button class="btn" onclick="go('terminal')">Open terminal</button>
+          <button class="btn" onclick="go('logs')">View logs</button>
+        </div>
+      </div>
+    </div>`;
+};
+
+views.services = async () => {
+  const list = await get("services");
+  $("#main").innerHTML = `
+    <h2>Services</h2>
+    <p class="lede">systemd units on this host. Start, stop and restart directly from here.</p>
+    <div class="panel">
+      <table><thead><tr><th>Unit</th><th>Load</th><th>Active</th><th>Description</th><th style="width:210px">Actions</th></tr></thead>
+      <tbody>${list.map(s => `
+        <tr><td><strong>${esc(s.name)}</strong></td>
+          <td><span class="badge ${s.load==='loaded'?'dim':'warn'}">${esc(s.load)}</span></td>
+          <td><span class="badge ${s.active==='active'?'ok':'dim'}">${esc(s.active)} / ${esc(s.sub)}</span></td>
+          <td style="color:var(--dim)">${esc(s.desc)}</td>
+          <td>
+            <button class="btn" onclick="svc('${esc(s.name)}','start')" ${s.active==='active'?'disabled':''}>Start</button>
+            <button class="btn" onclick="svc('${esc(s.name)}','restart')">Restart</button>
+            <button class="btn danger" onclick="svc('${esc(s.name)}','stop')" ${s.active!=='active'?'disabled':''}>Stop</button>
+          </td></tr>`).join("")}
+      </tbody></table>
+    </div>`;
+};
+
+async function svc(name, action) {
+  if (state.demo || !API) { toast(`[demo] systemctl ${action} ${name}`, "ok"); return; }
+  try { await api("/services/action", { method: "POST", body: { name, action } }); toast(`${action} ${name} — ok`, "ok"); go("services"); }
+  catch (e) { toast(`${action} ${name} failed: ${e.message}`, "err"); }
+}
+
+views.logs = async () => {
+  const rows = await get("logs");
+  const now = Date.now();
+  $("#main").innerHTML = `
+    <h2>Logs</h2>
+    <p class="lede">Recent journal entries. Filter by unit or free text.</p>
+    <div class="panel">
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="logq" placeholder="Filter…" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--fg)">
+        <button class="btn" onclick="go('logs')">Refresh</button>
+      </div>
+      <div id="logs">${rows.map((r,i) => {
+        const t = new Date(now - (rows.length-i)*61000).toISOString().slice(11,19);
+        return `<div class="ln" data-t="${esc((r[0]+' '+r[1]).toLowerCase())}">
+          <span class="ts">${t}</span><span class="svc">${esc(r[0])}</span><span class="msg">${esc(r[1])}</span></div>`;
+      }).join("")}</div>
+    </div>`;
+  $("#logq").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    $$("#logs .ln").forEach(l => l.style.display = l.dataset.t.includes(q) ? "" : "none");
+  });
+};
+
+views.terminal = async () => {
+  $("#main").innerHTML = `
+    <h2>Terminal</h2>
+    <p class="lede">Shell access on the host. Commands run as <code>${esc(state.user||"user")}</code>.</p>
+    <div class="panel">
+      <div id="term"></div>
+      <div id="term-in"><input id="term-cmd" placeholder="Type a command and press Enter…" autocomplete="off" spellcheck="false">
+        <button class="btn primary" id="term-run">Run</button></div>
+    </div>`;
+  const term = $("#term");
+  const print = (txt, cls="o") => { const d = document.createElement("div"); d.className = cls; d.textContent = txt; term.appendChild(d); term.scrollTop = term.scrollHeight; };
+  print("OctavianOS 1.0.0 (Chimera II) — Koronos microkernel", "p");
+  print("Type 'help' for a list of built-in commands.", "o");
+  const hist = []; let hi = 0;
+  const run = async () => {
+    const cmd = $("#term-cmd").value.trim(); if (!cmd) return;
+    $("#term-cmd").value = ""; hist.push(cmd); hi = hist.length;
+    print((state.user||"user") + "@octavian:~$ " + cmd, "in");
+    if (cmd === "clear") { term.innerHTML = ""; return; }
+    if (state.demo || !API) { print(demoShell(cmd), "o"); return; }
+    try {
+      const r = await api("/terminal", { method: "POST", body: { cmd } });
+      print(r.stdout || "", "o"); if (r.stderr) print(r.stderr, "e");
+    } catch (e) { print("error: " + e.message, "e"); }
+  };
+  $("#term-run").onclick = run;
+  $("#term-cmd").addEventListener("keydown", e => {
+    if (e.key === "Enter") run();
+    else if (e.key === "ArrowUp") { if (hi>0) { hi--; e.target.value = hist[hi]; } e.preventDefault(); }
+    else if (e.key === "ArrowDown") { if (hi<hist.length-1) { hi++; e.target.value = hist[hi]; } else { hi=hist.length; e.target.value=""; } e.preventDefault(); }
+  });
+  $("#term-cmd").focus();
+};
+
+function demoShell(cmd) {
+  const c = cmd.replace(/^sudo\s+/, "");
+  const map = {
+    help: "Built-ins: help ls pwd cd cat echo date whoami uname uptime df free ps neofetch systemctl journalctl apt repos history clear exit",
+    ls: "Desktop  Documents  Downloads  Music  Pictures  Public  Templates  Videos  README.txt",
+    pwd: "/home/" + (state.user||"octavian"),
+    date: new Date().toString(),
+    whoami: state.user || "octavian",
+    uname: "Linux octavian 6.6.0-koronos #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux",
+    uptime: " 10:42:07 up 1 day, 3:26,  3 users,  load average: 0.42, 0.31, 0.28",
+    df: "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        64G   22G   39G  36% /\ntmpfs           800M  2.0M  798M   1% /run",
+    free: "               total        used        free      shared  buff/cache   available\nMem:           8.0Gi       3.1Gi       2.4Gi        64Mi       2.5Gi       4.6Gi\nSwap:          2.0Gi       102Mi       1.9Gi",
+    ps: "    PID TTY          TIME CMD\n      1 ?        00:00:02 systemd\n    412 ?        00:00:14 Xorg\n    530 ?        00:01:22 chromium\n   1024 pts/0    00:00:00 bash",
+    neofetch: "      ◈       " + (state.user||"octavian") + "@octavian\n   ◈ ◈ ◈      ---------------\n  ◈  ◈  ◈     OS: OctavianOS 1.0.0 (Chimera II)\n ◈   ◈   ◈    Kernel: 6.6.0-koronos\n◈◈◈◈◈◈◈◈◈   Shell: bash 5.2.15\n              Desktop: Aurora Wayland Glass\n              CPU: QEMU Virtual CPU (4) @ 3.2GHz\n              Memory: 3.1Gi / 8.0Gi",
+    "systemctl status": "● octavian-kiosk.service - OctavianOS kiosk session\n     Loaded: loaded (/lib/systemd/system/octavian-kiosk.service; enabled)\n     Active: active (running) since Mon 10:00:00; 1 day ago",
+    "journalctl -n 5": "Oct 28 10:41:02 octavian systemd[1]: Started OctavianOS kiosk session.\nOct 28 10:41:03 octavian kernel: koronos: microkernel boot complete\nOct 28 10:41:04 octavian NetworkManager[420]: device (eth0) activated\nOct 28 10:41:05 octavian sshd[512]: Server listening on 0.0.0.0 port 22.\nOct 28 10:41:06 octavian octavian-console[600]: Console listening on 0.0.0.0:9090",
+    repos: "Available repositories:\n  octavianos   /opt/octavianos/repos\n  python-gui   38 launchers\n  java          23 jars\n  node          30 apps\n  web           99 surfaces",
+    "apt update": "Hit:1 http://deb.debian.org/debian bookworm InRelease\nReading package lists... Done\nAll packages are up to date."
+  };
+  if (c.startsWith("cd")) return "";
+  if (c.startsWith("cat ")) return "cat: " + c.slice(4) + ": No such file or directory";
+  if (c.startsWith("echo ")) return c.slice(5);
+  if (c.startsWith("apt install ")) return "Reading package lists... Done\nBuilding dependency tree... Done\nE: demo mode — package installation is disabled";
+  return map[c] ?? (c.split(" ")[0] + ": command not found");
+}
+
+views.network = async () => {
+  const d = await get("network");
+  $("#main").innerHTML = `
+    <h2>Networking</h2>
+    <p class="lede">Host name, interfaces and DNS configuration.</p>
+    <div class="panel"><h3>Host name</h3>
+      <div class="kv"><div class="k">Host name</div><div>${esc(d.hostname)}</div>
+      <div class="k">Gateway</div><div>${esc(d.gateway)}</div>
+      <div class="k">DNS servers</div><div>${d.dns.map(esc).join(", ")}</div></div></div>
+    <div class="panel"><h3>Interfaces</h3>
+      <table><thead><tr><th>Interface</th><th>State</th><th>MAC</th><th>IPv4</th><th>IPv6</th><th>RX / TX</th></tr></thead>
+      <tbody>${d.interfaces.map(i => `<tr>
+        <td><strong>${esc(i.name)}</strong></td>
+        <td><span class="badge ${i.state==='UP'?'ok':'dim'}">${esc(i.state)}</span></td>
+        <td><code>${esc(i.mac)}</code></td><td>${esc(i.ip4)}</td><td style="color:var(--dim)">${esc(i.ip6)}</td>
+        <td>${fmtBytes(i.rx)} / ${fmtBytes(i.tx)}</td></tr>`).join("")}</tbody></table></div>`;
+};
+
+views.accounts = async () => {
+  const list = await get("accounts");
+  $("#main").innerHTML = `
+    <h2>Accounts</h2>
+    <p class="lede">Local system users. Console logins are authenticated against these accounts via PAM.</p>
+    <div class="panel">
+      <table><thead><tr><th>User</th><th>UID</th><th>Groups</th><th>Home</th><th>Shell</th><th>Status</th></tr></thead>
+      <tbody>${list.map(a => `<tr>
+        <td><strong>${esc(a.user)}</strong>${a.admin?' <span class="badge warn">admin</span>':''}</td>
+        <td>${a.uid}</td><td style="color:var(--dim)">${a.groups.map(esc).join(", ")}</td>
+        <td><code>${esc(a.home)}</code></td><td><code>${esc(a.shell)}</code></td>
+        <td><span class="badge ${a.locked?'dim':'ok'}">${a.locked?'locked':'active'}</span></td>
+      </tr>`).join("")}</tbody></table>
+    </div>`;
+};
+
+views.storage = async () => {
+  const list = await get("storage");
+  $("#main").innerHTML = `
+    <h2>Storage</h2>
+    <p class="lede">Mounted filesystems and capacity.</p>
+    <div class="panel"><table><thead><tr><th>Device</th><th>Mount point</th><th>Type</th><th>Size</th><th>Used</th><th style="width:220px">Usage</th></tr></thead>
+      <tbody>${list.map(s => { const p = pct(s.used, s.size); return `<tr>
+        <td><code>${esc(s.device)}</code></td><td>${esc(s.mount)}</td><td>${esc(s.fs)}</td>
+        <td>${fmtBytes(s.size)}</td><td>${fmtBytes(s.used)}</td>
+        <td><div class="meter ${p>85?'err':p>65?'warn':''}" style="margin:0"><i style="width:${p}%"></i></div>
+        <span style="font-size:11.5px;color:var(--dim)">${p}%</span></td></tr>`; }).join("")}
+      </tbody></table></div>`;
+};
+
+views.software = async () => {
+  const list = await get("updates");
+  $("#main").innerHTML = `
+    <h2>Software updates</h2>
+    <p class="lede">${list.length} update${list.length===1?"":"s"} available.</p>
+    <div class="panel">
+      <table><thead><tr><th>Package</th><th>Installed</th><th>Available</th><th>Type</th></tr></thead>
+      <tbody>${list.map(u => `<tr><td><strong>${esc(u.name)}</strong></td><td>${esc(u.from)}</td>
+        <td>${esc(u.to)}</td><td><span class="badge ${u.kind==='security'?'err':'warn'}">${esc(u.kind)}</span></td></tr>`).join("")}</tbody></table>
+      <div style="margin-top:16px"><button class="btn primary" onclick="doUpdate()">Install all updates</button></div>
+    </div>`;
+};
+
+async function doUpdate() {
+  if (state.demo || !API) { toast("[demo] all updates installed", "ok"); return; }
+  try { await api("/software/update", { method: "POST", body: {} }); toast("Updates installed", "ok"); go("software"); }
+  catch (e) { toast("Update failed: " + e.message, "err"); }
+}
+
+views.apps = async () => {
+  const list = await get("apps");
+  $("#main").innerHTML = `
+    <h2>Applications</h2>
+    <p class="lede">Installed OctavianOS surfaces, launchers and suites.</p>
+    <div class="panel"><div class="grid g3">
+      ${list.map(a => `<a class="stat" href="${esc(a.path)}" style="display:block;color:var(--fg)">
+        <div class="k">${esc(a.kind)}</div><div class="v" style="font-size:16px">${esc(a.name)}</div>
+        <div class="s">${esc(a.path)}</div></a>`).join("")}
+    </div></div>`;
+};
+
+function go(view) {
+  if (!views[view]) return;
+  state.view = view;
+  $$("#nav a[data-view]").forEach(a => a.classList.toggle("active", a.dataset.view === view));
+  $("#main").innerHTML = '<div class="spin"></div>';
+  views[view]().catch(e => { $("#main").innerHTML = `<div class="panel"><h3>Error</h3><p>${esc(e.message)}</p></div>`; });
+  history.replaceState(null, "", "#" + view);
+}
+
+function loadOverview(silent) { if (state.view === "overview") views.overview(); }
+
+$$("#nav a[data-view]").forEach(a => a.onclick = () => go(a.dataset.view));
+$("#login").onclick = doLogin;
+$("#p").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+$("#u").addEventListener("keydown", e => { if (e.key === "Enter") $("#p").focus(); });
+$("#logout").onclick = async () => {
+  if (API && !state.demo) { try { await api("/logout", { method: "POST", body: {} }); } catch {} }
+  location.reload();
+};
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#shell").classList.contains("on")) go("overview");
+});
+$("#u").focus();
+</script>
+</body>
+</html>

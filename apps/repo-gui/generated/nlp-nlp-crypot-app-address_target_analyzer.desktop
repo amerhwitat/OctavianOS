@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Address Target Analyzer
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/nlp/crypot-app/address_target_analyzer.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-nlp-crypot-app-address_target_analyzer.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/nlp/crypot-app/address_target_analyzer.py
+X-OctavianOS-GuiWrapper=true

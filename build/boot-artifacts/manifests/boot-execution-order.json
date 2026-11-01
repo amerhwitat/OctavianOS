@@ -1,0 +1,13 @@
+{
+  "schema": "CHM-BOOT-EXECUTION-4",
+  "native_execution_order": [
+    {"sequence":1,"id":"spitfire","role":"BIOS/MBR native bootstrap"},
+    {"sequence":2,"id":"jasper","role":"boot policy and stage selection"},
+    {"sequence":3,"id":"grub","role":"filesystem-aware final boot manager and Multiboot2 loader"},
+    {"sequence":4,"id":"koronos","role":"Chimera II OS kernel"}
+  ],
+  "uefi_removable_media": {"path":"/EFI/BOOT/BOOTX64.EFI","architecture":"x86_64","format":"PE/COFF GRUB EFI application"},
+  "iso_fallback": {"sequence":["firmware","grub","jasper-menu","koronos"],"reason":"El Torito firmware selects the ISO boot image; GRUB remains the standards-compatible ISO fallback."},
+  "kernel_protocol":"Multiboot2",
+  "elf_policy":"Every generated runtime/boot ELF is staged and checksummed; relocatable .o files remain build inputs and are not treated as executable boot payloads."
+}

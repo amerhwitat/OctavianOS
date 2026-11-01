@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_server.dir/link.d CMakeFiles/chimera_server.dir/src/server.c.o -o chimera_server  libchimera_core.a libchimera_machine.a -lpthread

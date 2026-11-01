@@ -1,0 +1,3932 @@
+{
+  "schema": "octavianos.repo-app-catalog/1",
+  "repos_root": "/workspace/repos",
+  "repo_count": 12,
+  "totals": {
+    "python-gui": 58,
+    "python-cli": 97,
+    "java": 25,
+    "node": 30,
+    "web": 99
+  },
+  "app_count": 309,
+  "needs_gui_wrapper": [
+    "BizX/games/tools/build_game.py",
+    "BizX/games/tools/validate_game_vault.py",
+    "BizX/python/bizx/__main__.py",
+    "BizX/python/bizx/game_launcher.py",
+    "BizX/python/bizx/unified.py",
+    "BizX/python/scripts/unified.py",
+    "BizX/python/tests/test_bizx.py",
+    "BizX/python/tests/test_unified_feature_parity.py",
+    "BizX/python/tests/test_unified_runtime.py",
+    "BizX/retro/scripts/validate_cbm_media.py",
+    "BizXtreme/UnifiedGame/launcher/python/main.py",
+    "BizXtreme/python/bizxtreme/game_launcher.py",
+    "BizXtreme/python/tests/test_bizxtreme.py",
+    "PDFreaderPY/ancient_object_catalog_bridge.py",
+    "PDFreaderPY/ancient_script_ingest.py",
+    "PDFreaderPY/tests/test_parallel_search.py",
+    "amerhwitat.github.io/apps/python-app-hub/super-flash-iso/test_iso_tools.py",
+    "amerhwitat.github.io/scripts/check_app_catalog.py",
+    "amerhwitat.github.io/scripts/check_optional_apps_catalog.py",
+    "amerhwitat.github.io/scripts/check_site_links.py",
+    "amerhwitat.github.io/scripts/refresh_wallet_python_catalog.py",
+    "amerhwitat.github.io/scripts/test_check_site_links.py",
+    "amerhwitat.github.io/scripts/test_octavian_provider_checks.py",
+    "amerhwitat.github.io/scripts/test_repository_app_explorer.py",
+    "amerhwitat.github.io/tests/test_optional_apps_catalog.py",
+    "amerhwitat.github.io/tests/webgl_launcher_smoke.py",
+    "eth-key-check/project.py",
+    "general/AgentResearchForge/tests/test_core_research.py",
+    "general/AgentResearchForge/tests/test_crawler_policy.py",
+    "general/AgentResearchForge/tests/test_documents.py",
+    "general/AgentResearchForge/tests/test_project_builder.py",
+    "general/EmailKeywordCrawler/python/main.py",
+    "general/SEO-Tool/SEO_Tool/cli.py",
+    "general/SEO-Tool/SEO_Tool/gui.py",
+    "general/WorkflowStudio/services/python/tests/test_rnn_llm_engine.py",
+    "general/WorkflowStudio/tests/test_python_api.py",
+    "general/applications/WebContactCrawler/python/gui_server.py",
+    "general/applications/WebContactCrawler/python/tests/test_gui_server.py",
+    "general/applications/WebContactCrawler/python/tests/test_webcontactcrawler.py",
+    "general/applications/WebContactCrawler/python/webcontactcrawler.py",
+    "nlp/ISO-Tool/python/build_workspace.py",
+    "nlp/ISO-Tool/python/detect_toolchains.py",
+    "nlp/ISO-Tool/python/iso_tool/build_entrypoint.py",
+    "nlp/ISO-Tool/python/iso_tool/dependency_detector.py",
+    "nlp/ISO-Tool/python/iso_tool/source_translator.py",
+    "nlp/ISO-Tool/python/launch_gui.py",
+    "nlp/ISO-Tool/python/tests/test_bios_boot_sector.py",
+    "nlp/ISO-Tool/python/tests/test_boot_import_network.py",
+    "nlp/ISO-Tool/python/tests/test_boot_profiles.py",
+    "nlp/ISO-Tool/python/tests/test_boot_validator.py",
+    "nlp/ISO-Tool/python/tests/test_image_features.py",
+    "nlp/ISO-Tool/python/tests/test_pipeline.py",
+    "nlp/ISO-Tool/python/tests/test_pipeline_resilience.py",
+    "nlp/ISO-Tool/python/tests/test_uefi_entry_contract.py",
+    "nlp/ISO-Tool/python/tests/test_workspace_builder.py",
+    "nlp/ISO-Tool/tools/toolchain.py",
+    "nlp/ThamudicEpiPlatform/python/client.py",
+    "nlp/ThamudicEpiPlatform/python/ocr_scan.py",
+    "nlp/ThamudicEpiPlatform/tools/site_audit.py",
+    "nlp/ThamudicScan/server/run.py",
+    "nlp/ancient_script_registry.py",
+    "nlp/btc_scanner.py",
+    "nlp/crypot-app/app.py",
+    "nlp/database_cli.py",
+    "nlp/nlp-studio/scripts/export_static_data.py",
+    "nlp/nlp/crypot-app/address_target_analyzer.py",
+    "nlp/nlp/crypot-app/wallet_address_lab.py",
+    "nlp/python/NLPScanner_AllInOne.py",
+    "nlp/python/ThamudicScanner_AllInOne.py",
+    "nlp/python/ThamudicScanner_AllInOne_Voice.py",
+    "nlp/python/tests/test_old_north_arabian.py",
+    "nlp/python/thamudic/ocr_worker.py",
+    "nlp/relation.py",
+    "nlp/run_thamudic.py",
+    "nlp/scripts/populate_softr_jordan.py",
+    "nlp/search_engines.py",
+    "nlp/tests/test_thamudic_web_app.py",
+    "nlp/thamudic_scanner.py",
+    "nlp/thamudic_scanner_gui.py",
+    "nlp/thamudic_web_app.py",
+    "test/chimera_py/__main__.py",
+    "test/chimera_py/main.py",
+    "test/research_app/cli.py",
+    "test/start_chimera.py",
+    "test/tests/test_api_contract.py",
+    "test/tests/test_boot_jasper.py",
+    "test/tests/test_boot_runtime.py",
+    "test/tests/test_chimera_python_port.py",
+    "test/tests/test_cli.py",
+    "test/tests/test_core_runtime.py",
+    "test/tests/test_documents.py",
+    "test/tests/test_importer.py",
+    "test/tests/test_index.py",
+    "test/tests/test_text.py",
+    "test/tests/web/test_web_ui_contract.py",
+    "test/tools/consolidate_sources.py",
+    "test/tools/import_github_sources.py"
+  ],
+  "repos": [
+    {
+      "name": "BizX",
+      "apps": [
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizX/java/src/test/java/io/amerhwitat/bizx/monetization/MonetizationRoutingTest.java",
+          "main_class": "io.amerhwitat.bizx.monetization.MonetizationRoutingTest",
+          "has_gui": false,
+          "id": "BizX.java.src.test.java.io.amerhwitat.bizx.monetization.MonetizationRoutingTest",
+          "repo": "BizX",
+          "rel": "BizX/java/src/test/java/io/amerhwitat/bizx/monetization/MonetizationRoutingTest.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizX/java/src/main/java/io/amerhwitat/bizx/GameLauncher.java",
+          "main_class": "io.amerhwitat.bizx.GameLauncher",
+          "has_gui": false,
+          "id": "BizX.java.src.main.java.io.amerhwitat.bizx.GameLauncher",
+          "repo": "BizX",
+          "rel": "BizX/java/src/main/java/io/amerhwitat/bizx/GameLauncher.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizX/java/src/main/java/io/amerhwitat/bizx/cli/Main.java",
+          "main_class": "io.amerhwitat.bizx.cli.Main",
+          "has_gui": false,
+          "id": "BizX.java.src.main.java.io.amerhwitat.bizx.cli.Main",
+          "repo": "BizX",
+          "rel": "BizX/java/src/main/java/io/amerhwitat/bizx/cli/Main.java"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizX/MobileUnified/react-native",
+          "name": "bizx-mobile-unified",
+          "version": "1.0.0",
+          "scripts": [
+            "typecheck"
+          ],
+          "start_script": "tsc --noEmit",
+          "has_gui": false,
+          "id": "BizX.MobileUnified.react-native.package.json",
+          "repo": "BizX",
+          "rel": "BizX/MobileUnified/react-native/package.json"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizX/emailsender/nodejs",
+          "name": "bizx-emailsender",
+          "version": "1.0.0",
+          "scripts": [
+            "start",
+            "test"
+          ],
+          "start_script": "node src/index.js",
+          "has_gui": false,
+          "id": "BizX.emailsender.nodejs.package.json",
+          "repo": "BizX",
+          "rel": "BizX/emailsender/nodejs/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/emailsender/web/index.html",
+          "title": "BizX EmailSender",
+          "has_gui": true,
+          "id": "BizX.emailsender.web.index.html",
+          "repo": "BizX",
+          "rel": "BizX/emailsender/web/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/retro/scripts/validate_cbm_media.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.retro.scripts.validate_cbm_media",
+          "repo": "BizX",
+          "rel": "BizX/retro/scripts/validate_cbm_media.py"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizX/NetworkUnified/java/Main.java",
+          "main_class": "Main",
+          "has_gui": false,
+          "id": "BizX.NetworkUnified.java.Main",
+          "repo": "BizX",
+          "rel": "BizX/NetworkUnified/java/Main.java"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/NetworkUnified/gui/index.html",
+          "title": "BizX Network API Console",
+          "has_gui": true,
+          "id": "BizX.NetworkUnified.gui.index.html",
+          "repo": "BizX",
+          "rel": "BizX/NetworkUnified/gui/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/games/tools/build_game.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.games.tools.build_game",
+          "repo": "BizX",
+          "rel": "BizX/games/tools/build_game.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/games/tools/validate_game_vault.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.games.tools.validate_game_vault",
+          "repo": "BizX",
+          "rel": "BizX/games/tools/validate_game_vault.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/tests/test_bizx.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.tests.test_bizx",
+          "repo": "BizX",
+          "rel": "BizX/python/tests/test_bizx.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/tests/test_unified_runtime.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.tests.test_unified_runtime",
+          "repo": "BizX",
+          "rel": "BizX/python/tests/test_unified_runtime.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/tests/test_unified_feature_parity.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.tests.test_unified_feature_parity",
+          "repo": "BizX",
+          "rel": "BizX/python/tests/test_unified_feature_parity.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/scripts/unified.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.scripts.unified",
+          "repo": "BizX",
+          "rel": "BizX/python/scripts/unified.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/bizx/game_launcher.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.bizx.game_launcher",
+          "repo": "BizX",
+          "rel": "BizX/python/bizx/game_launcher.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/bizx/unified.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.bizx.unified",
+          "repo": "BizX",
+          "rel": "BizX/python/bizx/unified.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/bizx/__main__.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizX.python.bizx.__main__",
+          "repo": "BizX",
+          "rel": "BizX/python/bizx/__main__.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/python/bizx/gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "BizX.python.bizx.gui",
+          "repo": "BizX",
+          "rel": "BizX/python/bizx/gui.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizX/nodejs",
+          "name": "@amerhwitat/bizx",
+          "version": "1.1.0",
+          "scripts": [
+            "game",
+            "health",
+            "lint",
+            "manifest",
+            "start",
+            "test"
+          ],
+          "start_script": "node src/unified/launcher.js",
+          "has_gui": false,
+          "id": "BizX.nodejs.package.json",
+          "repo": "BizX",
+          "rel": "BizX/nodejs/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/docs/index.html",
+          "title": "BizX",
+          "has_gui": true,
+          "id": "BizX.docs.index.html",
+          "repo": "BizX",
+          "rel": "BizX/docs/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizX/InternetScanner/nodejs",
+          "name": "bizx-internet-scanner",
+          "version": "1.0.0",
+          "scripts": [
+            "start",
+            "test"
+          ],
+          "start_script": "node src/server.mjs",
+          "has_gui": false,
+          "id": "BizX.InternetScanner.nodejs.package.json",
+          "repo": "BizX",
+          "rel": "BizX/InternetScanner/nodejs/package.json"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/BizX/InternetScanner/languages/python/gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "BizX.InternetScanner.languages.python.gui",
+          "repo": "BizX",
+          "rel": "BizX/InternetScanner/languages/python/gui.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/InternetScanner/gui/web/index.html",
+          "title": "InternetScanner Explorer",
+          "has_gui": true,
+          "id": "BizX.InternetScanner.gui.web.index.html",
+          "repo": "BizX",
+          "rel": "BizX/InternetScanner/gui/web/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/InternetScanner/web/index.html",
+          "title": "InternetScanner Security Explorer",
+          "has_gui": true,
+          "id": "BizX.InternetScanner.web.index.html",
+          "repo": "BizX",
+          "rel": "BizX/InternetScanner/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizX/web",
+          "name": "@bizx/web-runtime",
+          "version": null,
+          "scripts": [
+            "test"
+          ],
+          "start_script": "node --test test/*.test.js",
+          "has_gui": true,
+          "id": "BizX.web.package.json",
+          "repo": "BizX",
+          "rel": "BizX/web/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/web/javascript/index.html",
+          "title": "BizX Web",
+          "has_gui": true,
+          "id": "BizX.web.javascript.index.html",
+          "repo": "BizX",
+          "rel": "BizX/web/javascript/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizX/AssetBrowser/web/index.html",
+          "title": "BizX / BizXtreme Asset Browser",
+          "has_gui": true,
+          "id": "BizX.AssetBrowser.web.index.html",
+          "repo": "BizX",
+          "rel": "BizX/AssetBrowser/web/index.html"
+        }
+      ],
+      "maven_projects": [
+        "BizX/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "BizX/MobileUnified/android/build.gradle.kts",
+        "BizX/MobileUnified/android/app/build.gradle.kts",
+        "BizX/kotlin/mobile/build.gradle.kts",
+        "BizX/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 2,
+        "python-cli": 10,
+        "java": 4,
+        "node": 5,
+        "web": 7
+      }
+    },
+    {
+      "name": "BizXtreme",
+      "apps": [
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizXtreme/java/src/test/java/io/amerhwitat/bizxtreme/monetization/MonetizationRoutingTest.java",
+          "main_class": "io.amerhwitat.bizxtreme.monetization.MonetizationRoutingTest",
+          "has_gui": false,
+          "id": "BizXtreme.java.src.test.java.io.amerhwitat.bizxtreme.monetization.MonetizationRoutingTest",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/java/src/test/java/io/amerhwitat/bizxtreme/monetization/MonetizationRoutingTest.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizXtreme/java/src/main/java/io/amerhwitat/bizxtreme/GameLauncher.java",
+          "main_class": "io.amerhwitat.bizxtreme.GameLauncher",
+          "has_gui": false,
+          "id": "BizXtreme.java.src.main.java.io.amerhwitat.bizxtreme.GameLauncher",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/java/src/main/java/io/amerhwitat/bizxtreme/GameLauncher.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizXtreme/UnifiedGame/launcher/java/src/main/java/io/amerhwitat/bizx/UnifiedGame.java",
+          "main_class": "io.amerhwitat.bizx.UnifiedGame",
+          "has_gui": false,
+          "id": "BizXtreme.UnifiedGame.launcher.java.src.main.java.io.amerhwitat.bizx.UnifiedGame",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/UnifiedGame/launcher/java/src/main/java/io/amerhwitat/bizx/UnifiedGame.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizXtreme/UnifiedGame/launcher/python/main.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizXtreme.UnifiedGame.launcher.python.main",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/UnifiedGame/launcher/python/main.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizXtreme/threejs/index.html",
+          "title": "BizXtreme \u2014 The Living Frontier",
+          "has_gui": true,
+          "id": "BizXtreme.threejs.index.html",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/threejs/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizXtreme/threejs",
+          "name": "bizxtreme-threejs",
+          "version": "0.1.0",
+          "scripts": [
+            "build",
+            "dev",
+            "preview"
+          ],
+          "start_script": "vite",
+          "has_gui": true,
+          "id": "BizXtreme.threejs.package.json",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/threejs/package.json"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizXtreme/MobileUnified/react-native",
+          "name": "bizxtreme-mobile-unified",
+          "version": "1.0.0",
+          "scripts": [
+            "typecheck"
+          ],
+          "start_script": "tsc --noEmit",
+          "has_gui": false,
+          "id": "BizXtreme.MobileUnified.react-native.package.json",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/MobileUnified/react-native/package.json"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/BizXtreme/NetworkUnified/java/Main.java",
+          "main_class": "Main",
+          "has_gui": false,
+          "id": "BizXtreme.NetworkUnified.java.Main",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/NetworkUnified/java/Main.java"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizXtreme/NetworkUnified/gui/index.html",
+          "title": "BizXtreme Network API Console",
+          "has_gui": true,
+          "id": "BizXtreme.NetworkUnified.gui.index.html",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/NetworkUnified/gui/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizXtreme/python/tests/test_bizxtreme.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizXtreme.python.tests.test_bizxtreme",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/python/tests/test_bizxtreme.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/BizXtreme/python/bizxtreme/game_launcher.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "BizXtreme.python.bizxtreme.game_launcher",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/python/bizxtreme/game_launcher.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/BizXtreme/python/bizxtreme/gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "BizXtreme.python.bizxtreme.gui",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/python/bizxtreme/gui.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/BizXtreme/nodejs",
+          "name": "@amerhwitat/bizxtreme",
+          "version": "1.0.0",
+          "scripts": [
+            "lint",
+            "start",
+            "test"
+          ],
+          "start_script": "node src/game/launcher.js",
+          "has_gui": false,
+          "id": "BizXtreme.nodejs.package.json",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/nodejs/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizXtreme/docs/index.html",
+          "title": "BizXtreme",
+          "has_gui": true,
+          "id": "BizXtreme.docs.index.html",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizXtreme/web/javascript/standalone/index.html",
+          "title": "BizXtreme Web",
+          "has_gui": true,
+          "id": "BizXtreme.web.javascript.standalone.index.html",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/web/javascript/standalone/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/BizXtreme/AssetBrowser/web/index.html",
+          "title": "BizXtreme Asset Browser",
+          "has_gui": true,
+          "id": "BizXtreme.AssetBrowser.web.index.html",
+          "repo": "BizXtreme",
+          "rel": "BizXtreme/AssetBrowser/web/index.html"
+        }
+      ],
+      "maven_projects": [
+        "BizXtreme/java/pom.xml",
+        "BizXtreme/UnifiedGame/launcher/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "BizXtreme/MobileUnified/android/build.gradle.kts",
+        "BizXtreme/MobileUnified/android/app/build.gradle.kts",
+        "BizXtreme/kotlin/mobile/build.gradle.kts",
+        "BizXtreme/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 1,
+        "python-cli": 3,
+        "java": 4,
+        "node": 3,
+        "web": 5
+      }
+    },
+    {
+      "name": "CPU4096",
+      "apps": [
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/CPU4096/node",
+          "name": "chimera-cpu4096-node",
+          "version": "1.0.0",
+          "scripts": [
+            "test"
+          ],
+          "start_script": "node --test",
+          "has_gui": false,
+          "id": "CPU4096.node.package.json",
+          "repo": "CPU4096",
+          "rel": "CPU4096/node/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/CPU4096/docs/index.html",
+          "title": "CPU4096",
+          "has_gui": true,
+          "id": "CPU4096.docs.index.html",
+          "repo": "CPU4096",
+          "rel": "CPU4096/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/CPU4096/web/javascript/index.html",
+          "title": "CPU4096 Web",
+          "has_gui": true,
+          "id": "CPU4096.web.javascript.index.html",
+          "repo": "CPU4096",
+          "rel": "CPU4096/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "CPU4096/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "CPU4096/kotlin/mobile/build.gradle.kts",
+        "CPU4096/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 0,
+        "python-cli": 0,
+        "java": 0,
+        "node": 1,
+        "web": 2
+      }
+    },
+    {
+      "name": "CPU4096Simulator",
+      "apps": [
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/CPU4096Simulator",
+          "name": "chimera-ii-cpu4096-web",
+          "version": "1.0.0",
+          "scripts": [
+            "dev",
+            "lint",
+            "smoke",
+            "start",
+            "test"
+          ],
+          "start_script": "node server.js",
+          "has_gui": false,
+          "id": "CPU4096Simulator.package.json",
+          "repo": "CPU4096Simulator",
+          "rel": "CPU4096Simulator/package.json"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/CPU4096Simulator/java/src/main/java/io/amerhwitat/cpu4096simulator/Cpu4096FxApp.java",
+          "main_class": "io.amerhwitat.cpu4096simulator.Cpu4096FxApp",
+          "has_gui": true,
+          "id": "CPU4096Simulator.java.src.main.java.io.amerhwitat.cpu4096simulator.Cpu4096FxApp",
+          "repo": "CPU4096Simulator",
+          "rel": "CPU4096Simulator/java/src/main/java/io/amerhwitat/cpu4096simulator/Cpu4096FxApp.java"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/CPU4096Simulator/public/index.html",
+          "title": "Chimera II \u00b7 Aurora Web Desktop",
+          "has_gui": true,
+          "id": "CPU4096Simulator.public.index.html",
+          "repo": "CPU4096Simulator",
+          "rel": "CPU4096Simulator/public/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/CPU4096Simulator/docs/index.html",
+          "title": "CPU4096Simulator \u2014 Documentation",
+          "has_gui": true,
+          "id": "CPU4096Simulator.docs.index.html",
+          "repo": "CPU4096Simulator",
+          "rel": "CPU4096Simulator/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/CPU4096Simulator/web/javascript/index.html",
+          "title": "CPU4096 Simulator Web",
+          "has_gui": true,
+          "id": "CPU4096Simulator.web.javascript.index.html",
+          "repo": "CPU4096Simulator",
+          "rel": "CPU4096Simulator/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "CPU4096Simulator/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "CPU4096Simulator/kotlin/mobile/build.gradle.kts",
+        "CPU4096Simulator/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 0,
+        "python-cli": 0,
+        "java": 1,
+        "node": 1,
+        "web": 3
+      }
+    },
+    {
+      "name": "PDFreaderPY",
+      "apps": [
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/PDFreaderPY/pdfreader_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "PDFreaderPY.pdfreader_gui",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/pdfreader_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/PDFreaderPY/temp.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "PDFreaderPY.temp",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/temp.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/PDFreaderPY/ancient_object_catalog_bridge.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "PDFreaderPY.ancient_object_catalog_bridge",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/ancient_object_catalog_bridge.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/PDFreaderPY/ancient_script_ingest.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "PDFreaderPY.ancient_script_ingest",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/ancient_script_ingest.py"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextSearch.java",
+          "main_class": "io.amerhwitat.pdfreader.PdfTextSearch",
+          "has_gui": false,
+          "id": "PDFreaderPY.java.src.main.java.io.amerhwitat.pdfreader.PdfTextSearch",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextSearch.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfPageIngest.java",
+          "main_class": "io.amerhwitat.pdfreader.PdfPageIngest",
+          "has_gui": false,
+          "id": "PDFreaderPY.java.src.main.java.io.amerhwitat.pdfreader.PdfPageIngest",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfPageIngest.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextExtract.java",
+          "main_class": "io.amerhwitat.pdfreader.PdfTextExtract",
+          "has_gui": false,
+          "id": "PDFreaderPY.java.src.main.java.io.amerhwitat.pdfreader.PdfTextExtract",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextExtract.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderGui.java",
+          "main_class": "io.amerhwitat.pdfreader.PdfReaderGui",
+          "has_gui": true,
+          "id": "PDFreaderPY.java.src.main.java.io.amerhwitat.pdfreader.PdfReaderGui",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderGui.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderFxApp.java",
+          "main_class": "io.amerhwitat.pdfreader.PdfReaderFxApp",
+          "has_gui": true,
+          "id": "PDFreaderPY.java.src.main.java.io.amerhwitat.pdfreader.PdfReaderFxApp",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderFxApp.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/PDFreaderPY/tests/test_parallel_search.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "PDFreaderPY.tests.test_parallel_search",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/tests/test_parallel_search.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/PDFreaderPY/docs/index.html",
+          "title": "PDFreaderPY \u2014 Documentation",
+          "has_gui": true,
+          "id": "PDFreaderPY.docs.index.html",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/PDFreaderPY/web/javascript/index.html",
+          "title": "PDFreaderPY Web",
+          "has_gui": true,
+          "id": "PDFreaderPY.web.javascript.index.html",
+          "repo": "PDFreaderPY",
+          "rel": "PDFreaderPY/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "PDFreaderPY/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "PDFreaderPY/kotlin/mobile/build.gradle.kts",
+        "PDFreaderPY/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 2,
+        "python-cli": 3,
+        "java": 5,
+        "node": 0,
+        "web": 2
+      }
+    },
+    {
+      "name": "amerhwitat.github.io",
+      "apps": [
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/index.html",
+          "title": "Amer Hwitat \u2014 Chimera II OS \u00b7 Aurora Wayland Glass Portfolio",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/chimera/index.html",
+          "title": "Chimera II OS \u2014 Public Research Index",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.chimera.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/chimera/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/index.html",
+          "title": "Apps \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/seo-tool/index.html",
+          "title": "SEO Audit Studio \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.seo-tool.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/seo-tool/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/seo-tool",
+          "name": "seo-tool-web",
+          "version": "0.1.0",
+          "scripts": [
+            "dev",
+            "start"
+          ],
+          "start_script": "python -m SEO_Tool.gui",
+          "has_gui": false,
+          "id": "amerhwitat.github.io.apps.seo-tool.package.json",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/seo-tool/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/pdf-reader/index.html",
+          "title": "PDFreaderPY Web",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.pdf-reader.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/pdf-reader/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/cpu4096/web/javascript/index.html",
+          "title": "CPU4096 Web",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.cpu4096.web.javascript.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/cpu4096/web/javascript/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/thamudic-studio/index.html",
+          "title": "ThamudicScan \u2014 Ancient Script Analysis &amp; Translation",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.thamudic-studio.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/thamudic-studio/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/nlp-artifacts/index.html",
+          "title": "Ancient Artifacts Research Database",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.nlp-artifacts.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/nlp-artifacts/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/portfolio-migration/index.html",
+          "title": "Portfolio GUI Migration Dashboard",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.portfolio-migration.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/portfolio-migration/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/aurora-glass-desktop/index.html",
+          "title": "Chimera II OS \u2014 Aurora Wayland Glass",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.aurora-glass-desktop.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/aurora-glass-desktop/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-app-hub/index.html",
+          "title": "Python Application Hub \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.python-app-hub.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-app-hub/index.html"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-app-hub/python_app_hub.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "amerhwitat.github.io.apps.python-app-hub.python_app_hub",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-app-hub/python_app_hub.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-app-hub/super-flash-iso/index.html",
+          "title": "Super Flash & ISO Tool",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.python-app-hub.super-flash-iso.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-app-hub/super-flash-iso/index.html"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-app-hub/super-flash-iso/super_flash_iso.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Choose folder contents for new ISO",
+          "needs_gui_wrapper": false,
+          "id": "amerhwitat.github.io.apps.python-app-hub.super-flash-iso.super_flash_iso",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-app-hub/super-flash-iso/super_flash_iso.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-app-hub/super-flash-iso/test_iso_tools.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.apps.python-app-hub.super-flash-iso.test_iso_tools",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-app-hub/super-flash-iso/test_iso_tools.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/bizx-network/index.html",
+          "title": "BizX Network Console",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.bizx-network.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/bizx-network/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/python-workbench/index.html",
+          "title": "Python Web Workbench \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.python-workbench.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/python-workbench/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/desktop-evolution/index.html",
+          "title": "Desktop Evolution Lab \u2014 Chimera II / OctavianOS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.desktop-evolution.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/desktop-evolution/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/optional-app-center/index.html",
+          "title": "Cross-platform Optional App Center \u2014 ChimeraIIOS &amp; OctavianOS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.optional-app-center.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/optional-app-center/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/thamudic-epi/index.html",
+          "title": null,
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.thamudic-epi.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/thamudic-epi/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/webgl-unity/index.html",
+          "title": "Unity WebGL Launcher \u00b7 Chimera / Octavian Web UI",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.webgl-unity.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/webgl-unity/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/index.html",
+          "title": "OctavianOS \u00b7 React Desktop",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.octavianos.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos",
+          "name": "octavianos-react-companion",
+          "version": "0.1.0",
+          "scripts": [
+            "build",
+            "dev",
+            "native",
+            "preview"
+          ],
+          "start_script": "vite --host 0.0.0.0",
+          "has_gui": false,
+          "id": "amerhwitat.github.io.apps.octavianos.package.json",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/src/index.html",
+          "title": "OctavianOS \u00b7 React Desktop",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.octavianos.src.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/src/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/marine/index.html",
+          "title": "Marine Desktop \u2014 OctavianOS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.octavianos.marine.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/marine/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/web/index.html",
+          "title": "OctavianOS \u2014 Desktop Preview",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.octavianos.web.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/mobile",
+          "name": "octavianos-mobile-companion",
+          "version": "0.1.0",
+          "scripts": [
+            "android",
+            "ios",
+            "start",
+            "typecheck",
+            "web"
+          ],
+          "start_script": "expo start",
+          "has_gui": false,
+          "id": "amerhwitat.github.io.apps.octavianos.mobile.package.json",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/mobile/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/octavianos/aurora/index.html",
+          "title": "Aurora Wayland Glass Desktop \u2014 OctavianOS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.octavianos.aurora.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/octavianos/aurora/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/iso-tool/index.html",
+          "title": "ISO-Tool Browser Planner",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.iso-tool.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/iso-tool/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/thamudic-scanner/index.html",
+          "title": "Thamudic Scanner",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.thamudic-scanner.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/thamudic-scanner/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/bizx-asset-browser/index.html",
+          "title": "BizX / BizXtreme Asset Browser",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.bizx-asset-browser.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/bizx-asset-browser/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-test-suite/index.html",
+          "title": "Aurora \u2014 Chimera II OS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-test-suite.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-test-suite/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-test-suite",
+          "name": "chimera-ii-web",
+          "version": "0.1.0",
+          "scripts": [
+            "start"
+          ],
+          "start_script": "node server.js",
+          "has_gui": false,
+          "id": "amerhwitat.github.io.apps.chimera-test-suite.package.json",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-test-suite/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-test-suite/javascript/index.html",
+          "title": "Web Test Harness",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-test-suite.javascript.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-test-suite/javascript/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/java-app-hub/index.html",
+          "title": "Java Application Hub \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.java-app-hub.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/java-app-hub/index.html"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/java-app-hub/java/src/main/java/io/amerhwitat/javahub/Main.java",
+          "main_class": "io.amerhwitat.javahub.Main",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.java-app-hub.java.src.main.java.io.amerhwitat.javahub.Main",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/java-app-hub/java/src/main/java/io/amerhwitat/javahub/Main.java"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/repository-app-explorer/index.html",
+          "title": "Repository App Explorer \u00b7 Amer Hwitat",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.repository-app-explorer.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/repository-app-explorer/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/os-desktop-hub/index.html",
+          "title": "Chimera II OS & OctavianOS \u2014 Desktop Gallery",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.os-desktop-hub.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/os-desktop-hub/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-pages/index.html",
+          "title": "Chimera II OS \u2014 Public Research Index",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-pages.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-pages/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-ii-os/docs/index.html",
+          "title": "Chimera II OS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-ii-os.docs.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-ii-os/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-ii-os/web/index.html",
+          "title": "Chimera II OS \u2014 Aurora Wayland Glass",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-ii-os.web.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-ii-os/web/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-ii-os/web/javascript/index.html",
+          "title": "Chimera II Web Runtime",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-ii-os.web.javascript.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-ii-os/web/javascript/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/workflow-studio/index.html",
+          "title": "WorkflowStudio",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.workflow-studio.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/workflow-studio/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/bizxtreme-3d/index.html",
+          "title": "BizXtreme \u2014 The Living Frontier",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.bizxtreme-3d.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/bizxtreme-3d/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/nlp-studio/index.html",
+          "title": "NLP / Ancient Script Studio",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.nlp-studio.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/nlp-studio/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/nlp-amiga/index.html",
+          "title": "Aurora Amiga Emulator",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.nlp-amiga.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/nlp-amiga/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/bizxtreme-network/index.html",
+          "title": "BizXtreme Network Console",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.bizxtreme-network.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/bizxtreme-network/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/aurora-mobile/index.html",
+          "title": "Aurora Wayland Mobile",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.aurora-mobile.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/aurora-mobile/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/aurora-mobile/store/index.html",
+          "title": "Chimera Store",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.aurora-mobile.store.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/aurora-mobile/store/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/thamudic-pages/index.html",
+          "title": "Thamudic / Ancient North Arabian Scanner Research",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.thamudic-pages.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/thamudic-pages/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/chimera-3d4d/index.html",
+          "title": "Chimera 3D/4D Studio",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.chimera-3d4d.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/chimera-3d4d/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/cpu4096-simulator/index.html",
+          "title": "CPU4096Simulator Java Runtime",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.cpu4096-simulator.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/cpu4096-simulator/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/cpu4096-simulator/public/index.html",
+          "title": "Chimera II \u00b7 Aurora Web Desktop",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.cpu4096-simulator.public.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/cpu4096-simulator/public/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/installer-center/index.html",
+          "title": "Installer Center \u00b7 ChimeraIIOS &amp; OctavianOS",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.installer-center.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/installer-center/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/installer-center/chimera/index.html",
+          "title": "Chimera II Setup",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.installer-center.chimera.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/installer-center/chimera/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/installer-center/octavian/index.html",
+          "title": "OctavianOS Setup",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.installer-center.octavian.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/installer-center/octavian/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/agent-research-forge/index.html",
+          "title": "AgentResearchForge \u2014 Research Workspace",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.agent-research-forge.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/agent-research-forge/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/apps/cpu4096-aurora/index.html",
+          "title": "Chimera II \u00b7 Aurora Web Desktop",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.apps.cpu4096-aurora.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/apps/cpu4096-aurora/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/tests/test_optional_apps_catalog.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.tests.test_optional_apps_catalog",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/tests/test_optional_apps_catalog.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/tests/webgl_launcher_smoke.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.tests.webgl_launcher_smoke",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/tests/webgl_launcher_smoke.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/check_optional_apps_catalog.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.check_optional_apps_catalog",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/check_optional_apps_catalog.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/test_repository_app_explorer.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.test_repository_app_explorer",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/test_repository_app_explorer.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/test_check_site_links.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.test_check_site_links",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/test_check_site_links.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/check_app_catalog.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.check_app_catalog",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/check_app_catalog.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/refresh_wallet_python_catalog.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.refresh_wallet_python_catalog",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/refresh_wallet_python_catalog.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/test_octavian_provider_checks.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.test_octavian_provider_checks",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/test_octavian_provider_checks.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/amerhwitat.github.io/scripts/check_site_links.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "amerhwitat.github.io.scripts.check_site_links",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/scripts/check_site_links.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/thamudic/index.html",
+          "title": "Thamudic / Ancient North Arabian Scanner Research",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.thamudic.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/thamudic/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/amerhwitat.github.io/web/javascript/index.html",
+          "title": "Amer Hwitat Web Hub",
+          "has_gui": true,
+          "id": "amerhwitat.github.io.web.javascript.index.html",
+          "repo": "amerhwitat.github.io",
+          "rel": "amerhwitat.github.io/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "amerhwitat.github.io/apps/java-app-hub/java/pom.xml"
+      ],
+      "gradle_projects": [],
+      "counts": {
+        "python-gui": 2,
+        "python-cli": 10,
+        "java": 1,
+        "node": 4,
+        "web": 53
+      }
+    },
+    {
+      "name": "bruteforce",
+      "apps": [
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/bruteforce/crypto_research_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "bruteforce.crypto_research_gui",
+          "repo": "bruteforce",
+          "rel": "bruteforce/crypto_research_gui.py"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/bruteforce/java/src/main/java/org/chimera/crypto/research/ResearchCli.java",
+          "main_class": "org.chimera.crypto.research.ResearchCli",
+          "has_gui": false,
+          "id": "bruteforce.java.src.main.java.org.chimera.crypto.research.ResearchCli",
+          "repo": "bruteforce",
+          "rel": "bruteforce/java/src/main/java/org/chimera/crypto/research/ResearchCli.java"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/bruteforce/node",
+          "name": "chimera-bruteforce-safe-node",
+          "version": "1.0.0",
+          "scripts": [
+            "test"
+          ],
+          "start_script": "node --test",
+          "has_gui": false,
+          "id": "bruteforce.node.package.json",
+          "repo": "bruteforce",
+          "rel": "bruteforce/node/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/bruteforce/docs/index.html",
+          "title": "bruteforce",
+          "has_gui": true,
+          "id": "bruteforce.docs.index.html",
+          "repo": "bruteforce",
+          "rel": "bruteforce/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/bruteforce/web/javascript/index.html",
+          "title": "Bruteforce Lab",
+          "has_gui": true,
+          "id": "bruteforce.web.javascript.index.html",
+          "repo": "bruteforce",
+          "rel": "bruteforce/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "bruteforce/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "bruteforce/kotlin/mobile/build.gradle.kts",
+        "bruteforce/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 1,
+        "python-cli": 0,
+        "java": 1,
+        "node": 1,
+        "web": 2
+      }
+    },
+    {
+      "name": "eth-key-check",
+      "apps": [
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/eth-key-check/project.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "eth-key-check.project",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/project.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/eth-key-check/crypto_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "eth-key-check.crypto_gui",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/crypto_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/eth-key-check/crypto_ai_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "eth-key-check.crypto_ai_gui",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/crypto_ai_gui.py"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/eth-key-check/java/src/main/java/org/chimera/crypto/CryptoApplication.java",
+          "main_class": "org.chimera.crypto.CryptoApplication",
+          "has_gui": true,
+          "id": "eth-key-check.java.src.main.java.org.chimera.crypto.CryptoApplication",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/java/src/main/java/org/chimera/crypto/CryptoApplication.java"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/eth-key-check/node",
+          "name": "chimera-crypto-node",
+          "version": "1.0.0",
+          "scripts": [
+            "test",
+            "verify"
+          ],
+          "start_script": "node --test",
+          "has_gui": false,
+          "id": "eth-key-check.node.package.json",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/node/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/eth-key-check/docs/index.html",
+          "title": "eth-key-check",
+          "has_gui": true,
+          "id": "eth-key-check.docs.index.html",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/eth-key-check/web/javascript/index.html",
+          "title": "ETH Key Check",
+          "has_gui": true,
+          "id": "eth-key-check.web.javascript.index.html",
+          "repo": "eth-key-check",
+          "rel": "eth-key-check/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "eth-key-check/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "eth-key-check/kotlin/mobile/build.gradle.kts",
+        "eth-key-check/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 2,
+        "python-cli": 1,
+        "java": 1,
+        "node": 1,
+        "web": 2
+      }
+    },
+    {
+      "name": "general",
+      "apps": [
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/WorkflowStudio/services/python/tests/test_rnn_llm_engine.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.WorkflowStudio.services.python.tests.test_rnn_llm_engine",
+          "repo": "general",
+          "rel": "general/WorkflowStudio/services/python/tests/test_rnn_llm_engine.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/WorkflowStudio/services/node",
+          "name": "chimera-workflow-node",
+          "version": null,
+          "scripts": [
+            "start"
+          ],
+          "start_script": "node server.mjs",
+          "has_gui": false,
+          "id": "general.WorkflowStudio.services.node.package.json",
+          "repo": "general",
+          "rel": "general/WorkflowStudio/services/node/package.json"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/WorkflowStudio/tests/test_python_api.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.WorkflowStudio.tests.test_python_api",
+          "repo": "general",
+          "rel": "general/WorkflowStudio/tests/test_python_api.py"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/general/WorkflowStudio/clients/java/Main.java",
+          "main_class": "com.amerhwitat.chimeraworkflow.Main",
+          "has_gui": false,
+          "id": "general.WorkflowStudio.clients.java.Main",
+          "repo": "general",
+          "rel": "general/WorkflowStudio/clients/java/Main.java"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/Apple-Implementations/Chimera3D4D/web/index.html",
+          "title": "Chimera 3D/4D Studio",
+          "has_gui": true,
+          "id": "general.Apple-Implementations.Chimera3D4D.web.index.html",
+          "repo": "general",
+          "rel": "general/Apple-Implementations/Chimera3D4D/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/Apple-Implementations/Chimera3D4D/web",
+          "name": "chimera-3d4d-web",
+          "version": null,
+          "scripts": [
+            "build",
+            "dev"
+          ],
+          "start_script": "vite",
+          "has_gui": true,
+          "id": "general.Apple-Implementations.Chimera3D4D.web.package.json",
+          "repo": "general",
+          "rel": "general/Apple-Implementations/Chimera3D4D/web/package.json"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/general/email_extractor/ui_java/EmailExtractorUI.java",
+          "main_class": "chimera.emailextractor.ui.EmailExtractorUI",
+          "has_gui": true,
+          "id": "general.email_extractor.ui_java.EmailExtractorUI",
+          "repo": "general",
+          "rel": "general/email_extractor/ui_java/EmailExtractorUI.java"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/general/email_extractor/ui_pyqt/main.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "general.email_extractor.ui_pyqt.main",
+          "repo": "general",
+          "rel": "general/email_extractor/ui_pyqt/main.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/email_extractor/ui_js/index.html",
+          "title": "Email Extractor",
+          "has_gui": true,
+          "id": "general.email_extractor.ui_js.index.html",
+          "repo": "general",
+          "rel": "general/email_extractor/ui_js/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/email_extractor/core_js",
+          "name": "email-extractor-node",
+          "version": "0.1.0",
+          "scripts": [
+            "lint",
+            "start"
+          ],
+          "start_script": "electron .",
+          "has_gui": false,
+          "id": "general.email_extractor.core_js.package.json",
+          "repo": "general",
+          "rel": "general/email_extractor/core_js/package.json"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/general/SEO-Tool/languages/java/src/main/java/org/chimera/seo/JsonlMain.java",
+          "main_class": "org.chimera.seo.JsonlMain",
+          "has_gui": false,
+          "id": "general.SEO-Tool.languages.java.src.main.java.org.chimera.seo.JsonlMain",
+          "repo": "general",
+          "rel": "general/SEO-Tool/languages/java/src/main/java/org/chimera/seo/JsonlMain.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/SEO-Tool/SEO_Tool/gui.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.SEO-Tool.SEO_Tool.gui",
+          "repo": "general",
+          "rel": "general/SEO-Tool/SEO_Tool/gui.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/SEO-Tool/SEO_Tool/cli.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.SEO-Tool.SEO_Tool.cli",
+          "repo": "general",
+          "rel": "general/SEO-Tool/SEO_Tool/cli.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/SEO-Tool/web/index.html",
+          "title": "SEO Audit Studio \u2014 Amer Hwitat",
+          "has_gui": true,
+          "id": "general.SEO-Tool.web.index.html",
+          "repo": "general",
+          "rel": "general/SEO-Tool/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/SEO-Tool/web",
+          "name": "seo-tool-web",
+          "version": "0.1.0",
+          "scripts": [
+            "dev",
+            "start"
+          ],
+          "start_script": "python -m SEO_Tool.gui",
+          "has_gui": true,
+          "id": "general.SEO-Tool.web.package.json",
+          "repo": "general",
+          "rel": "general/SEO-Tool/web/package.json"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/general/EmailKeywordCrawler/java/EmailCrawler.java",
+          "main_class": "EmailCrawler",
+          "has_gui": false,
+          "id": "general.EmailKeywordCrawler.java.EmailCrawler",
+          "repo": "general",
+          "rel": "general/EmailKeywordCrawler/java/EmailCrawler.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/EmailKeywordCrawler/python/main.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.EmailKeywordCrawler.python.main",
+          "repo": "general",
+          "rel": "general/EmailKeywordCrawler/python/main.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/EmailKeywordCrawler/typescript",
+          "name": "email-keyword-crawler",
+          "version": null,
+          "scripts": [
+            "start"
+          ],
+          "start_script": "tsx main.ts",
+          "has_gui": false,
+          "id": "general.EmailKeywordCrawler.typescript.package.json",
+          "repo": "general",
+          "rel": "general/EmailKeywordCrawler/typescript/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/EmailKeywordCrawler/web/index.html",
+          "title": "EmailKeywordCrawler",
+          "has_gui": true,
+          "id": "general.EmailKeywordCrawler.web.index.html",
+          "repo": "general",
+          "rel": "general/EmailKeywordCrawler/web/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/docs/index.html",
+          "title": "amerhwitat / general",
+          "has_gui": true,
+          "id": "general.docs.index.html",
+          "repo": "general",
+          "rel": "general/docs/index.html"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/java/WebContactCrawler.java",
+          "main_class": "WebContactCrawler",
+          "has_gui": false,
+          "id": "general.applications.WebContactCrawler.java.WebContactCrawler",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/java/WebContactCrawler.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/python/gui_server.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.applications.WebContactCrawler.python.gui_server",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/python/gui_server.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/python/webcontactcrawler.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.applications.WebContactCrawler.python.webcontactcrawler",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/python/webcontactcrawler.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/python/tests/test_webcontactcrawler.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.applications.WebContactCrawler.python.tests.test_webcontactcrawler",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/python/tests/test_webcontactcrawler.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/python/tests/test_gui_server.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.applications.WebContactCrawler.python.tests.test_gui_server",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/python/tests/test_gui_server.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/applications/WebContactCrawler/web/index.html",
+          "title": "WebContactCrawler \u2014 Cute Web Extractor Style",
+          "has_gui": true,
+          "id": "general.applications.WebContactCrawler.web.index.html",
+          "repo": "general",
+          "rel": "general/applications/WebContactCrawler/web/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/web/javascript/index.html",
+          "title": "General Web Lab",
+          "has_gui": true,
+          "id": "general.web.javascript.index.html",
+          "repo": "general",
+          "rel": "general/web/javascript/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/mobile/aurora/index.html",
+          "title": "Aurora Wayland Mobile",
+          "has_gui": true,
+          "id": "general.mobile.aurora.index.html",
+          "repo": "general",
+          "rel": "general/mobile/aurora/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/mobile/aurora/store/index.html",
+          "title": "Chimera Store",
+          "has_gui": true,
+          "id": "general.mobile.aurora.store.index.html",
+          "repo": "general",
+          "rel": "general/mobile/aurora/store/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/AgentResearchForge/tests/test_documents.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.AgentResearchForge.tests.test_documents",
+          "repo": "general",
+          "rel": "general/AgentResearchForge/tests/test_documents.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/AgentResearchForge/tests/test_crawler_policy.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.AgentResearchForge.tests.test_crawler_policy",
+          "repo": "general",
+          "rel": "general/AgentResearchForge/tests/test_crawler_policy.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/AgentResearchForge/tests/test_project_builder.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.AgentResearchForge.tests.test_project_builder",
+          "repo": "general",
+          "rel": "general/AgentResearchForge/tests/test_project_builder.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/general/AgentResearchForge/tests/test_core_research.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "general.AgentResearchForge.tests.test_core_research",
+          "repo": "general",
+          "rel": "general/AgentResearchForge/tests/test_core_research.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/AgentResearchForge/ui/index.html",
+          "title": "AgentResearchForge",
+          "has_gui": true,
+          "id": "general.AgentResearchForge.ui.index.html",
+          "repo": "general",
+          "rel": "general/AgentResearchForge/ui/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/general/EmailListManager/typescript",
+          "name": "chimera-email-list-manager",
+          "version": null,
+          "scripts": [
+            "start"
+          ],
+          "start_script": "tsx manager.ts",
+          "has_gui": false,
+          "id": "general.EmailListManager.typescript.package.json",
+          "repo": "general",
+          "rel": "general/EmailListManager/typescript/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/general/EmailListManager/web/index.html",
+          "title": "Chimera Email List Manager",
+          "has_gui": true,
+          "id": "general.EmailListManager.web.index.html",
+          "repo": "general",
+          "rel": "general/EmailListManager/web/index.html"
+        }
+      ],
+      "maven_projects": [
+        "general/email_extractor/core_java/pom.xml",
+        "general/SEO-Tool/languages/java/pom.xml",
+        "general/EmailKeywordCrawler/java/pom.xml",
+        "general/AgentResearchForge/java-client/pom.xml",
+        "general/EmailListManager/java/pom.xml"
+      ],
+      "gradle_projects": [],
+      "counts": {
+        "python-gui": 1,
+        "python-cli": 13,
+        "java": 5,
+        "node": 6,
+        "web": 11
+      }
+    },
+    {
+      "name": "keygen",
+      "apps": [
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/keygen/node",
+          "name": "chimera-keygen-node",
+          "version": "1.0.0",
+          "scripts": [
+            "test"
+          ],
+          "start_script": "node --test",
+          "has_gui": false,
+          "id": "keygen.node.package.json",
+          "repo": "keygen",
+          "rel": "keygen/node/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/keygen/docs/index.html",
+          "title": "keygen",
+          "has_gui": true,
+          "id": "keygen.docs.index.html",
+          "repo": "keygen",
+          "rel": "keygen/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/keygen/web/javascript/index.html",
+          "title": "Keygen Lab",
+          "has_gui": true,
+          "id": "keygen.web.javascript.index.html",
+          "repo": "keygen",
+          "rel": "keygen/web/javascript/index.html"
+        }
+      ],
+      "maven_projects": [
+        "keygen/pom.xml"
+      ],
+      "gradle_projects": [
+        "keygen/kotlin/mobile/build.gradle.kts",
+        "keygen/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 0,
+        "python-cli": 0,
+        "java": 0,
+        "node": 1,
+        "web": 2
+      }
+    },
+    {
+      "name": "nlp",
+      "apps": [
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/search_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.search_gui",
+          "repo": "nlp",
+          "rel": "nlp/search_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/calic_2.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Open addresses file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.calic_2",
+          "repo": "nlp",
+          "rel": "nlp/calic_2.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/relation.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.relation",
+          "repo": "nlp",
+          "rel": "nlp/relation.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/npl-summary.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select PDF",
+          "needs_gui_wrapper": false,
+          "id": "nlp.npl-summary",
+          "repo": "nlp",
+          "rel": "nlp/npl-summary.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/search_engines.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.search_engines",
+          "repo": "nlp",
+          "rel": "nlp/search_engines.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/hex-segwit-converter.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select addr-hex.txt",
+          "needs_gui_wrapper": false,
+          "id": "nlp.hex-segwit-converter",
+          "repo": "nlp",
+          "rel": "nlp/hex-segwit-converter.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/gen-public-addrs.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select private key file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.gen-public-addrs",
+          "repo": "nlp",
+          "rel": "nlp/gen-public-addrs.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/run_thamudic002.py",
+          "has_gui": true,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.run_thamudic002",
+          "repo": "nlp",
+          "rel": "nlp/run_thamudic002.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/chatGPT-prog.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.chatGPT-prog",
+          "repo": "nlp",
+          "rel": "nlp/chatGPT-prog.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/test.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.test",
+          "repo": "nlp",
+          "rel": "nlp/test.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/BTC.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.BTC",
+          "repo": "nlp",
+          "rel": "nlp/BTC.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack007.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack007",
+          "repo": "nlp",
+          "rel": "nlp/crack007.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/pub-key-get.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.pub-key-get",
+          "repo": "nlp",
+          "rel": "nlp/pub-key-get.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/chatGPT-prog002.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.chatGPT-prog002",
+          "repo": "nlp",
+          "rel": "nlp/chatGPT-prog002.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_all_in_one.py",
+          "has_gui": true,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic_all_in_one",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_all_in_one.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/gen-hex.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.gen-hex",
+          "repo": "nlp",
+          "rel": "nlp/gen-hex.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack005.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack005",
+          "repo": "nlp",
+          "rel": "nlp/crack005.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic-scanner.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select templates folder",
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic-scanner",
+          "repo": "nlp",
+          "rel": "nlp/thamudic-scanner.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack004.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack004",
+          "repo": "nlp",
+          "rel": "nlp/crack004.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/btc_scanner.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.btc_scanner",
+          "repo": "nlp",
+          "rel": "nlp/btc_scanner.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack002.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack002",
+          "repo": "nlp",
+          "rel": "nlp/crack002.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select images",
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic",
+          "repo": "nlp",
+          "rel": "nlp/thamudic.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/copilot_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.copilot_gui",
+          "repo": "nlp",
+          "rel": "nlp/copilot_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/btc_testnet_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.btc_testnet_gui",
+          "repo": "nlp",
+          "rel": "nlp/btc_testnet_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack006.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack006",
+          "repo": "nlp",
+          "rel": "nlp/crack006.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_desktop.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic_desktop",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_desktop.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/burn-to-hex-rand002.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select training file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.burn-to-hex-rand002",
+          "repo": "nlp",
+          "rel": "nlp/burn-to-hex-rand002.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/copilot-btc-gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.copilot-btc-gui",
+          "repo": "nlp",
+          "rel": "nlp/copilot-btc-gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack003.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack003",
+          "repo": "nlp",
+          "rel": "nlp/crack003.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/calic_1.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Open addresses file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.calic_1",
+          "repo": "nlp",
+          "rel": "nlp/calic_1.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nn-predict.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select training file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.nn-predict",
+          "repo": "nlp",
+          "rel": "nlp/nn-predict.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ancient_script_registry.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ancient_script_registry",
+          "repo": "nlp",
+          "rel": "nlp/ancient_script_registry.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/copilot_gui_3.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select private keys file (local only)",
+          "needs_gui_wrapper": false,
+          "id": "nlp.copilot_gui_3",
+          "repo": "nlp",
+          "rel": "nlp/copilot_gui_3.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic-scanner-2.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic-scanner-2",
+          "repo": "nlp",
+          "rel": "nlp/thamudic-scanner-2.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nlp_thamudic_all_in_one.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.nlp_thamudic_all_in_one",
+          "repo": "nlp",
+          "rel": "nlp/nlp_thamudic_all_in_one.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/burn-to-hex-rand.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select input file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.burn-to-hex-rand",
+          "repo": "nlp",
+          "rel": "nlp/burn-to-hex-rand.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/search_gui_requests.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.search_gui_requests",
+          "repo": "nlp",
+          "rel": "nlp/search_gui_requests.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/database_cli.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.database_cli",
+          "repo": "nlp",
+          "rel": "nlp/database_cli.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/burn-to-hex.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select input file",
+          "needs_gui_wrapper": false,
+          "id": "nlp.burn-to-hex",
+          "repo": "nlp",
+          "rel": "nlp/burn-to-hex.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_scanner.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.thamudic_scanner",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_scanner.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/npl-mem-sumary.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select PDF",
+          "needs_gui_wrapper": false,
+          "id": "nlp.npl-mem-sumary",
+          "repo": "nlp",
+          "rel": "nlp/npl-mem-sumary.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/genx.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select pk.txt",
+          "needs_gui_wrapper": false,
+          "id": "nlp.genx",
+          "repo": "nlp",
+          "rel": "nlp/genx.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_scanner_gui.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.thamudic_scanner_gui",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_scanner_gui.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/run_thamudic.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.run_thamudic",
+          "repo": "nlp",
+          "rel": "nlp/run_thamudic.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crack001.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crack001",
+          "repo": "nlp",
+          "rel": "nlp/crack001.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_progress_all_in_one.py",
+          "has_gui": true,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.thamudic_progress_all_in_one",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_progress_all_in_one.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/thamudic_web_app.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.thamudic_web_app",
+          "repo": "nlp",
+          "rel": "nlp/thamudic_web_app.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/copilot_gui_2.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select private keys file (local only)",
+          "needs_gui_wrapper": false,
+          "id": "nlp.copilot_gui_2",
+          "repo": "nlp",
+          "rel": "nlp/copilot_gui_2.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.python.gui",
+          "repo": "nlp",
+          "rel": "nlp/python/gui.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/ThamudicScanner_AllInOne_Voice.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.python.ThamudicScanner_AllInOne_Voice",
+          "repo": "nlp",
+          "rel": "nlp/python/ThamudicScanner_AllInOne_Voice.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/NLPScanner_AllInOne.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.python.NLPScanner_AllInOne",
+          "repo": "nlp",
+          "rel": "nlp/python/NLPScanner_AllInOne.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/ThamudicScanner_AllInOne.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.python.ThamudicScanner_AllInOne",
+          "repo": "nlp",
+          "rel": "nlp/python/ThamudicScanner_AllInOne.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/tests/test_old_north_arabian.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.python.tests.test_old_north_arabian",
+          "repo": "nlp",
+          "rel": "nlp/python/tests/test_old_north_arabian.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/thamudic/gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.python.thamudic.gui",
+          "repo": "nlp",
+          "rel": "nlp/python/thamudic/gui.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/python/thamudic/ocr_worker.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.python.thamudic.ocr_worker",
+          "repo": "nlp",
+          "rel": "nlp/python/thamudic/ocr_worker.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/tests/test_thamudic_web_app.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.tests.test_thamudic_web_app",
+          "repo": "nlp",
+          "rel": "nlp/tests/test_thamudic_web_app.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/nodejs/artifacts",
+          "name": "nlp-ancient-artifacts",
+          "version": "1.0.0",
+          "scripts": [
+            "dev",
+            "start"
+          ],
+          "start_script": "node server.js",
+          "has_gui": false,
+          "id": "nlp.nodejs.artifacts.package.json",
+          "repo": "nlp",
+          "rel": "nlp/nodejs/artifacts/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/nodejs/artifacts/web/index.html",
+          "title": "Ancient Artifacts Research Database",
+          "has_gui": true,
+          "id": "nlp.nodejs.artifacts.web.index.html",
+          "repo": "nlp",
+          "rel": "nlp/nodejs/artifacts/web/index.html"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/nlp/ISO-Tool/java/src/main/java/iso/tool/Main.java",
+          "main_class": "iso.tool.Main",
+          "has_gui": false,
+          "id": "nlp.ISO-Tool.java.src.main.java.iso.tool.Main",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/java/src/main/java/iso/tool/Main.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/tools/toolchain.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.tools.toolchain",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/tools/toolchain.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/build_workspace.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.build_workspace",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/build_workspace.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/detect_toolchains.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.detect_toolchains",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/detect_toolchains.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/launch_gui.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.launch_gui",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/launch_gui.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/main.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select source archive",
+          "needs_gui_wrapper": false,
+          "id": "nlp.ISO-Tool.python.main",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/main.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_pipeline_resilience.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_pipeline_resilience",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_pipeline_resilience.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_boot_import_network.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_boot_import_network",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_boot_import_network.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_uefi_entry_contract.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_uefi_entry_contract",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_uefi_entry_contract.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_image_features.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_image_features",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_image_features.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_boot_profiles.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_boot_profiles",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_boot_profiles.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_workspace_builder.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_workspace_builder",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_workspace_builder.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_boot_validator.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_boot_validator",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_boot_validator.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_pipeline.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_pipeline",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_pipeline.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/tests/test_bios_boot_sector.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.tests.test_bios_boot_sector",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/tests/test_bios_boot_sector.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/iso_tool/unified_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": "Select source directory",
+          "needs_gui_wrapper": false,
+          "id": "nlp.ISO-Tool.python.iso_tool.unified_gui",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/iso_tool/unified_gui.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/iso_tool/dependency_detector.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.iso_tool.dependency_detector",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/iso_tool/dependency_detector.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/iso_tool/source_translator.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.iso_tool.source_translator",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/iso_tool/source_translator.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ISO-Tool/python/iso_tool/build_entrypoint.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ISO-Tool.python.iso_tool.build_entrypoint",
+          "repo": "nlp",
+          "rel": "nlp/ISO-Tool/python/iso_tool/build_entrypoint.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/scripts/populate_softr_jordan.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.scripts.populate_softr_jordan",
+          "repo": "nlp",
+          "rel": "nlp/scripts/populate_softr_jordan.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crypot-app/app.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.crypot-app.app",
+          "repo": "nlp",
+          "rel": "nlp/crypot-app/app.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crypot-app/crypto_research_lab.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crypot-app.crypto_research_lab",
+          "repo": "nlp",
+          "rel": "nlp/crypot-app/crypto_research_lab.py"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/crypot-app/crypot_gui.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.crypot-app.crypot_gui",
+          "repo": "nlp",
+          "rel": "nlp/crypot-app/crypot_gui.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/node/thamudic",
+          "name": "@chimera/thamudic",
+          "version": "1.0.0",
+          "scripts": [
+            "test"
+          ],
+          "start_script": "node --test",
+          "has_gui": false,
+          "id": "nlp.node.thamudic.package.json",
+          "repo": "nlp",
+          "rel": "nlp/node/thamudic/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/docs/index.html",
+          "title": "NLP",
+          "has_gui": true,
+          "id": "nlp.docs.index.html",
+          "repo": "nlp",
+          "rel": "nlp/docs/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nlp-studio/scripts/export_static_data.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.nlp-studio.scripts.export_static_data",
+          "repo": "nlp",
+          "rel": "nlp/nlp-studio/scripts/export_static_data.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/nlp-studio/web/index.html",
+          "title": "NLP / Ancient Script Studio",
+          "has_gui": true,
+          "id": "nlp.nlp-studio.web.index.html",
+          "repo": "nlp",
+          "rel": "nlp/nlp-studio/web/index.html"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ThamudicScan/server/run.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ThamudicScan.server.run",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicScan/server/run.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/ThamudicScan/web_ui/index.html",
+          "title": "Thamudic Scanner",
+          "has_gui": true,
+          "id": "nlp.ThamudicScan.web_ui.index.html",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicScan/web_ui/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/ThamudicScan/web_ui",
+          "name": "thamudic-scanner-web-ui",
+          "version": "1.0.0",
+          "scripts": [
+            "build",
+            "dev",
+            "preview",
+            "test"
+          ],
+          "start_script": "vite",
+          "has_gui": true,
+          "id": "nlp.ThamudicScan.web_ui.package.json",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicScan/web_ui/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/web/javascript/index.html",
+          "title": "nlp Web",
+          "has_gui": true,
+          "id": "nlp.web.javascript.index.html",
+          "repo": "nlp",
+          "rel": "nlp/web/javascript/index.html"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nlp/crypot-app/crypto_research_lab.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "nlp.nlp.crypot-app.crypto_research_lab",
+          "repo": "nlp",
+          "rel": "nlp/nlp/crypot-app/crypto_research_lab.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nlp/crypot-app/wallet_address_lab.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.nlp.crypot-app.wallet_address_lab",
+          "repo": "nlp",
+          "rel": "nlp/nlp/crypot-app/wallet_address_lab.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/nlp/crypot-app/address_target_analyzer.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.nlp.crypot-app.address_target_analyzer",
+          "repo": "nlp",
+          "rel": "nlp/nlp/crypot-app/address_target_analyzer.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/Amiga/index.html",
+          "title": "Chimera Amiga Web",
+          "has_gui": true,
+          "id": "nlp.Amiga.index.html",
+          "repo": "nlp",
+          "rel": "nlp/Amiga/index.html"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/java/OcrScan.java",
+          "main_class": "OcrScan",
+          "has_gui": false,
+          "id": "nlp.ThamudicEpiPlatform.java.OcrScan",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/java/OcrScan.java"
+        },
+        {
+          "kind": "java",
+          "language": "java",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/java/Main.java",
+          "main_class": "Main",
+          "has_gui": false,
+          "id": "nlp.ThamudicEpiPlatform.java.Main",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/java/Main.java"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/tools/site_audit.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ThamudicEpiPlatform.tools.site_audit",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/tools/site_audit.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/javascript",
+          "name": "thamudic-ocr-client",
+          "version": null,
+          "scripts": [
+            "scan"
+          ],
+          "start_script": "node ocr_scan.mjs",
+          "has_gui": false,
+          "id": "nlp.ThamudicEpiPlatform.javascript.package.json",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/javascript/package.json"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/python/ocr_scan.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ThamudicEpiPlatform.python.ocr_scan",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/python/ocr_scan.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/python/client.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "nlp.ThamudicEpiPlatform.python.client",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/python/client.py"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/typescript",
+          "name": "thamudic-ocr-client-ts",
+          "version": null,
+          "scripts": [
+            "build",
+            "scan"
+          ],
+          "start_script": "tsc",
+          "has_gui": false,
+          "id": "nlp.ThamudicEpiPlatform.typescript.package.json",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/typescript/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/web/index.html",
+          "title": null,
+          "has_gui": true,
+          "id": "nlp.ThamudicEpiPlatform.web.index.html",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/nlp/ThamudicEpiPlatform/web",
+          "name": "thamudic-epi-platform",
+          "version": "1.0.0",
+          "scripts": [
+            "build",
+            "dev",
+            "preview"
+          ],
+          "start_script": "vite",
+          "has_gui": true,
+          "id": "nlp.ThamudicEpiPlatform.web.package.json",
+          "repo": "nlp",
+          "rel": "nlp/ThamudicEpiPlatform/web/package.json"
+        }
+      ],
+      "maven_projects": [
+        "nlp/java/ai-disciplines/pom.xml",
+        "nlp/java/thamudic/pom.xml",
+        "nlp/ISO-Tool/java/pom.xml",
+        "nlp/ThamudicEpiPlatform/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "nlp/kotlin/mobile/build.gradle.kts",
+        "nlp/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 46,
+        "python-cli": 40,
+        "java": 3,
+        "node": 6,
+        "web": 7
+      }
+    },
+    {
+      "name": "test",
+      "apps": [
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/start_chimera.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.start_chimera",
+          "repo": "test",
+          "rel": "test/start_chimera.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tools/consolidate_sources.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tools.consolidate_sources",
+          "repo": "test",
+          "rel": "test/tools/consolidate_sources.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tools/import_github_sources.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tools.import_github_sources",
+          "repo": "test",
+          "rel": "test/tools/import_github_sources.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/research_app/cli.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.research_app.cli",
+          "repo": "test",
+          "rel": "test/research_app/cli.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/chimera_py/__main__.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.chimera_py.__main__",
+          "repo": "test",
+          "rel": "test/chimera_py/__main__.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/chimera_py/main.py",
+          "has_gui": false,
+          "uses_cli_framework": true,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.chimera_py.main",
+          "repo": "test",
+          "rel": "test/chimera_py/main.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_index.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_index",
+          "repo": "test",
+          "rel": "test/tests/test_index.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_boot_runtime.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_boot_runtime",
+          "repo": "test",
+          "rel": "test/tests/test_boot_runtime.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_boot_jasper.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_boot_jasper",
+          "repo": "test",
+          "rel": "test/tests/test_boot_jasper.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_documents.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_documents",
+          "repo": "test",
+          "rel": "test/tests/test_documents.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_text.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_text",
+          "repo": "test",
+          "rel": "test/tests/test_text.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_cli.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_cli",
+          "repo": "test",
+          "rel": "test/tests/test_cli.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_chimera_python_port.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_chimera_python_port",
+          "repo": "test",
+          "rel": "test/tests/test_chimera_python_port.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_core_runtime.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_core_runtime",
+          "repo": "test",
+          "rel": "test/tests/test_core_runtime.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_importer.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_importer",
+          "repo": "test",
+          "rel": "test/tests/test_importer.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/test_api_contract.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.test_api_contract",
+          "repo": "test",
+          "rel": "test/tests/test_api_contract.py"
+        },
+        {
+          "kind": "python-cli",
+          "language": "python",
+          "entry": "/workspace/repos/test/tests/web/test_web_ui_contract.py",
+          "has_gui": false,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": true,
+          "id": "test.tests.web.test_web_ui_contract",
+          "repo": "test",
+          "rel": "test/tests/web/test_web_ui_contract.py"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/test/docs/index.html",
+          "title": "amerhwitat / test",
+          "has_gui": true,
+          "id": "test.docs.index.html",
+          "repo": "test",
+          "rel": "test/docs/index.html"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/test/web/index.html",
+          "title": "Aurora \u2014 Chimera II OS",
+          "has_gui": true,
+          "id": "test.web.index.html",
+          "repo": "test",
+          "rel": "test/web/index.html"
+        },
+        {
+          "kind": "node",
+          "language": "javascript",
+          "entry": "/workspace/repos/test/web",
+          "name": "chimera-ii-web",
+          "version": "0.1.0",
+          "scripts": [
+            "start"
+          ],
+          "start_script": "node server.js",
+          "has_gui": true,
+          "id": "test.web.package.json",
+          "repo": "test",
+          "rel": "test/web/package.json"
+        },
+        {
+          "kind": "web",
+          "language": "html",
+          "entry": "/workspace/repos/test/web/javascript/index.html",
+          "title": "Web Test Harness",
+          "has_gui": true,
+          "id": "test.web.javascript.index.html",
+          "repo": "test",
+          "rel": "test/web/javascript/index.html"
+        },
+        {
+          "kind": "python-gui",
+          "language": "python",
+          "entry": "/workspace/repos/test/research/pdfreader/temp.py",
+          "has_gui": true,
+          "uses_cli_framework": false,
+          "title": null,
+          "needs_gui_wrapper": false,
+          "id": "test.research.pdfreader.temp",
+          "repo": "test",
+          "rel": "test/research/pdfreader/temp.py"
+        }
+      ],
+      "maven_projects": [
+        "test/java/pom.xml"
+      ],
+      "gradle_projects": [
+        "test/kotlin/mobile/build.gradle.kts",
+        "test/kotlin/mobile/app/build.gradle.kts"
+      ],
+      "counts": {
+        "python-gui": 1,
+        "python-cli": 17,
+        "java": 0,
+        "node": 1,
+        "web": 3
+      }
+    }
+  ]
+}

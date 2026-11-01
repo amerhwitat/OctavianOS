@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_biometric_auth_test.dir/link.d CMakeFiles/chimera_biometric_auth_test.dir/tests/unit/test_biometric_auth.cpp.o -o chimera_biometric_auth_test  libchimera_machine.a

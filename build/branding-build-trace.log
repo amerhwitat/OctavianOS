@@ -1,0 +1,30 @@
++ '[' '' = --help ']'
++ '[' '' = -h ']'
++++ dirname ./platform/linux/build.sh
+++ cd ./platform/linux/../..
+++ pwd
++ CHIMERA_REPO_ROOT=/mnt/c/tmp/ChimeraIIOS
++ cd /mnt/c/tmp/ChimeraIIOS
++ set -euo pipefail
++++ dirname ./platform/linux/build.sh
+++ cd ./platform/linux/../..
+++ pwd
++ ROOT=/mnt/c/tmp/ChimeraIIOS
++ printf 'Chimera II Linux build environment\n'
+Chimera II Linux build environment
++ printf 'Repository: %s\n' /mnt/c/tmp/ChimeraIIOS
+Repository: /mnt/c/tmp/ChimeraIIOS
++ command -v gcc
++ command -v python3
++ python3 /mnt/c/tmp/ChimeraIIOS/appcenter/cli/chimera-appctl.py list
+youtube	YouTube	media	web
+firefox	Firefox	browser	native
+chromium	Chromium	browser	flatpak
+vlc	VLC	media	flatpak
+telegram	Telegram	social	external-store
+signal	Signal	social	external-store
+discord	Discord	social	external-store
+reddit	Reddit	social	web
+libreoffice	LibreOffice	office	native
+gimp	GIMP	graphics	flatpak
+vscode	Visual Studio Code	development	external-store

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Game Launcher
+Comment=OctavianOS repo app (BizX) — GUI launcher for BizX/python/bizx/game_launcher.py
+Exec=/opt/octavianos/apps/repo-gui/generated/bizx-python-bizx-game_launcher.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=BizX
+X-OctavianOS-Source=BizX/python/bizx/game_launcher.py
+X-OctavianOS-GuiWrapper=true

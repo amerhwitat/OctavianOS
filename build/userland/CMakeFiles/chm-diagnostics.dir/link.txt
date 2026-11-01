@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-diagnostics.dir/link.d "CMakeFiles/chm-diagnostics.dir/commands/chimera_diagnostics.cpp.o" -o chm-diagnostics  libaurora_utf.a

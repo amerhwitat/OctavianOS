@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/aurora_video_player.dir/link.d CMakeFiles/aurora_video_player.dir/desktop/aurora/apps/aurora_video.cpp.o -o aurora-video-player

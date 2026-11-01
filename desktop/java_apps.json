@@ -1,0 +1,216 @@
+{
+  "schema": "octavianos.java-apps/1",
+  "total": 23,
+  "built": 23,
+  "skipped": 0,
+  "failed": 0,
+  "apps": [
+    {
+      "slug": "bizx-java-src-main-java-io-amerhwitat-bizx-gamelauncher",
+      "repo": "BizX",
+      "source": "BizX/java/src/main/java/io/amerhwitat/bizx/GameLauncher.java",
+      "main_class": "io.amerhwitat.bizx.GameLauncher",
+      "status": "ok",
+      "jar": "apps/java/dist/bizx-java-src-main-java-io-amerhwitat-bizx-gamelauncher.jar",
+      "classes": 39
+    },
+    {
+      "slug": "bizx-java-src-main-java-io-amerhwitat-bizx-cli-main",
+      "repo": "BizX",
+      "source": "BizX/java/src/main/java/io/amerhwitat/bizx/cli/Main.java",
+      "main_class": "io.amerhwitat.bizx.cli.Main",
+      "status": "ok",
+      "jar": "apps/java/dist/bizx-java-src-main-java-io-amerhwitat-bizx-cli-main.jar",
+      "classes": 39
+    },
+    {
+      "slug": "bizx-networkunified-java-main",
+      "repo": "BizX",
+      "source": "BizX/NetworkUnified/java/Main.java",
+      "main_class": "Main",
+      "status": "ok",
+      "jar": "apps/java/dist/bizx-networkunified-java-main.jar",
+      "classes": 1
+    },
+    {
+      "slug": "bizxtreme-java-src-main-java-io-amerhwitat-bizxtreme-gamelauncher",
+      "repo": "BizXtreme",
+      "source": "BizXtreme/java/src/main/java/io/amerhwitat/bizxtreme/GameLauncher.java",
+      "main_class": "io.amerhwitat.bizxtreme.GameLauncher",
+      "status": "ok",
+      "jar": "apps/java/dist/bizxtreme-java-src-main-java-io-amerhwitat-bizxtreme-gamelauncher.jar",
+      "classes": 24
+    },
+    {
+      "slug": "bizxtreme-unifiedgame-launcher-java-src-main-java-io-amerhwitat-bizx-unifiedgame",
+      "repo": "BizXtreme",
+      "source": "BizXtreme/UnifiedGame/launcher/java/src/main/java/io/amerhwitat/bizx/UnifiedGame.java",
+      "main_class": "io.amerhwitat.bizx.UnifiedGame",
+      "status": "ok",
+      "jar": "apps/java/dist/bizxtreme-unifiedgame-launcher-java-src-main-java-io-amerhwitat-bizx-unifiedgame.jar",
+      "classes": 1
+    },
+    {
+      "slug": "bizxtreme-networkunified-java-main",
+      "repo": "BizXtreme",
+      "source": "BizXtreme/NetworkUnified/java/Main.java",
+      "main_class": "Main",
+      "status": "ok",
+      "jar": "apps/java/dist/bizxtreme-networkunified-java-main.jar",
+      "classes": 1
+    },
+    {
+      "slug": "cpu4096simulator-java-src-main-java-io-amerhwitat-cpu4096simulator-cpu4096fxapp",
+      "repo": "CPU4096Simulator",
+      "source": "CPU4096Simulator/java/src/main/java/io/amerhwitat/cpu4096simulator/Cpu4096FxApp.java",
+      "main_class": "io.amerhwitat.cpu4096simulator.Cpu4096FxApp",
+      "status": "ok",
+      "jar": "apps/java/dist/cpu4096simulator-java-src-main-java-io-amerhwitat-cpu4096simulator-cpu4096fxapp.jar",
+      "classes": 13
+    },
+    {
+      "slug": "pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdftextsearch",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextSearch.java",
+      "main_class": "io.amerhwitat.pdfreader.PdfTextSearch",
+      "status": "ok",
+      "jar": "apps/java/dist/pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdftextsearch.jar",
+      "classes": 9
+    },
+    {
+      "slug": "pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfpageingest",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfPageIngest.java",
+      "main_class": "io.amerhwitat.pdfreader.PdfPageIngest",
+      "status": "ok",
+      "jar": "apps/java/dist/pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfpageingest.jar",
+      "classes": 9
+    },
+    {
+      "slug": "pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdftextextract",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfTextExtract.java",
+      "main_class": "io.amerhwitat.pdfreader.PdfTextExtract",
+      "status": "ok",
+      "jar": "apps/java/dist/pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdftextextract.jar",
+      "classes": 9
+    },
+    {
+      "slug": "pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfreadergui",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderGui.java",
+      "main_class": "io.amerhwitat.pdfreader.PdfReaderGui",
+      "status": "ok",
+      "jar": "apps/java/dist/pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfreadergui.jar",
+      "classes": 9
+    },
+    {
+      "slug": "pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfreaderfxapp",
+      "repo": "PDFreaderPY",
+      "source": "PDFreaderPY/java/src/main/java/io/amerhwitat/pdfreader/PdfReaderFxApp.java",
+      "main_class": "io.amerhwitat.pdfreader.PdfReaderFxApp",
+      "status": "ok",
+      "jar": "apps/java/dist/pdfreaderpy-java-src-main-java-io-amerhwitat-pdfreader-pdfreaderfxapp.jar",
+      "classes": 9
+    },
+    {
+      "slug": "amerhwitat.github.io-apps-java-app-hub-java-src-main-java-io-amerhwitat-javahub-main",
+      "repo": "amerhwitat.github.io",
+      "source": "amerhwitat.github.io/apps/java-app-hub/java/src/main/java/io/amerhwitat/javahub/Main.java",
+      "main_class": "io.amerhwitat.javahub.Main",
+      "status": "ok",
+      "jar": "apps/java/dist/amerhwitat.github.io-apps-java-app-hub-java-src-main-java-io-amerhwitat-javahub-main.jar",
+      "classes": 3
+    },
+    {
+      "slug": "bruteforce-java-src-main-java-org-chimera-crypto-research-researchcli",
+      "repo": "bruteforce",
+      "source": "bruteforce/java/src/main/java/org/chimera/crypto/research/ResearchCli.java",
+      "main_class": "org.chimera.crypto.research.ResearchCli",
+      "status": "ok",
+      "jar": "apps/java/dist/bruteforce-java-src-main-java-org-chimera-crypto-research-researchcli.jar",
+      "classes": 4
+    },
+    {
+      "slug": "eth-key-check-java-src-main-java-org-chimera-crypto-cryptoapplication",
+      "repo": "eth-key-check",
+      "source": "eth-key-check/java/src/main/java/org/chimera/crypto/CryptoApplication.java",
+      "main_class": "org.chimera.crypto.CryptoApplication",
+      "status": "ok",
+      "jar": "apps/java/dist/eth-key-check-java-src-main-java-org-chimera-crypto-cryptoapplication.jar",
+      "classes": 6
+    },
+    {
+      "slug": "general-workflowstudio-clients-java-main",
+      "repo": "general",
+      "source": "general/WorkflowStudio/clients/java/Main.java",
+      "main_class": "com.amerhwitat.chimeraworkflow.Main",
+      "status": "ok",
+      "jar": "apps/java/dist/general-workflowstudio-clients-java-main.jar",
+      "classes": 1
+    },
+    {
+      "slug": "general-email_extractor-ui_java-emailextractorui",
+      "repo": "general",
+      "source": "general/email_extractor/ui_java/EmailExtractorUI.java",
+      "main_class": "chimera.emailextractor.ui.EmailExtractorUI",
+      "status": "ok",
+      "jar": "apps/java/dist/general-email_extractor-ui_java-emailextractorui.jar",
+      "classes": 5
+    },
+    {
+      "slug": "general-seo-tool-languages-java-src-main-java-org-chimera-seo-jsonlmain",
+      "repo": "general",
+      "source": "general/SEO-Tool/languages/java/src/main/java/org/chimera/seo/JsonlMain.java",
+      "main_class": "org.chimera.seo.JsonlMain",
+      "status": "ok",
+      "jar": "apps/java/dist/general-seo-tool-languages-java-src-main-java-org-chimera-seo-jsonlmain.jar",
+      "classes": 2
+    },
+    {
+      "slug": "general-emailkeywordcrawler-java-emailcrawler",
+      "repo": "general",
+      "source": "general/EmailKeywordCrawler/java/EmailCrawler.java",
+      "main_class": "EmailCrawler",
+      "status": "ok",
+      "jar": "apps/java/dist/general-emailkeywordcrawler-java-emailcrawler.jar",
+      "classes": 1
+    },
+    {
+      "slug": "general-applications-webcontactcrawler-java-webcontactcrawler",
+      "repo": "general",
+      "source": "general/applications/WebContactCrawler/java/WebContactCrawler.java",
+      "main_class": "WebContactCrawler",
+      "status": "ok",
+      "jar": "apps/java/dist/general-applications-webcontactcrawler-java-webcontactcrawler.jar",
+      "classes": 1
+    },
+    {
+      "slug": "nlp-iso-tool-java-src-main-java-iso-tool-main",
+      "repo": "nlp",
+      "source": "nlp/ISO-Tool/java/src/main/java/iso/tool/Main.java",
+      "main_class": "iso.tool.Main",
+      "status": "ok",
+      "jar": "apps/java/dist/nlp-iso-tool-java-src-main-java-iso-tool-main.jar",
+      "classes": 7
+    },
+    {
+      "slug": "nlp-thamudicepiplatform-java-ocrscan",
+      "repo": "nlp",
+      "source": "nlp/ThamudicEpiPlatform/java/OcrScan.java",
+      "main_class": "OcrScan",
+      "status": "ok",
+      "jar": "apps/java/dist/nlp-thamudicepiplatform-java-ocrscan.jar",
+      "classes": 2
+    },
+    {
+      "slug": "nlp-thamudicepiplatform-java-main",
+      "repo": "nlp",
+      "source": "nlp/ThamudicEpiPlatform/java/Main.java",
+      "main_class": "Main",
+      "status": "ok",
+      "jar": "apps/java/dist/nlp-thamudicepiplatform-java-main.jar",
+      "classes": 2
+    }
+  ]
+}

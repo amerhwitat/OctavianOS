@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Thamudic Scanner Gui
+Comment=OctavianOS repo app (nlp) — GUI launcher for nlp/thamudic_scanner_gui.py
+Exec=/opt/octavianos/apps/repo-gui/generated/nlp-thamudic_scanner_gui.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=nlp
+X-OctavianOS-Source=nlp/thamudic_scanner_gui.py
+X-OctavianOS-GuiWrapper=true

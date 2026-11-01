@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_microkernel_services_test.dir/link.d CMakeFiles/chimera_microkernel_services_test.dir/tests/unit/test_microkernel_services.cpp.o -o chimera_microkernel_services_test  libchimera_machine.a

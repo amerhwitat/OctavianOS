@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Project
+Comment=OctavianOS repo app (eth-key-check) — GUI launcher for eth-key-check/project.py
+Exec=/opt/octavianos/apps/repo-gui/generated/eth-key-check-project.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=eth-key-check
+X-OctavianOS-Source=eth-key-check/project.py
+X-OctavianOS-GuiWrapper=true

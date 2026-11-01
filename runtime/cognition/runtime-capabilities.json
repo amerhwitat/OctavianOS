@@ -1,0 +1,24 @@
+{
+  "schema": "OCTAVIAN-RUNTIME-COGNITION-CAPABILITIES-1",
+  "status": "staged-host-smoke-only",
+  "model_type": "trained-character-level-vanilla-RNN",
+  "model_file": "trained-command-isa-rnn.json",
+  "model_trained": true,
+  "training_sequences": 400,
+  "command_rows": 3348,
+  "isa_rows": 1613,
+  "epochs": 2,
+  "loss_first": 1.7708121847391374,
+  "loss_last": 1.3623123176235254,
+  "corpus_sha256": "1fb958131f9915c8b55757029f3569f8a1648c3e477ff4487e303bc3447eb888",
+  "host_router_smoke_tested_in_ci": false,
+  "in_os_execution_verified": false,
+  "python3_required": true,
+  "kernel_userspace_ready_verified": false,
+  "blockers": [
+    "Koronos must provide a verified user process address space and ring-3 transition.",
+    "The target userspace must provide Python 3 or a native port of the RNN scorer.",
+    "Live, Installer, and Recovery each need an actual nonzero init PID readiness marker."
+  ],
+  "safety": "Advisory scoring only; model output never authorizes command execution or ISA conformance."
+}

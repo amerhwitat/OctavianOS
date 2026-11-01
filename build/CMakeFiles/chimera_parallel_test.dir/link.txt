@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_parallel_test.dir/link.d CMakeFiles/chimera_parallel_test.dir/tests/parallel/test_parallel.cpp.o -o chimera_parallel_test  libchimera_machine.a

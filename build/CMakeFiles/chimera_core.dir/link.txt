@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera_core.a CMakeFiles/chimera_core.dir/src/chimera.c.o
+/usr/bin/ranlib libchimera_core.a

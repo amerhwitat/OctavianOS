@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_iot_test.dir/link.d CMakeFiles/chimera_iot_test.dir/tests/iot/test_iot.cpp.o -o chimera_iot_test  libchimera_machine.a

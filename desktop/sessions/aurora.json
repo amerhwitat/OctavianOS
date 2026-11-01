@@ -1,0 +1,16 @@
+{
+  "id": "aurora",
+  "name": "Aurora Wayland Glass Desktop",
+  "version": "0.1.0",
+  "launch": {
+    "executable": "/opt/octavianos/launch-desktop.sh",
+    "args": ["aurora"]
+  },
+  "architectures": ["x86_64"],
+  "display_backend": "web",
+  "requires": ["chromium", "xorg", "octavian-web.service"],
+  "license": "Apache-2.0",
+  "readiness_probe": "/opt/octavianos/probe-desktop.sh aurora",
+  "launch_method": "web",
+  "status": "prototype"
+}

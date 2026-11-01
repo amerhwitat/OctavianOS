@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-reboot.dir/link.d "CMakeFiles/chm-reboot.dir/commands/chm-reboot.cpp.o" "CMakeFiles/chm-reboot.dir/__/knowledge/patch/reboot_manager.cpp.o" -o chm-reboot  libaurora_utf.a

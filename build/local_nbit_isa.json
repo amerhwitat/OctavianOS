@@ -1,0 +1,831 @@
+{
+  "schema": "chimera-ii-local-nbit-isa-v1",
+  "generated": true,
+  "canonical_opcode_source": "tools/isa/chimera_r8192_opcode_index.csv",
+  "register_widths_bits": [
+    8,
+    16,
+    32,
+    64,
+    128,
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+    16384,
+    32768,
+    65536
+  ],
+  "foreign_sources": [
+    "x86",
+    "aarch64",
+    "riscv",
+    "mips",
+    "power",
+    "sparc",
+    "s390"
+  ],
+  "profiles": [
+    {
+      "name": "chimera-risc-n8",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 8,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 8,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n8",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 8,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 8,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n16",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 16,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 16,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n16",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 16,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 16,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n32",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 32,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n32",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 32,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 32,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n64",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n64",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 64,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n128",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 128,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 128,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n128",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 128,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 128,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n256",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 256,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 256,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n256",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 256,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 256,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n512",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 512,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 512,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n512",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 512,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 512,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n1024",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 1024,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 1024,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n1024",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 1024,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 1024,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n2048",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 2048,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 2048,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n2048",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 2048,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 2048,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n4096",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 4096,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 4096,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n4096",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 4096,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 4096,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n8192",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 8192,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 8192,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n8192",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 8192,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 8192,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n16384",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 16384,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 16384,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n16384",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 16384,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 16384,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n32768",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 32768,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 32768,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n32768",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 32768,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 32768,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "chimera-risc-n65536",
+      "source": "chimera-local",
+      "style": "RISC",
+      "register_bits": 65536,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 65536,
+        "min_instruction_bytes": 16,
+        "max_instruction_bytes": 16,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "chimera-cisc-n65536",
+      "source": "chimera-local",
+      "style": "CISC",
+      "register_bits": 65536,
+      "min_register_bits": 8,
+      "max_register_bits": 65536,
+      "hardware_native": false,
+      "format": {
+        "opcode_bits": 16,
+        "register_index_bits": 16,
+        "immediate_bits": 65536,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 32,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "x86-import-n8",
+      "source": "x86",
+      "style": "CISC",
+      "register_bits": 8,
+      "min_register_bits": 8,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 8,
+        "register_index_bits": 4,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 15,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "x86-import-n16",
+      "source": "x86",
+      "style": "CISC",
+      "register_bits": 16,
+      "min_register_bits": 8,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 8,
+        "register_index_bits": 4,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 15,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "x86-import-n32",
+      "source": "x86",
+      "style": "CISC",
+      "register_bits": 32,
+      "min_register_bits": 8,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 8,
+        "register_index_bits": 4,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 15,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "x86-import-n64",
+      "source": "x86",
+      "style": "CISC",
+      "register_bits": 64,
+      "min_register_bits": 8,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 8,
+        "register_index_bits": 4,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 15,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "aarch64-import-n32",
+      "source": "aarch64",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "aarch64-import-n64",
+      "source": "aarch64",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "aarch64-import-n128",
+      "source": "aarch64",
+      "style": "RISC",
+      "register_bits": 128,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "riscv-import-n32",
+      "source": "riscv",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "riscv-import-n64",
+      "source": "riscv",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "riscv-import-n128",
+      "source": "riscv",
+      "style": "RISC",
+      "register_bits": 128,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": true
+      }
+    },
+    {
+      "name": "mips-import-n32",
+      "source": "mips",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "mips-import-n64",
+      "source": "mips",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "power-import-n32",
+      "source": "power",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "power-import-n64",
+      "source": "power",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "power-import-n128",
+      "source": "power",
+      "style": "RISC",
+      "register_bits": 128,
+      "min_register_bits": 32,
+      "max_register_bits": 128,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "sparc-import-n32",
+      "source": "sparc",
+      "style": "RISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "sparc-import-n64",
+      "source": "sparc",
+      "style": "RISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "s390-import-n32",
+      "source": "s390",
+      "style": "CISC",
+      "register_bits": 32,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    },
+    {
+      "name": "s390-import-n64",
+      "source": "s390",
+      "style": "CISC",
+      "register_bits": 64,
+      "min_register_bits": 32,
+      "max_register_bits": 64,
+      "hardware_native": true,
+      "format": {
+        "opcode_bits": 32,
+        "register_index_bits": 5,
+        "immediate_bits": 64,
+        "min_instruction_bytes": 1,
+        "max_instruction_bytes": 4,
+        "variable_length": false
+      }
+    }
+  ]
+}

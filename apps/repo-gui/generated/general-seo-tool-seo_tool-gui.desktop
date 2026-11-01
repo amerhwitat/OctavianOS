@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Gui
+Comment=OctavianOS repo app (general) — GUI launcher for general/SEO-Tool/SEO_Tool/gui.py
+Exec=/opt/octavianos/apps/repo-gui/generated/general-seo-tool-seo_tool-gui.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=general
+X-OctavianOS-Source=general/SEO-Tool/SEO_Tool/gui.py
+X-OctavianOS-GuiWrapper=true

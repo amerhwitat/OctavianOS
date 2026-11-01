@@ -1,0 +1,156 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.comprehensive
+#1 transferring dockerfile: 45B 0.1s
+#1 transferring dockerfile: 28.56kB 0.3s done
+#1 DONE 0.3s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:24.04
+#2 ...
+
+#3 [auth] library/ubuntu:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:24.04
+#2 DONE 1.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 33B 0.0s
+#4 transferring context: 449B 0.3s done
+#4 DONE 0.4s
+
+#5 [builder  1/37] FROM docker.io/library/ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+#5 resolve docker.io/library/ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac 0.0s done
+#5 DONE 0.1s
+
+#6 [builder 17/37] RUN git clone --depth 1 https://github.com/amerhwitat/PDFreaderPY.git &&     cd PDFreaderPY &&     if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi &&     mkdir -p /opt/chimera/applications/PDFreaderPY &&     cp -r . /opt/chimera/applications/PDFreaderPY &&     cp -r . /src/chimera/PDFreaderPY
+#6 CACHED
+
+#7 [builder 27/37] RUN mkdir -p /opt/chimera/share/chimera/drivers /usr/local/bin &&     install -m 0644 /build/repos/ChimeraIIOS/drivers/audio-driver-manifest.json /opt/chimera/share/chimera/drivers/ &&     install -m 0644 /build/repos/ChimeraIIOS/drivers/hardware-driver-policy.json /opt/chimera/share/chimera/drivers/ &&     install -m 0644 /build/repos/ChimeraIIOS/drivers/hardware-driver-catalog.json /opt/chimera/share/chimera/drivers/ &&     install -m 0755 /build/repos/ChimeraIIOS/tools/drivers/chimera-hardware-drivers /usr/local/bin/chimera-hardware-drivers &&     install -m 0755 /build/repos/ChimeraIIOS/tools/drivers/chimera-driver-panel.py /usr/local/bin/chimera-driver-panel.py
+#7 CACHED
+
+#8 [builder 29/37] RUN mkdir -p /opt/chimera/share/chimera/display /usr/bin &&     install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-display /opt/chimera/share/chimera/display/chimera-display &&     install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-display-settings.py /opt/chimera/share/chimera/display/chimera-display-settings.py &&     install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-gpu-driver-manager /opt/chimera/share/chimera/display/chimera-gpu-driver-manager
+#8 CACHED
+
+#9 [runtime 2/4] RUN useradd -m -u 10001 chimera &&     mkdir -p /workspace &&     chown -R chimera:chimera /workspace
+#9 CACHED
+
+#10 [builder 11/37] RUN set -eux;     rm -rf BizXtreme /tmp/BizXtreme.tar.gz /tmp/BizXtreme-src;     export GIT_TERMINAL_PROMPT=0 GIT_HTTP_VERSION=HTTP/1.1;     git config --global http.version HTTP/1.1;     git config --global http.lowSpeedLimit 1;     git config --global http.lowSpeedTime 600;     cloned=0;     for attempt in 1 2 3 4 5; do       echo "[Chimera] BizXtreme git clone attempt $attempt/5 (HTTP/1.1)";       rm -rf BizXtreme;       if git -c http.version=HTTP/1.1 clone --depth 1 --single-branch           --config http.lowSpeedLimit=1 --config http.lowSpeedTime=600           https://github.com/amerhwitat/BizXtreme.git BizXtreme; then         cloned=1; break;       fi;       sleep $((attempt * 5));     done;     if [ "$cloned" -ne 1 ]; then       echo "[Chimera][WARN] Git smart-HTTP clone failed; using GitHub codeload fallback.";       rm -rf BizXtreme /tmp/BizXtreme-src;       mkdir -p /tmp/BizXtreme-src;       for attempt in 1 2 3 4 5; do         echo "[Chimera] BizXtreme codeload attempt $attempt/5";         rm -f /tmp/BizXtreme.tar.gz;         if curl --fail --location --retry 5 --retry-delay 5             --connect-timeout 30 --max-time 900             -o /tmp/BizXtreme.tar.gz             https://codeload.github.com/amerhwitat/BizXtreme/tar.gz/refs/heads/main; then           tar -xzf /tmp/BizXtreme.tar.gz -C /tmp/BizXtreme-src;           src="$(find /tmp/BizXtreme-src -mindepth 1 -maxdepth 1 -type d -print -quit)";           if [ -n "$src" ]; then mv "$src" BizXtreme; cloned=1; break; fi;         fi;         sleep $((attempt * 5));       done;     fi;     if [ "$cloned" -ne 1 ]; then echo "[Chimera][ERROR] Unable to fetch BizXtreme after Git and codeload retries."; exit 1; fi;     cd BizXtreme;     if [ -f requirements.txt ]; then pip3 install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt; fi;     if [ -f setup.py ]; then python -m pip install --no-cache-dir --retries 5 --timeout 120 .; fi;     mkdir -p "/opt/chimera/applications/BizXtreme" "/src/chimera/BizXtreme";     cp -a . "/opt/chimera/applications/BizXtreme/";     cp -a . "/src/chimera/BizXtreme/"
+#10 CACHED
+
+#11 [builder 25/37] RUN if [ -f /build/repos/ChimeraIIOS/tools/terminals/install-free-terminals.sh ]; then       bash /build/repos/ChimeraIIOS/tools/terminals/install-free-terminals.sh;     fi
+#11 CACHED
+
+#12 [builder 15/37] RUN git clone --depth 1 https://github.com/amerhwitat/eth-key-check.git &&     cd eth-key-check &&     if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi &&     mkdir -p /opt/chimera/applications/eth-key-check &&     cp -r . /opt/chimera/applications/eth-key-check &&     cp -r . /src/chimera/eth-key-check
+#12 CACHED
+
+#13 [builder 14/37] RUN git clone --depth 1 https://github.com/amerhwitat/keygen.git &&     cd keygen &&     if [ -f pom.xml ]; then mvn clean install 2>/dev/null || true; fi &&     if [ -f build.gradle ]; then gradle build 2>/dev/null || true; fi &&     mkdir -p /opt/chimera/applications/keygen &&     cp -r . /opt/chimera/applications/keygen &&     cp -r . /src/chimera/keygen
+#13 CACHED
+
+#14 [builder 21/37] RUN set -eux;     pip_install() {       echo "[Chimera] Installing Python group: $*";       /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary "$@";     };     pip_install requests beautifulsoup4 lxml;     pip_install web3 eth-keys eth-typing cryptography pycryptodome;     pip_install flask fastapi uvicorn sqlalchemy alembic;     pip_install psycopg2-binary mysql-connector-python redis celery;     pip_install pytest pytest-cov sphinx pylint black flake8 mypy;     pip_install jupyter ipython notebook;     pip_install numpy scipy pandas matplotlib seaborn scikit-learn;     pip_install nltk spacy gensim pillow opencv-python;     if ! /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary xgboost; then       echo "[Chimera][WARN] xgboost wheel unavailable for this architecture; continuing without xgboost";     fi;     if ! /opt/chimera/venv/bin/python -m pip install --no-cache-dir --retries 5 --timeout 120 --prefer-binary lightgbm; then       echo "[Chimera][WARN] lightgbm wheel unavailable for this architecture; continuing without lightgbm";     fi;     /opt/chimera/venv/bin/python -m pip check || { echo "[Chimera][ERROR] Python dependency check failed"; exit 1; };     /opt/chimera/venv/bin/python -m pip cache purge || true
+#14 CACHED
+
+#15 [builder 10/37] RUN git clone --depth 1 https://github.com/amerhwitat/BizX.git &&     cd BizX &&     if [ -f package.json ]; then npm install && npm run build 2>/dev/null || true; fi &&     mkdir -p /opt/chimera/applications/BizX &&     cp -r . /opt/chimera/applications/BizX &&     cp -r . /src/chimera/BizX
+#15 CACHED
+
+#16 [builder  7/37] WORKDIR /build/repos
+#16 CACHED
+
+#17 [builder 26/37] RUN set -eux;     apt-get update -o Acquire::Retries=5;     for pkg in linux-modules-extra-generic linux-firmware firmware-sof-signed pciutils usbutils hwdata lshw dmidecode kmod fwupd alsa-utils alsa-ucm-conf alsa-topology-conf alsa-tools pipewire wireplumber pipewire-alsa pipewire-pulse libasound2-plugins pavucontrol bluez v4l-utils cups cups-filters printer-driver-all rfkill network-manager; do       candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')";       if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then         apt-get install -y --no-install-recommends "$pkg" || echo "[Chimera][WARN] hardware/audio package failed: $pkg";       else echo "[Chimera][WARN] hardware/audio package unavailable: $pkg"; fi;     done;     rm -rf /var/lib/apt/lists/*
+#17 CACHED
+
+#18 [builder 22/37] RUN set -eux;     npm config set registry https://registry.npmjs.org/;     npm config set fetch-retries 6;     npm config set fetch-retry-factor 2;     npm config set fetch-retry-mintimeout 10000;     npm config set fetch-retry-maxtimeout 120000;     npm config set fetch-timeout 300000;     npm config set maxsockets 4;     npm_config_audit=false npm_config_fund=false npm_config_update_notifier=false       npm view typescript version --fetch-retries=6 --fetch-timeout=300000 >/dev/null;     node_packages="typescript webpack webpack-cli @babel/core @babel/cli eslint prettier jest pm2";     for pkg in $node_packages; do       installed=0;       for attempt in 1 2 3; do         echo "[Chimera] npm install -g $pkg attempt $attempt/3";         if npm install -g --no-audit --no-fund --prefer-offline             --fetch-retries=8 --fetch-retry-factor=2             --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=180000             --fetch-timeout=300000 --maxsockets=4 "$pkg"; then           installed=1; break;         fi;         sleep $((attempt * 10));       done;       if [ "$installed" -ne 1 ]; then         echo "[Chimera][WARN] npm package unavailable after retries; continuing without: $pkg";       fi;     done;     npm cache clean --force
+#18 CACHED
+
+#19 [builder 32/37] RUN if [ -f /build/repos/ChimeraIIOS/system/services/chimera-hardware-driver-autoscan.service ]; then       install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-hardware-driver-autoscan.service /etc/systemd/system/chimera-hardware-driver-autoscan.service;     fi
+#19 CACHED
+
+#20 [builder  8/37] RUN git clone --depth 1 https://github.com/amerhwitat/ChimeraIIOS.git &&     cd ChimeraIIOS &&     mkdir -p build &&     cd build &&     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/chimera .. || true &&     make -j$(nproc) 2>/dev/null || echo "ChimeraIIOS build completed with defaults" &&     make install 2>/dev/null || true &&     cp -r /build/repos/ChimeraIIOS /src/chimera/ChimeraIIOS 2>/dev/null || true
+#20 CACHED
+
+#21 [builder 31/37] RUN if [ -f /build/repos/ChimeraIIOS/system/services/chimera-gpu-driver-autoscan.service ]; then       install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-gpu-driver-autoscan.service /etc/systemd/system/chimera-gpu-driver-autoscan.service;     fi
+#21 CACHED
+
+#22 [builder 28/37] RUN set -eux;     apt-get update -o Acquire::Retries=5;     for pkg in wlr-randr x11-xserver-utils xrandr python3-tk mesa-utils mesa-vulkan-drivers libgl1-mesa-dri libglx-mesa0 libdrm2 vulkan-tools ubuntu-drivers-common linux-firmware xserver-xorg-video-amdgpu intel-media-va-driver mesa-va-drivers policykit-1; do       candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')";       if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then         apt-get install -y --no-install-recommends "$pkg" || echo "[Chimera][WARN] display/GPU package failed: $pkg";       else echo "[Chimera] display/GPU package unavailable: $pkg"; fi;     done;     rm -rf /var/lib/apt/lists/*
+#22 CACHED
+
+#23 [builder 12/37] RUN git clone --depth 1 https://github.com/amerhwitat/CPU4096.git &&     cd CPU4096 &&     mkdir -p build &&     cd build &&     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/chimera .. 2>/dev/null || true &&     make -j$(nproc) 2>/dev/null || true &&     make install 2>/dev/null || true &&     cp -r /build/repos/CPU4096 /src/chimera/CPU4096
+#23 CACHED
+
+#24 [builder 37/37] RUN chmod +x /opt/chimera/scripts/init-chimera.sh
+#24 CACHED
+
+#25 [builder  4/37] RUN if command -v yarnpkg >/dev/null 2>&1 && ! command -v yarn >/dev/null 2>&1; then ln -s "$(command -v yarnpkg)" /usr/local/bin/yarn; fi
+#25 CACHED
+
+#26 [builder 36/37] RUN mkdir -p /opt/chimera/scripts &&     cat > /opt/chimera/scripts/init-chimera.sh << 'INIT_SCRIPT'
+#26 CACHED
+
+#27 [runtime 3/4] RUN set -eux;     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /var/log/* /var/log/.* 2>/dev/null || true;     rm -rf /var/tmp/* /tmp/* /run/* /root/.cache/*;     find /opt/chimera /src/chimera -type d -name .git -prune -exec rm -rf {} + 2>/dev/null || true;     find /opt/chimera /src/chimera -type d \( -name __pycache__ -o -name .pytest_cache -o -name .mypy_cache \) -prune -exec rm -rf {} + 2>/dev/null || true;     mkdir -p /var/log /var/tmp /tmp /run;     chmod 1777 /tmp /var/tmp
+#27 CACHED
+
+#28 [builder 19/37] RUN git clone --depth 1 https://github.com/amerhwitat/test.git &&     cp -r test /src/chimera/test &&     mkdir -p /opt/chimera/applications/test &&     cp -r test /opt/chimera/applications/test
+#28 CACHED
+
+#29 [runtime 1/4] RUN apt-get update && apt-get install -y --no-install-recommends     python3 python3-pip     nodejs npm     openjdk-21-jre-headless     git curl wget     libssl3 ca-certificates     && rm -rf /var/lib/apt/lists/*
+#29 CACHED
+
+#30 [builder 23/37] RUN set -eux;     mkdir -p /opt/chimera/share/chimera/commands;     if [ -f /build/repos/ChimeraIIOS/tools/commands/crawl_ss64.py ]; then       python3 /build/repos/ChimeraIIOS/tools/commands/crawl_ss64.py         --output /opt/chimera/share/chimera/commands/ss64-command-catalog.json         --max-pages 3000 || echo "[Chimera][WARN] SS64 network crawl failed; retained static command catalog.";     fi;     if [ ! -s /opt/chimera/share/chimera/commands/ss64-command-catalog.json ]; then       printf '%s\\n' '{"schema_version":"3.0","product":"Chimera II OS","source":"SS64","platforms":{}}' > /opt/chimera/share/chimera/commands/ss64-command-catalog.json;     fi
+#30 CACHED
+
+#31 [builder 33/37] RUN mkdir -p /etc/profile.d /opt/chimera/share/chimera/commands &&     if [ -f /build/repos/ChimeraIIOS/system/commands/chimera-arabic.json ]; then       install -m 0644 /build/repos/ChimeraIIOS/system/commands/chimera-arabic.json /opt/chimera/share/chimera/commands/chimera-arabic.json;     fi &&     if [ -f /build/repos/ChimeraIIOS/system/shell/chimera-shell.sh ]; then       install -m 0644 /build/repos/ChimeraIIOS/system/shell/chimera-shell.sh /etc/profile.d/chimera-shell.sh;     fi
+#31 CACHED
+
+#32 [builder  5/37] RUN mkdir -p     /build/repos     /opt/chimera/bin     /opt/chimera/lib     /opt/chimera/include     /opt/chimera/applications     /src/chimera     /opt/chimera/venv
+#32 CACHED
+
+#33 [builder 35/37] RUN install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-securityd.service /etc/systemd/system/chimera-securityd.service;     install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-security-update.service /etc/systemd/system/chimera-security-update.service;     install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-security-update.timer /etc/systemd/system/chimera-security-update.timer;     install -m 0644 /build/repos/ChimeraIIOS/system/services/chimera-firewall.service /etc/systemd/system/chimera-firewall.service
+#33 CACHED
+
+#34 [builder 30/37] RUN ln -sf /opt/chimera/share/chimera/display/chimera-display /usr/local/bin/chimera-display &&     ln -sf /opt/chimera/share/chimera/display/chimera-display-settings.py /usr/local/bin/chimera-display-settings.py &&     ln -sf /opt/chimera/share/chimera/display/chimera-gpu-driver-manager /usr/local/bin/chimera-gpu-driver-manager &&     if [ -f /build/repos/ChimeraIIOS/tools/display/chimera-desktop-action ]; then install -m 0755 /build/repos/ChimeraIIOS/tools/display/chimera-desktop-action /usr/local/bin/chimera-desktop-action; fi
+#34 CACHED
+
+#35 [builder 13/37] RUN git clone --depth 1 https://github.com/amerhwitat/CPU4096Simulator.git &&     cd CPU4096Simulator &&     if [ -f package.json ]; then npm install && npm run build 2>/dev/null || true; fi &&     mkdir -p /opt/chimera/applications/CPU4096Simulator &&     cp -r . /opt/chimera/applications/CPU4096Simulator &&     cp -r . /src/chimera/CPU4096Simulator
+#35 CACHED
+
+#36 [builder  9/37] RUN git clone --depth 1 https://github.com/amerhwitat/nlp.git &&     cd nlp &&     if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi &&     if [ -f setup.py ]; then python -m pip install --no-cache-dir .; fi &&     mkdir -p /opt/chimera/applications/nlp &&     cp -r . /opt/chimera/applications/nlp &&     cp -r . /src/chimera/nlp
+#36 CACHED
+
+#37 [builder 18/37] RUN git clone --depth 1 https://github.com/amerhwitat/general.git &&     cp -r general /src/chimera/general &&     mkdir -p /opt/chimera/applications/general &&     cp -r general /opt/chimera/applications/general
+#37 CACHED
+
+#38 [builder 24/37] RUN if [ -f /build/repos/ChimeraIIOS/tools/commands/install-command-providers.sh ]; then       if bash /build/repos/ChimeraIIOS/tools/commands/install-command-providers.sh; then         echo "[Chimera][COMMANDS] provider installer completed.";       else         status=$?;         echo "[Chimera][COMMANDS][WARN] provider installer returned $status; continuing comprehensive image build.";       fi;     else       echo "[Chimera][COMMANDS] provider installer not present; skipping.";     fi
+#38 CACHED
+
+#39 [builder  6/37] RUN python3 -m venv /opt/chimera/venv &&     /opt/chimera/venv/bin/python -m pip install --upgrade --no-cache-dir --retries 5 --timeout 120 pip setuptools wheel
+#39 CACHED
+
+#40 [builder  3/37] RUN set -eux;     apt-get update -o Acquire::Retries=5;     optional="";     for pkg in yarnpkg dotnet-sdk-8.0 git-flow; do       candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')";       if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then optional="$optional $pkg";       else echo "[Chimera] optional/unavailable package skipped: $pkg"; fi;     done;     if [ -n "$optional" ]; then       if ! apt-get install -y --no-install-recommends $optional; then         echo "[Chimera][WARN] optional repository package set failed; continuing";         echo "[Chimera][WARN] optional package failure; no dependency repair attempted";       fi;     fi;     rm -rf /var/lib/apt/lists/*
+#40 CACHED
+
+#41 [builder 16/37] RUN git clone --depth 1 https://github.com/amerhwitat/bruteforce.git &&     cd bruteforce &&     if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi &&     mkdir -p /opt/chimera/applications/bruteforce &&     cp -r . /opt/chimera/applications/bruteforce &&     cp -r . /src/chimera/bruteforce
+#41 CACHED
+
+#42 [builder  2/37] RUN set -eux;     apt-get update -o Acquire::Retries=5;     core_required="build-essential binutils clang llvm lld nasm cmake cmake-data ninja-build make automake autoconf libtool pkg-config gcc g++ clang llvm llvm-dev python3 python3-dev python3-pip python3-venv python3-setuptools python3-wheel nodejs npm rustc cargo openjdk-21-jdk-headless perl perl-modules git curl wget ca-certificates openssl libssl-dev zlib1g-dev libffi-dev libreadline-dev libsqlite3-dev sqlite3 pciutils usbutils dmidecode iproute2 procps net-tools busybox clamav clamav-daemon yara nftables";     echo "[Chimera] Installing core build packages...";     apt-get install -y --no-install-recommends $core_required;     extras="libboost-all-dev libgtest-dev libc++-dev libc++abi-dev libncurses-dev libx11-dev libxext-dev libxrender-dev libgl1-mesa-dev mesa-common-dev python3-numpy python3-scipy python3-pandas python3-scikit-learn python3-matplotlib postgresql-client apt-transport-https gnupg lsb-release systemd systemd-sysv gdb strace vim nano less grep sed awk unzip tar gzip bzip2 xz-utils doxygen graphviz libsodium-dev librsvg2-bin";     echo "[Chimera] Installing extended development packages...";     for pkg in $extras; do       candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')";       if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then         if apt-get install -y --no-install-recommends "$pkg"; then           echo "[Chimera] installed: $pkg";         else           echo "[Chimera][WARN] package install failed; continuing: $pkg";           echo "[Chimera][WARN] optional package failed; continuing without dependency repair";         fi;       else         echo "[Chimera][WARN] package unavailable; skipped: $pkg";       fi;     done;     optional="gcc-13 g++-13 python3.12 python3.12-dev qemu-system-x86 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-riscv64-linux-gnu g++-riscv64-linux-gnu grub-pc-bin grub-common grub-efi-amd64-bin grub-efi-arm64-bin xorriso squashfs-tools mtools nasm linux-firmware";     echo "[Chimera] Installing optional/architecture-specific packages...";     for pkg in $optional; do       candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {print $2; exit}')";       if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then         if apt-get install -y --no-install-recommends "$pkg"; then           echo "[Chimera] installed optional: $pkg";         else           echo "[Chimera][WARN] optional package failed; continuing: $pkg";           echo "[Chimera][WARN] optional package failure; no dependency repair attempted";         fi;       else         echo "[Chimera] optional/unavailable package skipped: $pkg";       fi;     done;     if apt-cache policy valgrind 2>/dev/null | grep -q 'Candidate:'; then       if apt-get install -y --no-install-recommends valgrind; then         echo "[Chimera] installed: valgrind";       else         echo "[Chimera][WARN] valgrind/libc6-dbg is not resolvable; skipped.";       fi;     fi;     rm -rf /var/lib/apt/lists/*
+#42 CACHED
+
+#43 [builder 20/37] RUN git clone --depth 1 https://github.com/amerhwitat/amerhwitat.github.io.git &&     cp -r amerhwitat.github.io /src/chimera/portfolio &&     mkdir -p /opt/chimera/applications/portfolio &&     cp -r amerhwitat.github.io /opt/chimera/applications/portfolio
+#43 CACHED
+
+#44 [builder 34/37] RUN set -eux;     mkdir -p /opt/chimera/tools/security /opt/chimera/share/chimera/security /etc/chimera /var/lib/chimera/security /var/log/chimera;     install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_securityd.py /opt/chimera/tools/security/chimera_securityd.py;     install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_security_update.py /opt/chimera/tools/security/chimera_security_update.py;     install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_rnn_security.py /opt/chimera/tools/security/chimera_rnn_security.py;     install -m 0755 /build/repos/ChimeraIIOS/tools/security/chimera_firewall.py /opt/chimera/tools/security/chimera_firewall.py;     install -m 0644 /build/repos/ChimeraIIOS/system/security/security-intelligence.json /opt/chimera/share/chimera/security/security-intelligence.json;     install -m 0644 /build/repos/ChimeraIIOS/system/security/firewall-policy.json /opt/chimera/share/chimera/security/firewall-policy.json;     install -m 0644 /build/repos/ChimeraIIOS/system/security/security-update.json /etc/chimera/security-update.json;     ln -sf /opt/chimera/share/chimera/security/firewall-policy.json /etc/chimera/firewall-policy.json;     ln -sf /opt/chimera/tools/security/chimera_securityd.py /usr/local/bin/chimera-security;     ln -sf /opt/chimera/tools/security/chimera_firewall.py /usr/local/bin/chimera-firewall;     python3 -m py_compile /opt/chimera/tools/security/*.py
+#44 CACHED
+
+#45 [runtime 4/4] WORKDIR /workspace
+#45 CACHED
+
+#46 exporting to image
+#46 exporting layers 0.0s done
+#46 exporting manifest sha256:c9a49e3a3d270e6ddb0ef9ed6c1870587f3f994bf5fbe2bab1be1ea262637489 0.0s done
+#46 exporting config sha256:bc685f8b7fbfaa55b05e6dc2a60083d55709608ec42268d02e30fd26d102f339 0.0s done
+#46 exporting attestation manifest sha256:51b1976e07cedc71e4b44259e3750bdcc9aa854ffff0e735b19a307eded23d58 0.0s done
+#46 exporting manifest list sha256:a34b4e2376c3060f1f4b435ba6a88f759485fb268da9c45c1256b47e70c9a183
+#46 exporting manifest list sha256:a34b4e2376c3060f1f4b435ba6a88f759485fb268da9c45c1256b47e70c9a183 0.0s done
+#46 naming to docker.io/library/chimera2os-comprehensive:latest done
+#46 unpacking to docker.io/library/chimera2os-comprehensive:latest
+#46 unpacking to docker.io/library/chimera2os-comprehensive:latest 416.7s done
+#46 DONE 417.0s

@@ -1,0 +1,103 @@
+{
+  "schema": "octavianos.pyinstaller-apps/1",
+  "total": 8,
+  "built": 8,
+  "bytes": 151960536,
+  "apps": [
+    {
+      "id": "pdfreaderpy-gui",
+      "repo": "PDFreaderPY",
+      "script": "PDFreaderPY/pdfreader_gui.py",
+      "name": "pdfreaderpy",
+      "console": false,
+      "hidden": [
+        "fitz",
+        "PIL",
+        "PIL.Image",
+        "PIL.ImageTk"
+      ],
+      "status": "ok",
+      "binary": "apps/bin/pdfreaderpy",
+      "bytes": 73511728
+    },
+    {
+      "id": "crypto-research-gui",
+      "repo": "bruteforce",
+      "script": "bruteforce/crypto_research_gui.py",
+      "name": "crypto-research",
+      "console": false,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/crypto-research",
+      "bytes": 11236080
+    },
+    {
+      "id": "eth-crypto-gui",
+      "repo": "eth-key-check",
+      "script": "eth-key-check/crypto_gui.py",
+      "name": "eth-crypto-console",
+      "console": false,
+      "hidden": [
+        "crypto_catalog"
+      ],
+      "status": "ok",
+      "binary": "apps/bin/eth-crypto-console",
+      "bytes": 12060232
+    },
+    {
+      "id": "nlp-search-gui",
+      "repo": "nlp",
+      "script": "nlp/search_gui.py",
+      "name": "nlp-search",
+      "console": false,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/nlp-search",
+      "bytes": 18479352
+    },
+    {
+      "id": "iso-tool-gui",
+      "repo": "nlp",
+      "script": "nlp/ISO-Tool/python/iso_tool/unified_gui.py",
+      "name": "iso-tool",
+      "console": false,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/iso-tool",
+      "bytes": 11317688
+    },
+    {
+      "id": "chimera-runtime",
+      "repo": "test",
+      "script": "test/chimera_py/main.py",
+      "name": "chimera-runtime",
+      "console": true,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/chimera-runtime",
+      "bytes": 7013000
+    },
+    {
+      "id": "bizx-unified",
+      "repo": "BizX",
+      "script": "BizX/python/bizx/unified.py",
+      "name": "bizx-unified",
+      "console": false,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/bizx-unified",
+      "bytes": 7054264
+    },
+    {
+      "id": "octavian-app-runner",
+      "repo": "OctavianOS",
+      "script": "/workspace/OctavianOS/apps/repo-gui/octavian_app_runner.py",
+      "name": "octavian-app-runner",
+      "console": false,
+      "hidden": [],
+      "status": "ok",
+      "binary": "apps/bin/octavian-app-runner",
+      "bytes": 11288192
+    }
+  ]
+}

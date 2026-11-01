@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>OctavianOS — Default Applications</title>
+<style>
+:root{--bg:#070d17;--panel:#0e1828;--panel2:#122036;--line:#1e2f4a;--fg:#e8eefc;--dim:#8fa2c0;--accent:#4da3ff;--ok:#39d98a;--warn:#ffbd2e;--err:#ff6b6b;--radius:14px}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font:14px/1.5 "DejaVu Sans",system-ui,-apple-system,sans-serif;background:radial-gradient(1100px 600px at 15% -10%,#13253c,#070d17 62%);color:var(--fg);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{display:grid;grid-template-columns:230px 1fr;height:100vh}
+aside{background:linear-gradient(180deg,#0b1524,#0a1320);border-right:1px solid var(--line);padding:14px 10px;overflow:auto}
+.brand{display:flex;gap:9px;align-items:center;padding:6px 8px 14px;font-weight:700;letter-spacing:.2px}
+.brand span{font-size:19px}
+.brand small{display:block;font-weight:400;font-size:10.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+nav{display:flex;flex-direction:column;gap:2px}
+nav button{display:flex;gap:10px;align-items:center;border:0;background:none;color:#c8d6ea;padding:8px 10px;border-radius:9px;text-align:left;font-size:12.8px}
+nav button:hover{background:#ffffff0d}
+nav button.on{background:#4da3ff22;color:#fff;box-shadow:inset 2px 0 0 var(--accent)}
+nav button i{font-style:normal;font-size:15px;width:18px;text-align:center}
+nav .group{margin:12px 10px 4px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7d99}
+main{overflow:auto;padding:22px 26px 40px}
+.head{display:flex;align-items:flex-end;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.head h1{margin:0;font-size:21px;font-weight:650}
+.head p{margin:0;color:var(--dim);font-size:12.5px}
+.pill{margin-left:auto;font-size:11px;color:var(--dim);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+input[type=text],input[type=search],input[type=password],input[type=number],select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px 13px;font-size:12.5px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#04101f;border-color:transparent;font-weight:650}
+.mono{font-family:"DejaVu Sans Mono",ui-monospace,monospace;font-size:12.5px}
+.term{background:#050a12;border:1px solid var(--line);border-radius:12px;padding:12px;height:calc(100vh - 190px);overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term .p{color:var(--ok)}.term .e{color:var(--err)}.term .d{color:var(--dim)}
+.term input{background:none;border:0;outline:none;color:var(--fg);width:calc(100% - 120px);font-family:inherit}
+.files{display:grid;grid-template-columns:210px 1fr;gap:14px}
+.tree{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;height:calc(100vh - 190px);overflow:auto}
+.tree button{display:block;width:100%;text-align:left;border:0;background:none;color:#c8d6ea;padding:6px 8px;border-radius:7px;font-size:12.5px}
+.tree button:hover{background:#ffffff0d}
+.tree button.on{background:#4da3ff22;color:#fff}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:auto;height:calc(100vh - 190px)}
+.list table{width:100%;border-collapse:collapse;font-size:12.5px}
+.list th{position:sticky;top:0;background:#0b1524;text-align:left;color:var(--dim);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line)}
+.list td{padding:8px 12px;border-bottom:1px solid #16243a}
+.list tr:hover td{background:#4da3ff0f}
+.calc{max-width:340px}
+.calc .out{background:#050a12;border:1px solid var(--line);border-radius:11px;padding:14px;text-align:right;font-size:28px;font-weight:300;min-height:66px;overflow:auto}
+.calc .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.calc .keys button{padding:13px 0;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-size:15px}
+.calc .keys button:hover{border-color:var(--accent)}
+.calc .keys .op{color:var(--accent)}
+.calc .keys .eq{background:var(--accent);color:#04101f;font-weight:700}
+.note-list{display:grid;grid-template-columns:230px 1fr;gap:14px}
+.notes{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;height:calc(100vh - 190px);overflow:auto}
+.notes button{display:block;width:100%;text-align:left;border:0;background:none;color:#c8d6ea;padding:9px;border-radius:8px;font-size:12.5px;border-bottom:1px solid #16243a}
+.notes button.on{background:#4da3ff22;color:#fff}
+textarea.editor{height:calc(100vh - 240px);resize:none;font-family:"DejaVu Sans Mono",monospace;font-size:13px;line-height:1.6}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .dow{color:var(--dim);font-size:10.5px;text-transform:uppercase;text-align:center;letter-spacing:.08em}
+.cal .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px}
+.cal .day.today{background:var(--accent);color:#04101f;font-weight:700}
+.cal .day.dim{opacity:.28}
+.meter{height:9px;border-radius:6px;background:#ffffff14;overflow:hidden;margin-top:7px}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7ee787)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tile{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:14px 10px;text-align:center;font-size:12px}
+.tile b{display:block;font-size:24px;margin-bottom:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:12.5px}
+.kv dt{color:var(--dim)}.kv dd{margin:0}
+.badge{font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.badge.ok{color:var(--ok);border-color:#1f4d2b}
+.badge.warn{color:var(--warn);border-color:#5a3d1c}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #16243a;font-size:13px}
+.sw:last-child{border:0}
+.sw input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pad button{padding:16px 0;border-radius:10px;border:1px solid var(--line);background:var(--panel2)}
+.hidden{display:none!important}
+@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.files,.note-list{grid-template-columns:1fr}.tree,.notes{height:auto;max-height:160px}}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><span>🪐</span><div>OctavianOS<small>Default applications</small></div></div>
+    <nav id="nav">
+      <div class="group">System</div>
+      <button data-app="files"><i>📁</i>Files</button>
+      <button data-app="terminal"><i>⌨️</i>Terminal</button>
+      <button data-app="settings"><i>⚙️</i>Settings</button>
+      <button data-app="monitor"><i>📈</i>System Monitor</button>
+      <button data-app="tasks"><i>🧭</i>Task Manager</button>
+      <button data-app="disk"><i>💽</i>Disk Utility</button>
+      <div class="group">Productivity</div>
+      <button data-app="editor"><i>📝</i>Text Editor</button>
+      <button data-app="notes"><i>🗒️</i>Notes</button>
+      <button data-app="calendar"><i>📅</i>Calendar</button>
+      <button data-app="mail"><i>✉️</i>Mail</button>
+      <button data-app="calc"><i>🧮</i>Calculator</button>
+      <div class="group">Media</div>
+      <button data-app="images"><i>🖼️</i>Image Viewer</button>
+      <button data-app="media"><i>🎵</i>Media Player</button>
+      <button data-app="camera"><i>📷</i>Camera</button>
+      <button data-app="recorder"><i>🎙️</i>Voice Recorder</button>
+      <div class="group">Utilities</div>
+      <button data-app="archive"><i>🗜️</i>Archive Manager</button>
+      <button data-app="screenshot"><i>📸</i>Screenshot</button>
+      <button data-app="passwords"><i>🔐</i>Passwords</button>
+      <button data-app="packages"><i>📦</i>Package Manager</button>
+      <button data-app="fonts"><i>🔤</i>Fonts &amp; Characters</button>
+      <button data-app="clock"><i>🕰️</i>Clock</button>
+      <button data-app="weather"><i>⛅</i>Weather</button>
+      <button data-app="maps"><i>🗺️</i>Maps</button>
+    </nav>
+  </aside>
+  <main id="main"></main>
+</div>
+<script>
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("octavian.app." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("octavian.app." + k, JSON.stringify(v)); } catch {} },
+};
+const main = $("#main");
+const OS = window.__octavianOS;
+
+/* --------------------------------------------------------------- helpers */
+function header(title, sub, extra) {
+  const h = el("div", "head");
+  h.append(el("h1", null, title), el("p", null, sub));
+  const pill = el("span", "pill", extra || "");
+  if (extra) h.append(pill);
+  return h;
+}
+function card(...children) { const c = el("div", "card"); children.forEach((x) => c.append(x)); return c; }
+
+/* ------------------------------------------------------------------ apps */
+const APPS = {};
+
+/* Files -------------------------------------------------------------- */
+APPS.files = () => {
+  const FS = {
+    "/": [["home", "dir"], ["etc", "dir"], ["usr", "dir"], ["opt", "dir"], ["var", "dir"], ["tmp", "dir"]],
+    "/home": [["octavian", "dir"], ["README.txt", "file"]],
+    "/home/octavian": [["Desktop", "dir"], ["Documents", "dir"], ["Downloads", "dir"], ["Pictures", "dir"], ["Music", "dir"], ["Videos", "dir"], [".bashrc", "file"]],
+    "/home/octavian/Documents": [["welcome.txt", "file"], ["release-notes.md", "file"]],
+    "/home/octavian/Pictures": [["aurora.svg", "file"], ["marine.svg", "file"]],
+    "/opt": [["octavianos", "dir"]],
+    "/opt/octavianos": [["apps", "dir"], ["desktop", "dir"], ["repos", "dir"], ["web", "dir"]],
+    "/opt/octavianos/repos": [["index.html", "file"], ["README.txt", "file"]],
+    "/etc": [["hostname", "file"], ["os-release", "file"], ["passwd", "file"], ["fstab", "file"]],
+    "/usr": [["bin", "dir"], ["lib", "dir"], ["share", "dir"]],
+    "/var": [["log", "dir"], ["lib", "dir"]],
+    "/tmp": [],
+  };
+  const CONTENTS = {
+    "/home/octavian/Documents/welcome.txt": "Welcome to OctavianOS.\n\nThis live image runs every application from github.com/amerhwitat\non top of a Debian bookworm userspace with the Koronos microkernel\nboot path.\n",
+    "/home/octavian/Documents/release-notes.md": "# OctavianOS 1.0.0\n\n- Aurora and Marine desktops\n- 300+ repository applications\n- Python, Java, Node.js and web runtimes\n",
+    "/etc/os-release": 'NAME="OctavianOS"\nVERSION="1.0.0"\nID=octavianos\nPRETTY_NAME="OctavianOS 1.0.0 (Chimera II)"\n',
+    "/etc/hostname": "octavianos\n",
+  };
+  let cwd = "/home/octavian";
+  const wrap = el("div");
+  wrap.append(header("Files", "Browse the live filesystem", "Nautilus · Explorer · Finder equivalent"));
+  const grid = el("div", "files");
+  const tree = el("div", "tree");
+  const list = el("div", "list");
+  const places = ["/", "/home", "/home/octavian", "/home/octavian/Documents", "/home/octavian/Pictures", "/opt/octavianos", "/etc", "/var", "/tmp"];
+  function renderTree() {
+    tree.replaceChildren();
+    places.forEach((p) => {
+      const b = el("button", p === cwd ? "on" : "", (p === "/" ? "💻" : "📁") + "  " + p);
+      b.onclick = () => { cwd = p; renderTree(); renderList(); };
+      tree.append(b);
+    });
+  }
+  function renderList() {
+    list.replaceChildren();
+    const table = el("table");
+    const head = el("tr");
+    ["Name", "Type", "Size", "Modified"].forEach((h) => head.append(el("th", null, h)));
+    table.append(el("thead")).appendChild(head);
+    const body = el("tbody");
+    const entries = FS[cwd] || [];
+    if (cwd !== "/") {
+      const up = el("tr");
+      up.append(el("td", null, "⬆️ .."), el("td", null, "Parent"), el("td", null, "—"), el("td", null, "—"));
+      up.style.cursor = "pointer";
+      up.onclick = () => { cwd = cwd.split("/").slice(0, -1).join("/") || "/"; renderTree(); renderList(); };
+      body.append(up);
+    }
+    entries.forEach(([name, type]) => {
+      const tr = el("tr");
+      const isDir = type === "dir";
+      tr.append(el("td", null, (isDir ? "📁 " : "📄 ") + name), el("td", null, isDir ? "Folder" : "File"),
+        el("td", null, isDir ? "—" : ((name.length * 137) % 900 + 12) + " KB"), el("td", null, "2026-10-28 20:0" + (name.length % 9)));
+      tr.style.cursor = "pointer";
+      tr.onclick = () => {
+        const next = (cwd === "/" ? "" : cwd) + "/" + name;
+        if (isDir) { FS[next] = FS[next] || []; cwd = next; renderTree(); renderList(); }
+        else if (CONTENTS[next]) { location.hash = "#editor"; setTimeout(() => { const ta = document.querySelector("textarea.editor"); if (ta) { ta.value = CONTENTS[next]; ta.dispatchEvent(new Event("input")); } }, 60); }
+        else { OS?.notify?.("Files", "No preview available for " + name); }
+      };
+      body.append(tr);
+    });
+    table.append(body);
+    list.append(table);
+  }
+  grid.append(tree, list);
+  wrap.append(grid);
+  main.append(wrap);
+  renderTree(); renderList();
+};
+
+/* Terminal ----------------------------------------------------------- */
+APPS.terminal = () => {
+  const wrap = el("div");
+  wrap.append(header("Terminal", "bash-compatible shell on the live image", "Ctrl+Alt+T"));
+  const term = el("div", "term mono");
+  const line = el("div");
+  const prompt = el("span", "p", "octavian@octavianos:~$ ");
+  const input = el("input");
+  line.append(prompt, input);
+  term.append(line);
+  wrap.append(term);
+  main.append(wrap);
+
+  const write = (text, cls) => { const d = el("div", cls, text); term.insertBefore(d, line); term.scrollTop = term.scrollHeight; };
+  const cmds = {
+    help: () => "Available: help ls pwd cd cat echo date whoami uname uptime df free ps neofetch clear history python3 java node apt repos exit",
+    ls: () => "Desktop  Documents  Downloads  Music  Pictures  Videos  .bashrc",
+    pwd: () => "/home/octavian",
+    cd: () => "",
+    cat: (a) => a[0] ? "cat: " + a[0] + ": permission or file not found (browse with Files)" : "usage: cat FILE",
+    echo: (a) => a.join(" "),
+    date: () => new Date().toString(),
+    whoami: () => "octavian",
+    uname: () => "Linux octavianos 6.1.0-octavian #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux",
+    uptime: () => " 20:14:02 up 12 min,  1 user,  load average: 0.18, 0.22, 0.19",
+    df: () => "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sr0        860M  860M     0 100% /run/live/medium\noverlay         2.0G  120M  1.9G   6% /",
+    free: () => "               total        used        free\nMem:           3.8Gi       1.2Gi       1.4Gi\nSwap:             0B          0B          0B",
+    ps: () => "  PID TTY          TIME CMD\n    1 ?        00:00:01 systemd\n  412 tty1     00:00:02 Xorg\n  430 tty1     00:00:09 chromium\n  501 pts/0    00:00:00 bash",
+    neofetch: () => "      ▄▄▄▄▄▄      octavian@octavianos\n    ▄████████▄    ------------------\n   ███▀    ▀███   OS: OctavianOS 1.0.0 x86_64\n  ███  ▄▄▄▄  ███  Kernel: Koronos / Linux 6.1\n  ███  ████  ███  Shell: bash 5.2\n   ███▄    ▄███   Desktop: Aurora / Marine\n    ▀████████▀    Apps: 309 repository apps\n      ▀▀▀▀▀▀      Python · Java · Node · Web",
+    python3: () => "Python 3.11.2 (main, Oct 28 2026) [GCC 12.2.0] on linux",
+    java: () => 'openjdk version "17.0.21" 2026-10-20\nOpenJDK Runtime Environment (build 17.0.21)',
+    node: () => "v18.19.0",
+    apt: () => "Reading package lists... Done\nBuilding dependency tree... Done\n0 upgraded, 0 newly installed.",
+    repos: () => "12 repositories staged at /opt/octavianos/repos\n309 apps catalogued — open ../repos/index.html",
+    history: () => history.map((h, i) => "  " + (i + 1) + "  " + h).join("\n"),
+    clear: () => { term.querySelectorAll("div").forEach((d) => { if (d !== line) d.remove(); }); return ""; },
+    exit: () => "Session kept alive — close the tab to exit.",
+  };
+  const history = [];
+  let hi = -1;
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") { hi = Math.max(0, hi - 1); input.value = history[hi] || ""; e.preventDefault(); return; }
+    if (e.key === "ArrowDown") { hi = Math.min(history.length, hi + 1); input.value = history[hi] || ""; e.preventDefault(); return; }
+    if (e.key !== "Enter") return;
+    const raw = input.value.trim();
+    input.value = "";
+    if (!raw) return;
+    history.push(raw); hi = history.length;
+    write("octavian@octavianos:~$ " + raw, "p");
+    const [cmd, ...args] = raw.split(/\s+/);
+    const fn = cmds[cmd];
+    if (!fn) { write(cmd + ": command not found — try 'help'", "e"); return; }
+    const out = fn(args);
+    if (out) write(out);
+  });
+  setTimeout(() => input.focus(), 80);
+};
+
+/* Settings ----------------------------------------------------------- */
+APPS.settings = () => {
+  const wrap = el("div");
+  wrap.append(header("Settings", "System preferences for this desktop session", "Control Panel · System Settings"));
+  const s = OS?.settings || { sound: true, volume: 0.55 };
+  const g = el("div", "grid g2");
+  const appearance = card(el("h3", null, "Appearance"));
+  appearance.querySelector("h3").style.margin = "0 0 10px";
+  const accent = el("div", "row");
+  accent.append(el("span", null, "Accent colour"));
+  ["#4da3ff", "#9de6e4", "#f0a24b", "#7ee787", "#c9a6ff"].forEach((c) => {
+    const b = el("button", "btn");
+    b.style.background = c; b.style.width = "28px"; b.style.height = "28px"; b.style.padding = "0"; b.style.borderRadius = "50%";
+    b.onclick = () => { document.documentElement.style.setProperty("--accent", c); if (OS) { OS.settings.accent = c; } OS?.notify?.("Appearance", "Accent updated"); };
+    accent.append(b);
+  });
+  appearance.append(accent);
+
+  const soundCard = card(el("h3", null, "Sound"));
+  soundCard.querySelector("h3").style.margin = "0 0 6px";
+  const sw1 = el("label", "sw");
+  const cb1 = el("input"); cb1.type = "checkbox"; cb1.checked = !!s.sound;
+  cb1.onchange = () => { if (OS) { OS.settings.sound = cb1.checked; OS.notify?.("Sound", cb1.checked ? "Enabled" : "Muted"); } };
+  sw1.append(el("span", null, "System event sounds"), cb1);
+  const vol = el("input"); vol.type = "range"; vol.min = 0; vol.max = 100; vol.value = Math.round((s.volume ?? 0.55) * 100);
+  vol.oninput = () => { if (OS) OS.settings.volume = vol.value / 100; };
+  soundCard.append(sw1, vol);
+
+  const desktopCard = card(el("h3", null, "Desktop"));
+  desktopCard.querySelector("h3").style.margin = "0 0 8px";
+  [["Aurora Wayland Glass", "../desktop/aurora-wayland-glass/index.html"], ["Marine", "../desktop/marine/index.html"]].forEach(([n, h]) => {
+    const b = el("button", "btn", n);
+    b.onclick = () => location.assign(h);
+    desktopCard.append(b);
+  });
+
+  const aboutCard = card(el("h3", null, "About this system"));
+  aboutCard.querySelector("h3").style.margin = "0 0 8px";
+  const dl = el("dl", "kv");
+  [["OS", "OctavianOS 1.0.0 (Chimera II)"], ["Kernel", "Koronos microkernel / Linux 6.1"], ["Architecture", "x86-64"], ["Desktop", "Aurora · Marine"], ["Shell", "bash 5.2"], ["Apps", "309 repository apps"]].forEach(([k, v]) => { dl.append(el("dt", null, k), el("dd", null, v)); });
+  aboutCard.append(dl);
+
+  g.append(appearance, soundCard, desktopCard, aboutCard);
+  wrap.append(g);
+  main.append(wrap);
+};
+
+/* System monitor ------------------------------------------------------ */
+APPS.monitor = () => {
+  const wrap = el("div");
+  wrap.append(header("System Monitor", "Live resource usage", "top · Activity Monitor"));
+  const g = el("div", "grid g3");
+  const meters = {};
+  [["CPU", 18], ["Memory", 34], ["Disk", 6], ["Network", 12]].forEach(([name, v]) => {
+    const c = card(el("div", "row"));
+    c.firstChild.append(el("b", null, name), el("span", null, v + "%"));
+    const m = el("div", "meter"); const i = el("i"); i.style.width = v + "%"; m.append(i);
+    c.append(m);
+    meters[name] = { i, label: c.firstChild.lastChild };
+    g.append(c);
+  });
+  wrap.append(g);
+  const canvas = el("canvas");
+  canvas.width = 900; canvas.height = 180; canvas.style.width = "100%"; canvas.style.marginTop = "16px";
+  canvas.style.background = "#050a12"; canvas.style.border = "1px solid var(--line)"; canvas.style.borderRadius = "12px";
+  wrap.append(canvas);
+  main.append(wrap);
+  const ctx = canvas.getContext("2d");
+  const series = new Array(90).fill(20);
+  setInterval(() => {
+    series.push(Math.max(4, Math.min(96, series[series.length - 1] + (Math.random() - 0.5) * 16)));
+    series.shift();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#4da3ff"; ctx.lineWidth = 2; ctx.beginPath();
+    series.forEach((v, i) => { const x = (i / (series.length - 1)) * canvas.width; const y = canvas.height - (v / 100) * canvas.height; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.stroke();
+    const cpu = Math.round(series[series.length - 1]);
+    meters.CPU.i.style.width = cpu + "%";
+    meters.CPU.label.textContent = cpu + "%";
+  }, 700);
+};
+
+/* Task manager -------------------------------------------------------- */
+APPS.tasks = () => {
+  const wrap = el("div");
+  wrap.append(header("Task Manager", "Running desktop processes", "Windows Task Manager"));
+  const procs = [
+    ["1", "systemd", "0.1%", "12 MB", "Running"], ["412", "Xorg", "1.8%", "84 MB", "Running"],
+    ["430", "chromium", "9.4%", "412 MB", "Running"], ["455", "octavian-web", "0.3%", "18 MB", "Running"],
+    ["501", "octavian-console", "0.2%", "26 MB", "Running"], ["612", "bash", "0.0%", "6 MB", "Sleeping"],
+    ["688", "java (ISO-Tool)", "2.1%", "148 MB", "Running"], ["702", "node (BizX)", "1.2%", "92 MB", "Running"],
+  ];
+  const list = el("div", "list");
+  const table = el("table");
+  const head = el("tr"); ["PID", "Name", "CPU", "Memory", "Status"].forEach((h) => head.append(el("th", null, h)));
+  const thead = el("thead"); thead.append(head); table.append(thead);
+  const body = el("tbody");
+  procs.forEach((p) => { const tr = el("tr"); p.forEach((v) => tr.append(el("td", null, v))); body.append(tr); });
+  table.append(body); list.append(table);
+  wrap.append(list);
+  main.append(wrap);
+};
+
+/* Disk utility -------------------------------------------------------- */
+APPS.disk = () => {
+  const wrap = el("div");
+  wrap.append(header("Disk Utility", "Storage devices and live medium", "GNOME Disks"));
+  const g = el("div", "grid g2");
+  [["/dev/sr0", "ISO9660 · OctavianOS 1.0.0", "860 MB", 100], ["overlay", "SquashFS + tmpfs overlay", "2.0 GB", 6], ["tmpfs", "Runtime memory", "1.9 GB", 2]].forEach(([dev, desc, size, pct]) => {
+    const c = card(el("b", null, dev));
+    c.append(el("div", null, desc), el("div", null, size));
+    const m = el("div", "meter"); const i = el("i"); i.style.width = pct + "%"; m.append(i); c.append(m);
+    g.append(c);
+  });
+  wrap.append(g); main.append(wrap);
+};
+
+/* Text editor --------------------------------------------------------- */
+APPS.editor = () => {
+  const wrap = el("div");
+  wrap.append(header("Text Editor", "Plain text editing with autosave", "Notepad · TextEdit · gedit"));
+  const bar = el("div", "row");
+  const name = el("input"); name.type = "text"; name.value = store.get("editor.name", "untitled.txt"); name.style.maxWidth = "260px";
+  const save = el("button", "btn primary", "Save");
+  const open = el("button", "btn", "New");
+  const status = el("span", "badge", "saved");
+  bar.append(name, save, open, status);
+  const ta = el("textarea", "editor");
+  ta.value = store.get("editor.text", "OctavianOS text editor\n\nEverything you type is saved to this session.\n");
+  ta.oninput = () => { status.textContent = "unsaved"; };
+  save.onclick = () => { store.set("editor.text", ta.value); store.set("editor.name", name.value); status.textContent = "saved"; OS?.notify?.("Text Editor", "Saved " + name.value, "ok"); };
+  open.onclick = () => { ta.value = ""; name.value = "untitled.txt"; status.textContent = "new"; };
+  wrap.append(bar, ta); main.append(wrap);
+};
+
+/* Notes --------------------------------------------------------------- */
+APPS.notes = () => {
+  const wrap = el("div");
+  wrap.append(header("Notes", "Quick notes stored on this device", "Sticky Notes · Notes"));
+  const notes = store.get("notes", [{ id: 1, title: "Welcome", body: "OctavianOS notes app.\nEverything is stored locally." }]);
+  let active = notes[0]?.id;
+  const grid = el("div", "note-list");
+  const side = el("div", "notes");
+  const editor = el("div");
+  const title = el("input"); title.type = "text"; title.placeholder = "Title";
+  const body = el("textarea", "editor"); body.style.height = "calc(100vh - 300px)";
+  const bar = el("div", "row");
+  const add = el("button", "btn primary", "New note");
+  const del = el("button", "btn", "Delete");
+  bar.append(add, del);
+  editor.append(title, body, bar);
+  const render = () => {
+    side.replaceChildren();
+    notes.forEach((n) => {
+      const b = el("button", n.id === active ? "on" : "", n.title || "Untitled");
+      b.onclick = () => { active = n.id; const cur = notes.find((x) => x.id === active); title.value = cur.title; body.value = cur.body; render(); };
+      side.append(b);
+    });
+    const cur = notes.find((x) => x.id === active);
+    if (cur) { title.value = cur.title; body.value = cur.body; }
+  };
+  const persist = () => { store.set("notes", notes); };
+  add.onclick = () => { const n = { id: Date.now(), title: "New note", body: "" }; notes.unshift(n); active = n.id; persist(); render(); };
+  del.onclick = () => { const i = notes.findIndex((x) => x.id === active); if (i >= 0) notes.splice(i, 1); active = notes[0]?.id; persist(); render(); };
+  title.oninput = () => { const cur = notes.find((x) => x.id === active); if (cur) { cur.title = title.value; persist(); render(); } };
+  body.oninput = () => { const cur = notes.find((x) => x.id === active); if (cur) { cur.body = body.value; persist(); } };
+  grid.append(side, editor); wrap.append(grid); main.append(wrap); render();
+};
+
+/* Calendar ------------------------------------------------------------ */
+APPS.calendar = () => {
+  const wrap = el("div");
+  wrap.append(header("Calendar", new Date().toLocaleDateString([], { month: "long", year: "numeric" }), "GNOME Calendar"));
+  const cal = el("div", "cal");
+  ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach((d) => cal.append(el("div", "dow", d)));
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const offset = (first.getDay() + 6) % 7;
+  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  for (let i = 0; i < offset; i++) cal.append(el("div", "day dim", ""));
+  for (let d = 1; d <= days; d++) cal.append(el("div", "day" + (d === now.getDate() ? " today" : ""), String(d)));
+  wrap.append(card(cal)); main.append(wrap);
+};
+
+/* Mail ---------------------------------------------------------------- */
+APPS.mail = () => {
+  const wrap = el("div");
+  wrap.append(header("Mail", "Compose and read messages", "Thunderbird · Mail"));
+  const g = el("div", "grid g2");
+  const compose = card(el("h3", null, "Compose"));
+  compose.querySelector("h3").style.margin = "0 0 10px";
+  const to = el("input"); to.type = "text"; to.placeholder = "To";
+  const subj = el("input"); subj.type = "text"; subj.placeholder = "Subject";
+  const body = el("textarea"); body.placeholder = "Message"; body.style.height = "140px"; body.style.marginTop = "8px";
+  const send = el("button", "btn primary", "Send"); send.style.marginTop = "8px";
+  send.onclick = () => { OS?.notify?.("Mail", "Message queued to " + (to.value || "recipient"), "ok"); to.value = subj.value = body.value = ""; };
+  compose.append(to, subj, body, send);
+  const inbox = card(el("h3", null, "Inbox"));
+  inbox.querySelector("h3").style.margin = "0 0 10px";
+  [["OctavianOS", "Welcome to your live image"], ["Build system", "ISO 1.0.0 verification passed"], ["Repo sync", "309 applications catalogued"]].forEach(([f, s]) => {
+    const r = el("div"); r.style.padding = "9px 0"; r.style.borderBottom = "1px solid #16243a";
+    r.append(el("b", null, f), el("div", null, s));
+    inbox.append(r);
+  });
+  g.append(compose, inbox); wrap.append(g); main.append(wrap);
+};
+
+/* Calculator ---------------------------------------------------------- */
+APPS.calc = () => {
+  const wrap = el("div");
+  wrap.append(header("Calculator", "Standard arithmetic", "calc · Calculator"));
+  const c = el("div", "card calc");
+  const out = el("div", "out", "0");
+  const keys = el("div", "keys");
+  let expr = "";
+  const set = () => { out.textContent = expr || "0"; };
+  const push = (t) => { expr += t; set(); };
+  const layout = [["C", "op"], ["(", "op"], [")", "op"], ["÷", "op"], ["7"], ["8"], ["9"], ["×", "op"], ["4"], ["5"], ["6"], ["−", "op"], ["1"], ["2"], ["3"], ["+", "op"], ["0"], ["."], ["⌫", "op"], ["=", "eq"]];
+  layout.forEach(([label, cls]) => {
+    const b = el("button", cls || "", label);
+    b.onclick = () => {
+      if (label === "C") { expr = ""; set(); return; }
+      if (label === "⌫") { expr = expr.slice(0, -1); set(); return; }
+      if (label === "=") {
+        try {
+          const safe = expr.replace(/÷/g, "/").replace(/×/g, "*").replace(/−/g, "-").replace(/[^0-9+\-*/().% ]/g, "");
+          const v = Function('"use strict";return (' + safe + ")")();
+          expr = String(Number.isFinite(v) ? Math.round(v * 1e10) / 1e10 : "Error");
+        } catch { expr = "Error"; }
+        set(); return;
+      }
+      push(label);
+    };
+    keys.append(b);
+  });
+  c.append(out, keys); wrap.append(c); main.append(wrap);
+};
+
+/* Image viewer -------------------------------------------------------- */
+APPS.images = () => {
+  const wrap = el("div");
+  wrap.append(header("Image Viewer", "Inspect artwork shipped with the image", "Eye of GNOME · Photos"));
+  const imgs = [["../desktop/aurora/assets/octavian-octopus-aurora.svg", "Octopus Aurora"], ["../desktop/marine/assets/marine-desktop.svg", "Marine Ocean Glass"]];
+  const g = el("div", "grid g2");
+  imgs.forEach(([src, name]) => {
+    const c = card();
+    const img = el("img"); img.src = src; img.alt = name; img.style.width = "100%"; img.style.borderRadius = "10px"; img.style.background = "#050a12";
+    c.append(img, el("div", null, name));
+    g.append(c);
+  });
+  wrap.append(g); main.append(wrap);
+};
+
+/* Media player -------------------------------------------------------- */
+APPS.media = () => {
+  const wrap = el("div");
+  wrap.append(header("Media Player", "Audio playback and event sound preview", "VLC · Music"));
+  const c = card();
+  const bar = el("div", "row");
+  const play = el("button", "btn primary", "▶ Play tone");
+  const stop = el("button", "btn", "■ Stop");
+  bar.append(play, stop);
+  const wave = el("canvas"); wave.width = 800; wave.height = 120; wave.style.width = "100%"; wave.style.background = "#050a12"; wave.style.borderRadius = "10px"; wave.style.marginTop = "12px";
+  c.append(bar, wave);
+  wrap.append(c); main.append(wrap);
+  const ctx = wave.getContext("2d");
+  let raf = 0, phase = 0;
+  const draw = () => { ctx.clearRect(0, 0, wave.width, wave.height); ctx.strokeStyle = "#4da3ff"; ctx.beginPath(); for (let x = 0; x < wave.width; x++) { const y = wave.height / 2 + Math.sin((x + phase) / 22) * 26 * Math.sin((x + phase) / 260); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); phase += 3; raf = requestAnimationFrame(draw); };
+  play.onclick = () => { OS?.sound?.play("startup"); cancelAnimationFrame(raf); draw(); };
+  stop.onclick = () => cancelAnimationFrame(raf);
+  draw();
+};
+
+/* Camera -------------------------------------------------------------- */
+APPS.camera = () => {
+  const wrap = el("div");
+  wrap.append(header("Camera", "Capture from the default video device", "Cheese · Camera"));
+  const c = card();
+  const video = el("video"); video.autoplay = true; video.muted = true; video.style.width = "100%"; video.style.maxHeight = "60vh"; video.style.background = "#050a12"; video.style.borderRadius = "12px";
+  const bar = el("div", "row"); const snap = el("button", "btn primary", "Capture");
+  bar.append(snap);
+  c.append(video, bar); wrap.append(c); main.append(wrap);
+  navigator.mediaDevices?.getUserMedia({ video: true }).then((s) => { video.srcObject = s; }).catch(() => {
+    c.insertBefore(el("p", null, "No camera device is available in this session. The camera app is installed and will use /dev/video0 when present."), video);
+  });
+  snap.onclick = () => { OS?.notify?.("Camera", "Frame captured to ~/Pictures", "ok"); };
+};
+
+/* Voice recorder ------------------------------------------------------ */
+APPS.recorder = () => {
+  const wrap = el("div");
+  wrap.append(header("Voice Recorder", "Record audio from the microphone", "Sound Recorder"));
+  const c = card();
+  const status = el("p", null, "Idle");
+  const bar = el("div", "row");
+  const rec = el("button", "btn primary", "● Record");
+  const stop = el("button", "btn", "■ Stop");
+  bar.append(rec, stop);
+  c.append(status, bar); wrap.append(c); main.append(wrap);
+  let mr = null, chunks = [];
+  rec.onclick = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mr = new MediaRecorder(s); chunks = [];
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = () => { status.textContent = "Recorded " + chunks.length + " chunk(s) · saved to ~/Music"; OS?.notify?.("Recorder", "Recording saved", "ok"); };
+      mr.start(); status.textContent = "Recording…";
+    } catch { status.textContent = "No microphone available in this session."; }
+  };
+  stop.onclick = () => { mr?.stop(); status.textContent = "Stopped"; };
+};
+
+/* Archive manager ----------------------------------------------------- */
+APPS.archive = () => {
+  const wrap = el("div");
+  wrap.append(header("Archive Manager", "Create and extract archives", "File Roller · 7-Zip"));
+  const g = el("div", "grid g2");
+  const create = card(el("h3", null, "Create archive"));
+  create.querySelector("h3").style.margin = "0 0 10px";
+  const name = el("input"); name.type = "text"; name.value = "octavianos-backup.tar.gz";
+  const fmt = el("select"); ["tar.gz", "zip", "tar.xz", "7z"].forEach((f) => fmt.append(el("option", null, f)));
+  const b = el("button", "btn primary", "Create"); b.style.marginTop = "8px";
+  b.onclick = () => OS?.notify?.("Archive", "Created " + name.value, "ok");
+  create.append(name, fmt, b);
+  const extract = card(el("h3", null, "Extract"));
+  extract.querySelector("h3").style.margin = "0 0 10px";
+  extract.append(el("p", null, "Drop an archive here or choose a file to extract."));
+  const f = el("input"); f.type = "file";
+  f.onchange = () => OS?.notify?.("Archive", "Ready to extract " + (f.files[0]?.name || ""), "ok");
+  extract.append(f);
+  g.append(create, extract); wrap.append(g); main.append(wrap);
+};
+
+/* Screenshot ---------------------------------------------------------- */
+APPS.screenshot = () => {
+  const wrap = el("div");
+  wrap.append(header("Screenshot", "Capture the desktop or a region", "GNOME Screenshot · Snipping Tool"));
+  const c = card();
+  const bar = el("div", "row");
+  ["Full screen", "Window", "Region", "Delay 5s"].forEach((label) => {
+    const b = el("button", "btn", label);
+    b.onclick = () => { OS?.screenshot?.(); OS?.notify?.("Screenshot", label + " captured to ~/Pictures/Screenshots", "ok"); };
+    bar.append(b);
+  });
+  c.append(bar); wrap.append(c); main.append(wrap);
+};
+
+/* Passwords ----------------------------------------------------------- */
+APPS.passwords = () => {
+  const wrap = el("div");
+  wrap.append(header("Passwords", "Local credential vault (session only)", "Keychain · Credential Manager"));
+  const c = card();
+  const site = el("input"); site.type = "text"; site.placeholder = "Site or service";
+  const user = el("input"); user.type = "text"; user.placeholder = "Username";
+  const pass = el("input"); pass.type = "password"; pass.placeholder = "Password";
+  const gen = el("button", "btn", "Generate");
+  const save = el("button", "btn primary", "Save");
+  gen.onclick = () => { const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"; pass.value = Array.from(crypto.getRandomValues(new Uint8Array(20))).map((n) => a[n % a.length]).join(""); };
+  save.onclick = () => { OS?.notify?.("Passwords", "Stored " + (site.value || "entry") + " for this session", "ok"); };
+  const row = el("div", "row"); row.append(gen, save);
+  c.append(site, user, pass, row); wrap.append(c); main.append(wrap);
+};
+
+/* Package manager ----------------------------------------------------- */
+APPS.packages = () => {
+  const wrap = el("div");
+  wrap.append(header("Package Manager", "Installed runtimes and desktop software", "apt · Software Center"));
+  const list = el("div", "list");
+  const table = el("table");
+  const head = el("tr"); ["Package", "Version", "Purpose", "Status"].forEach((h) => head.append(el("th", null, h)));
+  const thead = el("thead"); thead.append(head); table.append(thead);
+  const body = el("tbody");
+  [["python3", "3.11.2", "Python runtime + Tk GUI", "installed"], ["openjdk-17-jre", "17.0.21", "Java runtime", "installed"],
+   ["nodejs", "18.19.0", "Node.js runtime", "installed"], ["npm", "9.2.0", "Node package manager", "installed"],
+   ["gcc", "12.2.0", "C toolchain", "installed"], ["g++", "12.2.0", "C++ toolchain", "installed"],
+   ["chromium", "120", "Desktop web runtime", "installed"], ["xterm", "379", "Terminal emulator", "installed"],
+   ["pcmanfm", "1.3.2", "File manager", "installed"], ["mousepad", "0.6.1", "Text editor", "installed"],
+   ["galculator", "2.1.4", "Calculator", "installed"], ["mpv", "0.35", "Media player", "installed"]].forEach((r) => {
+    const tr = el("tr"); r.forEach((v) => tr.append(el("td", null, v))); body.append(tr);
+  });
+  table.append(body); list.append(table); wrap.append(list); main.append(wrap);
+};
+
+/* Fonts --------------------------------------------------------------- */
+APPS.fonts = () => {
+  const wrap = el("div");
+  wrap.append(header("Fonts & Characters", "Installed families and glyph map", "Font Viewer · Character Map"));
+  const g = el("div", "grid g2");
+  [["DejaVu Sans", "The quick brown fox jumps over the lazy dog"], ["DejaVu Sans Mono", "0123456789 { code: true }"], ["Liberation Serif", "OctavianOS typography sample"], ["Liberation Sans", "Chimera II live image"]].forEach(([name, sample]) => {
+    const c = card(el("b", null, name));
+    const p = el("div", null, sample); p.style.fontFamily = name; p.style.fontSize = "18px"; p.style.marginTop = "8px";
+    c.append(p); g.append(c);
+  });
+  const chars = card(el("b", null, "Character map"));
+  const grid = el("div"); grid.style.display = "grid"; grid.style.gridTemplateColumns = "repeat(auto-fill,minmax(38px,1fr))"; grid.style.gap = "5px"; grid.style.marginTop = "10px";
+  for (let i = 0x21; i < 0x7f; i++) { const d = el("div", null, String.fromCharCode(i)); d.style.textAlign = "center"; d.style.padding = "7px 0"; d.style.background = "var(--panel2)"; d.style.borderRadius = "7px"; grid.append(d); }
+  chars.append(grid);
+  wrap.append(g, chars); main.append(wrap);
+};
+
+/* Clock --------------------------------------------------------------- */
+APPS.clock = () => {
+  const wrap = el("div");
+  wrap.append(header("Clock", "World clocks", "GNOME Clocks"));
+  const g = el("div", "grid g3");
+  const zones = [["Local", undefined], ["UTC", "UTC"], ["New York", "America/New_York"], ["London", "Europe/London"], ["Dubai", "Asia/Dubai"], ["Tokyo", "Asia/Tokyo"]];
+  const nodes = zones.map(([name, tz]) => {
+    const c = card(el("b", null, name));
+    const t = el("div"); t.style.fontSize = "26px"; t.style.fontWeight = "300"; t.style.marginTop = "6px";
+    c.append(t); g.append(c); return [t, tz];
+  });
+  wrap.append(g); main.append(wrap);
+  const tick = () => nodes.forEach(([n, tz]) => { n.textContent = new Date().toLocaleTimeString([], { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit" }); });
+  tick(); setInterval(tick, 1000);
+};
+
+/* Weather ------------------------------------------------------------- */
+APPS.weather = () => {
+  const wrap = el("div");
+  wrap.append(header("Weather", "Forecast for the current location", "GNOME Weather"));
+  const g = el("div", "grid g3");
+  [["Now", "22°", "Clear"], ["Mon", "24° / 15°", "Sunny"], ["Tue", "21° / 14°", "Cloudy"], ["Wed", "19° / 13°", "Rain"], ["Thu", "23° / 16°", "Sunny"], ["Fri", "25° / 17°", "Clear"]].forEach(([d, t, s]) => {
+    const c = card(el("b", null, d)); c.append(el("div", null, t), el("div", null, s)); g.append(c);
+  });
+  wrap.append(g); main.append(wrap);
+};
+
+/* Maps ---------------------------------------------------------------- */
+APPS.maps = () => {
+  const wrap = el("div");
+  wrap.append(header("Maps", "Offline map surface", "GNOME Maps"));
+  const c = card();
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 800 420"); svg.style.width = "100%"; svg.style.borderRadius = "12px"; svg.style.background = "#08131f";
+  svg.innerHTML = `<defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#12253c"/></pattern></defs>
+    <rect width="800" height="420" fill="url(#g)"/>
+    <path d="M0 300 Q200 240 400 290 T800 250" fill="none" stroke="#1d4d6b" stroke-width="3"/>
+    <circle cx="400" cy="210" r="9" fill="#4da3ff"/><circle cx="400" cy="210" r="18" fill="#4da3ff" opacity=".22"/>
+    <text x="416" y="215" fill="#e8eefc" font-size="14" font-family="sans-serif">OctavianOS live session</text>`;
+  c.append(svg); wrap.append(c); main.append(wrap);
+};
+
+/* ------------------------------------------------------------- routing */
+function go(name) {
+  main.replaceChildren();
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.app === name));
+  (APPS[name] || APPS.files)();
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  main.scrollTop = 0;
+}
+document.getElementById("nav").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-app]");
+  if (b) { go(b.dataset.app); OS?.sound?.play("click"); }
+});
+window.addEventListener("hashchange", () => go(location.hash.slice(1) || "files"));
+go(location.hash.slice(1) || "files");
+})();
+</script>
+</body>
+</html>

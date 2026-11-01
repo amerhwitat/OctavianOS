@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-knowledge-daemon.dir/link.d "CMakeFiles/chm-knowledge-daemon.dir/__/knowledge/daemon/chimera_knowledge_daemon.cpp.o" -o chm-knowledge-daemon  libaurora_utf.a

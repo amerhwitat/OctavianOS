@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera_shell.a CMakeFiles/chimera_shell.dir/shell/chimera_shell.cpp.o
+/usr/bin/ranlib libchimera_shell.a

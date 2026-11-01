@@ -1,0 +1,15 @@
+{
+	"InstallScripts" : 
+	[
+		"/mnt/c/tmp/ChimeraIIOS/build/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/kernel/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/userland/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/installer/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/sdk/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/tools/chimera-asm/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/compat/windows/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/compat/windows/pe/cmake_install.cmake",
+		"/mnt/c/tmp/ChimeraIIOS/build/tests/kernel/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

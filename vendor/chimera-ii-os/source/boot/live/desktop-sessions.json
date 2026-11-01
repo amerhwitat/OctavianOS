@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "contract": "octavianos.live.desktop-selection",
+  "status": "selection-contract-only",
+  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker.",
+  "default": "aurora",
+  "architectures": ["x86_64"],
+  "sessions": [
+    {
+      "id": "aurora",
+      "name": "Aurora Wayland Glass Desktop",
+      "launch_manifest": "/usr/share/octavianos/sessions/aurora.json",
+      "status": "prototype"
+    },
+    {
+      "id": "marine",
+      "name": "Marine Desktop",
+      "launch_manifest": "/usr/share/octavianos/sessions/marine.json",
+      "status": "prototype"
+    }
+  ],
+  "fallback": {
+    "mode": "text-recovery",
+    "reason": "desktop session missing, compositor startup failed, or readiness timeout"
+  }
+}

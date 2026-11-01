@@ -1,0 +1,2 @@
+/usr/bin/ar qc libchimera_sdk.a CMakeFiles/chimera_sdk.dir/src/chimera_sdk.cpp.o CMakeFiles/chimera_sdk.dir/src/chimera_event.cpp.o CMakeFiles/chimera_sdk.dir/src/chimera_file.cpp.o CMakeFiles/chimera_sdk.dir/src/chimera_win32_message.cpp.o
+/usr/bin/ranlib libchimera_sdk.a

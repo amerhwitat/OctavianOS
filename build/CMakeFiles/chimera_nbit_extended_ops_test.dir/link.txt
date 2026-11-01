@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_nbit_extended_ops_test.dir/link.d CMakeFiles/chimera_nbit_extended_ops_test.dir/tests/unit/test_nbit_extended_ops.cpp.o -o chimera_nbit_extended_ops_test  libchimera_machine.a

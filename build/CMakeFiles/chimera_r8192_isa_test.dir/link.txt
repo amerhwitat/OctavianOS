@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera_r8192_isa_test.dir/link.d CMakeFiles/chimera_r8192_isa_test.dir/tests/unit/test_r8192_isa.cpp.o -o chimera_r8192_isa_test  libchimera_machine.a

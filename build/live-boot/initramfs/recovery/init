@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+mkdir -p /mnt/chimera-root /var/log/mesgs/archive /var/lib/chimera/drivers
+ln -sfn /var/log/mesgs /var/log/messages 2>/dev/null || true
+printf '%s\\n' '[RECOVERY] Jasper/Koronos recovery initramfs started' >> /var/log/mesgs
+export CHIMERA_RECOVERY_INITRAMFS=1
+if [ -x /bin/chimera-driver-manager.sh ]; then /bin/chimera-driver-manager.sh inventory || true; fi
+exec /bin/chimera-recovery-console.sh

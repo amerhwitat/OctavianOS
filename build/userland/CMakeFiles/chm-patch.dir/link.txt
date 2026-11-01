@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chm-patch.dir/link.d "CMakeFiles/chm-patch.dir/__/knowledge/patch/chimera_patch_engine.cpp.o" "CMakeFiles/chm-patch.dir/__/knowledge/patch/reboot_manager.cpp.o" -o chm-patch  libaurora_utf.a

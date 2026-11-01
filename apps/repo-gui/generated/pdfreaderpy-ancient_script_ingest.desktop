@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ancient Script Ingest
+Comment=OctavianOS repo app (PDFreaderPY) — GUI launcher for PDFreaderPY/ancient_script_ingest.py
+Exec=/opt/octavianos/apps/repo-gui/generated/pdfreaderpy-ancient_script_ingest.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+X-OctavianOS-Repo=PDFreaderPY
+X-OctavianOS-Source=PDFreaderPY/ancient_script_ingest.py
+X-OctavianOS-GuiWrapper=true

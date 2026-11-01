@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/aurora-utf-selftest.dir/link.d "CMakeFiles/aurora-utf-selftest.dir/__/desktop/aurora/i18n/aurora_utf_selftest.cpp.o" -o aurora-utf-selftest  libaurora_utf.a

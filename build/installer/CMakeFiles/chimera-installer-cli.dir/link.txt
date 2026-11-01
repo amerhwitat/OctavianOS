@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/chimera-installer-cli.dir/link.d "CMakeFiles/chimera-installer-cli.dir/src/installer_cli.cpp.o" -o chimera-installer-cli  libchimera_installer_core.a

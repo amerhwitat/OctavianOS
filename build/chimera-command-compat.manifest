@@ -1,0 +1,8 @@
+CHIMERA_COMMAND_COMPAT=1
+NATIVE_BINARY=/mnt/e/chimera-build/rootfs/usr/bin/chimera-cmd
+DISPATCHER=/mnt/e/chimera-build/rootfs/usr/bin/chimera
+EXEC_FORMAT_DISPATCHER=/mnt/e/chimera-build/rootfs/usr/bin/chimera-exec
+REGISTRY=/mnt/e/chimera-build/rootfs/etc/chimera/commands/registry.tsv
+ARABIC_ALIASES=/mnt/e/chimera-build/rootfs/etc/chimera/commands/aliases.ar.json
+MODE_CONFIG=/mnt/e/chimera-build/rootfs/etc/chimera/commands/modes.conf
+RUNTIME_CONFIG=/mnt/e/chimera-build/rootfs/etc/chimera/runtime.conf

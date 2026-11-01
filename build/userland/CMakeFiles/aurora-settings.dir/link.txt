@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/aurora-settings.dir/link.d "CMakeFiles/aurora-settings.dir/__/desktop/aurora/apps/aurora_settings.cpp.o" -o aurora-settings  libaurora_utf.a

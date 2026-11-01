@@ -1,0 +1,11 @@
+{"schema":"CHIMERA-AURORA-PROGRESS-2","visual_contract":"aurora-progress-v2","stages":[
+{"id":"firmware","percent":5,"en":"Firmware","ar":"البرامج الثابتة"},
+{"id":"hardware","percent":15,"en":"Hardware detection","ar":"اكتشاف العتاد"},
+{"id":"memory","percent":25,"en":"Memory and SMP","ar":"الذاكرة والمعالجة المتعددة"},
+{"id":"drivers","percent":38,"en":"Drivers","ar":"برامج التشغيل"},
+{"id":"filesystem","percent":52,"en":"Filesystem","ar":"نظام الملفات"},
+{"id":"network","percent":66,"en":"Network","ar":"الشبكة"},
+{"id":"services","percent":78,"en":"Kore services","ar":"خدمات Kore"},
+{"id":"nbit","percent":88,"en":"N-bit runtime","ar":"وقت تشغيل N-bit"},
+{"id":"aurora","percent":96,"en":"Aurora","ar":"Aurora"},
+{"id":"ready","percent":100,"en":"Desktop ready","ar":"سطح المكتب جاهز"}]}
