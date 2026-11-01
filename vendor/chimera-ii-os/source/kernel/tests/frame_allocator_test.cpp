@@ -62,6 +62,7 @@ int main() {
     // This implementation deliberately supports only physical RAM below 4 GiB.
     // It must reject, not silently truncate, a map advertising usable RAM above it.
     make_map(info, 0x100000, 0x3f00000, 0x100000000ull, 0x2000);
+    info.mmap.entries[1].type = 1; // usable RAM above the supported ceiling
     assert(koronos_frame_allocator_init(info_address, 0x100000, 0x200000) == -1);
     assert(koronos_frame_free_count() == 0);
 
