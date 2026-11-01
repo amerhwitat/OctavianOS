@@ -87,3 +87,5 @@ The vendored `kernel/core/frame_allocator.cpp` and `kernel/include/chimera/frame
 The matching host test is vendored at `tests/kernel/frame_allocator_test.cpp`; `tests/kernel/run-frame-allocator-host-tests.sh` compiles and runs both the allocation/reservation scenario and the above-4-GiB rejection scenario. The vendored canonical `kernel/build-koronos.sh` invokes this runner before compiling Koronos.
 
 This establishes source parity for the allocator implementation, public header and host test only. It does not establish parity for the rest of Koronos, and the 4-GiB ceiling remains a deliberate limitation pending a physical-to-virtual mapping design and wider-frame allocator.
+
+The allocator now walks Multiboot2 module tags independently of the bounded module-classification registry, so every module payload is reserved even if the registry reaches its enumeration cap. The synthetic host test includes a module tag while the module-registry stub reports zero entries, verifying this independent reservation path.
