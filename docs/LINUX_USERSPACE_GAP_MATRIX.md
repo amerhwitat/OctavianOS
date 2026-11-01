@@ -40,3 +40,6 @@ Do not merge or publish by weakening tests/migration/verify-userspace-handoff.py
 ## Linux behavioral references
 
 Use Linux source as a contract reference: init/initramfs.c and fs/ for rootfs/VFS; kernel/fork.c and kernel/exit.c for process lifecycle; arch/x86/entry/ and kernel/sys.c for syscalls; kernel/sched/ for scheduling; fs/proc/ for task telemetry. Adapt semantics to Koronos's own architecture and ABI rather than copying Linux internals.
+
+
+> **Memory/astronomy/compiler update (2026-11-01):** See [Koronos memory, astronomy and compiler parity audit](docs/KORONOS_MEMORY_ASTRONOMY_COMPILER_AUDIT_2026-11-01.md) for the initial 64-GiB direct-map uplift, high-memory allocator regression, open-source astronomy catalog and GCC/Clang build status. This does not claim >64-GiB, QEMU high-memory, native astronomy-app or self-hosted compiler acceptance.
