@@ -14,6 +14,7 @@ constexpr uint32_t BITMAP_WORDS = PAGE_COUNT / WORD_BITS;
 constexpr uint32_t FIRST_ALLOCATABLE_PAGE = 0x100000u / static_cast<uint32_t>(KORONOS_FRAME_SIZE);
 uint32_t free_bitmap[BITMAP_WORDS];
 uint32_t allocated_bitmap[BITMAP_WORDS];
+uint32_t reserved_bitmap[BITMAP_WORDS];
 volatile uint32_t allocator_lock = 0;
 bool initialized = false;
 uint64_t free_pages = 0;
@@ -49,8 +50,10 @@ static void clear_bit(uint32_t *map, uint32_t index) {
 }
 static uint64_t min_u64(uint64_t a, uint64_t b) { return a < b ? a : b; }
 
-static void add_usable_range(uint64_t start, uint64_t length) {
-    if (!length || start >= KORONOS_FRAME_PHYS_LIMIT || start > UINT64_MAX - length) return;
+static bool add_usable_range(uint64_t start, uint64_t length) {
+    if (!length) return true;
+    if (start > UINT64_MAX - length) return false;
+    if (start >= KORONOS_FRAME_PHYS_LIMIT || start + length > KORONOS_FRAME_PHYS_LIMIT) return false;
     uint64_t end = min_u64(start + length, KORONOS_FRAME_PHYS_LIMIT);
     uint64_t first = (start + KORONOS_FRAME_SIZE - 1u) / KORONOS_FRAME_SIZE;
     uint64_t last = end / KORONOS_FRAME_SIZE;
@@ -58,11 +61,12 @@ static void add_usable_range(uint64_t start, uint64_t length) {
     if (last > PAGE_COUNT) last = PAGE_COUNT;
     for (uint64_t p = first; p < last; ++p) {
         uint32_t index = static_cast<uint32_t>(p);
-        if (!bit(free_bitmap, index) && !bit(allocated_bitmap, index)) {
+        if (!bit(free_bitmap, index) && !bit(allocated_bitmap, index) && !bit(reserved_bitmap, index)) {
             set_bit(free_bitmap, index);
             ++free_pages;
         }
     }
+    return true;
 }
 static void reserve_range(uint64_t start, uint64_t length) {
     if (!length || start >= KORONOS_FRAME_PHYS_LIMIT || start > UINT64_MAX - length) return;
@@ -72,6 +76,7 @@ static void reserve_range(uint64_t start, uint64_t length) {
     if (last > PAGE_COUNT) last = PAGE_COUNT;
     for (uint64_t p = first; p < last; ++p) {
         uint32_t index = static_cast<uint32_t>(p);
+        set_bit(reserved_bitmap, index);
         if (bit(free_bitmap, index)) {
             clear_bit(free_bitmap, index);
             --free_pages;
@@ -97,7 +102,12 @@ static bool parse_mmap(uint64_t info) {
             if (bytes % mmap->entry_size != 0u) return false;
             for (uint32_t pos = sizeof(Mb2MmapTag); pos < tag->size; pos += mmap->entry_size) {
                 const Mb2MmapEntry *entry = reinterpret_cast<const Mb2MmapEntry *>(base + off + pos);
-                if (entry->type == 1u) add_usable_range(entry->address, entry->length);
+                if (entry->length && entry->address > UINT64_MAX - entry->length) return false;
+                if (entry->type == 1u) {
+                    if (!add_usable_range(entry->address, entry->length)) return false;
+                } else {
+                    reserve_range(entry->address, entry->length);
+                }
             }
             found = true;
             break;
@@ -114,6 +124,7 @@ extern "C" int koronos_frame_allocator_init(uint64_t info, uint64_t kernel_base,
     for (uint32_t i = 0; i < BITMAP_WORDS; ++i) {
         free_bitmap[i] = 0;
         allocated_bitmap[i] = 0;
+        reserved_bitmap[i] = 0;
     }
     free_pages = 0;
     initialized = false;
