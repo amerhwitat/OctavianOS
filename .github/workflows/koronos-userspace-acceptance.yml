@@ -6,12 +6,18 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/boot/iso/**'
+      - 'vendor/chimera-ii-os/source/boot/visual/**'
+      - 'desktop/aurora/assets/wallpapers/**'
+      - 'desktop/marine/assets/wallpapers/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/boot/iso/**'
+      - 'vendor/chimera-ii-os/source/boot/visual/**'
+      - 'desktop/aurora/assets/wallpapers/**'
+      - 'desktop/marine/assets/wallpapers/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
