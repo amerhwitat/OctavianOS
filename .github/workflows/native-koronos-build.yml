@@ -87,6 +87,7 @@ concurrency:
   group: native-koronos-build-${{ github.ref }}
   cancel-in-progress: false
 
+# Includes raw CPIO-newc Live/Installer/Recovery payloads; final ISO remains blocked by artwork hash and production-init gates.
 jobs:
   build-koronos:
     runs-on: ubuntu-latest
