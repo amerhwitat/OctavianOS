@@ -105,6 +105,11 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Compile and run CPIO-newc initramfs VFS tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          g++ -std=c++17 -Wall -Wextra -I kernel/include kernel/tests/vfs_cpio_test.cpp kernel/core/vfs.cpp -o /tmp/koronos-vfs-cpio-test
+          /tmp/koronos-vfs-cpio-test
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
