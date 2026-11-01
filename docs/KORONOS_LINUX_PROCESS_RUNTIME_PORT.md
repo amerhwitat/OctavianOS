@@ -95,3 +95,9 @@ The allocator now walks Multiboot2 module tags independently of the bounded modu
 The vendored Koronos tree now includes the same `physmap.cpp` and `physmap.h` as ChimeraIIOS. Boot verifies the exact four-GiB supervisor-only identity map built by the x86-64 entry assembly before initializing the frame allocator. Address-space page-table access and mapped-frame aliases now go through `koronos_phys_to_virt`, and address-space initialization refuses to proceed until the physmap verifier is ready.
 
 The range test is included in the standalone vendored host-test runner. This is a checked identity-map abstraction, not a high-memory direct map. It does not yet solve page-table teardown/TLB invalidation, transactional mapper rollback, per-CPU process state or scheduler-owned lifecycle.
+
+## Transactional ELF loader contract sync (2026-11-01)
+
+The vendored `process_loader.cpp` and `process_loader.h` now match ChimeraIIOS and enforce a user virtual-address floor of 4 GiB, avoiding the bootstrap identity map. The staged loader validates the ELF header/program-header table, bounds, executable entry, W^X, alignment, page-rounded segment overlap and stack separation before committing the result. It zeroes BSS/stack memory and destroys the staged address space on segment or stack mapping failure.
+
+A shared host regression verifies successful segment copy/BSS/stack setup, W^X rejection, page overlap rejection, low-address rejection, and rollback when stack mapping fails. The vendored host-test runner includes this regression. This tests the loader contract with a fake mapper; it does not prove the real page-table backend's rollback or a scheduler-owned process lifecycle.
