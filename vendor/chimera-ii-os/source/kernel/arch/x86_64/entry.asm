@@ -41,34 +41,32 @@ _start:
     mov al, 'E'
     out dx, al
 
-    ; Clear the PML4, PDPT and four 4 KiB page directories (24 KiB total).
-    ; Four PDPT entries are required: one PD covers only 1 GiB with 512
-    ; 2 MiB PDEs. Filling 2048 PDEs while pointing only PDPT[0] at the
-    ; array leaves the final 3 GiB unreachable.
+    ; Build the minimal identity paging structures needed to enter long mode.
     mov edi, page_table_base
     xor eax, eax
     mov ecx, 6 * 4096 / 4
     rep stosd
 
-    ; Materialize all table addresses before applying present/write flags.
+    ; Materialize relocatable table addresses before applying page flags.
     lea eax, [pdpt_table]
     or eax, 0x003
     mov [pml4_table], eax
+    ; One PDPT entry addresses one 512-entry page directory. Link all four
+    ; contiguous directory pages so the 2048 large leaves really cover 4 GiB.
     lea eax, [pd_table]
     or eax, 0x003
-    mov [pdpt_table + 0 * 8], eax
-    lea eax, [pd_table + 1 * 4096]
+    mov [pdpt_table + 0], eax
+    lea eax, [pd_table + 4096]
     or eax, 0x003
-    mov [pdpt_table + 1 * 8], eax
-    lea eax, [pd_table + 2 * 4096]
+    mov [pdpt_table + 8], eax
+    lea eax, [pd_table + 8192]
     or eax, 0x003
-    mov [pdpt_table + 2 * 8], eax
-    lea eax, [pd_table + 3 * 4096]
+    mov [pdpt_table + 16], eax
+    lea eax, [pd_table + 12288]
     or eax, 0x003
-    mov [pdpt_table + 3 * 8], eax
-
-    ; Populate 2048 2 MiB PDEs: four 1 GiB PDs form a 4 GiB identity map.
-    ; The storage is BSS, so materialize entries at runtime.
+    mov [pdpt_table + 24], eax
+    ; Populate 2048 2 MiB PDEs at runtime.  The page-table storage is BSS,
+    ; so it must not contain assembler-time initializers.
     lea edi, [pd_table]
     mov eax, 0x00000083
     mov ecx, 2048
