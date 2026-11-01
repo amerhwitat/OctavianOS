@@ -69,6 +69,12 @@ test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: uncompressed 
 mkdir -p "$DIST/iso/boot/live"
 cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
 
+# Stage the dedicated installer CPIO root used by the native Koronos VFS.
+INSTALL_BOOT="$ROOT/build/live-boot/boot/installer"
+test -s "$INSTALL_BOOT/chimera-installer-initramfs.cpio" || { echo "ERROR: installer CPIO module missing" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/installer"
+cp -f "$INSTALL_BOOT/chimera-installer-initramfs.cpio" "$DIST/iso/boot/installer/"
+
 # Jasper recovery is a real early-userspace terminal, not only a menu label.
 # Stage its dedicated initramfs and the canonical recovery menu after
 # prepare-layout, whose legacy recovery.cfg generation is intentionally kept
