@@ -92,3 +92,12 @@ These are CI candidate checks, not production initramfs/installer/recovery accep
 ## 7. Release gate
 
 Keep release publication fail-closed. A kernel-ready marker, a candidate ring-3 smoke ELF, an ISO artifact, a static contract test, or a successful artwork check cannot substitute for production init execution. Link every acceptance trace and artifact to the exact commit and ISO SHA. Do not claim Arch/Linux userspace parity until the supported ABI and runtime components pass real user-mode tests.
+
+
+## 8. Production launch-path wiring update (2026-11-01)
+
+The Octavian audit branch now calls `koronos_target_mount_initramfs()` from `koronos_launch_selected_userspace()` after validating the selected target and before address-space admission/ring-3 entry. The launch path fails closed unless the target-matched Multiboot2 initramfs module is present and `koronos_vfs_is_mounted()` succeeds. It then exercises the mounted root's `/etc/os-release` read/close path and a `/tmp` write/seek/read/close round trip before entering user mode. This closes the previous gap where the CPIO mount routine existed but was not called by the selected-init execution path.
+
+Important limitations remain: the current VFS is a bounded in-memory CPIO archive index plus a small volatile `/tmp` scratch area, not a general VFS with persistent block-backed filesystems, mount namespaces, permissions, symlinks, device nodes, procfs or sysfs. The native syscall dispatcher routes OPEN/READ/WRITE/SEEK/CLOSE through that VFS with user-range checks, but process identity remains a single active bootstrap PID and the syscall EXIT path returns to the bootstrap continuation. There is no general wait/reap, multiple independent address spaces under a preemptive scheduler, or complete service manager yet. This is a genuine integration step, not production parity.
+
+The corresponding native Koronos build run is [#41330795249](https://github.com/amerhwitat/OctavianOS/actions/runs/41330795249); it had completed the freestanding kernel build and CPIO-newc VFS test step successfully while the QEMU boot and ISO steps were still running at audit time. The six-case synthetic candidate matrix [#41326580536](https://github.com/amerhwitat/OctavianOS/actions/runs/41326580536) completed all six BIOS/UEFI jobs successfully on its earlier commit; that matrix does not yet exercise production init binaries.
