@@ -23,6 +23,7 @@ on:
 permissions:
   contents: read
 
+# Candidate matrix exercises ring-3 syscalls against a synthetic CPIO root; it is not production init ELF acceptance.
 jobs:
   userspace:
     name: ${{ matrix.target }} / ${{ matrix.firmware }}
