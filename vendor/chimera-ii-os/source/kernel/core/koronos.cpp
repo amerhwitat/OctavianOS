@@ -13,6 +13,7 @@
 #include "chimera/service.h"
 #include "chimera/platform_features.h"
 #include "chimera/process.h"
+#include "chimera/vfs.h"
 
 extern "C" void koronos_outb(uint16_t port, uint8_t value);
 
@@ -244,6 +245,13 @@ static void task_modules(void *) {
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
         if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
+            const int mount_rc = koronos_target_mount_initramfs();
+            if (mount_rc != 0) {
+                console_write("[VFS ] ERROR: target initramfs CPIO-newc mount failed; init launch withheld");
+                chimera_sched_block();
+                return;
+            }
+            console_write("[VFS ] Target initramfs mounted; read-only archive and /tmp RAM overlay ready");
             const int launch_rc = koronos_launch_selected_userspace();
             if (launch_rc != 0)
                 console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
@@ -270,8 +278,11 @@ static void task_live(void *) {
 static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
-        console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        console_write("[REC ] Recovery CPIO-newc initramfs module recognized");
+        const int vfs_rc = koronos_vfs_mount_cpio(reinterpret_cast<const void *>(static_cast<uintptr_t>(image->base)), image->size);
+        if (vfs_rc == 0) console_write("[VFS ] Recovery initramfs mounted read-only; /tmp RAM overlay available");
+        else console_write("[VFS ] ERROR: Recovery initramfs CPIO mount failed; recovery userspace remains withheld");
+        console_write("[USER] Recovery handoff withheld: native recovery init ELF and repair service lifecycle are not yet wired");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -279,6 +290,7 @@ static void task_recovery(void *) {
 }
 
 static void task_installer(void *) {
+    static bool installer_vfs_attempted = false;
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
@@ -290,6 +302,18 @@ static void task_installer(void *) {
             console_write("[INST] Installer target not selected: no installer modules");
         chimera_sched_block();
         return;
+    }
+
+    if (!installer_vfs_attempted) {
+        installer_vfs_attempted = true;
+        const chimera_boot_module *installer_root = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_INITRAMFS);
+        if (installer_root) {
+        const int vfs_rc = koronos_vfs_mount_cpio(reinterpret_cast<const void *>(static_cast<uintptr_t>(installer_root->base)), installer_root->size);
+        if (vfs_rc == 0) console_write("[VFS ] Installer initramfs mounted read-only; /tmp RAM overlay available");
+        else console_write("[VFS ] ERROR: Installer CPIO mount failed; installer userspace remains withheld");
+    } else {
+            console_write("[VFS ] Installer CPIO module missing; installer userspace remains withheld");
+        }
     }
 
     switch (installer_phase++) {
@@ -437,8 +461,13 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[HW  ] Initializing hardware...");
     uint32_t modules = chimera_multiboot_scan(ctx->boot_info);
     console_write("[MB2 ] Scanned Multiboot2 modules");
-    const int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
+    int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
     if (frame_init == 0) {
+        const int highmem_test = koronos_frame_allocator_highmem_self_test();
+        if (highmem_test == 0) console_write("[MM  ] High-memory read/write/free self-test passed above 4 GiB");
+        else if (highmem_test == 1) console_write("[MM  ] High-memory self-test skipped: no usable RAM above 4 GiB");
+        else console_write("[MM  ] ERROR: high-memory direct-map self-test failed");
+        if (highmem_test < 0) frame_init = -4; /* Do not hand out high frames if the direct map failed. */
         console_write("[MM  ] Physical frame allocator initialized; free 4 KiB frames: ");
         console_u32(static_cast<uint32_t>(koronos_frame_free_count()));
     } else {
@@ -455,7 +484,7 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     if (address_space_test == 0 && user_entry_init == 0) {
         console_write("[MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed");
         console_write("[ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance");
-        console_write("[MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map");
+        console_write("[MM  ] User virtual addresses must begin at or above 64 GiB to avoid the bootstrap identity map");
     } else {
         console_write("[MM  ] ERROR: process address-space or ring-3 entry setup failed; user-image launch remains disabled");
     }

@@ -17,7 +17,9 @@ A GitHub Actions importer is being staged to preserve the source repository's br
 The current production Live/Installer/Recovery QEMU traces fail the fail-closed userspace handoff verifier. Kernel readiness and target-routing smoke tests are not proof that init executed at CPL 3. The production ISO must not be released until the real payload is selected and launched, the syscall acknowledgement and readiness markers match the same real PID, all six BIOS/UEFI × target cases pass, and the follow-on Aurora/installer/recovery gates are verified.
 
 - [Production userspace handoff and acceptance contract](docs/PRODUCTION_USERSPACE_HANDOFF.md)
-- [Latest failing acceptance run](https://github.com/amerhwitat/OctavianOS/actions/runs/39185798999)
+- [Latest production userspace verifier failure](https://github.com/amerhwitat/OctavianOS/actions/runs/41325460081) — all three production target traces lack a CPL3-originated init syscall acknowledgement and same-PID readiness marker; prerelease was skipped.
+- [Six-case candidate ring-3 probe matrix](https://github.com/amerhwitat/OctavianOS/actions/runs/41325479648) — all Live/Installer/Recovery × BIOS/UEFI synthetic init probes passed; this is not production rootfs acceptance.
+- [Koronos vs Linux/Arch runtime audit](docs/KORONOS_ARCH_LINUX_RUNTIME_AUDIT_2026-11-01.md)
 - [Tracking issue #47](https://github.com/amerhwitat/OctavianOS/issues/47)
 
 This documentation records the verified failure state; it does not claim the kernel execution path is fixed.
@@ -138,3 +140,16 @@ The latest step-level poll of [ChimeraIIOS run #1388](https://github.com/amerhwi
 ## Corrected final result — production verifier failed (2026-10-19)
 
 The final result of [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) is **FAILURE**. The build, ISO composition, ISO validation, payload/artwork checks, Koronos boot smoke, trace upload, compression, and ISO artifact upload succeeded. However, the handoff and six-case scripts emitted `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`. The same failure occurred in all six Live/Installer/Recovery × BIOS/UEFI cases. The six-case script step's GitHub Actions step conclusion says success because it exports `accepted=false` without exiting nonzero; the final fail-closed release gate correctly caught that output and failed. The GitHub Release publication step was skipped. Artifacts are available: ISO `chimera-ii-os-live-installer` (ID 12166940637) and traces `chimera-target-userspace-traces` (ID 12166193261). No production acceptance pass; release remains BLOCKED. Earlier progress notes saying the matrix passed were premature and are superseded by this final log evidence.
+
+
+## Koronos kernel and userspace parity audit
+
+The current evidence-based comparison against the Linux kernel and Arch Linux userspace, including the distinction between source presence, candidate ring-3 tests, and production acceptance, is documented in [docs/KORONOS_ARCH_LINUX_RUNTIME_AUDIT_2026-11-01.md](docs/KORONOS_ARCH_LINUX_RUNTIME_AUDIT_2026-11-01.md). This is an implementation roadmap, not a claim of Linux compatibility or release readiness.
+
+
+## Koronos runtime status
+
+- Koronos runtime implementation status and Linux/Arch parity audit (2026-11-01): docs/KORONOS_RUNTIME_IMPLEMENTATION_STATUS_2026-11-01.md
+
+
+> **Memory/astronomy/compiler update (2026-11-01):** See [Koronos memory, astronomy and compiler parity audit](docs/KORONOS_MEMORY_ASTRONOMY_COMPILER_AUDIT_2026-11-01.md) for the initial 64-GiB direct-map uplift, high-memory allocator regression, open-source astronomy catalog and GCC/Clang build status. This does not claim >64-GiB, QEMU high-memory, native astronomy-app or self-hosted compiler acceptance.

@@ -26,8 +26,9 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
 <aside class="widget"><div class="kicker">Marine Desktop · Preview</div><h1>Good day,<br>explorer.</h1><p>A calm, ocean-inspired workspace. Windows-style centered taskbar, Start launcher, desktop shortcuts and glanceable widgets—designed independently of Aurora.</p><p class="preview-note" role="note">Preview only — no session launched. This page demonstrates the Marine desktop interface; it does not start the native operating system.</p><div class="weather"><div><div class="kicker">Ocean status</div><strong>Blue world</strong></div><span style="font-size:36px">🌊</span></div></aside>
 <section class="wallpaper-picker" id="wallpaperPicker" aria-label="Desktop backgrounds" hidden>
  <div class="wallpaper-heading"><div><div class="kicker">PERSONALIZATION</div><h2>Choose a background</h2></div><button id="closeWallpapers" type="button" aria-label="Close backgrounds">×</button></div>
+ <button class="wallpaper-option" data-wallpaper="cosmic"><img src="../aurora/assets/wallpapers/cosmic-planet.png" alt="" onerror="this.src='assets/marine-desktop.svg'"><span><b>The Blue Planet</b><small>User wallpaper · offline asset</small></span></button>
+ <button class="wallpaper-option" data-wallpaper="aurora"><img src="../aurora/assets/wallpapers/aurora-landscape.png" alt="" onerror="this.src='../aurora/assets/octavian-octopus-aurora.svg'"><span><b>Aurora over the Frozen Lake</b><small>User wallpaper · offline asset</small></span></button>
  <button class="wallpaper-option" data-wallpaper="marine"><img src="assets/marine-desktop.svg" alt=""><span><b>Marine Ocean Glass</b><small>Original included artwork</small></span></button>
- <button class="wallpaper-option" data-wallpaper="aurora"><img src="../aurora/assets/octavian-octopus-aurora.svg" alt=""><span><b>Octopus Aurora</b><small>Included Aurora artwork</small></span></button>
  </section>
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
 <section class="startmenu" id="startmenu" aria-label="Marine Start menu">
@@ -41,6 +42,15 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
 <a class="app" href="https://amerhwitat.github.io/apps/index.html"><span>🧩</span><small>App Library</small></a>
 <a class="app" href="https://amerhwitat.github.io/apps/chimera-ii-os/web/health.html"><span>📊</span><small>Monitor</small></a>
 <a class="app" href="https://amerhwitat.github.io/apps/repository-app-explorer/"><span>❔</span><small>Help</small></a>
+</div>
+<div class="starthead" style="margin-top:22px"><div><div class="kicker">SCIENCE & SPACE</div><h2 style="margin:5px 0">Astronomy</h2></div><small>Open-source projects · native install not yet verified</small></div>
+<div class="apps" id="astronomy-apps">
+<a class="app" href="https://stellarium.org/" target="_blank" rel="noopener noreferrer"><span>🌌</span><small>Stellarium</small></a>
+<a class="app" href="https://kstars.kde.org/" target="_blank" rel="noopener noreferrer"><span>🔭</span><small>KStars + Ekos</small></a>
+<a class="app" href="https://celestiaproject.space/" target="_blank" rel="noopener noreferrer"><span>🪐</span><small>Celestia</small></a>
+<a class="app" href="https://gaiasky.space/" target="_blank" rel="noopener noreferrer"><span>🌠</span><small>Gaia Sky</small></a>
+<a class="app" href="https://siril.org/" target="_blank" rel="noopener noreferrer"><span>📷</span><small>Siril</small></a>
+<a class="app" href="https://github.com/csete/gpredict" target="_blank" rel="noopener noreferrer"><span>🛰️</span><small>Gpredict</small></a>
 </div></section>
 </main>
 <nav class="taskbar-wrap" aria-label="Marine taskbar"><div class="taskbar"><button class="start" id="start" aria-label="Open Start menu" aria-expanded="false">◈</button><input class="search" id="tasksearch" placeholder="Search apps and files" aria-label="Search apps and files"><a class="taskapp" href="https://amerhwitat.github.io/apps/chimera-ii-os/web/artifact-library.html" aria-label="Files">📁</a><a class="taskapp" href="https://amerhwitat.github.io/apps/repository-app-explorer/" aria-label="Browser">🌐</a><a class="taskapp" href="https://amerhwitat.github.io/apps/chimera-ii-os/web/aurora_terminal.html" aria-label="Terminal">⌘</a><a class="taskapp" href="https://amerhwitat.github.io/apps/chimera-ii-os/web/system_control_center.html" aria-label="Settings">⚙</a><div class="clock"><div id="time">--:--</div><div id="date">--</div></div></div></nav>
@@ -48,18 +58,19 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
 (() => {
  const menu=document.getElementById('startmenu'), start=document.getElementById('start'), notice=document.getElementById('notice');
  const wallpaperPicker=document.getElementById('wallpaperPicker'), wallpaperButton=document.getElementById('wallpaperButton');
- const wallpaperAssets={marine:'assets/marine-desktop.svg',aurora:'../aurora/assets/octavian-octopus-aurora.svg'};
- const setWallpaper=key=>{if(!wallpaperAssets[key])return;document.body.style.backgroundImage='linear-gradient(130deg,#00243a55,#032c3d18 45%,#00162977),url("'+wallpaperAssets[key]+'")';localStorage.setItem('octavian.desktop.wallpaper',key);document.querySelectorAll('[data-wallpaper]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.wallpaper===key)));window.dispatchEvent(new CustomEvent('octavian-wallpaper-change',{detail:{key}}));};
+ const wallpaperAssets={marine:'assets/marine-desktop.svg',aurora:'../aurora/assets/wallpapers/aurora-landscape.png',cosmic:'../aurora/assets/wallpapers/cosmic-planet.png'};
+ const wallpaperFallbacks={aurora:'../aurora/assets/octavian-octopus-aurora.svg',cosmic:'assets/marine-desktop.svg'};
+ const setWallpaper=key=>{if(!wallpaperAssets[key])return;const apply=src=>{document.body.style.backgroundImage='linear-gradient(130deg,#00243a55,#032c3d18 45%,#00162977),url("'+src+'")';localStorage.setItem('octavian.desktop.wallpaper',key);document.querySelectorAll('[data-wallpaper]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.wallpaper===key)));window.dispatchEvent(new CustomEvent('octavian-wallpaper-change',{detail:{key}}));};const probe=new Image();probe.onload=()=>apply(wallpaperAssets[key]);probe.onerror=()=>apply(wallpaperFallbacks[key]||wallpaperAssets[key]);probe.src=wallpaperAssets[key];};
  wallpaperButton.addEventListener('click',()=>{wallpaperPicker.hidden=!wallpaperPicker.hidden;wallpaperButton.setAttribute('aria-expanded',String(!wallpaperPicker.hidden));});
  document.getElementById('closeWallpapers').addEventListener('click',()=>{wallpaperPicker.hidden=true;wallpaperButton.setAttribute('aria-expanded','false');});
  document.querySelectorAll('[data-wallpaper]').forEach(b=>b.addEventListener('click',()=>setWallpaper(b.dataset.wallpaper)));
- setWallpaper(localStorage.getItem('octavian.desktop.wallpaper')||'marine');
+ setWallpaper(localStorage.getItem('octavian.desktop.wallpaper')||'cosmic');
  const showNotice=message=>{notice.textContent=message;notice.classList.add('show');clearTimeout(showNotice.timer);showNotice.timer=setTimeout(()=>notice.classList.remove('show'),3600)};
  const toggle=()=>{const open=!menu.classList.contains('open');menu.classList.toggle('open',open);start.setAttribute('aria-expanded',String(open));if(open)document.getElementById('appsearch').focus()};
  start.addEventListener('click',toggle);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.remove('open');start.setAttribute('aria-expanded','false');wallpaperPicker.hidden=true;wallpaperButton.setAttribute('aria-expanded','false')}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggle()}});
  document.querySelectorAll('[data-notice]').forEach(el=>el.addEventListener('click',()=>showNotice(el.dataset.notice)));
- const search=document.getElementById('appsearch');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('#apps .app').forEach(el=>el.hidden=!el.innerText.toLowerCase().includes(q))});
+ const search=document.getElementById('appsearch');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('#apps .app, #astronomy-apps .app').forEach(el=>el.hidden=!el.innerText.toLowerCase().includes(q))});
  const pad=n=>String(n).padStart(2,'0');function tick(){const d=new Date();document.getElementById('time').textContent=pad(d.getHours())+':'+pad(d.getMinutes());document.getElementById('date').textContent=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}tick();setInterval(tick,30000);
  document.getElementById('tasksearch').addEventListener('focus',()=>{menu.classList.add('open');start.setAttribute('aria-expanded','true');search.focus()});
 })();

@@ -42,7 +42,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 # CHIMERA_LIVE_BOOT_DIR remains an explicit override for standalone builds.
 BUILD_DIR="${CHIMERA_BUILD_DIR:-$ROOT/build}"
 OUT="${CHIMERA_LIVE_BOOT_DIR:-$BUILD_DIR/live-boot}"
-mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/recovery" "$OUT/initramfs/root"/{bin,sbin,dev,proc,sys,run,tmp,mnt/chimera,etc,var/log/mesgs/archive,var/lib/chimera/drivers,etc/chimera/drivers,lib/chimera/drivers,lib/firmware} "$OUT/mobile"/{arm64,armv7,x86_64} "$OUT/manifests"
+mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/recovery" "$OUT/boot/installer" "$OUT/initramfs/root"/{bin,sbin,dev,proc,sys,run,tmp,mnt/chimera,etc,var/log/mesgs/archive,var/lib/chimera/drivers,etc/chimera/drivers,lib/chimera/drivers,lib/firmware} "$OUT/mobile"/{arm64,armv7,x86_64} "$OUT/manifests"
 # This ISO boots the native Koronos Multiboot2 ELF; it must not scrape the
 # build host's protected /boot/vmlinuz into the guest media. The live manifest
 # explicitly declares linux_vmlinuz_required=false.
@@ -113,6 +113,7 @@ fi
 exec /bin/sh
 EOF
 chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || true
+(cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/live/chimera-live-initramfs.cpio"
 (cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
@@ -154,8 +155,25 @@ recovery_progress 100 "Recovery shell" "repair console is ready; individual repa
 exec /bin/chimera-recovery-console.sh
 EOF
 chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
+(cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio"
 (cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
+
+# Installer gets a distinct early-userspace archive and module identity. It is
+# intentionally not treated as an installer GUI or a successful disk install.
+INST="$OUT/initramfs/installer"
+rm -rf "$INST"
+mkdir -p "$INST"
+cp -a "$INIT/." "$INST/"
+cat > "$INST/init" <<'EOF'
+#!/bin/sh
+set -eu
+echo "Koronos installer early userspace mounted."
+echo "Installer storage, partitioning and persistence services are not yet active."
+exec /bin/sh
+EOF
+chmod +x "$INST/init"
+(cd "$INST" && find . -print0 | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/installer/chimera-installer-initramfs.cpio"
 
 for arch in arm64 armv7 x86_64; do
   mkdir -p "$OUT/mobile/$arch"

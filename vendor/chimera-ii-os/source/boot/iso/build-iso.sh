@@ -62,15 +62,30 @@ cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf2-loader.o" "$DIST/iso/boot/spitfire/"
 
+# Stage the uncompressed newc archive for the native Koronos VFS. The
+# gzip initramfs remains for the legacy shell path.
+LIVE_BOOT="$ROOT/build/live-boot/boot/live"
+test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: uncompressed Live CPIO missing" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/live"
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
+
+# Stage the dedicated installer CPIO root used by the native Koronos VFS.
+INSTALL_BOOT="$ROOT/build/live-boot/boot/installer"
+test -s "$INSTALL_BOOT/chimera-installer-initramfs.cpio" || { echo "ERROR: installer CPIO module missing" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/installer"
+cp -f "$INSTALL_BOOT/chimera-installer-initramfs.cpio" "$DIST/iso/boot/installer/"
+
 # Jasper recovery is a real early-userspace terminal, not only a menu label.
 # Stage its dedicated initramfs and the canonical recovery menu after
 # prepare-layout, whose legacy recovery.cfg generation is intentionally kept
 # compatible with older installations.
 RECOVERY_BOOT="$ROOT/build/live-boot/boot/recovery"
+test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" || { echo "ERROR: uncompressed Jasper recovery CPIO missing" >&2; exit 2; }
 test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.img" || { echo "ERROR: Jasper recovery initramfs missing: $RECOVERY_BOOT/chimera-recovery-initramfs.img" >&2; exit 2; }
 test -s "$RECOVERY_BOOT/recovery-manifest.json" || { echo "ERROR: Jasper recovery manifest missing: $RECOVERY_BOOT/recovery-manifest.json" >&2; exit 2; }
 mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
@@ -80,6 +95,19 @@ VISUAL_OUT="$DIST/iso/boot/visual"
 mkdir -p "$VISUAL_OUT"
 bash "$ROOT/tools/aurora/build-visual-assets.sh" "$ROOT/build/aurora-media"
 MEDIA="$ROOT/build/aurora-media"
+# Optional distribution-specific boot artwork override. The default Chimera
+# artwork pipeline remains unchanged; downstream distributions may provide a
+# pre-rendered, validated PNG so the exact branded image is embedded offline.
+if [[ -n "${CHIMERA_BOOT_ARTWORK_OVERRIDE:-}" ]]; then
+  test -s "$CHIMERA_BOOT_ARTWORK_OVERRIDE" || { echo "ERROR: boot artwork override is missing." >&2; exit 2; }
+  python3 - "$CHIMERA_BOOT_ARTWORK_OVERRIDE" <<'PY'
+import pathlib, sys
+data = pathlib.Path(sys.argv[1]).read_bytes()
+if data[:8] != bytes.fromhex("89504e470d0a1a0a"):
+    raise SystemExit("ERROR: boot artwork override is not a PNG")
+PY
+  cp -f "$CHIMERA_BOOT_ARTWORK_OVERRIDE" "$MEDIA/backgrounds/boot.png"
+fi
 test -s "$MEDIA/Init.mp4" || { echo "ERROR: Aurora Init.mp4 was not generated or supplied." >&2; exit 2; }
 mkdir -p "$DIST/iso/boot/visual/aurora-media"
 cp -a "$MEDIA/." "$DIST/iso/boot/visual/aurora-media/"
@@ -87,6 +115,24 @@ for f in   backgrounds/boot.png   backgrounds/desktop.png   menus/default.png   
   test -s "$MEDIA/$f" || { echo "ERROR: Aurora asset missing: $MEDIA/$f" >&2; exit 2; }
 done
 cp -f "$MEDIA/backgrounds/boot.png" "$VISUAL_OUT/aurora-boot.png"
+if [[ -n "${CHIMERA_BOOT_ARTWORK_OVERRIDE:-}" ]]; then
+  cp -f "$CHIMERA_BOOT_ARTWORK_OVERRIDE" "$VISUAL_OUT/octavian-octopus-aurora.png"
+fi
+if [[ -n "${CHIMERA_BOOT_ARTWORK_MANIFEST:-}" ]]; then
+  test -s "$CHIMERA_BOOT_ARTWORK_MANIFEST" || { echo "ERROR: boot artwork manifest override is missing." >&2; exit 2; }
+  cp -f "$CHIMERA_BOOT_ARTWORK_MANIFEST" "$VISUAL_OUT/octavian-artwork-manifest.json"
+  if [[ -n "${CHIMERA_BOOT_ARTWORK_OVERRIDE:-}" ]]; then
+    python3 - "$CHIMERA_BOOT_ARTWORK_OVERRIDE" "$CHIMERA_BOOT_ARTWORK_MANIFEST" <<'PY'
+import hashlib, json, pathlib, sys
+image = pathlib.Path(sys.argv[1]).read_bytes()
+manifest = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+expected = manifest.get("boot_artwork", {}).get("sha256")
+actual = hashlib.sha256(image).hexdigest()
+if not expected or actual != expected:
+    raise SystemExit(f"ERROR: boot artwork SHA-256 mismatch: expected={expected!r} actual={actual}")
+PY
+  fi
+fi
 cp -f "$MEDIA/backgrounds/desktop.png" "$VISUAL_OUT/aurora-desktop.png"
 cp -f "$MEDIA/menus/default.png" "$VISUAL_OUT/aurora-menu.png"
 cp -f "$MEDIA/splash/aurora-splash.png" "$VISUAL_OUT/aurora-splash.png"
@@ -168,8 +214,10 @@ grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
+test -s "$DIST/iso/boot/live/chimera-live-initramfs.cpio" || { echo "Uncompressed Live CPIO module missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.cpio" || { echo "Uncompressed Recovery CPIO module missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
 grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"

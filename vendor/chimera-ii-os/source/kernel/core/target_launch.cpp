@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/vfs.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -95,6 +96,25 @@ static bool target_marker(const char *bytes, uint64_t length, Target target, uin
 }
 
 extern "C" uint32_t koronos_target_userspace_ready(void) { return ready_seen; }
+extern "C" int koronos_target_mount_initramfs(void) {
+    const chimera_boot_module *selected = nullptr;
+    Target target = TARGET_NONE;
+    for (uint32_t i=0; i<chimera_multiboot_module_count(); ++i) {
+        const chimera_boot_module *m=chimera_multiboot_module(i);
+        if (!m || m->kind!=CHIMERA_MODULE_USER_INIT_ELF) continue;
+        if (selected) return -1;
+        selected=m;
+    }
+    if (!selected) return -2;
+    target=parse_target(selected->cmdline);
+    const uint32_t kind = target==TARGET_LIVE ? CHIMERA_MODULE_LIVE_INITRAMFS :
+        (target==TARGET_RECOVERY ? CHIMERA_MODULE_RECOVERY_INITRAMFS :
+        (target==TARGET_INSTALLER ? CHIMERA_MODULE_INSTALL_INITRAMFS : CHIMERA_MODULE_UNKNOWN));
+    if (kind==CHIMERA_MODULE_UNKNOWN) return -3;
+    const chimera_boot_module *root=chimera_multiboot_find(kind);
+    if (!root || !root->base || !root->size) return -4;
+    return koronos_vfs_mount_cpio(reinterpret_cast<const void *>(static_cast<uintptr_t>(root->base)),root->size);
+}
 extern "C" uint32_t koronos_target_active_pid(void) {
     return active_target != TARGET_NONE ? active_pid : 0u;
 }
@@ -154,6 +174,44 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (target==TARGET_NONE) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
+    }
+    /*
+     * Production target boot must mount the target-matched initramfs before
+     * entering ring 3. Keep this in the launch path (not a disconnected boot
+     * probe), and fail closed if the CPIO-newc root or minimum VFS contract is
+     * unavailable.
+     */
+    const int mount_rc = koronos_target_mount_initramfs();
+    if (mount_rc != 0 || !koronos_vfs_is_mounted()) {
+        koronos_target_log("[RUN ] ERROR: target initramfs CPIO/VFS mount failed");
+        return -12;
+    }
+    const int os_release_fd = koronos_vfs_open("/etc/os-release", 0u);
+    if (os_release_fd < 3) {
+        koronos_target_log("[RUN ] ERROR: mounted rootfs lacks readable /etc/os-release");
+        return -13;
+    }
+    char os_release_probe[256];
+    const int64_t os_release_bytes = koronos_vfs_read(os_release_fd, os_release_probe, sizeof(os_release_probe));
+    (void)koronos_vfs_close(os_release_fd);
+    if (os_release_bytes <= 0) {
+        koronos_target_log("[RUN ] ERROR: /etc/os-release could not be read from mounted rootfs");
+        return -14;
+    }
+    const char tmp_probe[] = "koronos-vfs-ready";
+    const int tmp_fd = koronos_vfs_open("/tmp/.koronos-vfs-smoke", 1u);
+    if (tmp_fd < 3 || koronos_vfs_write(tmp_fd, tmp_probe, sizeof(tmp_probe)) != (int64_t)sizeof(tmp_probe) ||
+        koronos_vfs_seek(tmp_fd, 0, 0u) != 0) {
+        if (tmp_fd >= 3) (void)koronos_vfs_close(tmp_fd);
+        koronos_target_log("[RUN ] ERROR: mounted rootfs /tmp is not writable/seekable");
+        return -15;
+    }
+    char tmp_readback[sizeof(tmp_probe)];
+    const int64_t tmp_bytes = koronos_vfs_read(tmp_fd, tmp_readback, sizeof(tmp_readback));
+    (void)koronos_vfs_close(tmp_fd);
+    if (tmp_bytes != (int64_t)sizeof(tmp_probe)) {
+        koronos_target_log("[RUN ] ERROR: /tmp write/read round trip failed");
+        return -16;
     }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
