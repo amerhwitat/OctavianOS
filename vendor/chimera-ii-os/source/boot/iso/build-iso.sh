@@ -71,6 +71,7 @@ test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.img" || { echo "ERROR: Jasper
 test -s "$RECOVERY_BOOT/recovery-manifest.json" || { echo "ERROR: Jasper recovery manifest missing: $RECOVERY_BOOT/recovery-manifest.json" >&2; exit 2; }
 mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
+cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
@@ -199,8 +200,10 @@ grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
+test -s "$DIST/iso/boot/live/chimera-live-initramfs.cpio" || { echo "Uncompressed Live CPIO module missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.cpio" || { echo "Uncompressed Recovery CPIO module missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
 grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
