@@ -73,3 +73,8 @@ This validates source portability across two host-native compiler toolchains. It
 - BIOS and UEFI boot matrix must remain green.
 - Astronomy entries remain explicitly unsupported until a native package provider, dependencies, build, launch and license notices are validated.
 - No production ISO publication is authorized by this audit alone.
+
+
+## Follow-up: real high-memory access probe
+
+The kernel now exposes `koronos_frame_allocator_highmem_self_test()`. On a machine with usable memory above 4 GiB it allocates a frame above 4 GiB, writes and reads two 64-bit patterns through the identity/direct map, and frees the frame. If no usable RAM exists above 4 GiB the probe reports a skip; if the read/write/free test fails, Koronos marks frame initialization failed so the address-space backend remains disabled. Both repositories' Koronos boot workflows now request a 5-GiB QEMU guest and require the high-memory pass marker. The Octavian native build workflow also rebuilds with Clang/Clang++ after GCC/G++ and runs the synthetic allocator regression.
