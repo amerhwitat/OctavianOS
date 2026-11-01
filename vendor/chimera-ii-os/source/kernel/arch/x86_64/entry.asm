@@ -41,40 +41,43 @@ _start:
     mov al, 'E'
     out dx, al
 
-    ; Clear the PML4, PDPT and four 4 KiB page directories (24 KiB total).
-    ; Four PDPT entries are required: one PD covers only 1 GiB with 512
-    ; 2 MiB PDEs. Filling 2048 PDEs while pointing only PDPT[0] at the
-    ; array leaves the final 3 GiB unreachable.
+    ; Build a 64-GiB identity/direct map: one PML4, one PDPT and 64 page
+    ; directories (66 pages total). Each PD covers 1 GiB using 2-MiB leaves.
+    ; The 64-GiB ceiling matches the x86-64 architectural minimum of 36
+    ; physical-address bits and keeps all frame addresses directly accessible.
     mov edi, page_table_base
     xor eax, eax
-    mov ecx, 6 * 4096 / 4
+    mov ecx, 66 * 4096 / 4
     rep stosd
 
-    ; Materialize all table addresses before applying present/write flags.
     lea eax, [pdpt_table]
     or eax, 0x003
     mov [pml4_table], eax
-    lea eax, [pd_table]
-    or eax, 0x003
-    mov [pdpt_table + 0 * 8], eax
-    lea eax, [pd_table + 1 * 4096]
-    or eax, 0x003
-    mov [pdpt_table + 1 * 8], eax
-    lea eax, [pd_table + 2 * 4096]
-    or eax, 0x003
-    mov [pdpt_table + 2 * 8], eax
-    lea eax, [pd_table + 3 * 4096]
-    or eax, 0x003
-    mov [pdpt_table + 3 * 8], eax
 
-    ; Populate 2048 2 MiB PDEs: four 1 GiB PDs form a 4 GiB identity map.
-    ; The storage is BSS, so materialize entries at runtime.
+    ; Link all 64 PDPT slots to their corresponding 1-GiB page directories.
+    lea edi, [pdpt_table]
+    lea eax, [pd_table]
+    mov ecx, 64
+.fill_pdpt:
+    mov edx, eax
+    or edx, 0x003
+    mov [edi], edx
+    mov dword [edi + 4], 0
+    add eax, 4096
+    add edi, 8
+    loop .fill_pdpt
+
+    ; Populate 32768 2-MiB PDEs (64 GiB). Carry into EDX so physical
+    ; addresses above 4 GiB are not truncated by the 32-bit boot phase.
     lea edi, [pd_table]
     mov eax, 0x00000083
-    mov ecx, 2048
+    xor edx, edx
+    mov ecx, 32768
 .fill_pd:
     mov [edi], eax
+    mov [edi + 4], edx
     add eax, 0x00200000
+    adc edx, 0
     add edi, 8
     loop .fill_pd
 
@@ -163,7 +166,7 @@ global koronos_bootstrap_pml4
 pml4_table:
 koronos_bootstrap_pml4: resb 4096
 pdpt_table: resb 4096
-pd_table: resb 16384
+pd_table: resb 64 * 4096
 alignb 16
 boot_context: resb 88
 multiboot_magic: resd 1
