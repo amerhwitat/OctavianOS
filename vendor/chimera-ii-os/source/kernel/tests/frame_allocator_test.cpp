@@ -25,6 +25,11 @@ struct __attribute__((packed, aligned(8))) BootInfo {
     EndTag end;
 };
 
+static uint8_t mapped_frame[4096];
+static void *test_phys_mapper(uint64_t physical, uint64_t length, void *) {
+    if (physical != 0x200000 || length > sizeof(mapped_frame)) return nullptr;
+    return mapped_frame;
+}
 static void make_map(BootInfo &info, uint64_t usable_base, uint64_t usable_size,
                      uint64_t reserved_base, uint64_t reserved_size) {
     memset(&info, 0, sizeof(info));
@@ -46,6 +51,10 @@ int main() {
     // 1 MiB..64 MiB gives 16,128 pages. Kernel and reserved 8..9 MiB
     // each consume 256 pages, leaving exactly 15,616 allocatable pages.
     assert(koronos_frame_free_count() == 15616);
+    assert(koronos_frame_set_mapper(test_phys_mapper, nullptr) == 0);
+    assert(koronos_frame_phys_to_virt(0x200000, 4096) == mapped_frame);
+    assert(koronos_frame_phys_to_virt(0x200000, 8192) == nullptr);
+    assert(koronos_frame_phys_to_virt(0x100000000ull, 4096) == nullptr);
     const uint64_t run = koronos_frame_alloc_contiguous(3);
     assert(run == 0x200000);
     assert(koronos_frame_free_count() == 15613);
