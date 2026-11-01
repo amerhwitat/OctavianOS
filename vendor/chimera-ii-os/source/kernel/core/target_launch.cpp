@@ -188,6 +188,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: selected user init has no owned CR3 root");
         return -7;
     }
+    if (chimera_process_bind_address_space(static_cast<uint32_t>(pid),
+            loaded.address_space, root, loaded.entry, loaded.user_stack_top) != 0) {
+        ops->destroy_address_space(nullptr, loaded.address_space);
+        (void)chimera_process_set_state(static_cast<uint32_t>(pid), CHIMERA_PROCESS_FAULTED);
+        koronos_target_log("[RUN ] ERROR: process record refused address-space ownership binding");
+        return -8;
+    }
     active_target=target;
     active_pid=static_cast<uint32_t>(pid);
     active_root=root;
@@ -200,7 +207,10 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (koronos_user_timeout_arm(1000u) != 0) {
         ops->destroy_address_space(nullptr,loaded.address_space);
         (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_clear_address_space(active_pid, loaded.address_space);
         active_target=TARGET_NONE;
+        active_pid=0;
+        active_root=0;
         koronos_target_log("[RUN ] ERROR: failed to arm PIT-backed in-kernel user timeout");
         return -10;
     }
@@ -213,7 +223,9 @@ extern "C" int koronos_launch_selected_userspace(void) {
     koronos_user_timeout_disarm();
     ops->destroy_address_space(nullptr,loaded.address_space);
     (void)chimera_process_set_state(active_pid,exit_code==0 ? CHIMERA_PROCESS_EXITED : CHIMERA_PROCESS_FAULTED);
+    (void)chimera_process_clear_address_space(active_pid, loaded.address_space);
     active_target=TARGET_NONE;
+    active_pid=0;
     active_root=0;
     if (exit_code == -10) {
         koronos_target_log("[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed");

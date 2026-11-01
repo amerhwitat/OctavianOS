@@ -14,9 +14,18 @@ constexpr uint32_t BITMAP_WORDS = PAGE_COUNT / WORD_BITS;
 constexpr uint32_t FIRST_ALLOCATABLE_PAGE = 0x100000u / static_cast<uint32_t>(KORONOS_FRAME_SIZE);
 uint32_t free_bitmap[BITMAP_WORDS];
 uint32_t allocated_bitmap[BITMAP_WORDS];
+uint32_t reserved_bitmap[BITMAP_WORDS];
 volatile uint32_t allocator_lock = 0;
 bool initialized = false;
 uint64_t free_pages = 0;
+koronos_frame_map_fn frame_mapper = nullptr;
+void *frame_mapper_context = nullptr;
+
+static void *identity_map(uint64_t physical, uint64_t length, void *) {
+    if (!length || physical >= KORONOS_FRAME_PHYS_LIMIT ||
+        length > KORONOS_FRAME_PHYS_LIMIT - physical) return nullptr;
+    return reinterpret_cast<void *>(static_cast<uintptr_t>(physical));
+}
 
 struct Mb2Tag { uint32_t type, size; };
 struct Mb2MmapTag { uint32_t type, size, entry_size, entry_version; };
@@ -49,8 +58,10 @@ static void clear_bit(uint32_t *map, uint32_t index) {
 }
 static uint64_t min_u64(uint64_t a, uint64_t b) { return a < b ? a : b; }
 
-static void add_usable_range(uint64_t start, uint64_t length) {
-    if (!length || start >= KORONOS_FRAME_PHYS_LIMIT || start > UINT64_MAX - length) return;
+static bool add_usable_range(uint64_t start, uint64_t length) {
+    if (!length) return true;
+    if (start > UINT64_MAX - length) return false;
+    if (start >= KORONOS_FRAME_PHYS_LIMIT || start + length > KORONOS_FRAME_PHYS_LIMIT) return false;
     uint64_t end = min_u64(start + length, KORONOS_FRAME_PHYS_LIMIT);
     uint64_t first = (start + KORONOS_FRAME_SIZE - 1u) / KORONOS_FRAME_SIZE;
     uint64_t last = end / KORONOS_FRAME_SIZE;
@@ -58,11 +69,12 @@ static void add_usable_range(uint64_t start, uint64_t length) {
     if (last > PAGE_COUNT) last = PAGE_COUNT;
     for (uint64_t p = first; p < last; ++p) {
         uint32_t index = static_cast<uint32_t>(p);
-        if (!bit(free_bitmap, index) && !bit(allocated_bitmap, index)) {
+        if (!bit(free_bitmap, index) && !bit(allocated_bitmap, index) && !bit(reserved_bitmap, index)) {
             set_bit(free_bitmap, index);
             ++free_pages;
         }
     }
+    return true;
 }
 static void reserve_range(uint64_t start, uint64_t length) {
     if (!length || start >= KORONOS_FRAME_PHYS_LIMIT || start > UINT64_MAX - length) return;
@@ -72,6 +84,7 @@ static void reserve_range(uint64_t start, uint64_t length) {
     if (last > PAGE_COUNT) last = PAGE_COUNT;
     for (uint64_t p = first; p < last; ++p) {
         uint32_t index = static_cast<uint32_t>(p);
+        set_bit(reserved_bitmap, index);
         if (bit(free_bitmap, index)) {
             clear_bit(free_bitmap, index);
             --free_pages;
@@ -97,7 +110,12 @@ static bool parse_mmap(uint64_t info) {
             if (bytes % mmap->entry_size != 0u) return false;
             for (uint32_t pos = sizeof(Mb2MmapTag); pos < tag->size; pos += mmap->entry_size) {
                 const Mb2MmapEntry *entry = reinterpret_cast<const Mb2MmapEntry *>(base + off + pos);
-                if (entry->type == 1u) add_usable_range(entry->address, entry->length);
+                if (entry->length && entry->address > UINT64_MAX - entry->length) return false;
+                if (entry->type == 1u) {
+                    if (!add_usable_range(entry->address, entry->length)) return false;
+                } else {
+                    reserve_range(entry->address, entry->length);
+                }
             }
             found = true;
             break;
@@ -114,9 +132,12 @@ extern "C" int koronos_frame_allocator_init(uint64_t info, uint64_t kernel_base,
     for (uint32_t i = 0; i < BITMAP_WORDS; ++i) {
         free_bitmap[i] = 0;
         allocated_bitmap[i] = 0;
+        reserved_bitmap[i] = 0;
     }
     free_pages = 0;
     initialized = false;
+    frame_mapper = nullptr;
+    frame_mapper_context = nullptr;
     if (!parse_mmap(info)) return -1;
 
     const uint8_t *base = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(info));
@@ -130,6 +151,7 @@ extern "C" int koronos_frame_allocator_init(uint64_t info, uint64_t kernel_base,
         if (module) reserve_range(module->base, module->size);
     }
     initialized = free_pages != 0;
+    if (initialized) frame_mapper = identity_map;
     return initialized ? 0 : -2;
 }
 
@@ -190,4 +212,22 @@ extern "C" uint64_t koronos_frame_free_count(void) {
     const uint64_t result = free_pages;
     unlock();
     return result;
+}
+
+extern "C" int koronos_frame_set_mapper(koronos_frame_map_fn mapper, void *context) {
+    if (!initialized || !mapper) return -1;
+    lock();
+    frame_mapper = mapper;
+    frame_mapper_context = context;
+    unlock();
+    return 0;
+}
+extern "C" void *koronos_frame_phys_to_virt(uint64_t physical, uint64_t length) {
+    if (!initialized || !length || physical >= KORONOS_FRAME_PHYS_LIMIT ||
+        length > KORONOS_FRAME_PHYS_LIMIT - physical) return nullptr;
+    lock();
+    koronos_frame_map_fn mapper = frame_mapper;
+    void *context = frame_mapper_context;
+    unlock();
+    return mapper ? mapper(physical, length, context) : nullptr;
 }
