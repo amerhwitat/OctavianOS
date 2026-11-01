@@ -93,3 +93,10 @@ The kernel now exposes `koronos_frame_allocator_highmem_self_test()`. On a machi
 The comparison is architectural rather than a claim of binary compatibility. Windows uses the Service Control Manager to maintain service records and start/stop service and driver processes; Linux VFS and desktop stacks rely on process-context filesystem calls, XDG launch metadata and compositor protocols. The OS desktop pages should not be described as equivalent to Explorer, GNOME or Plasma until their native window manager, compositor, accessibility, input, file associations, application lifecycle and package-provider contracts are implemented and tested.
 
 References: https://learn.microsoft.com/en-us/windows/win32/services/service-control-manager ; https://docs.kernel.org/filesystems/vfs.html ; https://apps.kde.org/kstars/ ; https://stellarium.org/ .
+
+
+## CI evidence update — 2026-11-01
+
+[Native Koronos build #41332147178](https://github.com/amerhwitat/OctavianOS/actions/runs/41332147178) completed the GCC freestanding build, CPIO-newc VFS tests, synthetic >4-GiB frame allocator test, Clang/Clang++ rebuild, ELF/Multiboot validation, module classification tests, and the 5-GiB QEMU boot step successfully. The QEMU step requires both the kernel readiness marker and `High-memory read/write/free self-test passed above 4 GiB`; therefore the >4-GiB access probe passed in that run. Recovery/installer payload generation and earlier supporting steps also completed.
+
+The same workflow's final ISO candidate build failed at the artwork SHA-256 check: expected manifest digest `fb6810db...`, actual generated override digest `78659a99...`. The generated override is not the user-supplied northern-lights PNG, so the integrity check correctly blocked final ISO mastering. The uploaded wallpaper pack exists as a review artifact, but the PNG binary files have not yet been committed to the repository; do not weaken the hash check or publish an ISO containing the wrong artwork. The ISO, artwork extraction, full-ISO target tests and publication remain blocked until the actual image bytes are staged and hash-verified.
