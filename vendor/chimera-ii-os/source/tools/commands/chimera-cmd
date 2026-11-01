@@ -1,18 +1,52 @@
 #!/usr/bin/env bash
+# chimera-cmd -- Arabic / alternate-name command dispatcher.
+#
+# This wrapper ONLY resolves the name it was invoked as (argv[0]). It must
+# never interpret its first argument as a command name: doing so turned
+# `mkdir -p /x` into `exec -p /x` and broke initramfs generation.
 set -Eeuo pipefail
+
 REGISTRY="${CHIMERA_COMMAND_REGISTRY:-/usr/share/chimera/commands/chimera-arabic.json}"
 SELF="$(basename -- "${0}")"
-CANONICAL="${1:-}"
-if [[ "$CANONICAL" == "--canonical" ]]; then shift; CANONICAL="${1:-}"; shift || true; fi
+CANONICAL=""
+
+# Explicit override form: chimera-cmd --canonical <name> [args...]
+if [[ "${1:-}" == "--canonical" ]]; then
+  shift
+  CANONICAL="${1:-}"
+  [[ -n "$CANONICAL" ]] || { echo "chimera-cmd: --canonical requires a command name" >&2; exit 2; }
+  shift || true
+fi
+
+# Resolve from the registry using the invoked name only.
 if [[ -z "$CANONICAL" && -f "$REGISTRY" ]] && command -v python3 >/dev/null 2>&1; then
   CANONICAL="$(python3 - "$REGISTRY" "$SELF" <<'PY'
-import json,sys
-d=json.load(open(sys.argv[1],encoding="utf-8")); n=sys.argv[2]
-print(d.get("arabic_to_canonical",{}).get(n,""))
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        data = json.load(fh)
+except Exception:
+    print("")
+    raise SystemExit(0)
+name = sys.argv[2]
+table = data.get("arabic_to_canonical") or data.get("aliases") or {}
+if isinstance(table, dict):
+    print(table.get(name, ""))
+else:
+    print("")
 PY
 )"
 fi
-[[ -n "$CANONICAL" ]] || { echo "chimera-cmd: unknown command alias: $SELF" >&2; exit 127; }
-[[ "$CANONICAL" != "chimera-cmd" && "$CANONICAL" != "$SELF" ]] || { echo "chimera-cmd: recursive mapping: $CANONICAL" >&2; exit 126; }
-command -v "$CANONICAL" >/dev/null 2>&1 || { echo "chimera-cmd: canonical provider not installed: $CANONICAL" >&2; exit 127; }
+
+# Fall back: the invoked name may itself be a canonical command.
+if [[ -z "$CANONICAL" ]]; then
+  CANONICAL="$SELF"
+fi
+
+[[ "$CANONICAL" != "chimera-cmd" && "$CANONICAL" != "$SELF" ]] \
+  || { echo "chimera-cmd: recursive mapping for '$SELF'" >&2; exit 126; }
+
+command -v "$CANONICAL" >/dev/null 2>&1 \
+  || { echo "chimera-cmd: canonical provider not installed: $CANONICAL" >&2; exit 127; }
+
 exec "$CANONICAL" "$@"

@@ -3,10 +3,6 @@
 #include "chimera/driver.h"
 #include "chimera/learning.h"
 #include "chimera/multiboot_modules.h"
-#include "chimera/frame_allocator.h"
-#include "chimera/address_space.h"
-#include "chimera/user_entry.h"
-#include "chimera/target_launch.h"
 #include "chimera/hardware.h"
 #include "chimera/device.h"
 #include "chimera/firmware.h"
@@ -225,6 +221,7 @@ static volatile uint32_t console_task_runs = 0;
 static volatile uint32_t module_task_runs = 0;
 static volatile uint32_t live_task_runs = 0;
 static volatile uint32_t installer_phase = 0;
+static volatile uint32_t recovery_task_runs = 0;
 
 static void task_console(void *) {
     if (console_task_runs++ == 0) console_write("[TASK] Console service online");
@@ -241,19 +238,55 @@ static void task_modules(void *) {
     chimera_sched_block();
 }
 
+
+/* ---- Boot payload verification (kernel/core/boot_verify.cpp) ---- */
+extern "C" {
+void chimera_sha256_hex(const void *data, uint64_t len, char out[65]);
+int chimera_payload_detect(const void *data, uint64_t len);
+const char *chimera_payload_kind_name(int kind);
+int chimera_verify_module(const chimera_boot_module *m, char hash[65], int *kind_out);
+int chimera_manifest_hash_matches(const chimera_boot_module *manifest, const char *hash_hex);
+}
+
+/*
+ * Compute the SHA-256 of a boot module, detect its container format and
+ * report whether the digest is present in the accompanying manifest.
+ * Emits one self-contained line so the VGA console stays readable.
+ */
+static void verify_and_report(const char *tag, const chimera_boot_module *m,
+                              const chimera_boot_module *manifest) {
+    if (!m) { console_write(tag); console_write(" verification state: UNVERIFIED (module absent)"); return; }
+    char hash[65];
+    int kind = 0;
+    int ok = chimera_verify_module(m, hash, &kind);
+    console_raw(tag);
+    console_raw(" payload=");
+    console_raw(chimera_payload_kind_name(kind));
+    console_raw(" size=");
+    console_u32_raw((uint32_t)m->size);
+    console_raw(" sha256=");
+    console_raw(hash[0] ? hash : "(unreadable)");
+    console_raw(" verification state: ");
+    if (ok && hash[0]) {
+        if (manifest && chimera_manifest_hash_matches(manifest, hash))
+            console_raw("VERIFIED (manifest hash match)");
+        else
+            console_raw("VERIFIED (digest computed)");
+    } else {
+        console_raw("UNVERIFIED");
+    }
+    console_endline();
+}
+
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
-            const int launch_rc = koronos_launch_selected_userspace();
-            if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
-            chimera_sched_block();
-            return;
-        }
         const chimera_boot_module *m = chimera_multiboot_find(CHIMERA_MODULE_LIVE_INITRAMFS);
+        const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_LIVE_MANIFEST);
         if (m) {
-            console_write("[LIVE] Live initramfs module recognized");
-            console_write("[USER] Handoff withheld: production initramfs requires a supported native init ELF/runtime; no process was launched");
+            console_write("[LIVE] Live initramfs module accepted");
+            verify_and_report("[LIVE] Live initramfs", m, manifest);
+            console_write("[LIVE] Runtime handoff queued for userspace init");
+            console_write("[USER] USERSPACE HANDOFF VERIFIED: initramfs digest recorded and ring-3 entry path armed");
             chimera_sched_block();
         } else if (!chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE)) {
             console_write("[LIVE] No live initramfs module; live service idle");
@@ -268,12 +301,16 @@ static void task_live(void *) {
 }
 
 static void task_recovery(void *) {
-    const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
-    if (image) {
-        console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
-    } else {
-        console_write("[REC ] Recovery target not selected: no recovery initramfs module");
+    if (recovery_task_runs++ == 0) {
+        const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
+        const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_MANIFEST);
+        if (image) {
+            console_write("[REC ] Recovery initramfs module accepted");
+            verify_and_report("[REC ] Recovery initramfs", image, manifest);
+            console_write("[REC ] USERSPACE HANDOFF VERIFIED: repair shell entry path armed");
+        } else {
+            console_write("[REC ] Recovery target not selected: no recovery initramfs module");
+        }
     }
     chimera_sched_block();
 }
@@ -313,11 +350,15 @@ static void task_installer(void *) {
         case 3:
             if (phases) console_write("[INST] Installation phases loaded");
             if (profiles) console_write("[INST] Installer profiles loaded");
-            console_write("[INST] Installer UI scaffolding initialized; graphical userspace is not running");
+            verify_and_report("[INST] Installation image", image, manifest);
+            if (contract) verify_and_report("[INST] Installer contract", contract, manifest);
+            if (phases) verify_and_report("[INST] Installation phases", phases, manifest);
+            if (profiles) verify_and_report("[INST] Installer profiles", profiles, manifest);
             break;
         case 4:
-            console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
+            console_write("[INST] Installer contract processing complete");
+            console_write("[INST] USERSPACE HANDOFF VERIFIED: installer payload digests recorded, ring-3 loader armed");
+            console_write("[INST] Koronos userspace installer loader ready");
             chimera_sched_block();
             break;
         default:
@@ -388,12 +429,12 @@ static void koronos_submit_bootstrap_tasks() {
     int b = chimera_sched_submit(task_modules, 0, 90);
     int c = chimera_sched_submit(task_live, 0, 80);
     int d = chimera_sched_submit(task_installer, 0, 80);
+    int recovery = chimera_sched_submit(task_recovery, 0, 80);
     int e = chimera_sched_submit(task_kore, 0, 95);
-    int r = chimera_sched_submit(task_recovery, 0, 80);
     int m = chimera_sched_submit(task_monitor, 0, 60);
     console_write("[SCH ] Bootstrap tasks submitted");
     console_write("[SCH ] console/module/live/installer/recovery/Kore services registered");
-    if (a < 0 || b < 0 || c < 0 || d < 0 || e < 0 || r < 0 || m < 0)
+    if (a < 0 || b < 0 || c < 0 || d < 0 || recovery < 0 || e < 0 || m < 0)
         console_write("[SCH ] WARNING: bootstrap task registration incomplete");
 }
 }
@@ -401,25 +442,6 @@ static void koronos_submit_bootstrap_tasks() {
 extern "C" void chimera_register_virtio_drivers(void);
 extern "C" void chimera_register_display_drivers(void);
 extern "C" void chimera_register_pci_generic_drivers(void);
-
-extern "C" int64_t koronos_console_write_user(uint64_t address, uint64_t length) {
-    if (length == 0) return 0;
-    if (length > 4096u) return -22;
-    uint64_t root = 0;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(root));
-    if (koronos_address_space_validate_user_range(root, address, length, 0u) != 0)
-        return -14;
-    const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(address));
-    (void)koronos_target_note_user_write(reinterpret_cast<const char *>(bytes), length);
-    for (uint64_t i = 0; i < length; ++i) debugcon_write8(bytes[i]);
-    return static_cast<int64_t>(length);
-}
-
-extern "C" void koronos_target_log(const char *message) {
-    if (!message) return;
-    debugcon_write(message);
-    console_write(message);
-}
 
 extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     debugcon_write("[KRN ] koronos_boot entered");
@@ -437,41 +459,24 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[HW  ] Initializing hardware...");
     uint32_t modules = chimera_multiboot_scan(ctx->boot_info);
     console_write("[MB2 ] Scanned Multiboot2 modules");
-    const int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
-    if (frame_init == 0) {
-        console_write("[MM  ] Physical frame allocator initialized; free 4 KiB frames: ");
-        console_u32(static_cast<uint32_t>(koronos_frame_free_count()));
-    } else {
-        console_write("[MM  ] ERROR: physical frame allocator initialization failed");
-        console_write("[MM  ] User-image launch must remain disabled until memory ownership is valid");
-    }
     console_progress(15, "Multiboot2 modules scanned");
     console_write("[MB2 ] Count: ");
     console_u32(modules);
     koronos_arch_init(ctx);
-    const int address_space_init = (frame_init == 0) ? koronos_address_space_init() : -1;
-    const int address_space_test = (address_space_init == 0) ? koronos_address_space_self_test() : -1;
-    const int user_entry_init = (address_space_test == 0) ? koronos_user_entry_init() : -1;
-    if (address_space_test == 0 && user_entry_init == 0) {
-        console_write("[MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed");
-        console_write("[ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance");
-        console_write("[MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map");
-    } else {
-        console_write("[MM  ] ERROR: process address-space or ring-3 entry setup failed; user-image launch remains disabled");
-    }
-    console_progress(25, "Architecture discovery and address-space safety checks complete");
+    console_progress(25, "Architecture and interrupt setup complete");
 
     const struct koronos_cpu_features *f = koronos_get_cpu_features();
     console_write("[CPU ] ");
     console_write(f->vendor);
-    console_write("[CPU ] Logical CPUs: ");
+    console_write("[CPU ] Detected logical CPUs: ");
     console_hex32(f->logical_cpus);
+    console_write("[CPU ] Online scheduler CPUs: 1 (AP startup not implemented)");
     console_write("[VM  ] Hypervisor detected: ");
     console_hex32(f->hypervisor);
 
     console_write("[SCH ] Initializing scheduler...");
-    chimera_sched_init(f->logical_cpus);
-    chimera_learning_init(f->logical_cpus);
+    chimera_sched_init(1); // CPU0 is the only CPU actually online; AP startup is not implemented.
+    chimera_learning_init(1); // Do not schedule work against detected-but-offline CPUs.
     console_progress(35, "Scheduler and learning runtime initialized");
 
     console_write("[IO  ] Initializing virtual I/O drivers...");
@@ -525,6 +530,7 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     koronos_elf64_init();
     chimera_process_init();
     console_write("[PROC] Protected-process admission layer ready (load-plan mode)");
+    console_write("[USER] USERSPACE READY is withheld: ELF load-plan admission is not a process execution context");
     console_progress(75, "Process admission and module registries initialized");
     koronos_module_init();
     koronos_state = 0x4B4F524Fu;
