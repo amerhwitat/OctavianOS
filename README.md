@@ -138,3 +138,8 @@ The latest step-level poll of [ChimeraIIOS run #1388](https://github.com/amerhwi
 ## Corrected final result — production verifier failed (2026-10-19)
 
 The final result of [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) is **FAILURE**. The build, ISO composition, ISO validation, payload/artwork checks, Koronos boot smoke, trace upload, compression, and ISO artifact upload succeeded. However, the handoff and six-case scripts emitted `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`. The same failure occurred in all six Live/Installer/Recovery × BIOS/UEFI cases. The six-case script step's GitHub Actions step conclusion says success because it exports `accepted=false` without exiting nonzero; the final fail-closed release gate correctly caught that output and failed. The GitHub Release publication step was skipped. Artifacts are available: ISO `chimera-ii-os-live-installer` (ID 12166940637) and traces `chimera-target-userspace-traces` (ID 12166193261). No production acceptance pass; release remains BLOCKED. Earlier progress notes saying the matrix passed were premature and are superseded by this final log evidence.
+
+
+## Koronos kernel and userspace parity audit
+
+The current evidence-based comparison against the Linux kernel and Arch Linux userspace, including the distinction between source presence, candidate ring-3 tests, and production acceptance, is documented in [docs/KORONOS_ARCH_LINUX_RUNTIME_AUDIT_2026-11-01.md](docs/KORONOS_ARCH_LINUX_RUNTIME_AUDIT_2026-11-01.md). This is an implementation roadmap, not a claim of Linux compatibility or release readiness.
