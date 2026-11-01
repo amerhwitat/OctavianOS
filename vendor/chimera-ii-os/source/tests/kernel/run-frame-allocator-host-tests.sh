@@ -19,3 +19,12 @@ trap 'rm -f "$OUT" "$OUT_PHYSMAP"' EXIT
   "$ROOT/kernel/core/physmap.cpp" \
   -o "$OUT_PHYSMAP"
 "$OUT_PHYSMAP"
+
+OUT_ELF="${TMPDIR:-/tmp}/koronos-elf-loader-test.$$"
+trap 'rm -f "$OUT" "$OUT_PHYSMAP" "$OUT_ELF"' EXIT
+"${CXX:-c++}" -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+  -I"$ROOT/kernel/include" \
+  "$ROOT/tests/kernel/process_loader_transaction_test.cpp" \
+  "$ROOT/kernel/core/process_loader.cpp" "$ROOT/kernel/core/elf64.cpp" \
+  -o "$OUT_ELF"
+"$OUT_ELF"
