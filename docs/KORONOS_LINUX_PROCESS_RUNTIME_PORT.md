@@ -89,3 +89,9 @@ The matching host test is vendored at `tests/kernel/frame_allocator_test.cpp`; `
 This establishes source parity for the allocator implementation, public header and host test only. It does not establish parity for the rest of Koronos, and the 4-GiB ceiling remains a deliberate limitation pending a physical-to-virtual mapping design and wider-frame allocator.
 
 The allocator now walks Multiboot2 module tags independently of the bounded module-classification registry, so every module payload is reserved even if the registry reaches its enumeration cap. The synthetic host test includes a module tag while the module-registry stub reports zero entries, verifying this independent reservation path.
+
+## Verified physical mapping backend sync (2026-11-01)
+
+The vendored Koronos tree now includes the same `physmap.cpp` and `physmap.h` as ChimeraIIOS. Boot verifies the exact four-GiB supervisor-only identity map built by the x86-64 entry assembly before initializing the frame allocator. Address-space page-table access and mapped-frame aliases now go through `koronos_phys_to_virt`, and address-space initialization refuses to proceed until the physmap verifier is ready.
+
+The range test is included in the standalone vendored host-test runner. This is a checked identity-map abstraction, not a high-memory direct map. It does not yet solve page-table teardown/TLB invalidation, transactional mapper rollback, per-CPU process state or scheduler-owned lifecycle.
