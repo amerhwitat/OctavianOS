@@ -70,7 +70,7 @@ body:before{content:"";position:fixed;inset:0;background:linear-gradient(130deg,
  start.addEventListener('click',toggle);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.remove('open');start.setAttribute('aria-expanded','false');wallpaperPicker.hidden=true;wallpaperButton.setAttribute('aria-expanded','false')}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();toggle()}});
  document.querySelectorAll('[data-notice]').forEach(el=>el.addEventListener('click',()=>showNotice(el.dataset.notice)));
- const search=document.getElementById('appsearch');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('#apps .app').forEach(el=>el.hidden=!el.innerText.toLowerCase().includes(q))});
+ const search=document.getElementById('appsearch');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('#apps .app, #astronomy-apps .app').forEach(el=>el.hidden=!el.innerText.toLowerCase().includes(q))});
  const pad=n=>String(n).padStart(2,'0');function tick(){const d=new Date();document.getElementById('time').textContent=pad(d.getHours())+':'+pad(d.getMinutes());document.getElementById('date').textContent=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}tick();setInterval(tick,30000);
  document.getElementById('tasksearch').addEventListener('focus',()=>{menu.classList.add('open');start.setAttribute('aria-expanded','true');search.focus()});
 })();
