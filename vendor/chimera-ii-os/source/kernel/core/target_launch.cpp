@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/physmap.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -165,8 +166,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
         return -4;
     }
 
+    const void *init_image = koronos_phys_to_virt(selected->base, selected->size);
+    if (!init_image) {
+        koronos_target_log("[RUN ] ERROR: USER_INIT_ELF has no verified physical-to-virtual alias");
+        return -5;
+    }
     chimera_process_image process{};
-    const int pid=chimera_process_admit_elf(reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),
+    const int pid=chimera_process_admit_elf(init_image,
         selected->size,KORONOS_EM_X86_64,USER_STACK_TOP,&process);
     if (pid<=0) {
         koronos_target_log("[RUN ] ERROR: selected user init failed protected-process admission");
@@ -174,7 +180,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     }
     chimera_loaded_elf loaded{};
     const int load_rc=chimera_elf_load_user_image(
-        reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),selected->size,
+        init_image,selected->size,
         KORONOS_EM_X86_64,USER_STACK_TOP,USER_STACK_SIZE,ops,nullptr,&loaded);
     if (load_rc!=0) {
         (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
