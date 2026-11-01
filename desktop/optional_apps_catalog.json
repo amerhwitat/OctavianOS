@@ -2,7 +2,7 @@
   "$schema": "CHM-OPTIONAL-APP-CATALOG-1",
   "title": "Cross-platform Optional Application Catalog",
   "purpose": "Discover optional desktop software associated with Windows, Linux and macOS. Entries are upstream references and package/provider integration targets, not proof that an app is installed, ported, licensed for redistribution, or executable on ChimeraIIOS or OctavianOS.",
-  "updated": "2026-10-22",
+  "updated": "2026-11-01",
   "platforms": [
     "Windows",
     "Linux",
@@ -1286,6 +1286,123 @@
       "panel": "Documents",
       "web_preview": "https://amerhwitat.github.io/apps/pdf-reader.html",
       "notes": "Browser preview is view-only. Native PDF processing, OCR, extraction, and OS launcher support require separate provider verification."
+    },
+    {
+      "id": "stellarium",
+      "name": "Stellarium",
+      "category": "astronomy",
+      "license": "GPL-2.0-or-later",
+      "upstream": "https://stellarium.org/",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Open-source real-time planetarium. Requires a compatible OpenGL graphics stack; native Koronos port/package not yet verified."
+    },
+    {
+      "id": "kstars",
+      "name": "KStars + Ekos",
+      "category": "astronomy",
+      "license": "GPL-2.0-or-later",
+      "upstream": "https://kstars.kde.org/",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Desktop planetarium, observing planner and astrophotography control suite. Qt/KDE and INDI dependencies need native port/provider support."
+    },
+    {
+      "id": "celestia",
+      "name": "Celestia",
+      "category": "astronomy",
+      "license": "GPL-2.0-or-later",
+      "upstream": "https://celestiaproject.space/",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Interactive 3D space simulator. OpenGL and graphics-driver compatibility need verification."
+    },
+    {
+      "id": "gaiasky",
+      "name": "Gaia Sky",
+      "category": "astronomy",
+      "license": "MPL-2.0",
+      "upstream": "https://gaiasky.space/",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Scientific 3D universe visualizer with large catalog datasets; Java runtime, OpenGL and dataset storage required."
+    },
+    {
+      "id": "siril",
+      "name": "Siril",
+      "category": "astronomy",
+      "license": "GPL-3.0-or-later",
+      "upstream": "https://siril.org/",
+      "platforms": [
+        "Linux",
+        "Windows",
+        "macOS"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Astronomical image processing for astrophotography. Native compiler/dependency and FITS workflow ports required."
+    },
+    {
+      "id": "gpredict",
+      "name": "Gpredict",
+      "category": "astronomy",
+      "license": "GPL-2.0-or-later",
+      "upstream": "https://github.com/csete/gpredict",
+      "platforms": [
+        "Linux",
+        "Windows"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Astronomy",
+      "notes": "Satellite tracking and pass prediction. GTK and orbital-data integration need verification."
     }
+  ],
+  "categories": [
+    "astronomy",
+    "communication",
+    "compatibility",
+    "creative",
+    "development",
+    "documents",
+    "games",
+    "internet",
+    "media",
+    "network",
+    "productivity",
+    "security",
+    "system",
+    "utilities"
   ]
 }
