@@ -288,6 +288,9 @@ jobs:
           PY
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
+        env:
+          CHIMERA_BOOT_ARTWORK_OVERRIDE: /tmp/octavian-octopus-aurora.png
+          CHIMERA_BOOT_ARTWORK_MANIFEST: ${{ github.workspace }}/desktop/aurora/assets/octavian-artwork-manifest.json
         run: |
           set -euo pipefail
           bash boot/iso/build-iso.sh
