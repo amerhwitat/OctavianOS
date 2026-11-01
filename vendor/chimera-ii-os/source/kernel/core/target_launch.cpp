@@ -175,6 +175,44 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    /*
+     * Production target boot must mount the target-matched initramfs before
+     * entering ring 3. Keep this in the launch path (not a disconnected boot
+     * probe), and fail closed if the CPIO-newc root or minimum VFS contract is
+     * unavailable.
+     */
+    const int mount_rc = koronos_target_mount_initramfs();
+    if (mount_rc != 0 || !koronos_vfs_is_mounted()) {
+        koronos_target_log("[RUN ] ERROR: target initramfs CPIO/VFS mount failed");
+        return -12;
+    }
+    const int os_release_fd = koronos_vfs_open("/etc/os-release", 0u);
+    if (os_release_fd < 3) {
+        koronos_target_log("[RUN ] ERROR: mounted rootfs lacks readable /etc/os-release");
+        return -13;
+    }
+    char os_release_probe[256];
+    const int64_t os_release_bytes = koronos_vfs_read(os_release_fd, os_release_probe, sizeof(os_release_probe));
+    (void)koronos_vfs_close(os_release_fd);
+    if (os_release_bytes <= 0) {
+        koronos_target_log("[RUN ] ERROR: /etc/os-release could not be read from mounted rootfs");
+        return -14;
+    }
+    const char tmp_probe[] = "koronos-vfs-ready";
+    const int tmp_fd = koronos_vfs_open("/tmp/.koronos-vfs-smoke", 1u);
+    if (tmp_fd < 3 || koronos_vfs_write(tmp_fd, tmp_probe, sizeof(tmp_probe)) != (int64_t)sizeof(tmp_probe) ||
+        koronos_vfs_seek(tmp_fd, 0, 0u) != 0) {
+        if (tmp_fd >= 3) (void)koronos_vfs_close(tmp_fd);
+        koronos_target_log("[RUN ] ERROR: mounted rootfs /tmp is not writable/seekable");
+        return -15;
+    }
+    char tmp_readback[sizeof(tmp_probe)];
+    const int64_t tmp_bytes = koronos_vfs_read(tmp_fd, tmp_readback, sizeof(tmp_readback));
+    (void)koronos_vfs_close(tmp_fd);
+    if (tmp_bytes != (int64_t)sizeof(tmp_probe)) {
+        koronos_target_log("[RUN ] ERROR: /tmp write/read round trip failed");
+        return -16;
+    }
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
