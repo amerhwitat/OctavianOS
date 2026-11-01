@@ -441,6 +441,12 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     if (frame_init == 0) {
         console_write("[MM  ] Physical frame allocator initialized; free 4 KiB frames: ");
         console_u32(static_cast<uint32_t>(koronos_frame_free_count()));
+        const uint64_t frame_probe = koronos_frame_alloc_contiguous(2u);
+        if (frame_probe && koronos_frame_free_contiguous(frame_probe, 2u) == 0) {
+            console_write("[MM  ] Frame allocation/free self-test passed");
+        } else {
+            console_write("[MM  ] ERROR: frame allocation/free self-test failed");
+        }
     } else {
         console_write("[MM  ] ERROR: physical frame allocator initialization failed");
         console_write("[MM  ] User-image launch must remain disabled until memory ownership is valid");
