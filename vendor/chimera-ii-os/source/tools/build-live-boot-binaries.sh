@@ -113,6 +113,7 @@ fi
 exec /bin/sh
 EOF
 chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || true
+(cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/live/chimera-live-initramfs.cpio"
 (cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
@@ -154,6 +155,7 @@ recovery_progress 100 "Recovery shell" "repair console is ready; individual repa
 exec /bin/chimera-recovery-console.sh
 EOF
 chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
+(cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null) > "$OUT/boot/recovery/chimera-recovery-initramfs.cpio"
 (cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
 
