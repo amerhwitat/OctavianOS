@@ -1302,7 +1302,19 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Open-source real-time planetarium. Requires a compatible OpenGL graphics stack; native Koronos port/package not yet verified."
+      "notes": "Open-source real-time planetarium. Requires a compatible OpenGL graphics stack; native Koronos port/package not yet verified.",
+      "build": {
+        "build_system": "CMake",
+        "source": "https://github.com/stellarium/stellarium",
+        "native_dependencies": [
+          "Qt",
+          "OpenGL",
+          "CMake",
+          "C++ compiler"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     },
     {
       "id": "kstars",
@@ -1319,7 +1331,21 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Desktop planetarium, observing planner and astrophotography control suite. Qt/KDE and INDI dependencies need native port/provider support."
+      "notes": "Desktop planetarium, observing planner and astrophotography control suite. Qt/KDE and INDI dependencies need native port/provider support.",
+      "build": {
+        "build_system": "CMake",
+        "source": "https://github.com/KDE/kstars",
+        "native_dependencies": [
+          "Qt 6",
+          "KDE Frameworks",
+          "Eigen",
+          "CFITSIO",
+          "StellarSolver",
+          "C++ compiler"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     },
     {
       "id": "celestia",
@@ -1336,7 +1362,19 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Interactive 3D space simulator. OpenGL and graphics-driver compatibility need verification."
+      "notes": "Interactive 3D space simulator. OpenGL and graphics-driver compatibility need verification.",
+      "build": {
+        "build_system": "CMake",
+        "source": "https://github.com/CelestiaProject/Celestia",
+        "native_dependencies": [
+          "Qt or GTK frontend",
+          "OpenGL",
+          "CMake",
+          "C++ compiler"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     },
     {
       "id": "gaiasky",
@@ -1353,7 +1391,18 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Scientific 3D universe visualizer with large catalog datasets; Java runtime, OpenGL and dataset storage required."
+      "notes": "Scientific 3D universe visualizer with large catalog datasets; Java runtime, OpenGL and dataset storage required.",
+      "build": {
+        "build_system": "Gradle",
+        "source": "https://codeberg.org/gaiasky/gaiasky",
+        "native_dependencies": [
+          "Java LTS JDK",
+          "Gradle wrapper",
+          "OpenGL"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     },
     {
       "id": "siril",
@@ -1370,7 +1419,20 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Astronomical image processing for astrophotography. Native compiler/dependency and FITS workflow ports required."
+      "notes": "Astronomical image processing for astrophotography. Native compiler/dependency and FITS workflow ports required.",
+      "build": {
+        "build_system": "CMake",
+        "source": "https://github.com/AstrocatApp/siril",
+        "native_dependencies": [
+          "GTK",
+          "CFITSIO",
+          "OpenMP",
+          "CMake",
+          "C/C++ compiler"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     },
     {
       "id": "gpredict",
@@ -1386,7 +1448,19 @@
       "default_installed": false,
       "launchability": "not-guaranteed",
       "panel": "Astronomy",
-      "notes": "Satellite tracking and pass prediction. GTK and orbital-data integration need verification."
+      "notes": "Satellite tracking and pass prediction. GTK and orbital-data integration need verification.",
+      "build": {
+        "build_system": "Autotools",
+        "source": "https://github.com/csete/gpredict",
+        "native_dependencies": [
+          "GTK",
+          "GLib",
+          "Autotools",
+          "C compiler"
+        ],
+        "native_compilation": "not-run-on-Koronos",
+        "status": "catalog-only"
+      }
     }
   ],
   "categories": [
