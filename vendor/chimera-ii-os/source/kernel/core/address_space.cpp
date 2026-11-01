@@ -53,7 +53,7 @@ static void copy_bytes(void *dst, const void *src, size_t n) {
 }
 static uint64_t *table_ptr(uint64_t physical) {
     if (!physical || physical >= KORONOS_FRAME_PHYS_LIMIT || (physical & PAGE_MASK)) return nullptr;
-    return reinterpret_cast<uint64_t *>(static_cast<uintptr_t>(physical));
+    return static_cast<uint64_t *>(koronos_frame_phys_to_virt(physical, PAGE_SIZE));
 }
 static bool track_table(AddressSpace *space, uint64_t physical) {
     if (!space || !physical || space->table_count >= MAX_TABLE_FRAMES) return false;
@@ -67,7 +67,13 @@ static uint64_t new_table(AddressSpace *space) {
         (void)koronos_frame_free(physical);
         return 0;
     }
-    zero_bytes(reinterpret_cast<void *>(static_cast<uintptr_t>(physical)), PAGE_SIZE);
+    void *alias = koronos_frame_phys_to_virt(physical, PAGE_SIZE);
+    if (!alias) {
+        --space->table_count;
+        (void)koronos_frame_free(physical);
+        return 0;
+    }
+    zero_bytes(alias, PAGE_SIZE);
     return physical;
 }
 static bool space_valid(const AddressSpace *space) {
@@ -75,6 +81,14 @@ static bool space_valid(const AddressSpace *space) {
 }
 static void destroy_locked(AddressSpace *space) {
     if (!space || space->magic != SPACE_MAGIC) return;
+#if defined(__x86_64__)
+    uint64_t current_cr3 = 0;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
+    /* Never reclaim page tables or user frames while this CPU is executing
+       through them. CR3 switches are the single-CPU TLB invalidation boundary;
+       SMP shootdowns are still a separate prerequisite before AP scheduling. */
+    if ((current_cr3 & ENTRY_ADDRESS_MASK) == space->root_physical) return;
+#endif
     for (uint32_t i = 0; i < space->mapped_count; ++i) {
         if (space->mapped[i].physical && space->mapped[i].pages)
             (void)koronos_frame_free_contiguous(space->mapped[i].physical, space->mapped[i].pages);
@@ -214,6 +228,12 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
     lock_backend();
     const uint64_t physical = koronos_frame_alloc_contiguous(static_cast<uint32_t>(pages64));
     if (!physical) { unlock_backend(); return -4; }
+    void *physical_alias = koronos_frame_phys_to_virt(physical, size);
+    if (!physical_alias) {
+        (void)koronos_frame_free_contiguous(physical, static_cast<uint32_t>(pages64));
+        unlock_backend();
+        return -5;
+    }
     FrameBlock &block = space->mapped[space->mapped_count++];
     block.physical = physical;
     block.pages = static_cast<uint32_t>(pages64);
@@ -226,7 +246,7 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
         if (!pte || (*pte & ENTRY_PRESENT)) { unlock_backend(); return -5; }
         *pte = (physical + i * PAGE_SIZE) | leaf_flags;
     }
-    *kernel_alias = reinterpret_cast<void *>(static_cast<uintptr_t>(physical));
+    *kernel_alias = physical_alias;
     unlock_backend();
     return 0;
 }
