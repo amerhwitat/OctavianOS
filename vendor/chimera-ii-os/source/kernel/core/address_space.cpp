@@ -68,7 +68,9 @@ static uint64_t new_table(AddressSpace *space) {
         (void)koronos_frame_free(physical);
         return 0;
     }
-    zero_bytes(reinterpret_cast<void *>(static_cast<uintptr_t>(physical)), PAGE_SIZE);
+    void *alias = koronos_phys_to_virt(physical, PAGE_SIZE);
+    if (!alias) return 0;
+    zero_bytes(alias, PAGE_SIZE);
     return physical;
 }
 static bool space_valid(const AddressSpace *space) {
@@ -100,7 +102,9 @@ static bool clone_bootstrap_map(AddressSpace *space) {
 
     const uint64_t root = new_table(space);
     if (!root) return false;
-    copy_bytes(table_ptr(root), src_root, PAGE_SIZE);
+    uint64_t *root_alias = table_ptr(root);
+    if (!root_alias) return false;
+    copy_bytes(root_alias, src_root, PAGE_SIZE);
     space->root_physical = root;
 
     const uint64_t old_pdpt_phys = src_root[0] & ENTRY_ADDRESS_MASK;
@@ -108,9 +112,10 @@ static bool clone_bootstrap_map(AddressSpace *space) {
     if (!old_pdpt) return false;
     const uint64_t pdpt = new_table(space);
     if (!pdpt) return false;
-    copy_bytes(table_ptr(pdpt), old_pdpt, PAGE_SIZE);
-    uint64_t *new_root = table_ptr(root);
     uint64_t *new_pdpt = table_ptr(pdpt);
+    uint64_t *new_root = table_ptr(root);
+    if (!new_root || !new_pdpt) return false;
+    copy_bytes(new_pdpt, old_pdpt, PAGE_SIZE);
     new_root[0] = pdpt | (src_root[0] & 0xFFFu) | ENTRY_USER;
 
     // Clone all four 1-GiB bootstrap PDs. The 2-MiB identity leaves remain
@@ -215,6 +220,8 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
     lock_backend();
     const uint64_t physical = koronos_frame_alloc_contiguous(static_cast<uint32_t>(pages64));
     if (!physical) { unlock_backend(); return -4; }
+    void *alias = koronos_phys_to_virt(physical, size);
+    if (!alias) { (void)koronos_frame_free_contiguous(physical, static_cast<uint32_t>(pages64)); unlock_backend(); return -6; }
     FrameBlock &block = space->mapped[space->mapped_count++];
     block.physical = physical;
     block.pages = static_cast<uint32_t>(pages64);
@@ -227,7 +234,7 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
         if (!pte || (*pte & ENTRY_PRESENT)) { unlock_backend(); return -5; }
         *pte = (physical + i * PAGE_SIZE) | leaf_flags;
     }
-    *kernel_alias = koronos_phys_to_virt(physical, size);
+    *kernel_alias = alias;
     unlock_backend();
     return 0;
 }
@@ -306,7 +313,7 @@ static const chimera_elf_load_ops loader_ops = {
 
 extern "C" int koronos_address_space_init(void) {
     const koronos_cpu_features *features = koronos_get_cpu_features();
-    if (!features || !features->long_mode || !features->nx) {
+    if (!koronos_physmap_ready() || !features || !features->long_mode || !features->nx) {
         backend_ready = 0;
         return -1;
     }
