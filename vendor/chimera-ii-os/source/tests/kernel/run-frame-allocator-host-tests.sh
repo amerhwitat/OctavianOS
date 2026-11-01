@@ -28,3 +28,12 @@ trap 'rm -f "$OUT" "$OUT_PHYSMAP" "$OUT_ELF"' EXIT
   "$ROOT/kernel/core/process_loader.cpp" "$ROOT/kernel/core/elf64.cpp" \
   -o "$OUT_ELF"
 "$OUT_ELF"
+
+OUT_ELF_LEGACY="${TMPDIR:-/tmp}/koronos-elf-loader-legacy-test.$$"
+trap 'rm -f "$OUT" "$OUT_PHYSMAP" "$OUT_ELF" "$OUT_ELF_LEGACY"' EXIT
+"${CXX:-c++}" -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+  -I"$ROOT/kernel/include" \
+  "$ROOT/kernel/tests/process_loader_test.cpp" \
+  "$ROOT/kernel/core/process_loader.cpp" "$ROOT/kernel/core/elf64.cpp" \
+  -o "$OUT_ELF_LEGACY"
+"$OUT_ELF_LEGACY"
