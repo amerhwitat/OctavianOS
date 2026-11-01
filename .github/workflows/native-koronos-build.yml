@@ -234,9 +234,15 @@ jobs:
           bash tools/build-live-boot-binaries.sh
           live=build/live-boot/boot/live/chimera-live-initramfs.img
           recovery=build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+          live_cpio=build/live-boot/boot/live/chimera-live-initramfs.cpio
+          recovery_cpio=build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio
+          installer_cpio=build/live-boot/boot/installer/chimera-installer-initramfs.cpio
           test -s "$live"
           test -s build/live-boot/boot/live/live-manifest.json
           test -s "$recovery"
+          test -s "$live_cpio"
+          test -s "$recovery_cpio"
+          test -s "$installer_cpio"
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/command_candidate_router.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/commands/local_llm.py
           test -s build/live-boot/initramfs/root/usr/share/octavian/cognition/trained-command-isa-rnn.json
@@ -271,8 +277,11 @@ jobs:
           path: |
             vendor/chimera-ii-os/source/build/live-boot/boot/koronos/koronos.elf
             vendor/chimera-ii-os/source/build/live-boot/boot/live/chimera-live-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/live/chimera-live-initramfs.cpio
             vendor/chimera-ii-os/source/build/live-boot/boot/live/live-manifest.json
             vendor/chimera-ii-os/source/build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+            vendor/chimera-ii-os/source/build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio
+            vendor/chimera-ii-os/source/build/live-boot/boot/installer/chimera-installer-initramfs.cpio
             vendor/chimera-ii-os/source/build/live-boot/boot/recovery/recovery-manifest.json
             vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
           if-no-files-found: error
