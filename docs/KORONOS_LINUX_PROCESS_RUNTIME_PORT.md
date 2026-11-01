@@ -57,3 +57,25 @@ These constraints must be resolved or explicitly bounded by boot-time validation
 ## Release policy
 
 Keep native init fail-closed. Do not remove native-init exit status 78 or emit readiness markers unless the target process has actually executed in CPL3, completed the required syscalls, and its target-specific postconditions have been observed. A successful compile, source-presence test, or ring-3 smoke probe alone is not production acceptance.
+
+## Vendored OctavianOS source audit (2026-11-01)
+
+The OctavianOS vendored Koronos tree is ahead of ChimeraIIOS main in source integration: its canonical `kernel/build-koronos.sh` source list includes `frame_allocator`, `address_space` and `target_launch`, and it assembles and links `arch/x86_64/user_entry.asm`. This is source integration, not proof that the implementation is production-safe.
+
+The vendored tree still carries the following constraints:
+
+- `kernel/include/chimera/process.h` still defines `CHIMERA_PROCESS_LOAD_PLAN_ONLY`; the process record remains a load-plan structure rather than a scheduler-owned task with an address-space reference, kernel stack and saved context.
+- `kernel/core/process.cpp` admits and records ELF metadata; the actual mapping and user-image preparation are performed by a separate loader/backend path.
+- `kernel/core/syscall.cpp` has a native ring-3 syscall dispatcher for GETPID, WRITE and EXIT, but explicitly describes YIELD as a safe no-op while scheduler-owned address-space switching is absent. The compatibility dispatcher still rejects EXIT/GETPID without an active process context.
+- `kernel/core/interrupt.cpp` exposes INT 0x80 at DPL3 (0xEE), with a saved-CS check and process-context acknowledgement. That gate is only as safe as the TSS, per-CPU entry state, active CR3/PID checks and fault handling behind it.
+- `kernel/arch/x86_64/user_entry.asm` currently contains one global TSS, one global syscall stack and one global syscall-state block. It is a single-bootstrap-process transition path, not a multiprocessor-safe per-CPU entry design.
+- The frame allocator is capped at 4 GiB; the address-space implementation accesses frame physical addresses through identity-mapped pointers and assumes a specific bootstrap page-table shape. Both assumptions need to be made explicit and enforced or removed before general memory configurations are accepted.
+- The launcher is synchronous and tears down the address space after the initial user entry returns. This does not provide a general runnable task, preemptive scheduling, wait/parent semantics or safe concurrent process teardown.
+
+## Cross-repository reconciliation rule
+
+OctavianOS must not be treated as the unquestioned source of truth merely because it contains more files. Its vendored runtime is a reference implementation to harden. Port only after each dependency has tests and an agreed ABI, then keep the two source trees byte-identical for shared Koronos files (or replace the vendored copy with a pinned, verifiable submodule/snapshot manifest). The current divergence in `process.cpp` and `syscall.cpp` must be reconciled intentionally, not overwritten wholesale.
+
+## Immediate safe gate
+
+Until the allocator's physical-address ceiling and mapping model, page-table teardown/rollback, per-CPU entry state and scheduler-owned task lifecycle are fixed and verified, keep native init fail-closed and do not interpret a ring-3 smoke probe as production readiness.
