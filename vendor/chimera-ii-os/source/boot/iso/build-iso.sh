@@ -62,11 +62,19 @@ cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf2-loader.o" "$DIST/iso/boot/spitfire/"
 
+# Stage the uncompressed newc archive for the native Koronos VFS. The
+# gzip initramfs remains for the legacy shell path.
+LIVE_BOOT="$ROOT/build/live-boot/boot/live"
+test -s "$LIVE_BOOT/chimera-live-initramfs.cpio" || { echo "ERROR: uncompressed Live CPIO missing" >&2; exit 2; }
+mkdir -p "$DIST/iso/boot/live"
+cp -f "$LIVE_BOOT/chimera-live-initramfs.cpio" "$DIST/iso/boot/live/"
+
 # Jasper recovery is a real early-userspace terminal, not only a menu label.
 # Stage its dedicated initramfs and the canonical recovery menu after
 # prepare-layout, whose legacy recovery.cfg generation is intentionally kept
 # compatible with older installations.
 RECOVERY_BOOT="$ROOT/build/live-boot/boot/recovery"
+test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.cpio" || { echo "ERROR: uncompressed Jasper recovery CPIO missing" >&2; exit 2; }
 test -s "$RECOVERY_BOOT/chimera-recovery-initramfs.img" || { echo "ERROR: Jasper recovery initramfs missing: $RECOVERY_BOOT/chimera-recovery-initramfs.img" >&2; exit 2; }
 test -s "$RECOVERY_BOOT/recovery-manifest.json" || { echo "ERROR: Jasper recovery manifest missing: $RECOVERY_BOOT/recovery-manifest.json" >&2; exit 2; }
 mkdir -p "$DIST/iso/boot/recovery"
