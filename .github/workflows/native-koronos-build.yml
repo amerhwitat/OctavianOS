@@ -121,7 +121,7 @@ jobs:
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
-          CXX=clang++ USER_CC=clang LD=ld NASM=nasm bash kernel/build-koronos.sh
+          CXX=clang++ CC=clang LD=ld NASM=nasm bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
@@ -157,7 +157,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/koronos-smoke.iso" "$smoke/iso"
           set +e
-          timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout 20s qemu-system-x86_64 -machine q35 -m 5G -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           # A running idle kernel is intentionally stopped by timeout (124).
@@ -165,6 +165,7 @@ jobs:
           if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
+grep -Fq '[MM  ] High-memory read/write/free self-test passed above 4 GiB' "$smoke/debugcon.log" || { echo "::error::Koronos did not verify real RAM access above 4 GiB (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload QEMU kernel smoke trace
         if: always()
         uses: actions/upload-artifact@v4
