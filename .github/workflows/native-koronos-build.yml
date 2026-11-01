@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+          sudo apt-get install --yes build-essential clang nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -111,6 +111,18 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -I kernel/include kernel/tests/vfs_cpio_test.cpp kernel/core/vfs.cpp -o /tmp/koronos-vfs-cpio-test
           /tmp/koronos-vfs-cpio-test
+      - name: Compile and run high-memory frame allocator regression test
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/frame_allocator_highmem_test.cpp kernel/core/frame_allocator.cpp -o /tmp/koronos-frame-highmem-test
+          /tmp/koronos-frame-highmem-test
+      - name: Rebuild Koronos with the Clang native toolchain
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          CXX=clang++ USER_CC=clang LD=ld NASM=nasm bash kernel/build-koronos.sh
+          test -s build/koronos/x86_64/koronos.elf
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
