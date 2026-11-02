@@ -56,6 +56,11 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/toolchains/language-toolchain-catalog.json'
+      - 'vendor/chimera-ii-os/source/toolchains/toolchain-matrix.json'
+      - 'vendor/chimera-ii-os/source/tools/toolchain/**'
+      - 'vendor/chimera-ii-os/source/tests/toolchain/test_language_toolchain_catalog.py'
+      - 'vendor/chimera-ii-os/source/config/aurora/toolchain-install-profiles.json'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
