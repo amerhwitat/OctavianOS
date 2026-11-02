@@ -259,3 +259,10 @@ The latest Full ISO workflow run 41376751779 remains pending at this ledger upda
 The downstream PR #145 branch now also corrects the boot path: the scheduler and learning runtime are initialized with one online CPU (the BSP), while detected hardware logical CPUs are reported separately. It no longer exposes detected-but-offline CPU slots to the cooperative scheduler before AP startup. Installer output no longer claims parallel workers, hardware/storage workers or storage/security/logging services are running; messages now state that service starts are withheld and backends remain declared but inactive. Commit: `3c6065ebd6a5da8d5f6d3a3f53aae25928c7c05a`.
 
 Fresh native build run 41378522690 and six-case candidate probe run 41378522709 were queued at the time of this update. These fixes are fail-closed safety and reporting improvements, not AP startup, production service implementation or production userspace acceptance.
+
+
+## 15. BSP-only scheduler regression enforcement — 2026-11-02
+
+The native Koronos workflow on downstream PR #145 now runs a source-policy regression after the scheduler runtime test. It requires `chimera_sched_init(1)` and `chimera_learning_init(1)`, requires the explicit one-online-BSP log, rejects passing the hardware-reported logical CPU count to the scheduler, rejects the old SMP-safe banner, and rejects misleading claims that installer parallel workers or storage/security/logging backends are running. Workflow change commits: `7e86eb894c947ab38367a00d2ffbfd25626732ff` and `a6440c5863d5fbb526a5531a8a3c056f3b18e82f`.
+
+Fresh workflow runs are queued/pending: native build 41378769179, candidate six-case probe 41378769186, integration 41378769266 and boot-routing contract 41378769184. No result is counted as passed until the jobs finish. These regression guards enforce safe BSP-only behavior; they do not implement AP startup or SMP.
