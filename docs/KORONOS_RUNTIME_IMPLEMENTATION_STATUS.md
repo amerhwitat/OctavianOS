@@ -89,3 +89,41 @@ Octavian's boot path previously passed the hardware-reported logical CPU count d
 - Chimera's latest Windows build step passed after the MSVC interlocked and freestanding byte-copy/zero changes; its Windows test step was still running at the last status poll.
 - Chimera Linux build/tests passed in the same CI/CD run.
 - This does not validate the missing production init payload or any scheduler/SMP feature.
+
+## 12. Runtime implementation dependency audit and current work queue (2026-11-02)
+
+This section records the exact blockers found in the shared Koronos source. It is a dependency/acceptance ledger, not a claim that these features have been implemented.
+
+### 12.1 Native target-init prerequisites
+
+- kernel/core/interrupt.cpp installs all IDT gates as DPL0 and explicitly withholds ring-3 software syscall entry until a TSS/user stack and validated user address space exist.
+- kernel/core/syscall.cpp is a compatibility-ABI translator, not the process-bound native syscall implementation. GETPID and EXIT deliberately return ENOSYS without caller identity/lifecycle hooks; OPEN/READ/WRITE/SEEK/CLOSE filesystem operations are not dispatched here.
+- kernel/core/process.cpp admits and records an ELF load plan only. It does not create an executing task, load a saved register context, install a per-process kernel stack or enter CPL3.
+- kernel/core/koronos.cpp explicitly reports that initramfs registration is not a user handoff. Live/Installer/Recovery tasks currently block after reporting that no executable ring-3 path is connected.
+- kernel/core/service.cpp declares core service identities; its own bootstrap comment says it does not start them. There is no verified block-device backend + mounted persistent VFS + initramfs VFS + file descriptor/syscall layer sufficient for a real init supervisor.
+- The current source tree contains no production target init ELF build source or artifact. The user_init_smoke.c probe exists only in tests and is not a production service manager.
+
+Therefore, creating three ELF files or wiring GRUB module names alone would be unsafe and misleading: they would not have a working ring-3 transition, file/syscall services, process lifecycle or service supervision. Keep all target handoffs fail-closed until the dependencies below are implemented.
+
+### 12.2 Required dependency order
+
+1. Per-CPU descriptor/TSS state and validated user-entry assembly: GDT selectors, TSS.RSP0, syscall stack, IDT DPL and privilege transition; include ring-3 fault/return tests.
+2. Task execution record: PID/parent/status, address-space root, owned kernel stack, saved callee/caller registers, user RIP/RSP, FPU/SIMD policy and teardown ownership.
+3. Architecture context switch: atomically save/restore task state and switch kernel stack + CR3; preserve interrupt/preemption invariants. Add two-task register/stack/address-space isolation tests.
+4. Process-bound syscall dispatch: caller identity, checked user-pointer copy, GETPID, EXIT/WAIT, READ/WRITE, OPEN/CLOSE/SEEK and error propagation; test invalid pointers and privilege faults.
+5. VFS and storage: real ramfs/cpio mount for Live/Recovery, block driver and partition/filesystem mount for Installer, file descriptor lifecycle, read-only /etc/os-release, writable /tmp, and explicit mount failure behavior.
+6. Service supervisor: dependency graph, start/health/stop/restart, process reaping and event-driven wakeups. Init must not print readiness before required services independently pass health checks.
+7. Target payloads: build distinct production Live, Installer and Recovery init ELFs with shared ABI but target-specific service manifests/policies. Verify ELF machine/type/entry/segment bounds and hashes.
+8. GRUB/ISO packaging: pass exactly the selected target's init ELF and target data modules; reject missing, duplicate, wrong-target or hash-mismatched payloads. Include payload hashes in the ISO manifest.
+9. SMP only after BSP task lifecycle is real: APIC/ACPI topology, AP startup/trampoline, per-CPU GDT/TSS/syscall stack, per-CPU scheduler queues/locks, reschedule and TLB-shootdown IPIs, remote active-CR3 tracking, deferred frame reclamation and concurrent fault injection.
+10. Full acceptance: same ISO SHA across Live/Installer/Recovery × BIOS/UEFI; real nonzero PID, CPL3 syscall trace, VFS OPEN/READ/CLOSE, writable /tmp, Aurora health, installer persistence, recovery postcondition and measured overlapping execution on at least two CPUs. Capture boot traces and hashes; do not substitute host probes.
+
+### 12.3 Latest build and CI state
+
+- Chimera commit 69451fb5a61315e71babcbfd2000a33dc3fdbda8 reformats chimera_sched_snapshot() after Full ISO run 41366732482 failed at -Werror=misleading-indentation. The Full ISO rebuild is run 41367322786; at the last poll, ASM/C/C++ build and ISO composition were still running, and no artifact had been uploaded.
+- The matching Chimera CI/CD run 41367322700 had Windows Configure and Build successful; Windows Test was still running at the last poll.
+- No Full ISO download link is valid until GitHub reports a non-expired artifact from a successful run. The release-publication step must also pass its target handoff evidence gate.
+
+### 12.4 Release gate
+
+Do not weaken the verifier, add the test-only smoke ELF to production media, synthesize PID/readiness output, or remove native-init exit 78. A successful compile or ISO file is only a build candidate; it is not production acceptance. Keep both PRs draft/unmerged until the complete matrix above passes.
