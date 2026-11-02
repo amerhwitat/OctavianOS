@@ -275,3 +275,10 @@ The vendored Koronos tree now mirrors the Chimera implementation: a shared super
 The upstream Chimera implementation has passed kernel build run [41397184627](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184627), QEMU boot matrix run [41397184684](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184684), process-loader and frame-allocator host tests, and Windows Build/Test run [41397184702](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184702). Octavian's independent native Koronos run [41397308580](https://github.com/amerhwitat/OctavianOS/actions/runs/41397308580) is still pending; upstream success is not Octavian acceptance evidence.
 
 Still outstanding: scheduler-owned contexts, atomic CR3/RSP0/PID handoff, cross-CR3 switching, timer preemption, blocking/wakeup/wait/exit/reap, AP startup, TLB shootdowns and deferred teardown. The process-stack bridge is not automatically invoked by ELF admission. Preserve native-init exit 78 and fail-closed publication.
+
+
+## Vendored BSP guarded-stack context handoff (2026-11-02)
+
+The Octavian vendored Koronos source now mirrors the upstream BSP same-CR3 context handoff: saved register frame preparation, guarded-stack mapping checks, immutable bootstrap-stack recognition, and TSS.RSP0/current-PID updates with interrupts disabled before the assembly switch. The assembly path still rejects cross-CR3 transitions. The native workflow now requires the explicit TSS.RSP0/PID handoff trace; its first validation run is pending: https://github.com/amerhwitat/OctavianOS/actions/runs/41415330587.
+
+This does not enable scheduler-driven process execution, process lifecycle, CPL3 entry/return, VFS, AP startup, SMP or TLB shootdowns. The scheduler remains fail-closed for parallel execution. The production userspace acceptance verifier and release gates remain authoritative; preserve native-init exit 78.
