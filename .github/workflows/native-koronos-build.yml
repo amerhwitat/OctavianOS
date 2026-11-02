@@ -168,6 +168,7 @@ jobs:
           grep -Fq '[CPU ] BSP GDT/TSS initialized' "$smoke/debugcon.log" || { echo "::error::Koronos BSP GDT/TSS was not initialized (QEMU exit $qemu_status)"; exit 1; }
           grep -Fq '[MM  ] Address-space self-test passed: CR3 switch/restore' "$smoke/debugcon.log" || { echo "::error::Koronos CR3 switch/restore self-test failed (QEMU exit $qemu_status)"; exit 1; }
           grep -Fq '[PROC] Shared supervisor mappings, guarded process-owned kernel stacks and BSP TSS.RSP0 handoff self-test passed' "$smoke/debugcon.log" || { echo "::error::Koronos shared guarded stack/TSS handoff self-test failed (QEMU exit $qemu_status)"; exit 1; }
+          grep -Fq '[SCH ] BSP same-CR3 saved-context + TSS.RSP0/PID handoff self-test passed; process scheduling remains disabled' "$smoke/debugcon.log" || { echo "::error::Koronos saved-context/TSS/PID handoff self-test failed (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload QEMU kernel smoke trace
         if: always()
         uses: actions/upload-artifact@v4
