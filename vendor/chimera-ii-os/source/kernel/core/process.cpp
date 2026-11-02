@@ -6,7 +6,7 @@ constexpr uint64_t PAGE=4096;
 constexpr uint64_t USER_MIN=0x0000000100000000ull;
 constexpr uint64_t USER_LIMIT=0x0000800000000000ull;
 constexpr uint32_t PT_LOAD=1,PF_W=2,PF_X=1;
-struct Slot { chimera_process_image image{}; bool used=false; };
+struct Slot { chimera_process_image image{}; koronos_kernel_stack kernel_stack{}; bool has_kernel_stack=false; bool used=false; };
 Slot slots[CHIMERA_PROCESS_MAX];
 uint32_t next_pid=1,count=0;
 static bool add_ok(uint64_t a,uint64_t b,uint64_t*out){if(a>UINT64_MAX-b)return false;*out=a+b;return true;}
@@ -65,3 +65,40 @@ extern "C" int chimera_process_clear_address_space(uint32_t pid,void*expected){
 extern "C" int chimera_process_get(uint32_t pid,chimera_process_image*out){if(!out||!pid)return -1;Slot*s=find_slot(pid);if(!s)return -2;*out=s->image;return 0;}
 extern "C" int chimera_process_set_state(uint32_t pid,chimera_process_state state){if(!pid||state<CHIMERA_PROCESS_ADMITTED||state>CHIMERA_PROCESS_FAULTED)return -1;Slot*s=find_slot(pid);if(!s)return -2;s->image.state=state;return 0;}
 extern "C" uint32_t chimera_process_count(void){return count;}
+
+extern "C" int chimera_process_attach_kernel_stack(
+    uint32_t pid, const koronos_kernel_stack *stack) {
+    if (!pid || !stack || stack->slot >= KORONOS_KERNEL_STACK_SLOT_COUNT ||
+        !stack->generation || !stack->base || stack->top <= stack->base ||
+        (stack->base & 0xFu) || (stack->top & 0xFu)) return -1;
+    Slot *slot = find_slot(pid);
+    if (!slot) return -3;
+    if (slot->has_kernel_stack) return -2;
+    slot->kernel_stack = *stack;
+    slot->has_kernel_stack = true;
+    slot->image.kernel_stack_base = stack->base;
+    slot->image.kernel_stack_top = stack->top;
+    return 0;
+}
+extern "C" int chimera_process_get_kernel_stack(
+    uint32_t pid, koronos_kernel_stack *out_stack) {
+    if (!pid || !out_stack) return -1;
+    Slot *slot = find_slot(pid);
+    if (!slot) return -3;
+    if (!slot->has_kernel_stack) return -2;
+    *out_stack = slot->kernel_stack;
+    return 0;
+}
+extern "C" int chimera_process_detach_kernel_stack(
+    uint32_t pid, koronos_kernel_stack *out_stack) {
+    if (!pid || !out_stack) return -1;
+    Slot *slot = find_slot(pid);
+    if (!slot) return -3;
+    if (!slot->has_kernel_stack) return -2;
+    *out_stack = slot->kernel_stack;
+    slot->kernel_stack = {};
+    slot->has_kernel_stack = false;
+    slot->image.kernel_stack_base = 0;
+    slot->image.kernel_stack_top = 0;
+    return 0;
+}
