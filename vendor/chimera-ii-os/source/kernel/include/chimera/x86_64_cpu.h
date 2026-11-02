@@ -15,6 +15,15 @@ extern "C" {
 #define CHIMERA_X86_64_USER_CODE_SELECTOR 0x1Bu
 #define CHIMERA_X86_64_USER_DATA_SELECTOR 0x23u
 #define CHIMERA_X86_64_TSS_SELECTOR 0x28u
+#define CHIMERA_X86_64_CONTEXT_FRAME_SIZE 72u
+
+typedef struct chimera_x86_64_context {
+    uint64_t rsp;
+    uint64_t cr3;
+    uint64_t kernel_stack_top;
+    uint32_t pid;
+    uint32_t reserved;
+} chimera_x86_64_context;
 
 typedef struct __attribute__((packed)) chimera_x86_64_tss {
     uint32_t reserved0;
@@ -31,7 +40,6 @@ typedef struct __attribute__((packed)) chimera_x86_64_gdtr {
     uint64_t base;
 } chimera_x86_64_gdtr;
 
-/* Pure helper shared with host-side descriptor-layout tests. */
 static inline void chimera_x86_64_encode_tss_descriptor(
     uint64_t base, uint32_t limit, uint64_t *low, uint64_t *high) {
     if (!low || !high) return;
@@ -47,9 +55,17 @@ int chimera_x86_64_cpu_init(uint32_t cpu_id);
 int chimera_x86_64_cpu_set_kernel_stack(uint32_t cpu_id, uint64_t stack_top);
 int chimera_x86_64_cpu_is_ready(uint32_t cpu_id);
 uint64_t chimera_x86_64_cpu_kernel_stack(uint32_t cpu_id);
+uint64_t chimera_x86_64_cpu_bootstrap_kernel_stack(uint32_t cpu_id);
+int chimera_x86_64_cpu_set_current_pid(uint32_t cpu_id, uint32_t pid);
+uint32_t chimera_x86_64_cpu_current_pid(uint32_t cpu_id);
+int koronos_x86_64_context_prepare(chimera_x86_64_context *context,
+    uint64_t stack_base, uint64_t stack_size, uint64_t cr3,
+    void (*entry)(void *), void *argument);
+/* BSP-only, same-CR3 handoff. Cross-CR3 is refused until AP/TLB shootdowns exist. */
+int koronos_x86_64_context_switch(chimera_x86_64_context *from,
+    const chimera_x86_64_context *to);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
