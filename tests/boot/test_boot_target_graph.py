@@ -30,6 +30,26 @@ def main():
 
     grub = read(ROOT / "boot/iso/grub.cfg")
     jasper = read(ROOT / "boot/jasper/jasper.cfg")
+    # Interactive boot policy: show a real choice, default to Live, never Installer.
+    for menu_path in (
+        ROOT / "boot/iso/grub.cfg",
+        ROOT / "boot/jasper/jasper.cfg",
+        ROOT / "vendor/chimera-ii-os/source/boot/iso/grub.cfg",
+        ROOT / "vendor/chimera-ii-os/source/boot/jasper/jasper.cfg",
+    ):
+        menu_text = read(menu_path)
+        require(re.search(r"^set timeout=30$", menu_text, re.M), f"menu must wait 30 seconds: {menu_path}")
+        require(re.search(r"^set default=0$", menu_text, re.M), f"menu must default to Live, not Installer: {menu_path}")
+    for menu_path in (
+        ROOT / "boot/jasper/install.cfg",
+        ROOT / "boot/installation/menu.cfg",
+        ROOT / "vendor/chimera-ii-os/source/boot/jasper/install.cfg",
+        ROOT / "vendor/chimera-ii-os/source/boot/installation/menu.cfg",
+    ):
+        menu_text = read(menu_path)
+        require(re.search(r"^set timeout=30$", menu_text, re.M), f"installer submenu must remain interactive: {menu_path}")
+        require(re.search(r"^set default=2$", menu_text, re.M), f"installer submenu must default to safe return/live entry: {menu_path}")
+
     live = read(ROOT / "boot/jasper/live.cfg")
     installer = read(ROOT / "boot/jasper/install.cfg")
     recovery = read(ROOT / "boot/jasper/recovery.cfg")
