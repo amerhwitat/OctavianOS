@@ -1,0 +1,71 @@
+
+== [octavian] staging rootfs
+
+== [octavian] staging payload
+wallpapers: 26
+patched /build/rootfs-octavian/opt/aurora/desktop/aurora-wayland-glass/index.html with 26 wallpapers, prefix ../../wallpapers/
+
+== [octavian] system configuration
+
+== [octavian] trimming
+
+== [octavian] squashfs
+Parallel mksquashfs: Using 2 processors
+Creating 4.0 filesystem on /build/iso-octavian/live/filesystem.squashfs, block size 1048576.
+[============================|                               ] 10500/21808  48%[=============================|                              ] 11000/21808  50%[==============================\                             ] 11300/21808  51%[===============================\                            ] 11800/21808  54%[================================\                           ] 12100/21808  55%[=========================================-                  ] 15400/21808  70%[=========================================================\  ] 21300/21808  97%[===========================================================-] 21808/21808 100%
+
+Exportable Squashfs 4.0 filesystem, xz compressed, data block size 1048576
+	compressed data, compressed metadata, compressed fragments,
+	compressed xattrs, compressed ids
+	duplicates are removed
+Filesystem size 413164.16 Kbytes (403.48 Mbytes)
+	37.47% of uncompressed filesystem size (1102528.43 Kbytes)
+Inode table size 198516 bytes (193.86 Kbytes)
+	22.53% of uncompressed inode table size (880924 bytes)
+Directory table size 247136 bytes (241.34 Kbytes)
+	37.08% of uncompressed directory table size (666510 bytes)
+Number of duplicate files found 631
+Number of inodes 26261
+Number of files 21220
+Number of fragments 425
+Number of symbolic links 1514
+Number of device nodes 0
+Number of fifo nodes 0
+Number of socket nodes 0
+Number of directories 3527
+Number of hard-links 6
+Number of ids (unique uids + gids) 7
+Number of uids 3
+	root (0)
+	user (1000)
+	systemd-network (998)
+Number of gids 7
+	root (0)
+	shadow (42)
+	user (1000)
+	messagebus (997)
+	utmp (43)
+	systemd-network (998)
+	mail (8)
+
+== [octavian] boot files
+
+== [octavian] iso
+xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+
+Drive current: -outdev 'stdio:/build/out/octavian-os-live-amd64.iso'
+Media current: stdio file, overwriteable
+Media status : is blank
+Media summary: 0 sessions, 0 data blocks, 0 data, 32.1g free
+Added to ISO image: directory '/'='/tmp/grub.cIhUX4'
+xorriso : UPDATE :     674 files added in 1 seconds
+Added to ISO image: directory '/'='/build/iso-octavian'
+xorriso : UPDATE :     682 files added in 1 seconds
+xorriso : NOTE : Copying to System Area: 512 bytes from file '/usr/lib/grub/i386-pc/boot_hybrid.img'
+xorriso : UPDATE :  19.89% done
+ISO image produced: 238429 sectors
+Written to medium : 238429 sectors at LBA 0
+Writing to 'stdio:/build/out/octavian-os-live-amd64.iso' completed successfully.
+
+-rw-r--r-- 1 root root 466M Nov  2 12:55 /build/out/octavian-os-live-amd64.iso
+41bba4d3b3b4a6cb46e025792b36458ec82ea78936fb52157fcc32d3050785ea  octavian-os-live-amd64.iso

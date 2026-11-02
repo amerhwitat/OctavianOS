@@ -1,5 +1,18 @@
 # OctavianOS
 
+## Live ISO download
+
+A bootable amd64 live image is published from this repository:
+
+- **OctavianOS 2026.11.02** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-2026.11.02/octavian-os-live-amd64.iso) · 466 MiB · SHA-256 `41bba4d3b3b4a6cb46e025792b36458ec82ea78936fb52157fcc32d3050785ea`
+- Release notes, checksums and build evidence: [`docs/releases/octavian-os-2026.11.02/RELEASE.md`](docs/releases/octavian-os-2026.11.02/RELEASE.md)
+- Mirror / download index: https://amerhwitat.github.io/downloads/
+
+Boots BIOS and UEFI, live login `live` / `live`, the Aurora Wayland Glass desktop in a
+WebKit kiosk on tty1 plus a classic openbox session, 26 offline wallpapers. This is the
+Linux-kernel live image with this repository's desktop payload; it does not satisfy the
+native-kernel userspace acceptance gates described below.
+
 OctavianOS is the successor identity for the ChimeraIIOS operating-system research project. This repository is the destination for the source/history migration, build pipeline, boot/runtime work, ISA catalog, and Aurora desktop.
 
 ## Migration status
