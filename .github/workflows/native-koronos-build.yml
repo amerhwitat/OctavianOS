@@ -1,6 +1,9 @@
 name: Native Koronos kernel build
 
 on:
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/kernel/**'
   workflow_dispatch:
   push:
     branches: [main, fix/koronos-frame-allocator-ownership-2026-11-01]
