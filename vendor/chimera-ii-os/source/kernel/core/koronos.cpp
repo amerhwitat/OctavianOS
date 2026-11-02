@@ -304,12 +304,12 @@ static void task_installer(void *) {
             else console_write("[INST] WARNING: installer contract module missing");
             break;
         case 1:
-            console_write("[INST] Installer runtime initialization");
-            console_write("[INST] Initializing installer services in parallel");
+            console_write("[INST] Installer metadata phase entered; no installer userspace runtime is initialized");
+            console_write("[INST] Service start withheld: no process-backed installer workers are connected");
             break;
         case 2:
-            console_write("[INST] Hardware discovery service started");
-            console_write("[INST] Storage discovery service started");
+            console_write("[INST] Kernel hardware inventory is diagnostic only; no installer worker is running");
+            console_write("[INST] Storage backend is not mounted; installer worker is not running");
             break;
         case 3:
             if (phases) console_write("[INST] Installation phases loaded");
@@ -376,8 +376,8 @@ static void task_kore(void *) {
     if (!started) {
         started = true;
         chimera_kore_bootstrap();
-        console_write("[KORE] Service orchestration online");
-        console_write("[KORE] Core storage/security/logging services active");
+        console_write("[KORE] Core service identities registered; no service start callbacks are installed");
+        console_write("[KORE] Storage/security/logging backends remain DECLARED, not RUNNING");
     }
     // Bootstrap orchestration is complete; a service worker must block until
     // an event source wakes it rather than consume every scheduler dispatch.
@@ -478,14 +478,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     const struct koronos_cpu_features *f = koronos_get_cpu_features();
     console_write("[CPU ] ");
     console_write(f->vendor);
-    console_write("[CPU ] Logical CPUs: ");
+    console_write("[CPU ] Detected logical CPUs: ");
     console_hex32(f->logical_cpus);
+    console_write("[CPU ] Online scheduler CPUs: 1 (AP startup not implemented)");
     console_write("[VM  ] Hypervisor detected: ");
     console_hex32(f->hypervisor);
 
     console_write("[SCH ] Initializing scheduler...");
-    chimera_sched_init(f->logical_cpus);
-    chimera_learning_init(f->logical_cpus);
+    chimera_sched_init(1); // CPU0 is the only online scheduler CPU until AP startup exists.
+    chimera_learning_init(1); // Do not schedule work on detected-but-offline CPUs.
     console_progress(35, "Scheduler and learning runtime initialized");
 
     console_write("[IO  ] Initializing virtual I/O drivers...");
