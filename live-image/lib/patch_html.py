@@ -12,7 +12,7 @@ rel_root = os.path.relpath(os.path.join(payload_root, "wallpapers"), html_dir)
 if not rel_root.endswith("/"):
     rel_root += "/"
 
-wps = [{"name": w["name"], "url": rel_root + os.path.basename(w["url"])} for w in manifest]
+wps = [{"name": w["name"], "url": rel_root + os.path.basename(w.get("url") or w["file"])} for w in manifest]
 tpl = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "wallpaper_overlay.js")).read()
 js = tpl.replace("__WALLPAPERS__", json.dumps(wps)).replace("__DEFAULT__", rel_root + default_wp)
 
