@@ -1,9 +1,6 @@
 BITS 64
 section .text
 global koronos_x86_64_load_gdt_tss
-
-; void koronos_x86_64_load_gdt_tss(const gdtr *descriptor, uint16_t selector)
-; SysV AMD64: RDI=GDTR, SI=TSS selector.
 koronos_x86_64_load_gdt_tss:
     lgdt [rdi]
     mov ax, 0x10
@@ -18,3 +15,62 @@ koronos_x86_64_load_gdt_tss:
     mov ax, si
     ltr ax
     ret
+
+; C wrapper validates shared stack mappings and performs TSS.RSP0/PID handoff.
+; This low-level primitive intentionally rejects cross-CR3 transitions.
+global koronos_x86_64_context_switch_raw
+koronos_x86_64_context_switch_raw:
+    test rdi, rdi
+    jz .invalid
+    test rsi, rsi
+    jz .invalid
+    cmp rdi, rsi
+    je .same
+    mov rax, [rsi]
+    test rax, rax
+    jz .invalid
+    mov rcx, [rsi + 8]
+    test rcx, rcx
+    jz .invalid
+    test rcx, 0xFFF
+    jnz .invalid
+    mov rdx, cr3
+    cmp rcx, rdx
+    jne .space_mismatch
+    pushfq
+    cli
+    push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+    mov [rdi + 8], rdx
+    mov [rdi], rsp
+    mov rsp, rax
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    pop rbp
+    popfq
+    xor eax, eax
+    ret
+.same:
+    xor eax, eax
+    ret
+.space_mismatch:
+    mov eax, -2
+    ret
+.invalid:
+    mov eax, -1
+    ret
+
+global koronos_x86_64_context_trampoline
+koronos_x86_64_context_trampoline:
+    mov rdi, r12
+    sub rsp, 8
+    call r13
+    add rsp, 8
+    ud2
