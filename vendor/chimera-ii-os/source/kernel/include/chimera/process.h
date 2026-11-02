@@ -22,8 +22,8 @@ typedef struct chimera_process_image {
     uint32_t pid,state,segment_count,reserved;
     uint64_t entry,user_stack_top,image_low,image_high;
     chimera_elf_load_segment segments[16];
-    /* Runtime ownership is bound only after the transactional ELF loader succeeds.
-       Kernel stack/context fields remain zero until a real scheduler owns them. */
+    /* Transactional ELF load binds the address space and guarded kernel stack.
+       Saved user/kernel contexts remain zero until validated IRETQ/scheduler setup. */
     void *address_space;
     uint64_t address_space_root;
     uint64_t runtime_entry;
