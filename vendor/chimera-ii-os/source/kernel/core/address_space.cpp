@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "chimera/address_space.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/physmap.h"
 #include "chimera/koronos_abi.h"
 extern "C" uint8_t koronos_bootstrap_pml4[];
 namespace {
@@ -53,7 +54,7 @@ static void copy_bytes(void *dst, const void *src, size_t n) {
 }
 static uint64_t *table_ptr(uint64_t physical) {
     if (!physical || physical >= KORONOS_FRAME_PHYS_LIMIT || (physical & PAGE_MASK)) return nullptr;
-    return static_cast<uint64_t *>(koronos_frame_phys_to_virt(physical, PAGE_SIZE));
+    return static_cast<uint64_t *>(koronos_phys_to_virt(physical, PAGE_SIZE));
 }
 static bool track_table(AddressSpace *space, uint64_t physical) {
     if (!space || !physical || space->table_count >= MAX_TABLE_FRAMES) return false;
@@ -67,12 +68,8 @@ static uint64_t new_table(AddressSpace *space) {
         (void)koronos_frame_free(physical);
         return 0;
     }
-    void *alias = koronos_frame_phys_to_virt(physical, PAGE_SIZE);
-    if (!alias) {
-        --space->table_count;
-        (void)koronos_frame_free(physical);
-        return 0;
-    }
+    void *alias = koronos_phys_to_virt(physical, PAGE_SIZE);
+    if (!alias) return 0;
     zero_bytes(alias, PAGE_SIZE);
     return physical;
 }
@@ -81,14 +78,6 @@ static bool space_valid(const AddressSpace *space) {
 }
 static void destroy_locked(AddressSpace *space) {
     if (!space || space->magic != SPACE_MAGIC) return;
-#if defined(__x86_64__)
-    uint64_t current_cr3 = 0;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(current_cr3));
-    /* Never reclaim page tables or user frames while this CPU is executing
-       through them. CR3 switches are the single-CPU TLB invalidation boundary;
-       SMP shootdowns are still a separate prerequisite before AP scheduling. */
-    if ((current_cr3 & ENTRY_ADDRESS_MASK) == space->root_physical) return;
-#endif
     for (uint32_t i = 0; i < space->mapped_count; ++i) {
         if (space->mapped[i].physical && space->mapped[i].pages)
             (void)koronos_frame_free_contiguous(space->mapped[i].physical, space->mapped[i].pages);
@@ -113,7 +102,9 @@ static bool clone_bootstrap_map(AddressSpace *space) {
 
     const uint64_t root = new_table(space);
     if (!root) return false;
-    copy_bytes(table_ptr(root), src_root, PAGE_SIZE);
+    uint64_t *root_alias = table_ptr(root);
+    if (!root_alias) return false;
+    copy_bytes(root_alias, src_root, PAGE_SIZE);
     space->root_physical = root;
 
     const uint64_t old_pdpt_phys = src_root[0] & ENTRY_ADDRESS_MASK;
@@ -121,9 +112,10 @@ static bool clone_bootstrap_map(AddressSpace *space) {
     if (!old_pdpt) return false;
     const uint64_t pdpt = new_table(space);
     if (!pdpt) return false;
-    copy_bytes(table_ptr(pdpt), old_pdpt, PAGE_SIZE);
-    uint64_t *new_root = table_ptr(root);
     uint64_t *new_pdpt = table_ptr(pdpt);
+    uint64_t *new_root = table_ptr(root);
+    if (!new_root || !new_pdpt) return false;
+    copy_bytes(new_pdpt, old_pdpt, PAGE_SIZE);
     new_root[0] = pdpt | (src_root[0] & 0xFFFu) | ENTRY_USER;
 
     // Clone all four 1-GiB bootstrap PDs. The 2-MiB identity leaves remain
@@ -228,12 +220,8 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
     lock_backend();
     const uint64_t physical = koronos_frame_alloc_contiguous(static_cast<uint32_t>(pages64));
     if (!physical) { unlock_backend(); return -4; }
-    void *physical_alias = koronos_frame_phys_to_virt(physical, size);
-    if (!physical_alias) {
-        (void)koronos_frame_free_contiguous(physical, static_cast<uint32_t>(pages64));
-        unlock_backend();
-        return -5;
-    }
+    void *alias = koronos_phys_to_virt(physical, size);
+    if (!alias) { (void)koronos_frame_free_contiguous(physical, static_cast<uint32_t>(pages64)); unlock_backend(); return -6; }
     FrameBlock &block = space->mapped[space->mapped_count++];
     block.physical = physical;
     block.pages = static_cast<uint32_t>(pages64);
@@ -246,7 +234,7 @@ static int map_pages(void *, void *opaque, uint64_t virtual_base, uint64_t size,
         if (!pte || (*pte & ENTRY_PRESENT)) { unlock_backend(); return -5; }
         *pte = (physical + i * PAGE_SIZE) | leaf_flags;
     }
-    *kernel_alias = physical_alias;
+    *kernel_alias = alias;
     unlock_backend();
     return 0;
 }
@@ -281,6 +269,43 @@ static bool user_page_access(uint64_t root_physical, uint64_t va, bool write_acc
            (!write_access || (entry & ENTRY_WRITE));
 }
 
+static uint64_t read_cr3() {
+#if defined(__x86_64__)
+    uint64_t root = 0;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(root));
+    return root & ENTRY_ADDRESS_MASK;
+#else
+    return 0;
+#endif
+}
+
+static bool known_root(uint64_t root) {
+    if (!root || (root & PAGE_MASK) || root >= KORONOS_FRAME_PHYS_LIMIT)
+        return false;
+    const uint64_t bootstrap = reinterpret_cast<uint64_t>(koronos_bootstrap_pml4);
+    if (root == bootstrap) return true;
+    for (uint32_t i = 0; i < MAX_ADDRESS_SPACES; ++i)
+        if (space_valid(&spaces[i]) && spaces[i].root_physical == root) return true;
+    return false;
+}
+
+static int switch_root(uint64_t root, uint64_t *previous_root) {
+#if defined(__x86_64__)
+    if (!known_root(root)) return -1;
+    const uint64_t old = read_cr3();
+    if (!known_root(old)) return -2;
+    if (previous_root) *previous_root = old;
+    uint64_t flags = 0;
+    __asm__ volatile("pushfq; pop %0; cli" : "=r"(flags) : : "memory");
+    __asm__ volatile("mov %0, %%cr3" : : "r"(root) : "memory");
+    __asm__ volatile("push %0; popfq" : : "r"(flags) : "memory", "cc");
+    return 0;
+#else
+    (void)root; (void)previous_root;
+    return -3;
+#endif
+}
+
 static bool address_space_self_test() {
     const uint64_t before = koronos_frame_free_count();
     AddressSpace *space = static_cast<AddressSpace *>(create_address_space(nullptr));
@@ -292,6 +317,19 @@ static bool address_space_self_test() {
         ? map_pages(nullptr, space, 0x00007FFFFFFFE000ull, PAGE_SIZE, 6u, &stack_alias)
         : -1;
     bool ok = code_rc == 0 && stack_rc == 0 && code_alias && stack_alias;
+    if (ok) {
+        const uint64_t original_root = read_cr3();
+        uint64_t previous_root = 0;
+        const int activate_rc = switch_root(space->root_physical, &previous_root);
+        if (activate_rc != 0) {
+            ok = false;
+        } else {
+            const bool switched = read_cr3() == space->root_physical &&
+                                  previous_root == original_root;
+            const int restore_rc = switch_root(previous_root, nullptr);
+            ok = switched && restore_rc == 0 && read_cr3() == original_root;
+        }
+    }
     if (ok) {
         uint64_t *code_pte = ensure_pte(space, KORONOS_USER_VIRTUAL_MIN);
         uint64_t *stack_pte = ensure_pte(space, 0x00007FFFFFFFE000ull);
@@ -315,21 +353,6 @@ static bool address_space_self_test() {
              koronos_address_space_validate_user_range(space->root_physical,
                  0x00100000ull, 1u, 0u) != 0;
     }
-    if (ok) {
-#if defined(__x86_64__)
-        uint64_t kernel_cr3 = 0;
-        __asm__ volatile("mov %%cr3, %0" : "=r"(kernel_cr3));
-        const uint64_t user_root = space->root_physical;
-        __asm__ volatile("mov %0, %%cr3" : : "r"(user_root) : "memory");
-        destroy_address_space(nullptr, space);
-        const bool active_root_retained = space_valid(space) &&
-            koronos_frame_free_count() < before;
-        __asm__ volatile("mov %0, %%cr3" : : "r"(kernel_cr3) : "memory");
-        ok = active_root_retained;
-#else
-        ok = false;
-#endif
-    }
     destroy_address_space(nullptr, space);
     return ok && koronos_frame_free_count() == before;
 }
@@ -340,7 +363,7 @@ static const chimera_elf_load_ops loader_ops = {
 
 extern "C" int koronos_address_space_init(void) {
     const koronos_cpu_features *features = koronos_get_cpu_features();
-    if (!features || !features->long_mode || !features->nx) {
+    if (!koronos_physmap_ready() || !features || !features->long_mode || !features->nx) {
         backend_ready = 0;
         return -1;
     }
@@ -371,6 +394,21 @@ extern "C" const chimera_elf_load_ops *koronos_address_space_loader_ops(void) {
 extern "C" uint64_t koronos_address_space_root(const void *opaque) {
     const AddressSpace *space = static_cast<const AddressSpace *>(opaque);
     return space_valid(space) ? space->root_physical : 0;
+}
+
+extern "C" int koronos_address_space_activate(const void *opaque,
+                                                  uint64_t *previous_root) {
+    const AddressSpace *space = static_cast<const AddressSpace *>(opaque);
+    if (!space_valid(space)) return -1;
+    return switch_root(space->root_physical, previous_root);
+}
+
+extern "C" int koronos_address_space_restore(uint64_t root_physical) {
+    return switch_root(root_physical, nullptr);
+}
+
+extern "C" uint64_t koronos_address_space_current_root(void) {
+    return read_cr3();
 }
 extern "C" int koronos_address_space_validate_user_range(uint64_t root_physical,
                                                         uint64_t address, uint64_t length,
