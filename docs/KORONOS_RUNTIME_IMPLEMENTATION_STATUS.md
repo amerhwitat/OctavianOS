@@ -207,3 +207,20 @@ This is still not a process scheduler context switch: no per-process saved
 register/trap frame is restored, no process-owned kernel stack is selected by
 the scheduler, and no user-mode IRETQ transition is enabled. Ring 3 remains
 disabled until those pieces and process-bound syscall/VFS handling are complete.
+
+
+## 12.12 Shared language, compiler, assembler and disassembler catalog (2026-11-02)
+
+The canonical `toolchains/language-toolchain-catalog.json` now records 66 language/runtime families, 13 assembler providers and 11 disassembler/reverse-engineering providers. New entries cover V, Odin, experimental Carbon, MATLAB and GNU Octave, Wolfram Language, SAS, Raku, Elm, Haxe, Reason/ReScript, Solidity, Vyper, Move, Verilog, SystemVerilog and VHDL. The catalog includes provider command hints, execution models, target/format metadata, licensing boundaries and explicit opt-in package profiles. A new `hardware-description` profile describes Icarus Verilog, Verilator, GHDL and Yosys.
+
+The catalog explicitly declares a common `CHM-LANGUAGE-TOOLCHAIN-1` integration contract for ChimeraIIOS and OctavianOS. Octavian's vendor copies of the catalog, matrices, validator, tests, Aurora profile metadata, SDK manual and CI workflows are byte-for-byte synchronized with the Chimera branch. Native Toolchain CI run 41376280252 passed: the validator reported 66 languages, 13 assemblers and 11 disassemblers; all four catalog regression tests passed; native C/C++/ASM linker conformance passed; CMake built Chimera assembler, disassembler and reverse-engineering tools.
+
+This is a provider capability catalog and optional package-plan integration, not a claim that all 66 language toolchains are bundled or that all providers run on the native Chimera ABI. Proprietary MATLAB, Wolfram, SAS, MASM, ARM Compiler, IAR and Apple tools remain externally installed under their licenses. Carbon is experimental. Actual provider availability and target ABI/runtime compatibility must be verified separately.
+
+## 12.13 Interactive GRUB timeout and QEMU smoke-test correction (2026-11-02)
+
+The latest Full ISO run before the timeout correction (41375361717) passed ASM/C/C++ build and ISO composition, ISO artifact validation, and embedded target payload/artwork checks. The QEMU smoke test then terminated after 20 seconds with an empty debugcon trace. The shipped GRUB menu had deliberately been changed back to a 30-second interactive Live-first menu. Because the QEMU timeout was shorter than the GRUB countdown, the VM was terminated before selecting a boot entry; this was a test harness timeout mismatch, not evidence of a kernel exception.
+
+Both `.github/workflows/chimera-full-iso.yml` and `.github/workflows/koronos-boot-matrix.yml` now allow 60 seconds for QEMU, retaining the interactive menu rather than changing production boot policy. On the latest branch head `620a1b9fa69cb54d3b5abfe735c2f4ce60779aa9`, Koronos Kernel Build run 41376510340 passed, Boot Artifact Validation run 41376510225 passed, Runtime Contracts run 41376510233 passed, and the ISA/installer/command conformance run 41376510197 passed. The new Full ISO run 41376510227 is pending; the two-CPU boot-matrix run 41376510275 is still running. The timeout fix has not yet been validated by a completed QEMU run.
+
+The 60-second timeout fixes only the harness/menu timing mismatch. It does not prove a CPL3 handoff, a working Live/Installer/Recovery userspace, storage persistence, or publication. Keep the production release gate fail-closed.
