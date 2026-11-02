@@ -78,6 +78,7 @@ int main() {
     assert(runtime.state==CHIMERA_PROCESS_ADMITTED);
     assert(chimera_process_set_state((uint32_t)pid,CHIMERA_PROCESS_READY)==-3);
     assert(chimera_process_set_state((uint32_t)pid,CHIMERA_PROCESS_RUNNING)==-3);
+    assert(chimera_process_set_state((uint32_t)pid,CHIMERA_PROCESS_BLOCKED)==-3);
     assert(chimera_process_release((uint32_t)pid)==0);
     assert(mock.destroyed&&chimera_process_count()==0);
     puts("Octavian process runtime: transactional address-space ownership, guarded-stack boundary, and not-runnable gate passed");
