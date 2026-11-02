@@ -2,7 +2,7 @@
 
 OctavianOS vendors the ChimeraIIOS language/toolchain capability catalog at
 `vendor/chimera-ii-os/source/toolchains/language-toolchain-catalog.json`.
-The shared catalog describes 49 language families, compiler/interpreter
+The shared catalog describes 66 language families, compiler/interpreter
 providers, assembler and disassembler families, linkers, binary utilities,
 cross targets and optional package-manager installation profiles.
 
@@ -36,3 +36,8 @@ is runnable, or that a native ABI exists. Cross-compilation requires a
 matching target backend, sysroot and linker. WebAssembly is a virtual-machine
 target. Experimental Chimera C8192/R8192 backends are not claimed to be
 provided by GCC or LLVM.
+
+
+The current shared catalog also includes V, Odin, experimental Carbon, MATLAB and GNU Octave, Wolfram Language, SAS, Raku, Elm, Haxe, ReScript, Solidity, Vyper, Move, Verilog, SystemVerilog and VHDL. It inventories 13 assembler providers and 11 disassembly/reverse-engineering providers, including LLVM ML, external ARM/IAR assemblers, MSVC dumpbin and Apple Mach-O inspection tools.
+
+A dedicated `hardware-description` profile provides opt-in package plans for Icarus Verilog, Verilator, GHDL and Yosys. Both ChimeraIIOS and OctavianOS declare the same `CHM-LANGUAGE-TOOLCHAIN-1` contract in the catalog's `operating_systems` section. This is catalog/profile integration, not a claim that all providers are bundled or that every target ABI has been implemented. Commercial MATLAB, Wolfram, SAS, MASM, ARM Compiler, IAR and Apple tools require external installation and applicable licenses; Carbon remains experimental.
