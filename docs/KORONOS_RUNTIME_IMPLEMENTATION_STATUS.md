@@ -149,3 +149,9 @@ Thus the target verifier correctly leaves accepted=false and publication is skip
 
 Octavian commit 520d3f9f26a374fca9b9c6992f47da6fbd57a931 corrects boot diagnostics that previously overstated installer service startup and core storage/security/logging readiness. Commit 89c138db46a1e50b0a762af86bcc125bfaf6f5ea adds a boot-claims regression runner; commit dfbf1ed2b8d386466eb2b99223140fbf2ffd8087 invokes it before the freestanding build.
 These changes improve diagnostic integrity only. They do not start services or create a userspace execution path. The native init, VFS/syscall, task-context, per-CPU and SMP gates above remain blocked until their real implementations and runtime evidence exist.
+
+
+### 12.7 CI after truthful boot-log changes (2026-11-02)
+
+- The shared vendor Koronos boot messages and build-time string assertions were updated to use truthful “not running/declared” state descriptions. The boot-claims regression runner is invoked by vendor/chimera-ii-os/source/kernel/build-koronos.sh.
+- No Octavian workflow run was found for the latest source/build-script commits at the last poll. The runner is wired in but is not recorded as passed in hosted CI. The same runtime/init, per-task context, per-CPU and SMP release blockers remain.
