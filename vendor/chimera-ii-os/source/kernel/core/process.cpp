@@ -261,6 +261,7 @@ extern "C" int chimera_process_release(uint32_t pid) {
     if (slot->image.state != CHIMERA_PROCESS_ADMITTED &&
         slot->image.state != CHIMERA_PROCESS_EXITED &&
         slot->image.state != CHIMERA_PROCESS_FAULTED) return -2;
+    if (!slot->loaded_ok && slot->image.address_space) return -4;
 #if defined(KORONOS_PROCESS_RUNTIME_FREESTANDING)
     if (slot->has_kernel_stack && chimera_process_release_kernel_stack(pid) != 0)
         return -3;
