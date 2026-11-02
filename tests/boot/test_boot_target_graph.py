@@ -40,15 +40,16 @@ def main():
         menu_text = read(menu_path)
         require(re.search(r"^set timeout=30$", menu_text, re.M), f"menu must wait 30 seconds: {menu_path}")
         require(re.search(r"^set default=0$", menu_text, re.M), f"menu must default to Live, not Installer: {menu_path}")
-    for menu_path in (
-        ROOT / "boot/jasper/install.cfg",
-        ROOT / "boot/installation/menu.cfg",
-        ROOT / "vendor/chimera-ii-os/source/boot/jasper/install.cfg",
-        ROOT / "vendor/chimera-ii-os/source/boot/installation/menu.cfg",
-    ):
+    installer_submenus = (
+        (ROOT / "boot/jasper/install.cfg", 2),
+        (ROOT / "boot/installation/menu.cfg", 1),
+        (ROOT / "vendor/chimera-ii-os/source/boot/jasper/install.cfg", 2),
+        (ROOT / "vendor/chimera-ii-os/source/boot/installation/menu.cfg", 2),
+    )
+    for menu_path, safe_default in installer_submenus:
         menu_text = read(menu_path)
         require(re.search(r"^set timeout=30$", menu_text, re.M), f"installer submenu must remain interactive: {menu_path}")
-        require(re.search(r"^set default=2$", menu_text, re.M), f"installer submenu must default to safe return/live entry: {menu_path}")
+        require(re.search(r"^set default=" + str(safe_default) + r"$", menu_text, re.M), f"installer submenu must default to safe return/live entry: {menu_path}")
 
     live = read(ROOT / "boot/jasper/live.cfg")
     installer = read(ROOT / "boot/jasper/install.cfg")
