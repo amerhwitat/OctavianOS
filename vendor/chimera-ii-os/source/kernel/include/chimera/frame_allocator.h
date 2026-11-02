@@ -21,6 +21,8 @@ uint64_t koronos_frame_alloc_contiguous(uint32_t page_count);
 int koronos_frame_free(uint64_t physical_address);
 int koronos_frame_free_contiguous(uint64_t physical_address, uint32_t page_count);
 uint64_t koronos_frame_free_count(void);
+/* Physical-address ceiling managed by this allocator instance. */
+uint64_t koronos_frame_managed_limit(void);
 #ifdef __cplusplus
 }
 #endif
