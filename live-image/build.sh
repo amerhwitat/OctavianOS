@@ -405,6 +405,7 @@ EOF
 
 # Optional native artifacts are staged only when supplied. No test ELF or
 # missing initramfs is promoted into a production Installer/Recovery target.
+# Octavian may consume the native kernel built from its pinned Chimera source snapshot.
 KORONOS_ELF="${KORONOS_ELF:-$REPO_DIR/build/koronos/x86_64/koronos.elf}"
 if [ ! -s "$KORONOS_ELF" ] && [ -s "$REPO_DIR/vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf" ]; then
   KORONOS_ELF="$REPO_DIR/vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf"
