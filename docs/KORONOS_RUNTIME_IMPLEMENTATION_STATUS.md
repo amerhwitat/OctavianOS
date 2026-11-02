@@ -252,3 +252,10 @@ The latest Full ISO workflow run 41376751779 remains pending at this ledger upda
 - The process record still reserves kernel-stack and saved-context fields without owning those resources. BSP GDT/TSS and CR3 primitives are present in the vendored tree, but AP-local initialization, process-owned guarded stacks, saved register/trap frames, assembly context switching, timer preemption, blocking/wakeup/wait/reap, AP startup, scheduler workers, reschedule/TLB IPIs and deferred reclamation remain incomplete.
 - The shared production work queue remains process/task context ownership → real context switch and lifecycle → AP/SMP/TLB correctness → VFS/initramfs and process-bound syscalls → target-specific production init/service supervision → framebuffer/modesetting readiness → immutable-ISO six-case production acceptance.
 - Preserve native-init exit 78, the fail-closed production verifier and skipped publication behavior. Do not merge PR #142 or #145 as a production release signal.
+
+
+## 14. BSP-only scheduler initialization and truthful service state — 2026-11-02
+
+The downstream PR #145 branch now also corrects the boot path: the scheduler and learning runtime are initialized with one online CPU (the BSP), while detected hardware logical CPUs are reported separately. It no longer exposes detected-but-offline CPU slots to the cooperative scheduler before AP startup. Installer output no longer claims parallel workers, hardware/storage workers or storage/security/logging services are running; messages now state that service starts are withheld and backends remain declared but inactive. Commit: `3c6065ebd6a5da8d5f6d3a3f53aae25928c7c05a`.
+
+Fresh native build run 41378522690 and six-case candidate probe run 41378522709 were queued at the time of this update. These fixes are fail-closed safety and reporting improvements, not AP startup, production service implementation or production userspace acceptance.
