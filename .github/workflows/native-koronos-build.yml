@@ -184,6 +184,7 @@ jobs:
           if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
+          grep -Fq '[SCH ] BSP same-CR3 saved-context switch self-test passed; process scheduling remains disabled' "$smoke/debugcon.log" || { cat "$smoke/debugcon.log"; echo "::error::BSP saved-context switch self-test failed"; exit 1; }
       - name: Upload QEMU kernel smoke trace
         if: always()
         uses: actions/upload-artifact@v4
