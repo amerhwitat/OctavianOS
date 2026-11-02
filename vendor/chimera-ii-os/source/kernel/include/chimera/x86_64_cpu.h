@@ -61,7 +61,9 @@ uint32_t chimera_x86_64_cpu_current_pid(uint32_t cpu_id);
 int koronos_x86_64_context_prepare(chimera_x86_64_context *context,
     uint64_t stack_base, uint64_t stack_size, uint64_t cr3,
     void (*entry)(void *), void *argument);
-/* BSP-only, same-CR3 handoff. Cross-CR3 is refused until AP/TLB shootdowns exist. */
+/* BSP-only handoff. Local cross-CR3 switching is allowed only while no AP is
+ * online and the shared supervisor stack mapping is validated. AP-backed TLB
+ * shootdowns and deferred reclamation remain unimplemented. */
 int koronos_x86_64_context_switch(chimera_x86_64_context *from,
     const chimera_x86_64_context *to);
 
