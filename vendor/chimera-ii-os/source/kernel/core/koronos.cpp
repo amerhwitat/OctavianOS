@@ -14,6 +14,7 @@
 #include "chimera/service.h"
 #include "chimera/platform_features.h"
 #include "chimera/process.h"
+#include "chimera/x86_64_context.h"
 
 extern "C" void koronos_outb(uint16_t port, uint8_t value);
 
@@ -420,6 +421,35 @@ extern "C" void koronos_target_log(const char *message) {
     if (!message) return;
     debugcon_write(message);
     console_write(message);
+    }
+
+alignas(16) static uint8_t context_test_stack[16384];
+static koronos_x86_64_context context_test_main{};
+static koronos_x86_64_context context_test_child{};
+static volatile uint32_t context_test_result = 0;
+
+static void context_test_entry(void *) {
+    context_test_result = 1;
+    if (koronos_x86_64_context_switch(&context_test_child, &context_test_main) != 0)
+        context_test_result = 2;
+    for (;;) __asm__ volatile("cli; hlt" ::: "memory");
+}
+
+static int context_switch_self_test() {
+    uint64_t root = 0;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(root));
+    root &= 0x000FFFFFFFFFF000ull;
+    if (!root) return -1;
+    context_test_main = {};
+    context_test_child = {};
+    context_test_result = 0;
+    if (koronos_x86_64_context_prepare(
+            &context_test_child, reinterpret_cast<uint64_t>(context_test_stack),
+            sizeof(context_test_stack), root, context_test_entry, nullptr) != 0)
+        return -2;
+    if (koronos_x86_64_context_switch(&context_test_main, &context_test_child) != 0)
+        return -3;
+    return context_test_result == 1 ? 0 : -4;
 }
 
 extern "C" void koronos_boot(const koronos_boot_context *ctx) {
@@ -466,9 +496,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     const int address_space_init = (frame_init == 0) ? koronos_address_space_init() : -1;
     const int address_space_test = (address_space_init == 0) ? koronos_address_space_self_test() : -1;
     const int user_entry_init = (address_space_test == 0) ? koronos_user_entry_init() : -1;
+    const int context_switch_test = (address_space_test == 0 && user_entry_init == 0)
+        ? context_switch_self_test() : -1;
     if (address_space_test == 0 && user_entry_init == 0) {
         console_write("[MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed");
         console_write("[ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance");
+        if (context_switch_test == 0)
+            console_write("[SCH ] BSP same-CR3 saved-context switch self-test passed; process scheduling remains disabled");
+        else
+            console_write("[SCH ] ERROR: saved-context switch self-test failed; process scheduling remains disabled");
         console_write("[MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map");
     } else {
         console_write("[MM  ] ERROR: process address-space or ring-3 entry setup failed; user-image launch remains disabled");
