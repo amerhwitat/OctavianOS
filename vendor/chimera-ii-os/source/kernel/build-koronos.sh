@@ -33,6 +33,7 @@ for header in "${required_headers[@]}"; do
   fi
 done
 bash "$ROOT/kernel/tests/scheduler-runtime-unit.sh"
+bash "$ROOT/kernel/tests/process-runtime-unit.sh"
 bash "$ROOT/kernel/tests/x86_64-cpu-state-unit.sh"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
@@ -43,6 +44,8 @@ sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler 
 for src in "${sources[@]}"; do
   if [[ "$src" == "scheduler" ]]; then
     "$CXX" "${CXXFLAGS[@]}" -DCHIMERA_ENABLE_CONTEXT_SCHEDULER -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
+  elif [[ "$src" == "process" ]]; then
+    "$CXX" "${CXXFLAGS[@]}" -DKORONOS_PROCESS_RUNTIME_FREESTANDING -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
   else
     "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
   fi
