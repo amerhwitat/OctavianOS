@@ -125,7 +125,7 @@ jobs:
           /tmp/octavian-koronos-scheduler-test
           python3 - <<'PY'
           from pathlib import Path
-          root=Path("vendor/chimera-ii-os/source/kernel")
+          root=Path("kernel")
           boot=(root/"core/koronos.cpp").read_text()
           build=(root/"build-koronos.sh").read_text()
           assert "chimera_sched_init(1)" in boot
