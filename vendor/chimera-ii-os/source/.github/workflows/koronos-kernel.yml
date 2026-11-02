@@ -29,8 +29,12 @@ jobs:
         run: bash kernel/build-koronos.sh
       - name: Test protected-process admission
         run: |
-          g++ -std=c++17 -I kernel/include kernel/core/elf64.cpp kernel/core/process.cpp kernel/tests/process_admission.cpp -o /tmp/chimera-process-admission
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -I kernel/include \
+            kernel/core/elf64.cpp kernel/core/process_loader.cpp kernel/core/process.cpp \
+            kernel/tests/process_admission.cpp -o /tmp/chimera-process-admission
           /tmp/chimera-process-admission
+      - name: Test transactional process runtime ownership
+        run: bash kernel/tests/process-runtime-unit.sh
       - name: Validate ELF64
         run: python3 tools/koronos/validate_elf.py build/koronos/x86_64/koronos.elf
       - name: Assert no unresolved symbols
