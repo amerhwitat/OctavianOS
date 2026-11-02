@@ -138,3 +138,21 @@ The latest step-level poll of [ChimeraIIOS run #1388](https://github.com/amerhwi
 ## Corrected final result — production verifier failed (2026-10-19)
 
 The final result of [ChimeraIIOS run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) is **FAILURE**. The build, ISO composition, ISO validation, payload/artwork checks, Koronos boot smoke, trace upload, compression, and ISO artifact upload succeeded. However, the handoff and six-case scripts emitted `FAIL: missing user-originated init syscall acknowledgement (CPL 3), actual init PID readiness marker`. The same failure occurred in all six Live/Installer/Recovery × BIOS/UEFI cases. The six-case script step's GitHub Actions step conclusion says success because it exports `accepted=false` without exiting nonzero; the final fail-closed release gate correctly caught that output and failed. The GitHub Release publication step was skipped. Artifacts are available: ISO `chimera-ii-os-live-installer` (ID 12166940637) and traces `chimera-target-userspace-traces` (ID 12166193261). No production acceptance pass; release remains BLOCKED. Earlier progress notes saying the matrix passed were premature and are superseded by this final log evidence.
+
+## Live ISO images
+
+`live-image/` builds a bootable hybrid BIOS/UEFI x86_64 live ISO whose session renders
+this repository's own HTML desktops fullscreen (WebKit2GTK kiosk) with the shipped
+artwork available as desktop backgrounds:
+
+```sh
+sudo ./live-image/build.sh octavian    # -> live-image/.build/out/octavian-os-live-amd64.iso
+```
+
+The builder bootstraps its own Debian rootfs (`debootstrap`), stages `desktop/` and
+`apps/` plus a verbatim source snapshot, patches every page's background picker, and
+produces the ISO with `grub-mkrescue`. See `live-image/README.md`.
+
+Scope: the image boots a Linux kernel plus this project's userland. The native Koronos
+kernel is not in the boot path, because production userspace acceptance is still
+`BLOCKED` per [ISO release acceptance](docs/ISO_RELEASE_ACCEPTANCE.md).
