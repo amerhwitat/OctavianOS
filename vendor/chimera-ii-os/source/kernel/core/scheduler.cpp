@@ -256,3 +256,18 @@ extern "C" uint32_t chimera_sched_snapshot(chimera_task_info *out, uint32_t cap)
     unlock();
     return n;
 }
+
+extern "C" uint32_t chimera_sched_context_dispatch_count(void) {
+#if defined(CHIMERA_ENABLE_CONTEXT_SCHEDULER)
+    return context_dispatches;
+#else
+    return 0;
+#endif
+}
+extern "C" uint32_t chimera_sched_context_fault_count(void) {
+#if defined(CHIMERA_ENABLE_CONTEXT_SCHEDULER)
+    return context_dispatch_faults;
+#else
+    return 0;
+#endif
+}
