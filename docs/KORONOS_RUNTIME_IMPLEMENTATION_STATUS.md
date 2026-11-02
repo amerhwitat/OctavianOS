@@ -277,11 +277,13 @@ The upstream Chimera implementation has passed kernel build run [41397184627](ht
 Still outstanding: scheduler-owned contexts, atomic CR3/RSP0/PID handoff, cross-CR3 switching, timer preemption, blocking/wakeup/wait/exit/reap, AP startup, TLB shootdowns and deferred teardown. The process-stack bridge is not automatically invoked by ELF admission. Preserve native-init exit 78 and fail-closed publication.
 
 
-## Vendored BSP guarded-stack context handoff (2026-11-02)
+## Vendored BSP guarded-stack cross-CR3 context handoff (2026-11-02)
 
-The Octavian vendored Koronos source now mirrors the upstream BSP same-CR3 context handoff: saved register frame preparation, guarded-stack mapping checks, immutable bootstrap-stack recognition, and TSS.RSP0/current-PID updates with interrupts disabled before the assembly switch. The assembly path still rejects cross-CR3 transitions. The native workflow now requires the explicit TSS.RSP0/PID handoff trace; its first validation run is pending: https://github.com/amerhwitat/OctavianOS/actions/runs/41415330587.
+The Octavian vendored Koronos source now mirrors the upstream BSP cross-CR3 context handoff: saved register frame preparation; destination-root validation against the address-space backend; guarded-stack mapping checks in the destination root; immutable bootstrap-stack recognition; and an interrupt-disabled CR3/TSS.RSP0/current-PID transition before the assembly stack switch. The raw assembly verifies that the destination CR3 is already active and preserves the outgoing root saved by the wrapper. The QEMU self-test now creates a distinct address space and proves a guarded child context observes its own CR3, stack and PID before returning to the bootstrap context.
 
-This does not enable scheduler-driven process execution, process lifecycle, CPL3 entry/return, VFS, AP startup, SMP or TLB shootdowns. The scheduler remains fail-closed for parallel execution. The production userspace acceptance verifier and release gates remain authoritative; preserve native-init exit 78.
+This transition is restricted to the BSP and refuses cross-CR3 switches if another CPU is initialized. The local CR3 write flushes the BSP's current non-PCID translations; it is not an AP TLB-shootdown protocol and does not make address-space teardown SMP-safe. AP startup, acknowledged TLB shootdowns and deferred reclamation remain unimplemented. The native QEMU workflow now requires the explicit cross-CR3/TSS.RSP0/PID round-trip trace; exact-head CI is pending.
+
+This does not enable native user-process scheduling, IRETQ entry/return, process wait/reap, process-bound VFS, production init/service supervision, installer persistence, recovery repair, Aurora readiness, AP startup/SMP or six-case immutable-ISO acceptance. The scheduler remains BSP cooperative kernel-callback execution, and the production userspace verifier/release gates remain authoritative. Preserve native-init exit 78.
 
 
 ## Vendored BSP guarded-stack scheduler callback execution (2026-11-02)
