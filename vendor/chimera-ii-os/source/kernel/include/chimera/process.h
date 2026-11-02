@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "elf64.h"
+#include "kernel_stack.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,6 +41,9 @@ int chimera_process_bind_address_space(uint32_t pid,void *address_space,uint64_t
 int chimera_process_clear_address_space(uint32_t pid,void *expected_address_space);
 int chimera_process_get(uint32_t,chimera_process_image*);
 int chimera_process_set_state(uint32_t,chimera_process_state);
+int chimera_process_attach_kernel_stack(uint32_t pid, const koronos_kernel_stack *stack);
+int chimera_process_get_kernel_stack(uint32_t pid, koronos_kernel_stack *out_stack);
+int chimera_process_detach_kernel_stack(uint32_t pid, koronos_kernel_stack *out_stack);
 uint32_t chimera_process_count(void);
 #ifdef __cplusplus
 }
