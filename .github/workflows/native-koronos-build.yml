@@ -3,7 +3,7 @@ name: Native Koronos kernel build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/koronos-frame-allocator-ownership-2026-11-01]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/toolchains/language-toolchain-catalog.json'
