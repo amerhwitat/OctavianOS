@@ -134,6 +134,10 @@ jobs:
           assert "chimera_sched_init(f->logical_cpus)" not in boot
           assert "BSP scheduler callback runner" in build
           assert "SMP-safe scheduler" not in build
+          installer_diag = "[INST] Installer metadata phase entered; no installer userspace runtime is initialized"
+          kore_diag = "[KORE] Core service identities registered; no service start callbacks are installed"
+          assert installer_diag in boot and installer_diag in build, "installer metadata diagnostic/build contract drifted"
+          assert kore_diag in boot and kore_diag in build, "Kore service-identity diagnostic/build contract drifted"
           for claim in ("Initializing installer services in parallel", "Hardware discovery service started", "Storage discovery service started", "Core storage/security/logging services active"):
               assert claim not in boot, f"misleading boot claim remains: {claim}"
           print("Koronos BSP-only scheduler and truthful service-claim policy: PASS")
