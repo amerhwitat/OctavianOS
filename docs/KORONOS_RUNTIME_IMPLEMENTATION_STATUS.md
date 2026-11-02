@@ -266,3 +266,12 @@ Fresh native build run 41378522690 and six-case candidate probe run 41378522709 
 The native Koronos workflow on downstream PR #145 now runs a source-policy regression after the scheduler runtime test. It requires `chimera_sched_init(1)` and `chimera_learning_init(1)`, requires the explicit one-online-BSP log, rejects passing the hardware-reported logical CPU count to the scheduler, rejects the old SMP-safe banner, and rejects misleading claims that installer parallel workers or storage/security/logging backends are running. Workflow change commits: `7e86eb894c947ab38367a00d2ffbfd25626732ff` and `a6440c5863d5fbb526a5531a8a3c056f3b18e82f`.
 
 Fresh workflow runs are queued/pending: native build 41378769179, candidate six-case probe 41378769186, integration 41378769266 and boot-routing contract 41378769184. No result is counted as passed until the jobs finish. These regression guards enforce safe BSP-only behavior; they do not implement AP startup or SMP.
+
+
+## Guarded shared kernel stacks and process ownership bridge (2026-11-02)
+
+The vendored Koronos tree now mirrors the Chimera implementation: a shared supervisor-only PML4[511] subtree inherited by new address spaces; a 32-slot arena with one unmapped guard page and eight supervisor RW/NX pages per stack; physical-frame allocation with rollback; and guarded release checks against initialized CPU TSS.RSP0 values. Process records expose stack-handle attach/get/detach APIs, with a process-stack lifecycle bridge for explicit allocation and release.
+
+The upstream Chimera implementation has passed kernel build run [41397184627](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184627), QEMU boot matrix run [41397184684](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184684), process-loader and frame-allocator host tests, and Windows Build/Test run [41397184702](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/41397184702). Octavian's independent native Koronos run [41397308580](https://github.com/amerhwitat/OctavianOS/actions/runs/41397308580) is still pending; upstream success is not Octavian acceptance evidence.
+
+Still outstanding: scheduler-owned contexts, atomic CR3/RSP0/PID handoff, cross-CR3 switching, timer preemption, blocking/wakeup/wait/exit/reap, AP startup, TLB shootdowns and deferred teardown. The process-stack bridge is not automatically invoked by ELF admission. Preserve native-init exit 78 and fail-closed publication.
