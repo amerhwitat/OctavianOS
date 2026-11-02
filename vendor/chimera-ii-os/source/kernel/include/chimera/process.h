@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "elf64.h"
+#include "process_loader.h"
 #include "kernel_stack.h"
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +37,10 @@ typedef struct chimera_process_image {
 } chimera_process_image;
 int chimera_process_init(void);
 int chimera_process_admit_elf(const void*,uint64_t,uint16_t,uint64_t,chimera_process_image*);
+int chimera_process_load_elf(uint32_t pid,const void *image,uint64_t image_size,uint16_t machine,
+                               uint64_t stack_top,uint64_t stack_size,
+                               const chimera_elf_load_ops *ops,void *context);
+int chimera_process_release(uint32_t pid);
 int chimera_process_bind_address_space(uint32_t pid,void *address_space,uint64_t root,
                                        uint64_t user_entry,uint64_t user_stack);
 int chimera_process_clear_address_space(uint32_t pid,void *expected_address_space);
