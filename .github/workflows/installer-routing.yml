@@ -22,6 +22,7 @@ on:
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
       - 'kernel/**'
+      - 'vendor/chimera-ii-os/source/**'
       - 'editions/mobile/**'
       - 'tools/release/**'
       - 'tests/qemu/**'
