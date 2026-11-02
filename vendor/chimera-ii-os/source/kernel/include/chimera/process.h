@@ -8,7 +8,7 @@ extern "C" {
 #endif
 #define CHIMERA_PROCESS_ABI 2u
 #define CHIMERA_PROCESS_MAX 128u
-/* Admission remains a validated load plan until scheduler-owned execution is complete. */
+/* A loaded process remains non-runnable until a validated user context and IRETQ path exist. */
 #define CHIMERA_PROCESS_LOAD_PLAN_ONLY 1u
 typedef enum chimera_process_state {
     CHIMERA_PROCESS_EMPTY=0, CHIMERA_PROCESS_ADMITTED=1, CHIMERA_PROCESS_READY=2,
