@@ -16,8 +16,8 @@ koronos_x86_64_load_gdt_tss:
     ltr ax
     ret
 
-; C wrapper validates shared stack mappings and performs TSS.RSP0/PID handoff.
-; This low-level primitive intentionally rejects cross-CR3 transitions.
+; C wrapper validates the shared stack mapping and performs the BSP-only
+; CR3/TSS.RSP0/PID handoff. The raw primitive verifies the target CR3 is active.
 global koronos_x86_64_context_switch_raw
 koronos_x86_64_context_switch_raw:
     test rdi, rdi
@@ -45,7 +45,7 @@ koronos_x86_64_context_switch_raw:
     push r13
     push r14
     push r15
-    mov [rdi + 8], rdx
+    ; The wrapper stored the outgoing CR3 before activating the target root.
     mov [rdi], rsp
     mov rsp, rax
     pop r15
