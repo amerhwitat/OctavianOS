@@ -282,3 +282,10 @@ Still outstanding: scheduler-owned contexts, atomic CR3/RSP0/PID handoff, cross-
 The Octavian vendored Koronos source now mirrors the upstream BSP same-CR3 context handoff: saved register frame preparation, guarded-stack mapping checks, immutable bootstrap-stack recognition, and TSS.RSP0/current-PID updates with interrupts disabled before the assembly switch. The assembly path still rejects cross-CR3 transitions. The native workflow now requires the explicit TSS.RSP0/PID handoff trace; its first validation run is pending: https://github.com/amerhwitat/OctavianOS/actions/runs/41415330587.
 
 This does not enable scheduler-driven process execution, process lifecycle, CPL3 entry/return, VFS, AP startup, SMP or TLB shootdowns. The scheduler remains fail-closed for parallel execution. The production userspace acceptance verifier and release gates remain authoritative; preserve native-init exit 78.
+
+
+## Vendored BSP guarded-stack scheduler callback execution (2026-11-02)
+
+The Octavian vendored Koronos scheduler now mirrors the BSP-only guarded callback context runner: per-callback guarded stack allocation, saved-frame preparation, same-CR3 context entry, runtime verification of RSP/TSS.RSP0/PID, return to the scheduler context, and stack release after a callback exits. The native QEMU workflow requires the successful guarded-stack/TSS/PID dispatch trace.
+
+This remains cooperative kernel callback execution, not user-process scheduling. Yielded/blocked callbacks restart at their entry when dispatched again; timer preemption, process continuations, process wait/reap, CPL3, cross-CR3 switching, AP startup/SMP and TLB shootdowns remain unimplemented. The latest Octavian native build is pending after fixing a missing vendored physmap interface header; no new pass is claimed yet.
