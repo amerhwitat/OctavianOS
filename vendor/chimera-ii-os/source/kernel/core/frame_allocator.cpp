@@ -231,3 +231,7 @@ extern "C" void *koronos_frame_phys_to_virt(uint64_t physical, uint64_t length) 
     unlock();
     return mapper ? mapper(physical, length, context) : nullptr;
 }
+
+extern "C" uint64_t koronos_frame_managed_limit(void) {
+    return KORONOS_FRAME_PHYS_LIMIT;
+}

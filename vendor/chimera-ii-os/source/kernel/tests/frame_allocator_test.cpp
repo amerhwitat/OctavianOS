@@ -47,6 +47,7 @@ int main() {
     make_map(info, 0x100000, 0x3f00000, 0x800000, 0x100000);
     const uint64_t info_address = reinterpret_cast<uint64_t>(&info);
     assert(koronos_frame_allocator_init(info_address, 0x100000, 0x200000) == 0);
+    assert(koronos_frame_managed_limit() == KORONOS_FRAME_PHYS_LIMIT);
 
     // 1 MiB..64 MiB gives 16,128 pages. Kernel and reserved 8..9 MiB
     // each consume 256 pages, leaving exactly 15,616 allocatable pages.
