@@ -13,6 +13,7 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/install/**'
       - 'vendor/chimera-ii-os/source/installer/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
