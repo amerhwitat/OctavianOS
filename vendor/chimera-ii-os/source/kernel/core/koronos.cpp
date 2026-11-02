@@ -12,6 +12,7 @@
 #include "chimera/frame_allocator.h"
 #include "chimera/physmap.h"
 #include "chimera/address_space.h"
+#include "chimera/kernel_stack.h"
 #include "chimera/x86_64_cpu.h"
 
 extern "C" void koronos_outb(uint16_t port, uint8_t value);
@@ -452,7 +453,14 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     } else {
         console_write("[MM  ] ERROR: address-space backend unavailable or self-test failed; userspace launch remains disabled");
     }
-    console_progress(25, "Architecture, physmap and address-space safety checks complete");
+    const int kernel_stack_test = (address_space_test == 0)
+        ? koronos_kernel_stack_self_test() : -1;
+    if (kernel_stack_test == 0) {
+        console_write("[PROC] Shared supervisor mappings, guarded process-owned kernel stacks and BSP TSS.RSP0 handoff self-test passed");
+    } else {
+        console_write("[PROC] ERROR: guarded kernel stack/TSS handoff self-test failed; process scheduling remains disabled");
+    }
+    console_progress(25, "Architecture, shared supervisor mappings, kernel stacks and address-space checks complete");
 
     const struct koronos_cpu_features *f = koronos_get_cpu_features();
     console_write("[CPU ] ");
