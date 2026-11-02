@@ -143,3 +143,9 @@ The Live and Recovery initramfs images do contain shell /init scripts, but those
 
 Thus the target verifier correctly leaves accepted=false and publication is skipped. The job step is green because it records the false gate and allows candidate artifacts to be uploaded for engineering review; it is not a passing target acceptance result. Full ISO candidate artifact 13107437782 (ZIP containing compressed ISO and checksums) is available from workflow run 41367322786, but it must not be described as a production release.
 
+
+
+### 12.6 Truthful boot-state diagnostics
+
+Octavian commit 520d3f9f26a374fca9b9c6992f47da6fbd57a931 corrects boot diagnostics that previously overstated installer service startup and core storage/security/logging readiness. Commit 89c138db46a1e50b0a762af86bcc125bfaf6f5ea adds a boot-claims regression runner; commit dfbf1ed2b8d386466eb2b99223140fbf2ffd8087 invokes it before the freestanding build.
+These changes improve diagnostic integrity only. They do not start services or create a userspace execution path. The native init, VFS/syscall, task-context, per-CPU and SMP gates above remain blocked until their real implementations and runtime evidence exist.
