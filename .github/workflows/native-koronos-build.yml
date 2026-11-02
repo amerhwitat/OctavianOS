@@ -123,6 +123,21 @@ jobs:
             tests/kernel/scheduler_runtime_test.cpp kernel/core/scheduler.cpp \
             -o /tmp/octavian-koronos-scheduler-test
           /tmp/octavian-koronos-scheduler-test
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("vendor/chimera-ii-os/source/kernel")
+          boot=(root/"core/koronos.cpp").read_text()
+          build=(root/"build-koronos.sh").read_text()
+          assert "chimera_sched_init(1)" in boot
+          assert "chimera_learning_init(1)" in boot
+          assert "Online scheduler CPUs: 1 (AP startup not implemented)" in boot
+          assert "chimera_sched_init(f->logical_cpus)" not in boot
+          assert "BSP scheduler callback runner (no SMP execution)" in build
+          assert "SMP-safe scheduler" not in build
+          for claim in ("Initializing installer services in parallel", "Hardware discovery service started", "Storage discovery service started", "Core storage/security/logging services active"):
+              assert claim not in boot, f"misleading boot claim remains: {claim}"
+          print("Koronos BSP-only scheduler and truthful service-claim policy: PASS")
+          PY
       - name: Compile and run Multiboot2 live/recovery module classification tests
         working-directory: vendor/chimera-ii-os/source
         run: |
