@@ -4,7 +4,9 @@
 
 A bootable amd64 live image is published from this repository:
 
-- **OctavianOS 2026.11.02** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-2026.11.02/octavian-os-live-amd64.iso) · 466 MiB · SHA-256 `41bba4d3b3b4a6cb46e025792b36458ec82ea78936fb52157fcc32d3050785ea`
+- **Latest: OctavianOS 2026.11.02 — fullscreen desktop fix** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-live-2026.11.02-desktop-4f9f4c89a2cb/octavian-os-live-amd64.iso) · 463 MiB · SHA-256 `1904f9c055321122cabfad5e6d13a89a21243c0a56c7cf9bdfca8efb9dd90eed`
+- Release notes, checksum and BIOS/UEFI boot report: [fullscreen desktop release](https://github.com/amerhwitat/OctavianOS/releases/tag/octavian-os-live-2026.11.02-desktop-4f9f4c89a2cb)
+- Previous: **OctavianOS 2026.11.02** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-2026.11.02/octavian-os-live-amd64.iso) · 466 MiB · SHA-256 `41bba4d3b3b4a6cb46e025792b36458ec82ea78936fb52157fcc32d3050785ea`
 - Release notes, checksums and build evidence: [`docs/releases/octavian-os-2026.11.02/RELEASE.md`](docs/releases/octavian-os-2026.11.02/RELEASE.md)
 - Mirror / download index: https://amerhwitat.github.io/downloads/
 
