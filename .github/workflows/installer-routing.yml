@@ -8,6 +8,7 @@ on:
       - 'tests/boot/**'
       - 'docs/BOOT_SEQUENCE_TRACE.md'
       - 'kernel/**'
+      - 'vendor/chimera-ii-os/source/**'
       - 'editions/mobile/**'
       - 'tools/release/**'
       - 'tests/qemu/**'
@@ -37,6 +38,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate vendored language and binary toolchain catalog
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tools/toolchain/validate_language_catalog.py
+          python3 -m unittest discover -s tests/toolchain -p 'test_language_toolchain_catalog.py' -v
+          python3 tools/toolchain/install-language-profile.py --list
+          python3 tools/toolchain/install-language-profile.py native-core --dry-run
+      - name: Validate vendored GRUB policy and boot artifacts
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tests/boot/test_iso_target_routing_artwork.py
+          bash -n tests/boot/test-boot-artifact-regressions.sh
+          bash tests/boot/test-boot-artifact-regressions.sh
+          while IFS= read -r cfg; do grub-script-check "$cfg"; done < <(find boot -type f -name '*.cfg' -print | sort)
       - name: Test fail-closed userspace handoff evidence verifier
         run: python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
       - name: Install GRUB parser
