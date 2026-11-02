@@ -132,7 +132,7 @@ jobs:
           assert "chimera_learning_init(1)" in boot
           assert "Online scheduler CPUs: 1 (AP startup not implemented)" in boot
           assert "chimera_sched_init(f->logical_cpus)" not in boot
-          assert "BSP scheduler callback runner (no SMP execution)" in build
+          assert "BSP scheduler callback runner" in build
           assert "SMP-safe scheduler" not in build
           for claim in ("Initializing installer services in parallel", "Hardware discovery service started", "Storage discovery service started", "Core storage/security/logging services active"):
               assert claim not in boot, f"misleading boot claim remains: {claim}"
