@@ -154,4 +154,4 @@ These changes improve diagnostic integrity only. They do not start services or c
 ### 12.7 CI after truthful boot-log changes (2026-11-02)
 
 - The shared vendor Koronos boot messages and build-time string assertions were updated to use truthful “not running/declared” state descriptions. The boot-claims regression runner is invoked by vendor/chimera-ii-os/source/kernel/build-koronos.sh.
-- No Octavian workflow run was found for the latest source/build-script commits at the last poll. The runner is wired in but is not recorded as passed in hosted CI. The same runtime/init, per-task context, per-CPU and SMP release blockers remain.
+- No Octavian workflow run was found for the latest source/build-script commits at the last poll. The boot-claims runner is wired into the build but is not recorded as passed in hosted CI. Chimera's equivalent boot validation passed; the latest Full ISO rerun is pending and Windows Build/Test remains in progress/pending. The same runtime/init, per-task context, per-CPU and SMP release blockers remain.
