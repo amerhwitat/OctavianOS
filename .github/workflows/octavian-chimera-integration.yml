@@ -122,3 +122,29 @@ jobs:
           name: chimera-source-inventory
           path: reports/chimera-source-inventory.json
           if-no-files-found: warn
+
+  native-koronos:
+    name: Vendored Koronos freestanding build and process-runtime tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install NASM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm
+      - name: Syntax-check native build entry points
+        run: |
+          bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
+          bash -n vendor/chimera-ii-os/source/kernel/tests/process-runtime-unit.sh
+      - name: Build vendored Koronos and run host regressions
+        run: bash vendor/chimera-ii-os/source/kernel/build-koronos.sh
+      - name: Record scope boundary
+        run: |
+          echo "Vendored Koronos freestanding build and host runtime regressions passed."
+          echo "This job does not claim QEMU cross-CR3 boot, CPL3 process execution, or production target acceptance."
