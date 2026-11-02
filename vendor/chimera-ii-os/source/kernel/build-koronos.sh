@@ -28,7 +28,7 @@ CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_stack process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry x86_64_cpu x86_64_context x86_64_context_switch ai_model frame_allocator physmap address_space kernel_stack)
+sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_stack process_loader target_launch target_console thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry x86_64_cpu x86_64_context x86_64_context_switch ai_model frame_allocator physmap address_space kernel_stack)
 for src in "${sources[@]}"; do
   if [[ "$src" == "scheduler" ]]; then
     "$CXX" "${CXXFLAGS[@]}" -DCHIMERA_ENABLE_CONTEXT_SCHEDULER -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
@@ -45,9 +45,10 @@ done
 "$NASM" -f elf64 "$ROOT/kernel/arch/x86_64/mode_switch.asm" -o "$BUILD/mode_switch.o"
 "$NASM" -f elf64 "$ROOT/kernel/arch/x86_64/interrupts.asm" -o "$BUILD/interrupts.o"
 "$NASM" -f elf64 "$ROOT/kernel/arch/x86_64/cpu_state.asm" -o "$BUILD/cpu_state.o"
+"$NASM" -f elf64 "$ROOT/kernel/arch/x86_64/user_entry.asm" -o "$BUILD/user_entry.o"
 "$NASM" -f elf64 "$ROOT/kernel/modules/koronos_test_module.asm" -o "$BUILD/module-test.o"
 
-link_objects=("$BUILD/entry.o" "$BUILD/io.o" "$BUILD/mode_switch.o" "$BUILD/interrupts.o" "$BUILD/cpu_state.o")
+link_objects=("$BUILD/entry.o" "$BUILD/io.o" "$BUILD/mode_switch.o" "$BUILD/interrupts.o" "$BUILD/cpu_state.o" "$BUILD/user_entry.o")
 for src in "${sources[@]}"; do link_objects+=("$BUILD/$src.o"); done
 link_objects+=("$BUILD/virtio-driver.o" "$BUILD/display-driver.o" "$BUILD/pci-generic-driver.o" "$BUILD/module-test.o")
 for obj in "${link_objects[@]}"; do
