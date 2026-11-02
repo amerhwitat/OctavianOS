@@ -155,3 +155,18 @@ These changes improve diagnostic integrity only. They do not start services or c
 
 - The shared vendor Koronos boot messages and build-time string assertions were updated to use truthful “not running/declared” state descriptions. The boot-claims regression runner is invoked by vendor/chimera-ii-os/source/kernel/build-koronos.sh.
 - No Octavian workflow run was found for the latest source/build-script commits at the last poll. The boot-claims runner is wired into the build but is not recorded as passed in hosted CI. Chimera's equivalent boot validation passed; the latest Full ISO rerun is pending and Windows Build/Test remains in progress/pending. The same runtime/init, per-task context, per-CPU and SMP release blockers remain.
+
+## 12.9 x86-64 per-CPU GDT/TSS bootstrap (2026-11-02)
+
+The x86-64 kernel now has a concrete BSP GDT/TSS initialization layer:
+
+- `kernel/include/chimera/x86_64_cpu.h` defines the packed 104-byte 64-bit TSS, GDTR ABI, kernel/user selectors, and TSS descriptor encoder.
+- `kernel/core/x86_64_cpu.cpp` owns 16 statically reserved CPU-state slots, each with a private GDT, TSS, and 16-KiB privilege-entry stack. `chimera_x86_64_cpu_init(cpu_id)` builds the ring-0/ring-3 descriptors, sets RSP0, installs the TSS descriptor, and invokes the architecture loader.
+- `kernel/arch/x86_64/cpu_state.asm` loads the GDT, reloads kernel data/code selectors, and executes LTR.
+- BSP initialization is invoked at the start of `koronos_boot`. The TSS is loaded, but the syscall IDT gate remains DPL0.
+- `chimera_x86_64_cpu_set_kernel_stack` provides the later scheduler integration point for replacing the per-CPU entry stack with a process-owned kernel stack. Its caller must run on the owning CPU with interrupts disabled; that ownership/lifecycle integration is not yet implemented.
+- Host-side descriptor-layout tests run before the freestanding kernel build.
+
+The kernel build on the initial TSS commit passed, including the new descriptor-layout test and NASM assembly. A follow-up removes an unused-variable warning. QEMU execution of the new LTR path is still pending the current Full ISO/QEMU run.
+
+**Not completed by this section:** AP startup/per-CPU initialization, process-owned kernel stacks, saved register/trap contexts, CR3 switching, user-mode IRETQ entry/return, syscall frame validation, or VFS/file descriptors. Ring 3 remains disabled and userspace readiness remains withheld until these are implemented and tested together.
