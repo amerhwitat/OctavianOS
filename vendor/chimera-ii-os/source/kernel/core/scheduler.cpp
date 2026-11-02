@@ -116,11 +116,12 @@ extern "C" uint32_t chimera_sched_run_once(uint32_t cpu){
     unlock();return 1;
 }
 extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
-    lock();uint32_t total=cpus;unlock();
-    if(first_cpu>=total||n==0)return 0;
-    uint32_t end=first_cpu+n;if(end<first_cpu||end>total)end=total;
-    uint32_t ran=0;for(uint32_t cpu=first_cpu;cpu<end;cpu++)ran+=chimera_sched_run_once(cpu);
-    return ran;
+    /* No AP startup, per-CPU execution context, or reschedule IPI exists yet.
+       Running callbacks serially with synthetic CPU indices is not parallel
+       execution and must never be reported as SMP progress. */
+    (void)first_cpu;
+    (void)n;
+    return 0;
 }
 extern "C" int chimera_sched_yield_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_YIELD);}
 extern "C" int chimera_sched_block_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_BLOCK);}
