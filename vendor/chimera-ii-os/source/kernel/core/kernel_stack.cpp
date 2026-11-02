@@ -89,14 +89,14 @@ extern "C" int koronos_kernel_stack_self_test(void) {
         ok = koronos_address_space_kernel_page_mapped(koronos_address_space_current_root(),
             stack.base + static_cast<uint64_t>(i) * PAGE_SIZE) == 1;
     const chimera_elf_load_ops *ops = koronos_address_space_loader_ops();
-    void *other = ops && ops->create ? ops->create(nullptr) : nullptr;
+    void *other = ops && ops->create_address_space ? ops->create_address_space(nullptr) : nullptr;
     if (!other) ok = false;
     if (other) {
         const uint64_t root = koronos_address_space_root(other);
         ok = ok && !koronos_address_space_kernel_page_mapped(root, stack.base - PAGE_SIZE);
         for (uint32_t i = 0; ok && i < STACK_PAGES; ++i)
             ok = koronos_address_space_kernel_page_mapped(root, stack.base + static_cast<uint64_t>(i) * PAGE_SIZE) == 1;
-        if (ops && ops->destroy) ops->destroy(nullptr, other);
+        if (ops && ops->destroy_address_space) ops->destroy_address_space(nullptr, other);
     }
     const uint64_t old_rsp0 = chimera_x86_64_cpu_kernel_stack(0);
     if (!old_rsp0 || chimera_x86_64_cpu_set_kernel_stack(0, stack.top) != 0 ||
