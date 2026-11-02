@@ -123,6 +123,17 @@ extern "C" uint32_t chimera_sched_run_parallel(uint32_t first_cpu,uint32_t n){
     (void)n;
     return 0;
 }
+
+extern "C" uint32_t chimera_sched_run_serial_range(uint32_t first_cpu,uint32_t n){
+    /* Explicitly serial test/tool helper. Each CPU slot is stepped in order;
+       this function never claims concurrent execution or SMP progress. */
+    if(first_cpu>=cpus || n==0) return 0;
+    uint32_t end=first_cpu+n;
+    if(end<first_cpu || end>cpus) end=cpus;
+    uint32_t ran=0;
+    for(uint32_t cpu=first_cpu;cpu<end;cpu++) ran+=chimera_sched_run_once(cpu);
+    return ran;
+}
 extern "C" int chimera_sched_yield_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_YIELD);}
 extern "C" int chimera_sched_block_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_BLOCK);}
 extern "C" int chimera_sched_exit_on_cpu(uint32_t cpu){return request_action(cpu,ACTION_EXIT);}
