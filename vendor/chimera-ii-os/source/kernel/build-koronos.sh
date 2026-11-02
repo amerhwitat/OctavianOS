@@ -21,6 +21,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
+
+# Guard the vendored kernel's header contract before compiling. This catches
+# incomplete source snapshots (for example, a missing physmap.h) at the
+# checkout boundary instead of surfacing as a misleading compiler failure.
+required_headers=(chimera/physmap.h chimera/frame_allocator.h chimera/address_space.h chimera/kernel_stack.h chimera/process_stack.h chimera/x86_64_cpu.h)
+for header in "${required_headers[@]}"; do
+  if [[ ! -s "$ROOT/kernel/include/$header" ]]; then
+    echo "ERROR: required Koronos header is missing from the vendored source: $header" >&2
+    exit 1
+  fi
+done
 bash "$ROOT/kernel/tests/scheduler-runtime-unit.sh"
 bash "$ROOT/kernel/tests/x86_64-cpu-state-unit.sh"
 python3 "$ROOT/tools/isa/generate_registry.py"
