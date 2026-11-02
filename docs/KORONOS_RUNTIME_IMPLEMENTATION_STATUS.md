@@ -45,6 +45,7 @@ The Octavian candidate still uses a global TSS/syscall-stack/transition state fo
 
 - The Octavian boot path now explicitly initializes one online scheduler CPU and one learning worker, matching Chimera's fail-closed BSP-only initialization. Hardware-reported logical CPU count is diagnostic only until AP startup and per-CPU transition state exist. This prevents the kernel from advertising offline APs as runnable scheduler CPUs; it is not SMP implementation.
 - Octavian's `chimera_sched_run_parallel()` now returns 0 unconditionally, matching Chimera, until AP startup, per-CPU execution contexts and reschedule IPIs exist. The prior Octavian implementation iterated callbacks serially with synthetic CPU indices, which was not simultaneous multicore execution. The existing scheduler regression asserts that a submitted callback is not run by this API; serial range dispatch remains explicitly separate.
+  The regression host runner is now invoked by `kernel/build-koronos.sh` in both repositories so it executes before each freestanding kernel build (Octavian commits `aeb1a7a8d1d9edb501de5dd21f0ecb1de7b07400`, `2ddafd5adbffea614497ae81384b46ca2801dae7`; Chimera commits `3264f74da93b2788a3ff43ee7564bc7faed4aa75`, `f66c0a130f0ec7c517a7788b96c249b0293a9172`).
 
 The current scheduler runs cooperative callbacks. It does not switch task register contexts, kernel stacks and CR3 as one atomic task transition. The parallel scheduler entry remains unavailable; serial callback dispatch is not SMP evidence. There is no general process wait/parent/reap lifecycle.
 
