@@ -6,7 +6,7 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
   workflow_dispatch:
   push:
-    branches: [main, fix/koronos-frame-allocator-ownership-2026-11-01]
+    branches: [main, fix/koronos-frame-allocator-ownership-2026-11-01, fix/koronos-process-runtime-ci-v2-2026-11-02]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/toolchains/language-toolchain-catalog.json'
