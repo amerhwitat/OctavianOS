@@ -41,6 +41,7 @@ int main(){
   assert(chimera_process_bind_address_space(pid,&fake_space,0x300000ull,p.entry,p.user_stack_top)==0);
   assert(chimera_process_bind_address_space(pid,&fake_space,0x300000ull,p.entry,p.user_stack_top)<0);
   assert(chimera_process_get(pid,&q)==0 && q.address_space==&fake_space && q.address_space_root==0x300000ull);
+  assert(chimera_process_release(pid)==-4); // No loader owner: never discard a borrowed root.
   assert(chimera_process_set_state(pid,CHIMERA_PROCESS_READY)==-3);
   assert(chimera_process_set_state(pid,CHIMERA_PROCESS_RUNNING)==-3);
   assert(chimera_process_clear_address_space(pid,&fake_space)==0);
