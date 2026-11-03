@@ -247,16 +247,20 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
     chroot "$WORK" /bin/bash -c "bash /opt/aurora/repo/$SDK_REL/java/build.sh"
     [ ! -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" ] || cp -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" "$SDK_PAY/"
   fi
+  RUST_STATUS="not-built"
   if [ -x "$WORK/usr/bin/cargo" ] && [ -f "$SDK_SRC/rust/chimera-runtime/Cargo.toml" ]; then
     chroot "$WORK" /bin/bash -c "cargo build --manifest-path /opt/aurora/repo/$SDK_REL/rust/chimera-runtime/Cargo.toml --release"
     mkdir -p "$SDK_PAY/lib/rust"
     find "$PAY/repo/$SDK_REL/rust/chimera-runtime/target/release" -maxdepth 1 -type f \( -name 'libchimera_runtime*.so' -o -name 'libchimera_runtime*.a' \) -exec cp -f {} "$SDK_PAY/lib/rust/" \; 2>/dev/null || true
+    compgen -G "$SDK_PAY/lib/rust/libchimera_runtime*" >/dev/null && RUST_STATUS="built"
   fi
-  python3 - "$SDK_PAY/sdk-build-status.json" "$ED" "$SDK_REL" <<'PY'
+  JAVA_STATUS="not-built"
+  [ ! -s "$SDK_PAY/chimera-sdk.jar" ] || JAVA_STATUS="built"
+  python3 - "$SDK_PAY/sdk-build-status.json" "$ED" "$SDK_REL" "$JAVA_STATUS" "$RUST_STATUS" <<'PY'
 import json,sys
-path,edition,source=sys.argv[1:]
-json.dump({"schema":"CHIMERA-SDK-BUILD-STATUS-1","edition":edition,"source":source,"native_c_cpp":"built-and-ctested","java":"built-if-javac-present","rust":"built-if-cargo-present","dotnet":"not-built-unless-host-licensed-toolchain-provided","apple_sdk":"external-license-controlled-not-redistributed"},open(path,"w"),indent=2)
-with open(path,"a") as f:f.write("\n")
+path,edition,source,java_status,rust_status=sys.argv[1:]
+data={"schema":"CHIMERA-SDK-BUILD-STATUS-1","edition":edition,"source":source,"native_c_cpp":"built-and-ctested","java":java_status,"rust":rust_status,"dotnet":"not-built-toolchain-not-included","objective_c":"not-built-gnustep-toolchain-not-included","apple_sdk":"external-license-controlled-not-redistributed"}
+with open(path,"w") as f: json.dump(data,f,indent=2); f.write("\n")
 PY
 else
   echo "[SKIP] Chimera SDK CMake source missing at $SDK_SRC"
