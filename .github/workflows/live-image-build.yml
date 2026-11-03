@@ -119,12 +119,13 @@ jobs:
           PY
           xorriso -osirrox on -indev "$iso" -extract /boot/grub/grub.cfg "$OUT_DIR/grub.cfg" >/dev/null
           xorriso -osirrox on -indev "$iso" -extract /boot/spitfire/spitfire-menu.cfg "$OUT_DIR/spitfire-menu.cfg" >/dev/null
+          xorriso -osirrox on -indev "$iso" -extract /boot/gates/gates-menu.cfg "$OUT_DIR/gates-menu.cfg" >/dev/null
           xorriso -osirrox on -indev "$iso" -extract /boot/jasper/live-image.cfg "$OUT_DIR/jasper-live.cfg" >/dev/null
           xorriso -osirrox on -indev "$iso" -extract /boot/spitfire/spitfire-sf0-mbr.bin "$OUT_DIR/spitfire-sf0-mbr.bin" >/dev/null
           test "$(stat -c%s "$OUT_DIR/spitfire-sf0-mbr.bin")" -eq 512
           xorriso -osirrox on -indev "$iso" -extract /boot/candidates/native-runtime-candidates.json "$OUT_DIR/native-runtime-candidates.json" >/dev/null
           chmod +x tests/live-image/test-grub-targets.sh
-          tests/live-image/test-grub-targets.sh "$OUT_DIR/grub.cfg" "$OUT_DIR/spitfire-menu.cfg" "$OUT_DIR/jasper-live.cfg" "$OUT_DIR/native-runtime-candidates.json"
+          tests/live-image/test-grub-targets.sh "$OUT_DIR/grub.cfg" "$OUT_DIR/spitfire-menu.cfg" "$OUT_DIR/gates-menu.cfg" "$OUT_DIR/jasper-live.cfg" "$OUT_DIR/native-runtime-candidates.json"
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           xorriso -osirrox on -indev "$iso" -extract /live/filesystem.squashfs "$tmp/filesystem.squashfs" >/dev/null
@@ -202,7 +203,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x tests/live-image/test-qemu-live-boot.sh
-          for target in live marine installer koronos recovery; do
+          for target in live marine linux-rescue installer native-recovery koronos; do
             tests/live-image/test-qemu-live-boot.sh "candidate/octavian-os-live-amd64.iso" "${{ runner.temp }}/qemu-evidence/$target" "$target"
           done
       - name: Upload QEMU boot evidence
