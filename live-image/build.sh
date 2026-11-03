@@ -103,9 +103,18 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
-      sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
-      iproute2 iputils-ping netbase procps psmisc rsync \
-      e2fsprogs dosfstools parted gdisk alsa-utils kmod
+      sudo passwd util-linux udev ca-certificates curl wget less nano htop pciutils usbutils dmidecode lshw cpuid file unzip xz-utils \
+      iproute2 iputils-ping iputils-tracepath netbase procps psmisc rsync ethtool bridge-utils nftables tcpdump dnsutils traceroute iperf3 wireguard-tools openvpn strongswan \
+      e2fsprogs dosfstools exfatprogs ntfs-3g xfsprogs btrfs-progs f2fs-tools squashfs-tools udftools nfs-common cifs-utils sshfs lvm2 mdadm cryptsetup-bin parted gdisk nvme-cli smartmontools alsa-utils kmod \
+      gcc g++ clang lld make cmake ninja-build meson pkg-config gdb gdb-multiarch lldb openjdk-21-jdk-headless python3-dev python3-venv python3-pip rustc cargo golang gfortran nodejs npm ruby php-cli lua5.4 perl \
+      geany vim emacs-nox
+    for optional_package in frr bird2 openvswitch-switch bluefish thonny; do
+      if apt-cache show "$optional_package" >/dev/null 2>&1; then
+        apt-get install -y -qq --no-install-recommends "$optional_package" || echo "[WARN] optional package unavailable: $optional_package"
+      else
+        echo "[SKIP] optional package not in configured Debian repositories: $optional_package"
+      fi
+    done
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
@@ -202,7 +211,44 @@ manifest = {
 print("application catalogs:", len(files), "first-party source:", manifest["native_app_source"])
 PY
 
-python3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
+# Compile the pinned Chimera SDK inside the same Debian userspace that will ship.
+# Source and build artifacts remain architecture-tagged and are never mistaken for Koronos.
+SDK_REL="sdk"
+[ "$ED" = "octavian" ] && SDK_REL="vendor/chimera-ii-os/source/sdk"
+SDK_SRC="$PAY/repo/$SDK_REL"
+SDK_PAY="$PAY/sdk/chimera"
+mkdir -p "$SDK_PAY"
+if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
+  log "building Chimera C/C++ SDK for the live-image host architecture"
+  mount_chroot "$WORK"
+  chroot "$WORK" /bin/bash -c "
+    set -e
+    cmake -S /opt/aurora/repo/$SDK_REL -B /var/tmp/chimera-sdk-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/chimera-sdk
+    cmake --build /var/tmp/chimera-sdk-build --parallel $JOBS
+    ctest --test-dir /var/tmp/chimera-sdk-build --output-on-failure
+    DESTDIR=/var/tmp/chimera-sdk-stage cmake --install /var/tmp/chimera-sdk-build
+  "
+  umount_chroot "$WORK"
+  mkdir -p "$SDK_PAY/rootfs"
+  cp -a "$WORK/var/tmp/chimera-sdk-stage/opt/chimera-sdk" "$SDK_PAY/rootfs/"
+  if [ -x "$WORK/usr/bin/javac" ] && [ -f "$SDK_SRC/java/build.sh" ]; then
+    chroot "$WORK" /bin/bash -c "bash /opt/aurora/repo/$SDK_REL/java/build.sh"
+    [ ! -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" ] || cp -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" "$SDK_PAY/"
+  fi
+  if [ -x "$WORK/usr/bin/cargo" ] && [ -f "$SDK_SRC/rust/chimera-runtime/Cargo.toml" ]; then
+    chroot "$WORK" /bin/bash -c "cargo build --manifest-path /opt/aurora/repo/$SDK_REL/rust/chimera-runtime/Cargo.toml --release"
+  fi
+  python3 - "$SDK_PAY/sdk-build-status.json" "$ED" "$SDK_REL" <<'PY'
+import json,sys
+path,edition,source=sys.argv[1:]
+json.dump({"schema":"CHIMERA-SDK-BUILD-STATUS-1","edition":edition,"source":source,"native_c_cpp":"built-and-ctested","java":"built-if-javac-present","rust":"built-if-cargo-present","dotnet":"not-built-unless-host-licensed-toolchain-provided","apple_sdk":"external-license-controlled-not-redistributed"},open(path,"w"),indent=2)
+with open(path,"a") as f:f.write("\\n")
+PY
+else
+  echo "[SKIP] Chimera SDK CMake source missing at $SDK_SRC"
+  printf '{"schema":"CHIMERA-SDK-BUILD-STATUS-1","native_c_cpp":"source-only-no-cmake-project"}\\n' > "$SDK_PAY/sdk-build-status.json"
+fi
+\npython3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
 
 cat > "$PAY/PROJECT.md" <<EOF
 # $TITLE live image payload
@@ -291,6 +337,16 @@ EOF
 echo "export AURORA_DESKTOP_URI=file:///opt/aurora/$ENTRY" >> "$WORK/usr/local/bin/aurora-session"
 chmod 755 "$WORK/usr/local/bin/aurora-session"
 
+# Stage safe removable/optical media management. udev populates /dev; systemd
+# and procfs/sysfs are mounted by the Linux init system.
+install -Dm755 "$HERE/media/chimera-media-manager.sh" "$WORK/usr/lib/chimera/chimera-media-manager.sh"
+install -Dm644 "$HERE/media/chimera-media-scan.service" "$WORK/etc/systemd/system/chimera-media-scan.service"
+install -Dm644 "$HERE/media/90-chimera-media.rules" "$WORK/etc/udev/rules.d/90-chimera-media.rules"
+ln -sfn ../chimera-media-scan.service "$WORK/etc/systemd/system/multi-user.target.wants/chimera-media-scan.service"
+mkdir -p "$WORK/media" "$WORK/mnt" "$WORK/dev" "$WORK/proc" "$WORK/sys" "$WORK/tmp"
+chmod 1777 "$WORK/tmp"
+ln -sfn /usr/lib/chimera/chimera-media-manager.sh "$WORK/usr/local/bin/chimera-media"
+
 printf '#!/bin/sh\nexec /usr/local/bin/aurora-session\n' > "$WORK/etc/xinitrc"
 chmod 755 "$WORK/etc/xinitrc"
 
@@ -298,7 +354,7 @@ chroot "$WORK" /bin/bash -c "
   set -e
   id live >/dev/null 2>&1 || useradd -m -u 1000 -s /bin/bash -G sudo,video,audio,input live
   echo 'live:live' | chpasswd
-  echo 'root:live' | chpasswd
+  passwd -l root
 "
 echo 'live ALL=(ALL) NOPASSWD:ALL' > "$WORK/etc/sudoers.d/90-live"
 chmod 440 "$WORK/etc/sudoers.d/90-live"
