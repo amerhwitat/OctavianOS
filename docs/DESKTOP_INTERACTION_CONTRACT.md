@@ -31,6 +31,10 @@ pretending a native application was started.
 | F2 | Rename selected shortcut |
 | Enter | Open selected shortcut |
 | Shift+F10 | Open selected shortcut's context menu |
+| Ctrl+C / Cmd+C | Copy the selected shortcut's link |
+| Ctrl+X / Cmd+X and Ctrl+V / Cmd+V | Explicitly blocked in the preview; no file mutation |
+| Alt+F4 | Dismiss preview dialogs and explain OS-level window close |
+| Delete | Explicitly blocked in the preview; no file deletion |
 | Meta+Space | Toggle the Marine Start menu when present |
 | Meta+E | Open the Files/Explorer shortcut when present |
 | Ctrl+Alt+T | Open the Terminal shortcut when present |
