@@ -83,6 +83,9 @@ The top-level GRUB installer menu now routes to `/boot/jasper/install.cfg` rathe
 
 ## Desktop environments and artwork
 
+- [Named Desktop Showcase](desktop/showcase/index.html) — offline-ready, labeled previews for Aurora, Marine, Seelen UI, Koronos, Nova, and Mobile. These browser concepts are not claims that each native session is implemented.
+
+
 - [Aurora Wayland Glass Desktop prototype](desktop/aurora-wayland-glass/index.html) — macOS-inspired global menu bar, glass windows and centered dock, with a live background picker for included Octopus Aurora and Marine artwork.
 - [Marine Desktop prototype](desktop/marine/index.html) — Windows-inspired centered taskbar, Start menu, desktop shortcuts, searchable app launcher, and a live background picker.
 - [Bundled Marine artwork](desktop/marine/assets/marine-desktop.svg) — original ocean-glass vector wallpaper shared with the web UI.
