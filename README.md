@@ -16,6 +16,9 @@ WebKit kiosk on tty1 plus a classic openbox session, 26 offline wallpapers. This
 Linux-kernel live image with this repository's desktop payload; it does not satisfy the
 native-kernel userspace acceptance gates described below.
 
+
+The Jasper / GRUB 2 menu exposes **Live desktop**, **Installer**, **Koronos native kernel**, and **Recovery** targets. Verbose kernel and systemd output is enabled by default. GRUB prefers 1920x1080 and preserves its framebuffer with `gfxpayload=keep`, falling back through supported high-resolution/SVGA modes. The Installer target fails closed unless OS-specific Calamares settings and install modules are present; the Koronos target requires a validated Multiboot2 x86-64 ELF supplied with `KORONOS_ELF=/path/to/koronos.elf`. Recovery is read-only by default and requires explicit confirmation before filesystem repair. See [boot target and acceptance details](docs/BOOT_TARGETS.md).
+
 OctavianOS is the successor identity for the ChimeraIIOS operating-system research project. This repository is the destination for the source/history migration, build pipeline, boot/runtime work, ISA catalog, and Aurora desktop.
 
 ## Migration status
