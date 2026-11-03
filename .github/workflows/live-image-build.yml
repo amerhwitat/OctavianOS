@@ -137,6 +137,10 @@ jobs:
           test -x "$root/usr/local/sbin/chimera-recovery"
           test -s "$root/opt/aurora/app-catalogs/ide-catalog.json"
           test -s "$root/usr/share/backgrounds/aurora-default.jpg"
+          test -x "$root/usr/local/bin/aurora-init-splash.sh"
+          test -s "$root/usr/share/chimera/aurora/assets/Init.mp4"
+          test -s "$root/opt/aurora/desktop/marine/index.html"
+          test -s "$root/opt/aurora/desktop/marine/assets/marine-desktop.svg"
           test -s "$root/etc/xdg/openbox/menu.xml"
           for package in geany geany-plugins gnome-builder kdevelop thonny idle lazarus emacs-gtk vim-gtk3 scite bluefish codeblocks codeblocks-contrib qtcreator arduino fp-ide; do
             grep -Fq "Package: $package" "$root/var/lib/dpkg/status" || { echo "IDE package missing from live root: $package" >&2; exit 1; }
