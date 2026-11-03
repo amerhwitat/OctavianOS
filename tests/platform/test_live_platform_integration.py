@@ -24,6 +24,7 @@ class LivePlatformIntegrationTests(unittest.TestCase):
     def test_root_account_is_locked_not_shared_password(self):
         script = (ROOT / "live-image/build.sh").read_text(encoding="utf-8")
         self.assertIn("passwd -l root", script)
+        self.assertIn(".packages-installed-v2-platform", script)
         self.assertNotIn("root:live", script)
 
     def test_sdk_is_built_and_tested_before_image_composition(self):
