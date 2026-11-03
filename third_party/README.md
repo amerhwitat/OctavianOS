@@ -11,5 +11,5 @@ unlicensed vendor SDK binaries.
   developer dependencies.
 - Cross-compilers are host tools; generated ELF/EFI files must be tagged by target ABI.
 
-See `vendor/chimera-ii-os/source/sdk/third-party-sdk-manifest.json` when that
-pinned snapshot includes the manifest, and `docs/PLATFORM_RUNTIME_INTEGRATION.md`.
+See `platform/runtime/third-party-sdk-manifest.json` and
+`docs/PLATFORM_RUNTIME_INTEGRATION.md`.
