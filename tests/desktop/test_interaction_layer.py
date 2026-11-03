@@ -25,6 +25,7 @@ class DesktopInteractionLayerTests(unittest.TestCase):
             'e.key==="F2"', 'e.key==="Enter"', 'e.metaKey&&e.code==="Space"',
             'e.metaKey&&e.key.toLowerCase()==="e"', 'e.ctrlKey&&e.altKey',
             'showModal()', 'localStorage', 'menuDefinitions', 'runMenuAction',
+            'Cut/Paste is disabled', 'Delete is disabled', 'e.key==="F4"',
         ):
             self.assertIn(contract, source)
 
