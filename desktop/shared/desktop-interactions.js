@@ -3,6 +3,18 @@
   const itemSelector = "a.shortcut,a.deskicon,a.app";
   const style = document.createElement("style");
   style.textContent = `
+    .oct-windowbar{height:36px;display:flex;align-items:center;gap:7px;padding:5px 10px;background:#071b2de8;border-bottom:1px solid #ffffff24;cursor:move;user-select:none}
+    .oct-windowbar strong{font:600 12px system-ui;margin-right:auto}
+    .oct-windowbar button{width:25px;height:25px;border:1px solid #ffffff35;border-radius:50%;background:#ffffff18;color:inherit;cursor:pointer;line-height:1}
+    .oct-windowbar button:hover{filter:brightness(1.3);transform:translateY(-1px)}
+    .oct-managed-window{min-width:240px;min-height:170px;max-width:calc(100vw - 16px);max-height:calc(100vh - 54px);overflow:auto;resize:both;scrollbar-gutter:stable;overscroll-behavior:contain}
+    .oct-managed-window.oct-maximized{position:fixed!important;inset:42px 12px 84px 12px!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;transform:none!important;resize:none!important;z-index:9500!important}
+    .oct-managed-window.oct-minimized{display:none!important}
+    .oct-restore-tray{position:fixed;z-index:9998;left:12px;bottom:14px;display:flex;gap:6px;max-width:calc(100vw - 24px);overflow:auto}
+    .oct-restore-tray button{border:1px solid #a6eaff55;border-radius:10px;padding:8px 12px;background:#071b2df2;color:#f3fbff;cursor:pointer}
+    .oct-window-arrange{outline:2px solid #8deeff;outline-offset:-2px}
+    .oct-windowbar button:focus-visible,.oct-restore-tray button:focus-visible{outline:2px solid #8deeff;outline-offset:2px}
+    .window,.widget,.optional-apps-window{overflow:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
     .oct-desktop-selected{outline:2px solid #8deeff!important;outline-offset:2px!important;filter:brightness(1.14)}
     .oct-desktop-context{position:fixed;z-index:10000;min-width:190px;padding:7px;border:1px solid #a8e9ff66;border-radius:14px;background:#071b2df2;color:#f3fbff;box-shadow:0 18px 48px #000b, inset 0 1px #ffffff22;backdrop-filter:blur(22px)}
     .oct-desktop-context button{display:flex;width:100%;align-items:center;gap:10px;padding:10px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}
@@ -151,7 +163,7 @@
     File: [["Open Files / Explorer","files"],["Open Terminal","terminal"],["Properties","properties"]],
     Edit: [["Rename Selected","rename"],["Copy Selected Link","copy"]],
     View: [["Backgrounds","backgrounds"],["Refresh Desktop","refresh"]],
-    Window: [["Show Start / Applications","start"],["Show Desktop","showdesktop"]],
+    Window: [["Tile Windows","tile"],["Cascade Windows","cascade"],["Minimize Active Window","minimize"],["Maximize / Restore Active Window","maximize"],["Show Start / Applications","start"],["Show Desktop","showdesktop"]],
     Help: [["Keyboard Shortcuts","shortcuts"],["About OctavianOS","about"]]
   };
   const closeMenu = () => {
@@ -202,6 +214,7 @@
       infoDialog("Desktop keyboard shortcuts","F2: rename selected shortcut\nEnter: open selected shortcut\nShift+F10: context menu\nCtrl/Cmd+C: copy selected link\nCtrl/Cmd+X or V: blocked in preview\nMeta+E: Files / Explorer\nMeta+Space: Start menu (Marine)\nCtrl+Alt+T: Terminal\nAlt+F4: dismiss dialogs\nDelete: blocked in preview\nEscape: close popup");
       return;
     }
+    if(["tile","cascade","minimize","maximize"].includes(action)){windowAction(action);return;}
     if(action==="about"){
       infoDialog("About OctavianOS","Aurora and Marine desktop interaction preview. Native compositor, host filesystem operations and app installation are separate runtime capabilities.");
     }
@@ -227,5 +240,93 @@
     button.setAttribute("aria-haspopup","menu");button.setAttribute("aria-expanded","false");
   });
 
+
+  // Browser-preview window manager: controls act on visible preview panels only.
+  const managedWindows = [...document.querySelectorAll(".window,.widget,[data-managed-window]")];
+  const restoreTray=document.createElement("nav");restoreTray.className="oct-restore-tray";restoreTray.setAttribute("aria-label","Minimized preview windows");document.body.append(restoreTray);
+  let activeWindow=managedWindows[0]||null;
+  const soundEnabledKey="octavian.desktop.sounds.v1";
+  let soundsEnabled=localStorage.getItem(soundEnabledKey)!=="off";
+  const playUiSound=(kind="click")=>{
+    if(!soundsEnabled)return;
+    try{
+      const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+      const ctx=playUiSound.ctx||(playUiSound.ctx=new Audio());
+      if(ctx.state==="suspended")ctx.resume();
+      const osc=ctx.createOscillator(),gain=ctx.createGain();
+      const tones={click:[620,.035],open:[760,.075],close:[340,.09],minimize:[430,.07],maximize:[690,.07],error:[180,.12]};
+      const [hz,duration]=tones[kind]||tones.click;
+      osc.type="sine";osc.frequency.setValueAtTime(hz,ctx.currentTime);
+      gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.035,ctx.currentTime+.008);
+      gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
+      osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+duration+.01);
+    }catch{}
+  };
+  const updateRestoreTray=()=>{
+    restoreTray.replaceChildren();
+    managedWindows.filter(w=>w.classList.contains("oct-minimized")).forEach((w,i)=>{
+      const b=document.createElement("button");b.type="button";b.textContent="Restore "+(w.dataset.windowTitle||("Window "+(i+1)));
+      b.addEventListener("click",()=>{w.classList.remove("oct-minimized");w.hidden=false;activeWindow=w;playUiSound("open");});
+      restoreTray.append(b);
+    });
+  };
+  const windowTitle=w=>w.dataset.windowTitle||w.querySelector(".windowtitle,h1,h2")?.textContent?.trim()||"Workspace";
+  const focusWindow=w=>{activeWindow=w;w.style.zIndex=String(9600+managedWindows.indexOf(w));};
+  const addWindowControls=w=>{
+    w.classList.add("oct-managed-window");w.dataset.windowTitle=windowTitle(w);
+    let bar=w.querySelector(".titlebar");
+    if(!bar){bar=document.createElement("div");bar.className="oct-windowbar";bar.innerHTML="<strong></strong>";w.prepend(bar);}
+    bar.classList.add("oct-windowbar");
+    if(!bar.querySelector("strong")){const title=document.createElement("strong");title.textContent=w.dataset.windowTitle;bar.prepend(title);}
+    if(bar.dataset.controlsReady)return;bar.dataset.controlsReady="true";
+    const controls=[["−","Minimize","minimize"],["□","Maximize or restore","maximize"],["×","Close panel","close"]];
+    for(const [glyph,label,action] of controls){
+      const b=document.createElement("button");b.type="button";b.textContent=glyph;b.title=label;b.setAttribute("aria-label",label);
+      b.addEventListener("click",e=>{e.stopPropagation();focusWindow(w);if(action==="minimize"){w.classList.add("oct-minimized");playUiSound("minimize");updateRestoreTray();}
+        if(action==="maximize"){w.classList.toggle("oct-maximized");playUiSound("maximize");}
+        if(action==="close"){w.classList.add("oct-minimized");playUiSound("close");updateRestoreTray();}});
+      bar.append(b);
+    }
+    w.addEventListener("pointerdown",()=>focusWindow(w));
+    bar.addEventListener("dblclick",e=>{if(e.target.closest("button"))return;w.classList.toggle("oct-maximized");playUiSound("maximize");});
+  };
+  managedWindows.forEach(addWindowControls);
+  const arrangeWindows=mode=>{
+    const visible=managedWindows.filter(w=>!w.classList.contains("oct-minimized"));
+    if(!visible.length){toast("There are no open preview windows.");return;}
+    visible.forEach((w,i)=>{
+      w.classList.remove("oct-maximized");w.classList.add("oct-window-arrange");
+      w.style.position="fixed";w.style.transform="none";w.style.margin="0";
+      if(mode==="tile"){
+        const cols=Math.ceil(Math.sqrt(visible.length)),rows=Math.ceil(visible.length/cols);
+        const col=i%cols,row=Math.floor(i/cols),gap=12,top=48,bottom=88;
+        w.style.left=(12+col*(innerWidth-24)/cols)+"px";w.style.top=(top+row*(innerHeight-top-bottom)/rows)+"px";
+        w.style.width=((innerWidth-24)/cols-gap)+"px";w.style.height=((innerHeight-top-bottom)/rows-gap)+"px";
+      }else{
+        const offset=i*28;w.style.left=(24+offset)+"px";w.style.top=(52+offset)+"px";
+        w.style.width="min(720px, calc(100vw - 48px))";w.style.height="min(520px, calc(100vh - 150px))";
+      }
+      w.style.zIndex=String(9600+i);
+    });
+    toast(mode==="tile"?"Preview windows tiled.":"Preview windows cascaded.");
+  };
+  const windowAction=action=>{
+    if(action==="tile"||action==="cascade"){arrangeWindows(action);return;}
+    if(!activeWindow){toast("No active preview window.");return;}
+    if(action==="minimize"){activeWindow.classList.add("oct-minimized");updateRestoreTray();playUiSound("minimize");}
+    if(action==="maximize"){activeWindow.classList.toggle("oct-maximized");playUiSound("maximize");}
+  };
+  document.addEventListener("click",e=>{
+    if(e.target.closest("button,a"))playUiSound("click");
+  },true);
+  // A third click on a desktop item opens Properties; double-click remains Open.
+  let pendingOpen=null,lastClickCount=0,lastTripleItem=null;
+  document.querySelectorAll(itemSelector).forEach(item=>{
+    item.addEventListener("dblclick",e=>{e.preventDefault();clearTimeout(pendingOpen);pendingOpen=setTimeout(()=>{if(lastTripleItem!==item){playUiSound("open");openItem(item);}},260);});
+    item.addEventListener("click",e=>{
+      if(e.detail===3){e.preventDefault();clearTimeout(pendingOpen);lastTripleItem=item;select(item);showProperties(item);playUiSound("open");}
+      else if(e.detail===1){lastTripleItem=null;}
+    },true);
+  });
   toast("Desktop interactions ready · right-click for Properties");
 })();
