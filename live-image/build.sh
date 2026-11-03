@@ -129,6 +129,10 @@ log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
+if [ "$ED" = "octavian" ]; then
+  test -s "$PAY/desktop/marine/index.html" || { echo "ERROR: Marine desktop entry page missing" >&2; exit 2; }
+  test -s "$PAY/desktop/marine/assets/marine-desktop.svg" || { echo "ERROR: Marine embedded artwork missing" >&2; exit 2; }
+fi
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
 python3 - "$ART" "$PAY" <<'PY'
