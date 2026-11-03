@@ -65,6 +65,8 @@ REPO_URL="$(git -C "$REPO_DIR" config --get remote.origin.url 2>/dev/null | sed 
 [ -n "$REPO_URL" ] || REPO_URL="https://github.com/amerhwitat/$(basename "$REPO_DIR")"
 
 log() { printf '\n== [%s] %s\n' "$ED" "$*"; }
+
+python3 "$HERE/tests/test-image-bundle-contract.py"
 NATIVE_SOURCE="$REPO_DIR"
 if [ "$ED" = "octavian" ]; then NATIVE_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source"; fi
 
