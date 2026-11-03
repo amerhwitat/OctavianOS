@@ -35,23 +35,21 @@
 ### Task 1: Pin six session IDs and fail-closed selection
 
 **Files:**
-- Modify: `OctavianOS/boot/live/desktop-sessions.json`
-- Modify: `OctavianOS/boot/jasper/live.cfg`
+- Create: `OctavianOS/live-image/desktop-sessions.json`
 - Modify: `OctavianOS/desktop/sessions/session-manifest.schema.json`
+- Create: `ChimeraIIOS/live-image/desktop-sessions.json`
 - Modify: `ChimeraIIOS/web/desktop_profiles.json`
-- Modify: `ChimeraIIOS/boot/live/desktop-sessions.json` (create if absent)
-- Modify: `OctavianOS/tests/boot/test_boot_target_graph.py`
-- Create: `OctavianOS/tests/desktop/test_desktop_session_contract.py`
-- Create: `ChimeraIIOS/tests/desktop/test_desktop_session_contract.py`
+- Create: `OctavianOS/tests/live-image/test_desktop_session_contract.py`
+- Create: `ChimeraIIOS/tests/live-image/test_desktop_session_contract.py`
 
 **Interfaces:**
-- Consumes: Existing `chm.desktop=<id>` live selection and existing GRUB live-menu routing.
+- Consumes: Existing Linux live-image GRUB builder and fullscreen kiosk entrypoint.
 - Produces: Stable session IDs and entrypoint paths consumed by the kiosk selector and app panel.
 
 - [ ] **Step 1: Add failing session contract checks** for exactly the six IDs, unique names, in-payload entrypoints, supported backend labels, and rejection of unknown IDs.
-- [ ] **Step 2: Run** `python -m pytest -q tests/desktop/test_desktop_session_contract.py tests/boot/test_boot_target_graph.py` in both repositories. Expected: fail because the current Octavian contract only defines Aurora and Marine and Chimera has no six-session ISO map.
+- [ ] **Step 2: Run** `python -m pytest -q tests/live-image/test_desktop_session_contract.py` in both repositories. Expected: fail because no six-session Linux ISO manifest exists yet.
 - [ ] **Step 3: Add the six manifest records** to both OS sources. Define each `id`, exact display `name`, `entrypoint`, `runtime: "linux-webkit-session"`, `architecture: ["x86_64"]`, and a capability/status label; mark Mobile Edition as a responsive x86_64 session, not ARM64 boot support.
-- [ ] **Step 4: Re-run the focused contract checks.** Expected: all six IDs validate; unknown IDs and missing entrypoints fail closed.
+- [ ] **Step 4: Re-run the focused contract checks.** Expected: all six IDs validate; unknown IDs and missing entrypoints fail closed. Keep Jasper's native `chm.desktop` routing unchanged for its separate acceptance plan.
 - [ ] **Step 5: Commit** the manifests and focused tests in the two OS repositories.
 
 ### Task 2: Build the six distinct desktop surfaces and shared app panel
@@ -115,11 +113,11 @@
 
 **Interfaces:**
 - Consumes: Session manifests, desktop pages, and VoiceConnect app package from Tasks 1–3.
-- Produces: GRUB entries `live-aurora`, `live-marine`, `live-seelen-ui`, `live-koronos-workbench`, `live-nova`, and `live-mobile-edition`; `aurora-session` validates `chm.desktop` and sets `AURORA_DESKTOP_URI` to its allowlisted in-ISO entrypoint.
+- Produces: GRUB entries `live-aurora`, `live-marine`, `live-seelen-ui`, `live-koronos-workbench`, `live-nova`, and `live-mobile-edition`; each passes `aurora.desktop=<id>`. The generated `aurora-session` validates that ID against `live-image/desktop-sessions.json` and sets `AURORA_DESKTOP_URI` to its allowlisted in-ISO entrypoint.
 
 - [ ] **Step 1: Add failing ISO contract checks** asserting six GRUB entries, each entry passing a matching session ID, all six HTML entrypoints staged into squashfs, and no unsafe path interpolation.
 - [ ] **Step 2: Run** `bash tests/live-image/test-six-desktop-sessions.sh` and the boot routing pytest. Expected: fail with the current four missing menu paths/entrypoints.
-- [ ] **Step 3: Update GRUB generation and `aurora-session`** to route each ID from `/proc/cmdline` through the validated manifest; unrecognized/missing sessions must enter the existing safe text fallback. Preserve the classic X, safe graphics, verbose boot, reboot, and shutdown options.
+- [ ] **Step 3: Update GRUB generation and `aurora-session`** to route each `aurora.desktop` ID from `/proc/cmdline` through the validated Linux live-image manifest; unrecognized/missing sessions must enter the existing safe text fallback. Preserve the classic X, safe graphics, verbose boot, reboot, and shutdown options.
 - [ ] **Step 4: Re-run the session contract checks and build** both ISO images through their existing `live-image-build.yml` workflows. Expected: both builds include all six selectable sessions and the VoiceConnect package.
 - [ ] **Step 5: Boot each session in QEMU** at 1280×720 and 1920×1080, verify visible/keyboard-operable app panels, switcher, and fallback behavior, then record per-session evidence and checksums.
 - [ ] **Step 6: Commit and publish** only after the six-session matrix and VoiceConnect package gates pass; update both READMEs and the portfolio download index with exact run, commit, and checksum links.
