@@ -246,7 +246,7 @@ fi
 
 # Package VoiceConnect from its reviewed, immutable source revision. No TURN or
 # signaling secrets are embedded; the local signaling listener binds loopback.
-VOICECONNECT_COMMIT="5bc99d884e9f4b0232faf573a8e1672340a929c5"
+VOICECONNECT_COMMIT="b72a6854a1fe3077a87aa9adf0f1a49c02c3a002"
 VOICECONNECT_SOURCE="${VOICECONNECT_SOURCE_DIR:-$BUILD/voiceconnect-source}"
 NODE_BINARY="${NODE_BINARY:-$(command -v node || true)}"
 NPM_BINARY="${NPM_BINARY:-$(command -v npm || true)}"
