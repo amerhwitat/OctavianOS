@@ -115,6 +115,13 @@ if [ ! -f "$BASE/.packages-installed" ]; then
         echo "[SKIP] optional package not in configured Debian repositories: $optional_package"
       fi
     done
+    for optional_package in gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu gcc-riscv64-linux-gnu g++-riscv64-linux-gnu binutils-riscv64-linux-gnu; do
+      if apt-cache show "$optional_package" >/dev/null 2>&1; then
+        apt-get install -y -qq --no-install-recommends "$optional_package" || echo "[WARN] cross toolchain unavailable: $optional_package"
+      else
+        echo "[SKIP] cross toolchain not in configured repositories: $optional_package"
+      fi
+    done
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
@@ -158,7 +165,12 @@ tar -C "$REPO_DIR" --exclude=./.git --exclude=./live-image/.build -cf - . 2>/dev
 
 # Stage every repository-owned application catalog for offline discovery.
 # Catalog-only upstream references remain distinct from installed executables.
-mkdir -p "$PAY/app-catalogs" "$PAY/apps/native/aurora"
+mkdir -p "$PAY/app-catalogs" "$PAY/apps/native/aurora" "$PAY/platform-runtime"
+for manifest in filesystem-capabilities.json network-stack-manifest.json koronos-architecture-profiles.json third-party-sdk-manifest.json; do
+  if [ -s "$REPO_DIR/platform/runtime/$manifest" ]; then
+    cp -f "$REPO_DIR/platform/runtime/$manifest" "$PAY/platform-runtime/"
+  fi
+done
 stage_catalog() {
   local rel="$1"
   if [ -f "$REPO_DIR/$rel" ]; then
@@ -237,16 +249,18 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
   fi
   if [ -x "$WORK/usr/bin/cargo" ] && [ -f "$SDK_SRC/rust/chimera-runtime/Cargo.toml" ]; then
     chroot "$WORK" /bin/bash -c "cargo build --manifest-path /opt/aurora/repo/$SDK_REL/rust/chimera-runtime/Cargo.toml --release"
+    mkdir -p "$SDK_PAY/lib/rust"
+    find "$PAY/repo/$SDK_REL/rust/chimera-runtime/target/release" -maxdepth 1 -type f \( -name 'libchimera_runtime*.so' -o -name 'libchimera_runtime*.a' \) -exec cp -f {} "$SDK_PAY/lib/rust/" \; 2>/dev/null || true
   fi
   python3 - "$SDK_PAY/sdk-build-status.json" "$ED" "$SDK_REL" <<'PY'
 import json,sys
 path,edition,source=sys.argv[1:]
 json.dump({"schema":"CHIMERA-SDK-BUILD-STATUS-1","edition":edition,"source":source,"native_c_cpp":"built-and-ctested","java":"built-if-javac-present","rust":"built-if-cargo-present","dotnet":"not-built-unless-host-licensed-toolchain-provided","apple_sdk":"external-license-controlled-not-redistributed"},open(path,"w"),indent=2)
-with open(path,"a") as f:f.write("\\n")
+with open(path,"a") as f:f.write("\n")
 PY
 else
   echo "[SKIP] Chimera SDK CMake source missing at $SDK_SRC"
-  printf '{"schema":"CHIMERA-SDK-BUILD-STATUS-1","native_c_cpp":"source-only-no-cmake-project"}\\n' > "$SDK_PAY/sdk-build-status.json"
+  printf '{"schema":"CHIMERA-SDK-BUILD-STATUS-1","native_c_cpp":"source-only-no-cmake-project"}\n' > "$SDK_PAY/sdk-build-status.json"
 fi
 \npython3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
 
