@@ -51,6 +51,13 @@ case "$ED" in
     ISO_NAME="octavian-os-live-amd64.iso"
     ;;
 esac
+
+# Octavian consumes the shared Aurora splash runtime/assets from its vendored Chimera source.
+AURORA_SOURCE="$REPO_DIR/desktop/aurora"
+if [ ! -s "$AURORA_SOURCE/aurora-init-splash.sh" ] && [ -d "$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora" ]; then
+  AURORA_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora"
+fi
+[[ -s "$AURORA_SOURCE/aurora-init-splash.sh" ]] || { echo "[FATAL] Aurora startup splash helper is missing: $AURORA_SOURCE/aurora-init-splash.sh" >&2; exit 2; }
 VERSION="$(date -u +%Y.%m.%d)"
 COMMIT="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo snapshot)"
 BRANCH="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
