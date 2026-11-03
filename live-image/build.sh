@@ -509,6 +509,7 @@ for artifact in spitfire-sf0-mbr.bin spitfire-stage2.bin spitfire-sf1-longmode.o
 done
 install -m 0644 "$NATIVE_SOURCE/boot/spitfire/spitfire-menu.cfg" "$ISODIR/boot/spitfire/native-koronos-menu.cfg"
 install -m 0644 "$HERE/spitfire-menu.cfg" "$ISODIR/boot/spitfire/spitfire-menu.cfg"
+install -m 0644 "$HERE/gates-menu.cfg" "$ISODIR/boot/gates/gates-menu.cfg"
 install -m 0644 "$HERE/jasper-live.cfg" "$ISODIR/boot/jasper/live-image.cfg"
 install -D -m 0644 "$PAY/wallpapers/wp01.jpg" "$ISODIR/boot/grub/background.jpg"
 # Build separate native Koronos Installer and Recovery initramfs candidates.
