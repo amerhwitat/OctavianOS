@@ -2,7 +2,7 @@
   "$schema": "CHM-OPTIONAL-APP-CATALOG-1",
   "title": "Cross-platform Optional Application Catalog",
   "purpose": "Discover optional desktop software associated with Windows, Linux and macOS. Entries are upstream references and package/provider integration targets, not proof that an app is installed, ported, licensed for redistribution, or executable on ChimeraIIOS or OctavianOS.",
-  "updated": "2026-10-22",
+  "updated": "2026-11-03",
   "platforms": [
     "Windows",
     "Linux",
@@ -1286,6 +1286,24 @@
       "panel": "Documents",
       "web_preview": "https://amerhwitat.github.io/apps/pdf-reader.html",
       "notes": "Browser preview is view-only. Native PDF processing, OCR, extraction, and OS launcher support require separate provider verification."
+    },
+    {
+      "id": "voiceconnect",
+      "name": "VoiceConnect",
+      "category": "communication",
+      "license": "Project license and third-party component notices require review before redistribution",
+      "upstream": "https://github.com/amerhwitat/test/tree/feat/voiceconnect-p2p-camera",
+      "platforms": [
+        "Windows",
+        "Linux",
+        "macOS",
+        "Web"
+      ],
+      "integration": "external-package-or-provider",
+      "default_installed": false,
+      "launchability": "not-guaranteed",
+      "panel": "Communication",
+      "web_preview": "https://github.com/amerhwitat/test/tree/feat/voiceconnect-p2p-camera"
     }
   ]
 }
