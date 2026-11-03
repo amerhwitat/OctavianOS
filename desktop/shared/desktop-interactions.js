@@ -199,7 +199,7 @@
       selected=null;return;
     }
     if(action==="shortcuts"){
-      infoDialog("Desktop keyboard shortcuts","F2: rename selected shortcut\nEnter: open selected shortcut\nShift+F10: context menu\nMeta+E: Files / Explorer\nMeta+Space: Start menu (Marine)\nCtrl+Alt+T: Terminal\nEscape: close popup");
+      infoDialog("Desktop keyboard shortcuts","F2: rename selected shortcut\nEnter: open selected shortcut\nShift+F10: context menu\nCtrl/Cmd+C: copy selected link\nCtrl/Cmd+X or V: blocked in preview\nMeta+E: Files / Explorer\nMeta+Space: Start menu (Marine)\nCtrl+Alt+T: Terminal\nAlt+F4: dismiss dialogs\nDelete: blocked in preview\nEscape: close popup");
       return;
     }
     if(action==="about"){
