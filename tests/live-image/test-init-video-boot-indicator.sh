@@ -12,6 +12,9 @@ test -s "$ASSET" || { echo "canonical Init.mp4 is missing" >&2; exit 1; }
 test -s "$LIBRARY_ASSET" || { echo "library Init.mp4 copy is missing" >&2; exit 1; }
 cmp -s "$ASSET" "$LIBRARY_ASSET" || { echo "Init.mp4 asset copies differ" >&2; exit 1; }
 grep -Fq 'INIT_VIDEO_SOURCE="$NATIVE_SOURCE/desktop/aurora/assets/Init.mp4"' "$BUILD"
+grep -Fq 'INIT_VIDEO_SOURCE="$NATIVE_SOURCE/desktop/aurora/assets/library/Init.mp4"' "$BUILD"
+grep -Fq 'generated substitutes are disabled' "$BUILD"
+! grep -Fq 'ffmpeg -hide_banner -loglevel error -y' "$BUILD"
 grep -Fq 'install -m 0644 "$INIT_VIDEO_SOURCE" "$WORK/usr/share/chimera/aurora/assets/Init.mp4"' "$BUILD"
 grep -Fq 'for boot_stage in visual spitfire jasper grub; do' "$BUILD"
 grep -Fq 'install -D -m 0644 "$INIT_VIDEO" "$ISODIR/boot/$boot_stage/Init.mp4"' "$BUILD"
