@@ -117,9 +117,9 @@
     item.addEventListener("contextmenu",e=>{e.preventDefault();showContext(item,e.clientX,e.clientY);});
     item.setAttribute("aria-keyshortcuts","Enter F2 Shift+F10");
   });
-  document.addEventListener("pointerdown",e=>{if(context&&!context.contains(e.target))closeContext();});
+  document.addEventListener("pointerdown",e=>{if(context&&!context.contains(e.target))closeContext();if(activeMenu&&!activeMenu.popup.contains(e.target)&&!activeMenu.button.contains(e.target))closeMenu();});
   document.addEventListener("keydown",e=>{
-    if(e.key==="Escape"){closeContext();document.getElementById("octDesktopProperties")?.close();return;}
+    if(e.key==="Escape"){closeContext();closeMenu();document.getElementById("octDesktopProperties")?.close();document.getElementById("octDesktopInfo")?.close();return;}
     if(e.key==="F2"&&selected){e.preventDefault();rename(selected);return;}
     if(e.key==="Enter"&&selected&&!e.target.matches("input,textarea,button,select")){e.preventDefault();openItem(selected);return;}
     if((e.shiftKey&&e.key==="F10")&&selected){e.preventDefault();const r=selected.getBoundingClientRect();showContext(selected,r.left,r.bottom);return;}
@@ -129,5 +129,87 @@
   });
   document.addEventListener("click",e=>{if(e.target.matches("[data-rename-label]")){const item=e.target.closest(itemSelector);if(item)rename(item);}});
   document.addEventListener("contextmenu",e=>{if(!e.target.closest(itemSelector)){closeContext();}});
+
+  let activeMenu = null;
+  const menuDefinitions = {
+    File: [["Open Files / Explorer","files"],["Open Terminal","terminal"],["Properties","properties"]],
+    Edit: [["Rename Selected","rename"],["Copy Selected Link","copy"]],
+    View: [["Backgrounds","backgrounds"],["Refresh Desktop","refresh"]],
+    Window: [["Show Start / Applications","start"],["Show Desktop","showdesktop"]],
+    Help: [["Keyboard Shortcuts","shortcuts"],["About OctavianOS","about"]]
+  };
+  const closeMenu = () => {
+    if(activeMenu){activeMenu.button?.setAttribute("aria-expanded","false");activeMenu.popup.remove();activeMenu=null;}
+  };
+  const infoDialog = (heading,body) => {
+    let dialog=document.getElementById("octDesktopInfo");
+    if(!dialog){
+      dialog=document.createElement("dialog");dialog.id="octDesktopInfo";dialog.className="oct-desktop-dialog";
+      dialog.innerHTML='<header><strong data-title></strong><button type="button" data-close>Close</button></header><main><p data-body></p></main><footer><button type="button" data-done>Done</button></footer>';
+      document.body.append(dialog);
+      dialog.querySelectorAll("[data-close],[data-done]").forEach(b=>b.addEventListener("click",()=>dialog.close()));
+    }
+    dialog.querySelector("[data-title]").textContent=heading;
+    dialog.querySelector("[data-body]").textContent=body;
+    if(!dialog.open)dialog.showModal();
+  };
+  const openNamedItem = pattern => {
+    const item=[...document.querySelectorAll(itemSelector)].find(a=>pattern.test(labelNode(a).textContent));
+    if(item)openItem(item);else toast("No matching desktop shortcut is available.");
+  };
+  const runMenuAction = action => {
+    if(action==="files")return openNamedItem(/files|explorer/i);
+    if(action==="terminal")return openNamedItem(/terminal/i);
+    if(action==="properties")return selected?showProperties(selected):toast("Select a shortcut first.");
+    if(action==="rename")return selected?rename(selected):toast("Select a shortcut first.");
+    if(action==="copy"){
+      if(!selected)return toast("Select a shortcut first.");
+      const href=selected.getAttribute("href")||"";
+      navigator.clipboard?.writeText(new URL(href,location.href).href).then(()=>toast("Link copied")).catch(()=>toast("Clipboard unavailable"));
+      return;
+    }
+    if(action==="backgrounds"){document.getElementById("wallpaperButton")?.click();return;}
+    if(action==="refresh"){location.reload();return;}
+    if(action==="start"){
+      const start=document.getElementById("start");
+      if(start){start.click();return;}
+      const apps=[...document.querySelectorAll("button")].find(b=>/applications/i.test(b.textContent));
+      if(apps){apps.click();return;}
+      toast("No application launcher is available in this preview.");return;
+    }
+    if(action==="showdesktop"){
+      closeContext();closeMenu();document.getElementById("octDesktopProperties")?.close();document.getElementById("octDesktopInfo")?.close();
+      document.querySelectorAll(".oct-desktop-selected").forEach(n=>n.classList.remove("oct-desktop-selected"));
+      selected=null;return;
+    }
+    if(action==="shortcuts"){
+      infoDialog("Desktop keyboard shortcuts","F2: rename selected shortcut\nEnter: open selected shortcut\nShift+F10: context menu\nMeta+E: Files / Explorer\nMeta+Space: Start menu (Marine)\nCtrl+Alt+T: Terminal\nEscape: close popup");
+      return;
+    }
+    if(action==="about"){
+      infoDialog("About OctavianOS","Aurora and Marine desktop interaction preview. Native compositor, host filesystem operations and app installation are separate runtime capabilities.");
+    }
+  };
+  const showMenu = button => {
+    closeMenu();closeContext();
+    const name=button.dataset.desktopMenu;
+    const actions=menuDefinitions[name]||[];
+    const popup=document.createElement("div");popup.className="oct-desktop-context oct-desktop-menupopup";popup.setAttribute("role","menu");
+    for(const [label,action] of actions){
+      const item=document.createElement("button");item.type="button";item.textContent=label;item.setAttribute("role","menuitem");
+      item.addEventListener("click",()=>{closeMenu();runMenuAction(action);});
+      popup.append(item);
+    }
+    document.body.append(popup);
+    const r=button.getBoundingClientRect(), p=popup.getBoundingClientRect();
+    popup.style.left=Math.max(8,Math.min(r.left,innerWidth-p.width-8))+"px";
+    popup.style.top=Math.max(8,Math.min(r.bottom+5,innerHeight-p.height-8))+"px";
+    button.setAttribute("aria-expanded","true");activeMenu={button,popup};popup.querySelector("button")?.focus();
+  };
+  document.querySelectorAll("[data-desktop-menu]").forEach(button=>{
+    button.addEventListener("click",()=>showMenu(button));
+    button.setAttribute("aria-haspopup","menu");button.setAttribute("aria-expanded","false");
+  });
+
   toast("Desktop interactions ready · right-click for Properties");
 })();
