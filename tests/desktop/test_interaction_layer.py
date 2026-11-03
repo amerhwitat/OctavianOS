@@ -33,6 +33,19 @@ class DesktopInteractionLayerTests(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
+    def test_native_gtk_shell_is_bundled_and_has_real_window_controls(self):
+        native = ROOT / "desktop/native/chimera-desktop-shell.cpp"
+        self.assertTrue(native.is_file())
+        source = native.read_text(encoding="utf-8")
+        for contract in ("gtk_popover_menu_bar_new_from_model", "gtk_scrolled_window_new",
+                         "gtk_gesture_click_new", "gtk_window_minimize", "gtk_window_maximize",
+                         "canberra-gtk-play", "presses>=3"):
+            self.assertIn(contract, source)
+        build = (ROOT / "live-image/build.sh").read_text(encoding="utf-8")
+        self.assertIn('NATIVE_SHELL_SRC="$PAY/repo/desktop/native/chimera-desktop-shell.cpp"', build)
+        self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test", build)
+        self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test", build)
+
     def test_voiceconnect_is_a_truthful_optional_launcher(self):
         launcher = (ROOT / "desktop/shared/voiceconnect-launcher.sh").read_text(encoding="utf-8")
         self.assertIn('[[ -n "$candidate" && -x "$candidate" ]]', launcher)
