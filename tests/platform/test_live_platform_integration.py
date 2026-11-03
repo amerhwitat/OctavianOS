@@ -31,6 +31,9 @@ class LivePlatformIntegrationTests(unittest.TestCase):
         self.assertIn("cmake --build /var/tmp/chimera-sdk-build", script)
         self.assertIn("ctest --test-dir /var/tmp/chimera-sdk-build", script)
         self.assertIn("sdk-build-status.json", script)
+        self.assertIn("tools/build-desktop-binaries.sh", script)
+        self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test", script)
+        self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test", script)
 
     def test_optical_media_is_read_only_and_usb_mounts_are_restricted(self):
         script = (ROOT / "live-image/media/chimera-media-manager.sh").read_text(encoding="utf-8")
