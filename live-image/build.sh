@@ -677,17 +677,23 @@ install -D -m 0644 "$WORK/usr/share/chimera/aurora/assets/Init.mp4" "$ISODIR/boo
 # They are deliberately staged outside the active boot paths: the current
 # native CPL3/userspace acceptance gate has not certified these runtimes.
 CANDIDATE_ROOT="$BUILD/native-runtime-candidates"
+# Never allow stale candidate artifacts from an earlier build to satisfy this
+# build's inventory or appear to be freshly generated acceptance evidence.
+rm -rf "$CANDIDATE_ROOT" "$ISODIR/boot/candidates" "$ISODIR/boot/installer" "$ISODIR/boot/recovery"
 mkdir -p "$CANDIDATE_ROOT/installer-stage" "$ISODIR/boot/candidates/installer" "$ISODIR/boot/candidates/recovery"
 CHIMERA_BUILD_DIR="$NATIVE_SOURCE/build" CHIMERA_KORONOS_KERNEL="$KORONOS_ELF" \
   bash "$NATIVE_SOURCE/tools/build-live-boot-binaries.sh"
 bash "$NATIVE_SOURCE/tools/chimera-stage-installer-media.sh" "$CANDIDATE_ROOT/installer-stage"
 for artifact in installation.img installer-initrd.img installation-manifest.json installer-contract.json installation_phases.json installer_profiles.json; do
   src="$CANDIDATE_ROOT/installer-stage/install/installer/$artifact"
-  if [ -s "$src" ]; then install -m 0644 "$src" "$ISODIR/boot/candidates/installer/$artifact"; fi
+  test -s "$src" || { echo "ERROR: required Installer candidate artifact missing: $src" >&2; exit 2; }
+  install -m 0644 "$src" "$ISODIR/boot/candidates/installer/$artifact"
 done
 RECOVERY_CANDIDATE="$NATIVE_SOURCE/build/live-boot/boot/recovery"
 for artifact in chimera-recovery-initramfs.img chimera-recovery-initramfs.img.sha256 recovery-manifest.json; do
-  if [ -s "$RECOVERY_CANDIDATE/$artifact" ]; then install -m 0644 "$RECOVERY_CANDIDATE/$artifact" "$ISODIR/boot/candidates/recovery/$artifact"; fi
+  src="$RECOVERY_CANDIDATE/$artifact"
+  test -s "$src" || { echo "ERROR: required Recovery candidate artifact missing: $src" >&2; exit 2; }
+  install -m 0644 "$src" "$ISODIR/boot/candidates/recovery/$artifact"
 done
 python3 - "$ISODIR/boot/candidates" "$ED" <<'PY'
 import hashlib, json, pathlib, sys
