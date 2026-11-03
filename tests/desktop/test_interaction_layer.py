@@ -21,7 +21,7 @@ class DesktopInteractionLayerTests(unittest.TestCase):
             'contextmenu', 'dblclick', 'Properties', 'Rename',
             'e.key==="F2"', 'e.key==="Enter"', 'e.metaKey&&e.code==="Space"',
             'e.metaKey&&e.key.toLowerCase()==="e"', 'e.ctrlKey&&e.altKey',
-            'showModal()', 'localStorage',
+            'showModal()', 'localStorage', 'menuDefinitions', 'runMenuAction',
         ):
             self.assertIn(contract, source)
 
