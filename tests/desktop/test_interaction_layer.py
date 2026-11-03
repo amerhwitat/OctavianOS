@@ -15,6 +15,9 @@ class DesktopInteractionLayerTests(unittest.TestCase):
             self.assertIn('../shared/desktop-interactions.js', source, page.name)
             self.assertIn('VoiceConnect', source, page.name)
 
+    def test_shared_javascript_parses(self):
+        subprocess.run(["node", "--check", str(ROOT / "desktop/shared/desktop-interactions.js")], check=True)
+
     def test_shared_layer_exposes_requested_interactions_and_shortcuts(self):
         source = (ROOT / "desktop/shared/desktop-interactions.js").read_text(encoding="utf-8")
         for contract in (
