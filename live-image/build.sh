@@ -325,6 +325,21 @@ Categories=System;DesktopSettings;
 EOF
 fi
 
+# Compile architecture probe objects for AArch64/RV64 when cross toolchains are
+# present. These objects do not constitute bootable Koronos kernels or EFI apps.
+KORONOS_REL="vendor/chimera-ii-os/source"
+if [ -f "$PAY/repo/$KORONOS_REL/tools/build-koronos-targets.sh" ]; then
+  mount_chroot "$WORK"
+  chroot "$WORK" /bin/bash -c "bash /opt/aurora/repo/$KORONOS_REL/tools/build-koronos-targets.sh" 2>&1 | tee "$BUILD/koronos-port-build-$ED.log"
+  umount_chroot "$WORK"
+  PORTS="$PAY/repo/$KORONOS_REL/build/koronos/ports"
+  if compgen -G "$PORTS/*.o" >/dev/null; then
+    mkdir -p "$PAY/platform-runtime/architecture-ports"
+    cp -f "$PORTS"/*.o "$PAY/platform-runtime/architecture-ports/"
+  fi
+  cp -f "$BUILD/koronos-port-build-$ED.log" "$PAY/platform-runtime/architecture-port-build-status.txt"
+fi
+
 python3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
 
 cat > "$PAY/PROJECT.md" <<EOF
