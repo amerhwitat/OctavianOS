@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=VoiceConnect
+Comment=Peer-to-peer voice, video, chat and consent-based screen sharing
+Exec=/usr/local/bin/octavian-voiceconnect-launcher %U
+Icon=audio-headset
+Terminal=false
+Categories=Network;InstantMessaging;AudioVideo;
+StartupNotify=true
