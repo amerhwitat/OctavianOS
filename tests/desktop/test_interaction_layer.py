@@ -45,6 +45,7 @@ class DesktopInteractionLayerTests(unittest.TestCase):
         self.assertIn('NATIVE_SHELL_SRC="$PAY/repo/desktop/native/chimera-desktop-shell.cpp"', build)
         self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test", build)
         self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test", build)
+        self.assertIn("libcanberra-gtk3-module", build)
 
     def test_voiceconnect_is_a_truthful_optional_launcher(self):
         launcher = (ROOT / "desktop/shared/voiceconnect-launcher.sh").read_text(encoding="utf-8")
