@@ -8,15 +8,16 @@ OctavianOS currently builds Koronos from the pinned ChimeraIIOS source snapshot 
 `vendor/chimera-ii-os/source/`. The top-level `kernel/` directory is an integration
 contract and documentation area, not a separate, complete native kernel implementation.
 
-The current vendor metadata needs reconciliation before a source-sync claim:
-- `vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json` records source commit
-  `f1609c2f8a9565a9bced61ffbe0b2366b10d1ad5`.
-- `vendor/chimera-ii-os/UPSTREAM_REVISION` contains
-  `474208f9d05af9d16707b5878b63fd78e0d8e911`.
+The vendor metadata is now internally consistent: both
+`vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json` and
+`vendor/chimera-ii-os/UPSTREAM_REVISION` pin
+`474208f9d05af9d16707b5878b63fd78e0d8e911`. This is a historical source pin, not the
+current ChimeraIIOS main head.
 
 The new upstream ChimeraIIOS transactional initramfs VFS work is being reviewed in
 [ChimeraIIOS PR #241](https://github.com/amerhwitat/ChimeraIIOS/pull/241). It is not yet
-merged into the canonical source snapshot. Do not copy a partially reviewed kernel
+merged into the canonical source snapshot; the Octavian vendor snapshot must be refreshed
+only after the upstream change is merged and its native build/boot gates pass. Do not copy a partially reviewed kernel
 snapshot into OctavianOS or report it as integrated.
 
 ## Linux 7.x behavioral baseline
