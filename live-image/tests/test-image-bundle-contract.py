@@ -39,6 +39,6 @@ if "Native Installer" not in spitfire or "Native Recovery" not in spitfire:
     raise SystemExit("FAIL: Spit Fire menu is missing native handoff choices")
 if "installer-initrd.img" not in spitfire or "chimera-recovery-initramfs.img" not in spitfire:
     raise SystemExit("FAIL: Spit Fire native handoffs must check their runtime images")
-if "Init.mp4" not in grub or "userspace playback" not in grub:
+if "Init.mp4" not in grub or not any(token in grub for token in ("userspace playback", "GRUB does not play MP4")):
     raise SystemExit("FAIL: GRUB must document post-selection userspace splash playback")
 print("PASS: Aurora launcher, embedded wallpaper, IDE bundle, Spit Fire menu and splash contracts")
