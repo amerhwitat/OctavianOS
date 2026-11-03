@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "delivery": "remote-prototype",
-  "note": "Images are remote and are not vendored into the repository or ISO by this catalog.",
+  "schema_version": 2,
+  "delivery": "mixed-remote-catalog-and-embedded-offline-artwork",
+  "note": "The wallpaper catalog entries below retain their remote Unsplash source metadata. Original project artwork is also bundled offline as Base64 data URIs in desktop/artwork/embedded-wallpapers.js; this bundle does not imply that the remote catalog photographs themselves are embedded.",
   "wallpapers": [
     {
       "id": "aurora-ocean-night",
@@ -25,5 +25,33 @@
       "license_url": "https://unsplash.com/license",
       "fallback": "radial-gradient(ellipse at 65% 20%, #1db8cf 0, transparent 42%), linear-gradient(145deg, #03233e, #086b80 60%, #031b2c)"
     }
-  ]
+  ],
+  "embedded_bundle": {
+    "path": "desktop/artwork/embedded-wallpapers.js",
+    "format": "JavaScript containing Base64 data URIs",
+    "no_network_required": true,
+    "assets": [
+      {
+        "id": "chimeraAurora",
+        "mime": "image/svg+xml",
+        "source": "ChimeraIIOS desktop/aurora/assets/chimera-infinite-research-horizon-3840x2160.svg"
+      },
+      {
+        "id": "octavianAurora",
+        "mime": "image/svg+xml",
+        "source": "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      },
+      {
+        "id": "marine",
+        "mime": "image/svg+xml",
+        "source": "desktop/marine/assets/marine-desktop.svg"
+      },
+      {
+        "id": "auroraGlassJpeg",
+        "mime": "image/jpeg",
+        "source": "ChimeraIIOS boot/visual/aurora-wayland-glass.jpg.b64"
+      }
+    ],
+    "activation": "Add data-embedded-wallpaper=<asset id> to an img or background container; bundle exports OS_EMBEDDED_ARTWORK and applyOSEmbeddedArtwork."
+  }
 }

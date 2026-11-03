@@ -28,3 +28,10 @@ The Aurora Wayland Glass Desktop prototype now uses the repository-local `../aur
 ## Bundled desktop artwork update
 
 The Marine Desktop prototype now uses the original vector artwork at `desktop/marine/assets/marine-desktop.svg`; it does not fetch a remote Unsplash image at runtime. Aurora Wayland Glass continues to use `desktop/aurora/assets/octavian-octopus-aurora.svg`. Both prototypes offer a background picker that switches between these tracked assets and persists the choice in browser local storage. This improves offline design-preview reliability; ISO staging still needs explicit asset packaging and checksum validation.
+
+
+## Offline Base64 artwork bundle
+
+The browser desktop and shared gallery can load the original Aurora and Marine vector artwork without a network request via `desktop/artwork/embedded-wallpapers.js`. It contains Base64 data URIs for the Octavian Aurora SVG, Marine SVG, Chimera research-horizon SVG, and the existing Aurora Glass JPEG payload. Add `data-embedded-wallpaper="octavianAurora"`, `"marine"`, `"chimeraAurora"`, or `"auroraGlassJpeg"` to an `img` or background container; the script exports `OS_EMBEDDED_ARTWORK` and `applyOSEmbeddedArtwork`.
+
+This is offline browser-artwork integration. It does not prove that the native boot splash/GRUB image is rasterized, that these assets are staged into every ISO, or that a native OS desktop has reached production readiness; those require separate build and boot evidence.
