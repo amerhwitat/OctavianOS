@@ -86,6 +86,14 @@ class UnifiedBootTargetTests(unittest.TestCase):
                        "boot/jasper/jasper.cfg", "boot/spitfire/spitfire-menu.cfg"):
             self.assertIn(marker, BUILDER)
 
+    def test_aurora_launcher_uses_existing_edition_page_before_exec(self):
+        # The URI export must be inserted before exec; code after exec is unreachable.
+        self.assertIn('test -s "$PAY/$ENTRY"', BUILDER)
+        self.assertIn('export AURORA_DESKTOP_URI=', BUILDER)
+        self.assertIn('source.replace(exec_line, uri_line', BUILDER)
+        self.assertNotIn('echo "export AURORA_DESKTOP_URI=', BUILDER)
+        self.assertIn('exactly one kiosk exec line', BUILDER)
+
     def test_gates_exposes_matching_grub_actions(self):
         self.assertIsNotNone(GATES_PATH, "Gates menu JSON is required")
         gates = json.loads(GATES_PATH.read_text())
