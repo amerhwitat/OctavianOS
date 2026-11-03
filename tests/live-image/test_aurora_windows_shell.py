@@ -7,7 +7,7 @@ class AuroraWindowsGlassShellContract(unittest.TestCase):
         self.assertIn("../shared/windows-glass-shell.js",page)
     def test_primary_surfaces_and_shortcuts_exist(self):
         source=(ROOT/"desktop/shared/windows-glass-shell.js").read_text()
-        for token in ("ag-taskbar","ag-start","ag-quick","ag-notify","ag-taskview","File Explorer","Web Browser","Terminal","Applications","Settings","Brightness","Volume","virtualDesktop","ag-snap-left","ag-snap-right","Meta+Tab","ArrowLeft","ArrowRight","openQuickSettings","openNotifications","openTaskView"):
+        for token in ("ag-taskbar","ag-start","ag-quick","ag-notify","ag-taskview","File Explorer","Web Browser","Terminal","Applications","Settings","Brightness","Volume","virtualDesktop","ag-snap-left","ag-snap-right",'e.metaKey&&e.key==="Tab"',"ArrowLeft","ArrowRight","openQuickSettings","openNotifications","openTaskView"):
             self.assertIn(token,source)
     def test_native_backend_boundary_is_explicit(self):
         source=(ROOT/"desktop/shared/windows-glass-shell.js").read_text()
