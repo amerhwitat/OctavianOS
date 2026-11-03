@@ -162,7 +162,7 @@
   const menuDefinitions = {
     File: [["Open Files / Explorer","files"],["Open Terminal","terminal"],["Properties","properties"]],
     Edit: [["Rename Selected","rename"],["Copy Selected Link","copy"]],
-    View: [["Backgrounds","backgrounds"],["Refresh Desktop","refresh"]],
+    View: [["Backgrounds","backgrounds"],["Refresh Desktop","refresh"],["Toggle UI Sounds","sounds"]],
     Window: [["Tile Windows","tile"],["Cascade Windows","cascade"],["Minimize Active Window","minimize"],["Maximize / Restore Active Window","maximize"],["Show Start / Applications","start"],["Show Desktop","showdesktop"]],
     Help: [["Keyboard Shortcuts","shortcuts"],["About OctavianOS","about"]]
   };
