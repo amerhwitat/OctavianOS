@@ -37,6 +37,7 @@
 **Files:**
 - Modify: `OctavianOS/boot/live/desktop-sessions.json`
 - Modify: `OctavianOS/boot/jasper/live.cfg`
+- Modify: `OctavianOS/desktop/sessions/session-manifest.schema.json`
 - Modify: `ChimeraIIOS/web/desktop_profiles.json`
 - Modify: `ChimeraIIOS/boot/live/desktop-sessions.json` (create if absent)
 - Modify: `OctavianOS/tests/boot/test_boot_target_graph.py`
