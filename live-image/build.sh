@@ -442,22 +442,18 @@ install -Dm755 "$HERE/lib/chimera-recovery.sh" "$WORK/usr/local/sbin/chimera-rec
 install -D -m 0644 "$HERE/openbox-menu.xml" "$WORK/etc/xdg/openbox/menu.xml"
 install -d "$WORK/usr/share/chimera/aurora/assets"
 INIT_VIDEO_SOURCE="$NATIVE_SOURCE/desktop/aurora/assets/Init.mp4"
-if [ -s "$INIT_VIDEO_SOURCE" ]; then
-  install -m 0644 "$INIT_VIDEO_SOURCE" "$WORK/usr/share/chimera/aurora/assets/Init.mp4"
-else
-  command -v ffmpeg >/dev/null 2>&1 || { echo "ERROR: ffmpeg is required to synthesize Init.mp4 from embedded artwork." >&2; exit 2; }
-  for image in wp01.jpg wp02.jpg wp03.jpg; do
-    test -s "$PAY/wallpapers/$image" || { echo "ERROR: missing embedded splash frame $image" >&2; exit 2; }
-  done
-  ffmpeg -hide_banner -loglevel error -y \
-    -loop 1 -framerate 30 -t 2 -i "$PAY/wallpapers/wp01.jpg" \
-    -loop 1 -framerate 30 -t 2 -i "$PAY/wallpapers/wp02.jpg" \
-    -loop 1 -framerate 30 -t 2 -i "$PAY/wallpapers/wp03.jpg" \
-    -filter_complex "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1[v0];[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1[v1];[2:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1[v2];[v0][v1][v2]concat=n=3:v=1:a=0,format=yuv420p[v]" \
-    -map "[v]" -t 6 -r 30 -c:v libx264 -preset veryfast -crf 22 \
-    -movflags +faststart "$WORK/usr/share/chimera/aurora/assets/Init.mp4"
+if [ ! -s "$INIT_VIDEO_SOURCE" ]; then
+  INIT_VIDEO_SOURCE="$NATIVE_SOURCE/desktop/aurora/assets/library/Init.mp4"
 fi
-test -s "$WORK/usr/share/chimera/aurora/assets/Init.mp4" || { echo "ERROR: Init.mp4 was not built." >&2; exit 2; }
+test -s "$INIT_VIDEO_SOURCE" || {
+  echo "ERROR: the existing Aurora Init.mp4 asset is required; generated substitutes are disabled." >&2
+  exit 2
+}
+install -m 0644 "$INIT_VIDEO_SOURCE" "$WORK/usr/share/chimera/aurora/assets/Init.mp4"
+cmp -s "$INIT_VIDEO_SOURCE" "$WORK/usr/share/chimera/aurora/assets/Init.mp4" || {
+  echo "ERROR: staged Aurora Init.mp4 differs from its source asset." >&2
+  exit 2
+}
 install -D -m 0755 "$NATIVE_SOURCE/desktop/aurora/aurora-init-splash.sh" "$WORK/usr/local/bin/aurora-init-splash.sh"
 
 cat > "$WORK/usr/local/bin/aurora-session" <<'EOF'
