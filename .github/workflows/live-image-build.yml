@@ -198,7 +198,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x tests/live-image/test-qemu-live-boot.sh
-          for target in live installer koronos recovery; do
+          for target in live marine installer koronos recovery; do
             tests/live-image/test-qemu-live-boot.sh "candidate/octavian-os-live-amd64.iso" "${{ runner.temp }}/qemu-evidence/$target" "$target"
           done
       - name: Upload QEMU boot evidence
