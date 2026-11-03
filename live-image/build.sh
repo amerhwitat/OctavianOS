@@ -270,6 +270,10 @@ path,edition,source,java_status,rust_status=sys.argv[1:]
 data={"schema":"CHIMERA-SDK-BUILD-STATUS-1","edition":edition,"source":source,"native_c_cpp":"built-and-ctested","java":java_status,"rust":rust_status,"dotnet":"not-built-toolchain-not-included","objective_c":"not-built-gnustep-toolchain-not-included","apple_sdk":"external-license-controlled-not-redistributed"}
 with open(path,"w") as f: json.dump(data,f,indent=2); f.write("\n")
 PY
+  cp -f "$SDK_PAY/sdk-build-status.json" "$WORK/opt/chimera-sdk/"
+  cp -f "$REPO_DIR/platform/runtime/third-party-sdk-manifest.json" "$WORK/opt/chimera-sdk/" 2>/dev/null || true
+  mkdir -p "$WORK/usr/share/chimera/platform"
+  cp -f "$REPO_DIR/platform/runtime/"*.json "$WORK/usr/share/chimera/platform/" 2>/dev/null || true
 else
   echo "[SKIP] Chimera SDK CMake source missing at $SDK_SRC"
   printf '{"schema":"CHIMERA-SDK-BUILD-STATUS-1","native_c_cpp":"source-only-no-cmake-project"}\n' > "$SDK_PAY/sdk-build-status.json"
