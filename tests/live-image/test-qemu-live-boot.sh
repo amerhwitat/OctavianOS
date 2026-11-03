@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ $# -lt 2 || $# -gt 3 ]]; then
-  echo "usage: $0 <live-iso> <evidence-directory> [live|installer|koronos|recovery]" >&2
+  echo "usage: $0 <live-iso> <evidence-directory> [live|marine|installer|koronos|recovery]" >&2
   exit 2
 fi
 ISO="$(realpath "$1")"
 OUT="$2"
 TARGET=live
 if [[ $# -eq 3 ]]; then TARGET="$3"; fi
-case "$TARGET" in live|installer|koronos|recovery) ;; *) echo "unsupported target: $TARGET" >&2; exit 2 ;; esac
+case "$TARGET" in live|marine|installer|koronos|recovery) ;; *) echo "unsupported target: $TARGET" >&2; exit 2 ;; esac
 mkdir -p "$OUT"
 test -s "$ISO"
 command -v qemu-system-x86_64 >/dev/null
@@ -52,6 +52,7 @@ sleep 2
 if [[ "$TARGET" != live ]]; then
   case "$TARGET" in
     recovery) downs=2 ;;  # Linux Rescue Shell
+    marine) downs=7 ;;    # Marine desktop profile (OctavianOS)
     installer) downs=3 ;; # Native Installer; must refuse incomplete payloads
     koronos) downs=5 ;;   # Native Koronos diagnostics
   esac
@@ -63,6 +64,7 @@ fi
 
 case "$TARGET" in
   live) match='Aurora|Application' ;;
+  marine) match='Marine Desktop|Marine' ;;
   installer) match='Native Koronos Installer runtime incomplete|No Linux fallback is called an installer' ;;
   koronos)
     # Kernel entry emits E (32-bit), L (long mode), B (kernel entry), C (idle loop) to port 0xE9.
