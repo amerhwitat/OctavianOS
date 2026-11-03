@@ -76,3 +76,17 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(chimera_scheduler_runtime_test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 add_test(NAME chimera_scheduler_runtime COMMAND chimera_scheduler_runtime_test)
+
+
+add_executable(chimera_kernel_contract_test
+  kernel_contract_test.cpp
+  ../../kernel/core/service.cpp
+)
+target_include_directories(chimera_kernel_contract_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/kernel/include
+)
+target_compile_features(chimera_kernel_contract_test PRIVATE cxx_std_20)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(chimera_kernel_contract_test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_test(NAME chimera_kernel_contract COMMAND chimera_kernel_contract_test)
