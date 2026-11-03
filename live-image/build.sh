@@ -127,6 +127,18 @@ rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
+# Install a truthful VoiceConnect launcher for both first-party desktop
+# personalities. It executes only a verified local binary; otherwise it opens
+# the upstream project page and never reports the app as installed.
+if [ "$ED" = "octavian" ]; then
+  install -Dm755 "$REPO_DIR/desktop/shared/voiceconnect-launcher.sh" \
+    "$WORK/usr/local/bin/octavian-voiceconnect-launcher"
+  install -Dm644 "$REPO_DIR/desktop/aurora/voiceconnect.desktop" \
+    "$WORK/usr/share/applications/octavian-voiceconnect-aurora.desktop"
+  install -Dm644 "$REPO_DIR/desktop/marine/voiceconnect.desktop" \
+    "$WORK/usr/share/applications/octavian-voiceconnect-marine.desktop"
+fi
+
 python3 - "$ART" "$PAY" <<'PY'
 import json, os, subprocess, sys
 src, pay = sys.argv[1], sys.argv[2]
