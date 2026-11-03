@@ -125,7 +125,7 @@
       else select(item);
       lastClickItem=item;lastClickAt=now;
     });
-    item.addEventListener("dblclick",e=>{e.preventDefault();closeContext();openItem(item);});
+    item.addEventListener("dblclick",e=>{e.preventDefault();closeContext();clearTimeout(pendingOpen);pendingOpen=setTimeout(()=>{if(lastTripleItem!==item){playUiSound("open");openItem(item);}},260);});
     item.addEventListener("contextmenu",e=>{e.preventDefault();showContext(item,e.clientX,e.clientY);});
     item.setAttribute("aria-keyshortcuts","Enter F2 Shift+F10");
   });
@@ -322,7 +322,7 @@
   // A third click on a desktop item opens Properties; double-click remains Open.
   let pendingOpen=null,lastClickCount=0,lastTripleItem=null;
   document.querySelectorAll(itemSelector).forEach(item=>{
-    item.addEventListener("dblclick",e=>{e.preventDefault();clearTimeout(pendingOpen);pendingOpen=setTimeout(()=>{if(lastTripleItem!==item){playUiSound("open");openItem(item);}},260);});
+    item.addEventListener("click",e=>{if(e.detail===3){clearTimeout(pendingOpen);lastTripleItem=item;}},true);
     item.addEventListener("click",e=>{
       if(e.detail===3){e.preventDefault();clearTimeout(pendingOpen);lastTripleItem=item;select(item);showProperties(item);playUiSound("open");}
       else if(e.detail===1){lastTripleItem=null;}
