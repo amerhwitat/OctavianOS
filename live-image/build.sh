@@ -712,7 +712,7 @@ manifest = {
     }
 }
 output.parent.mkdir(parents=True, exist_ok=True)
-output.write_text(json.dumps(manifest, indent=2) + "\\n")
+output.write_text(json.dumps(manifest, indent=2) + "\n")
 PY_INIT_VIDEO
 # Build separate native Koronos Installer and Recovery initramfs candidates.
 # They are deliberately staged outside the active boot paths: the current
