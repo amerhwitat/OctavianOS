@@ -108,7 +108,7 @@ if [ ! -f "$BASE/.packages-installed-v2-platform" ]; then
       e2fsprogs dosfstools exfatprogs ntfs-3g xfsprogs btrfs-progs f2fs-tools squashfs-tools udftools nfs-common cifs-utils sshfs lvm2 mdadm cryptsetup-bin parted gdisk nvme-cli smartmontools alsa-utils kmod \
       gcc g++ clang lld make cmake ninja-build meson pkg-config gdb openjdk-21-jdk-headless python3-dev python3-venv python3-pip rustc cargo golang gfortran nodejs npm ruby php-cli lua5.4 perl \
       geany vim emacs-nox
-    for optional_package in frr bird2 openvswitch-switch bluefish thonny strongswan gdb-multiarch lldb iputils-tracepath; do
+    for optional_package in frr bird2 openvswitch-switch bluefish thonny strongswan gdb-multiarch lldb iputils-tracepath libcanberra-gtk3-module; do
       if apt-cache show "$optional_package" >/dev/null 2>&1; then
         apt-get install -y -qq --no-install-recommends "$optional_package" || echo "[WARN] optional package unavailable: $optional_package"
       else
