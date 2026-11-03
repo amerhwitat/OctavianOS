@@ -26,6 +26,9 @@ class DesktopInteractionLayerTests(unittest.TestCase):
             'e.metaKey&&e.key.toLowerCase()==="e"', 'e.ctrlKey&&e.altKey',
             'showModal()', 'localStorage', 'menuDefinitions', 'runMenuAction',
             'Cut/Paste is disabled', 'Delete is disabled', 'e.key==="F4"',
+            'oct-managed-window', 'oct-maximized', 'oct-minimized', 'arrangeWindows',
+            'Tile Windows', 'Cascade Windows', 'AudioContext', 'e.detail===3',
+            'Minimize', 'Maximize or restore', 'scrollbar-gutter:stable',
         ):
             self.assertIn(contract, source)
 
