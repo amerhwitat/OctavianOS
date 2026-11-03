@@ -603,6 +603,9 @@ rm -rf "$WORK"/var/log/* "$WORK"/var/cache/* "$WORK"/tmp/* "$WORK"/usr/lib/debug
 
 # ------------------------------------------------------------- squashfs + ISO
 log "squashfs"
+# Recreate the ISO tree from zero on every build. A reused build directory must
+# never leak stale EFI, kernel, initramfs, installer or recovery artifacts.
+rm -rf "$ISODIR"
 mkdir -p "$ISODIR/live" "$OUT"
 rm -f "$ISODIR/live/filesystem.squashfs"
 mksquashfs "$WORK" "$ISODIR/live/filesystem.squashfs" \
@@ -772,6 +775,28 @@ echo "[SPIT FIRE] $TITLE $VERSION — firmware handoff"
 echo "[SPIT FIRE] Next: Jasper / GRUB 2 target manager"
 configfile /boot/spitfire/spitfire-menu.cfg
 EOF
+
+# Inventory the exact tree that will be mastered, including the Linux
+# kernel/initrd/rootfs, native Koronos ELF, Spit Fire binaries and Installer /
+# Recovery candidate images. The candidate manifest labels prototype initramfs
+# archives as non-native; this inventory never upgrades their runtime status.
+python3 "$REPO_DIR/tools/iso/build_artifact_manifest.py" \
+  --root "$ISODIR" \
+  --manifest "$ISODIR/boot/artifact-manifest.json" \
+  --checksums "$ISODIR/boot/SHA256SUMS" \
+  --require live/vmlinuz \
+  --require live/initrd.img \
+  --require live/filesystem.squashfs \
+  --require boot/grub/grub.cfg \
+  --require boot/koronos.elf \
+  --require boot/spitfire/spitfire-sf0-mbr.bin \
+  --require boot/spitfire/spitfire-stage2.bin \
+  --require boot/candidates/native-runtime-candidates.json \
+  --require boot/candidates/installer/installation.img \
+  --require boot/candidates/recovery/chimera-recovery-initramfs.img \
+  --require boot/visual/Init.mp4 \
+  --require boot/gates/gates-menu.cfg \
+  --require boot/jasper/live-image.cfg
 
 log "iso"
 rm -f "$OUT/$ISO_NAME"
