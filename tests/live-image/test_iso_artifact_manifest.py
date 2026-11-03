@@ -49,4 +49,12 @@ class IsoArtifactManifestTests(unittest.TestCase):
             self.assertIn("required ISO artifacts missing",result.stderr)
             self.assertFalse(manifest.exists())
 
+    def test_builder_cannot_reuse_stale_iso_tree_or_package_marker(self):
+        root=Path(__file__).resolve().parents[2]
+        source=(root/"live-image/build.sh").read_text()
+        self.assertIn('if [ ! -f "$BASE/.packages-installed-v3" ]',source)
+        self.assertIn('touch "$BASE/.packages-installed-v3"',source)
+        self.assertIn('rm -rf "$ISODIR"',source)
+        self.assertIn('build_artifact_manifest.py',source)
+
 if __name__=="__main__": unittest.main()
