@@ -119,6 +119,22 @@
   });
   document.addEventListener("pointerdown",e=>{if(context&&!context.contains(e.target))closeContext();if(activeMenu&&!activeMenu.popup.contains(e.target)&&!activeMenu.button.contains(e.target))closeMenu();});
   document.addEventListener("keydown",e=>{
+    const editing=e.target.matches("input,textarea,select,[contenteditable=true]");
+    const primary=e.ctrlKey||e.metaKey;
+    if(!editing&&primary&&e.key.toLowerCase()==="c"&&selected){
+      e.preventDefault();
+      const href=selected.getAttribute("href")||"";
+      navigator.clipboard?.writeText(new URL(href,location.href).href).then(()=>toast("Link copied")).catch(()=>toast("Clipboard unavailable"));
+      return;
+    }
+    if(!editing&&primary&&["x","v"].includes(e.key.toLowerCase())){
+      e.preventDefault();toast("Cut/Paste is disabled in this preview; no filesystem changes were made.");return;
+    }
+    if(e.altKey&&e.key==="F4"){
+      closeContext();closeMenu();document.getElementById("octDesktopProperties")?.close();document.getElementById("octDesktopInfo")?.close();
+      toast("Close the desktop window using your operating system.");return;
+    }
+    if(e.key==="Delete"&&selected&&!editing){e.preventDefault();toast("Delete is disabled in this preview; no files were changed.");return;}
     if(e.key==="Escape"){closeContext();closeMenu();document.getElementById("octDesktopProperties")?.close();document.getElementById("octDesktopInfo")?.close();return;}
     if(e.key==="F2"&&selected){e.preventDefault();rename(selected);return;}
     if(e.key==="Enter"&&selected&&!e.target.matches("input,textarea,button,select")){e.preventDefault();openItem(selected);return;}
