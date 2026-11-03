@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const itemSelector = "a.shortcut,a.deskicon,a.app,a.taskapp,a.tile";
+  const itemSelector = "a.shortcut,a.deskicon,a.app,a.taskapp";
   const style = document.createElement("style");
   style.textContent = `
     .oct-desktop-selected{outline:2px solid #8deeff!important;outline-offset:2px!important;filter:brightness(1.14)}
