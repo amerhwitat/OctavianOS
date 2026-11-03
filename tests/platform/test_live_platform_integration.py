@@ -35,6 +35,8 @@ class LivePlatformIntegrationTests(unittest.TestCase):
         self.assertIn("tools/build-desktop-binaries.sh", script)
         self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test", script)
         self.assertIn("xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test", script)
+        self.assertIn("tools/build-koronos-targets.sh", script)
+        self.assertIn("architecture-port-build-status.txt", script)
 
     def test_optical_media_is_read_only_and_usb_mounts_are_restricted(self):
         script = (ROOT / "live-image/media/chimera-media-manager.sh").read_text(encoding="utf-8")
