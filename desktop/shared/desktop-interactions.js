@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const itemSelector = "a.shortcut,a.deskicon,a.app,a.taskapp";
+  const itemSelector = "a.shortcut,a.deskicon,a.app";
   const style = document.createElement("style");
   style.textContent = `
     .oct-desktop-selected{outline:2px solid #8deeff!important;outline-offset:2px!important;filter:brightness(1.14)}
@@ -17,9 +17,9 @@
     .oct-desktop-dialog button:active{transform:translateY(2px);box-shadow:0 1px 0 #0005,0 3px 8px #0006}
     .oct-desktop-rename{width:min(220px,90%);padding:5px 8px}
     .oct-desktop-hint{color:#b7d2e3;font-size:12px;line-height:1.5}
-    button,.start,.taskapp,.tile{transition:transform .14s ease,filter .14s ease,box-shadow .14s ease}
-    button:hover,.start:hover,.taskapp:hover,.tile:hover{filter:brightness(1.12);transform:translateY(-2px)}
-    button:active,.start:active,.taskapp:active,.tile:active{transform:translateY(2px) scale(.985)}
+    a.shortcut,a.deskicon,a.app,.start,.taskapp,.tile{box-shadow:0 7px 0 #0004,0 12px 25px #0005;transition:transform .14s ease,filter .14s ease,box-shadow .14s ease}
+    button:hover,a.shortcut:hover,a.deskicon:hover,a.app:hover,.start:hover,.taskapp:hover,.tile:hover{filter:brightness(1.12);transform:translateY(-2px)}
+    button:active,a.shortcut:active,a.deskicon:active,a.app:active,.start:active,.taskapp:active,.tile:active{transform:translateY(2px) scale(.985)}
     :focus-visible{outline:2px solid #8deeff!important;outline-offset:3px}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
   `;
