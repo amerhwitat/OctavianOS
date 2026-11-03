@@ -83,6 +83,7 @@ The top-level GRUB installer menu now routes to `/boot/jasper/install.cfg` rathe
 
 ## Desktop environments and artwork
 
+- [Linux 7.x kernel parity matrix](docs/LINUX_KERNEL_7X_PARITY.md) — initramfs/VFS, process, syscall, scheduler, PID 1, desktop and release gaps.
 - [Desktop interaction contract](docs/DESKTOP_INTERACTION_CONTRACT.md) — shared Aurora/Marine right-click menus, Properties, rename, double-click, keyboard shortcuts, depth-styled controls and explicit preview/native boundaries.
 - VoiceConnect appears in both Aurora and Marine as an optional external application. The live image stages desktop launchers; a missing local package opens the upstream project rather than pretending VoiceConnect is installed.
 
