@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ $# -ne 3 ]]; then
-  echo "usage: $0 <grub.cfg> <spitfire-menu.cfg> <jasper-live.cfg>" >&2
+if [[ $# -lt 3 || $# -gt 4 ]]; then
+  echo "usage: $0 <grub.cfg> <spitfire-menu.cfg> <jasper-live.cfg> [native-runtime-candidates.json]" >&2
   exit 2
 fi
 root_cfg="$1"
@@ -28,4 +28,13 @@ grep -Fq '/boot/recovery/chimera-recovery-initramfs.img' "$jasper_cfg"
 grep -Fq 'Native Koronos Installer runtime incomplete' "$jasper_cfg"
 grep -Fq 'Native Koronos Recovery runtime incomplete' "$jasper_cfg"
 ! grep -Eq '^[[:space:]]*linux .* quiet([[:space:]]|$)' "$jasper_cfg"
+if [[ $# -eq 4 ]]; then
+  python3 - "$4" <<'PY'
+import json, pathlib, sys
+m=json.loads(pathlib.Path(sys.argv[1]).read_text())
+assert m["status"] == "prototype-built-not-native-koronos-runtime"
+assert m["installer"]["bootable_by_koronos"] is False
+assert m["recovery"]["bootable_by_koronos"] is False
+PY
+fi
 echo "Spit Fire -> Jasper/GRUB2 configfile chain, target routing, fail-closed native handoffs and verbose framebuffer policy: PASS"
