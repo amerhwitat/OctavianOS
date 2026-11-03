@@ -312,11 +312,11 @@ if source.count(exec_line) != 1:
 if "AURORA_DESKTOP_URI=" in source:
     raise SystemExit("Aurora desktop URI must be injected exactly once")
 before_exec = (
-    'if grep -qw "chm.desktop=marine" /proc/cmdline && [ -s /opt/aurora/desktop/marine/index.html ]; then\\n'
-    '  export AURORA_DESKTOP_URI="file:///opt/aurora/desktop/marine/index.html"\\n'
-    'else\\n'
-    '  export AURORA_DESKTOP_URI="file:///opt/aurora/' + entry + '"\\n'
-    'fi\\n'
+    'if grep -qw "chm.desktop=marine" /proc/cmdline && [ -s /opt/aurora/desktop/marine/index.html ]; then\n'
+    '  export AURORA_DESKTOP_URI="file:///opt/aurora/desktop/marine/index.html"\n'
+    'else\n'
+    '  export AURORA_DESKTOP_URI="file:///opt/aurora/' + entry + '"\n'
+    'fi\n'
     'feh --bg-fill /usr/share/backgrounds/aurora-default.jpg 2>/dev/null || true\n'
     'if [[ -x /usr/local/bin/aurora-init-splash.sh && -s /usr/share/chimera/aurora/assets/Init.mp4 ]] && command -v mpv >/dev/null 2>&1; then\n'
     '  CHIMERA_INIT_VIDEO=/usr/share/chimera/aurora/assets/Init.mp4 CHIMERA_SPLASH_MAX_SECONDS=12 /usr/local/bin/aurora-init-splash.sh || echo "[Aurora] Splash failed; continuing."\n'
