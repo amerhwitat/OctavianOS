@@ -240,7 +240,6 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
     ctest --test-dir /var/tmp/chimera-sdk-build --output-on-failure
     DESTDIR=/var/tmp/chimera-sdk-stage cmake --install /var/tmp/chimera-sdk-build
   "
-  umount_chroot "$WORK"
   mkdir -p "$SDK_PAY/rootfs"
   cp -a "$WORK/var/tmp/chimera-sdk-stage/opt/chimera-sdk" "$SDK_PAY/rootfs/"
   mkdir -p "$WORK/opt/chimera-sdk"
@@ -262,6 +261,7 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
     cp -f "$SDK_PAY"/lib/rust/libchimera_runtime* "$WORK/opt/chimera-sdk/lib/rust/" 2>/dev/null || true
     compgen -G "$SDK_PAY/lib/rust/libchimera_runtime*" >/dev/null && RUST_STATUS="built"
   fi
+  umount_chroot "$WORK"
   JAVA_STATUS="not-built"
   [ ! -s "$SDK_PAY/chimera-sdk.jar" ] || JAVA_STATUS="built"
   python3 - "$SDK_PAY/sdk-build-status.json" "$ED" "$SDK_REL" "$JAVA_STATUS" "$RUST_STATUS" <<'PY'
