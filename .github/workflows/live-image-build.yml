@@ -233,6 +233,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Check out the exact source revision containing the QEMU acceptance script
+        uses: actions/checkout@v4
       - name: Download the exact ISO built by this workflow
         uses: actions/download-artifact@v4
         with:
