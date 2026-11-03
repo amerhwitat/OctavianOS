@@ -350,7 +350,7 @@ $TITLE live image — $VERSION
 ===============================
 Desktop : $ENTRY (fullscreen kiosk)
 Keys    : Ctrl+Q quit kiosk · Ctrl+R reload · Ctrl+Alt+F2 text console
-Console : login live / live (passwordless sudo; root account locked)
+Console : tty1 autologin live (passwordless sudo; live/root password hashes locked)
 Menu    : "Classic X session" boots openbox + xterm
 Artwork : /opt/aurora/wallpapers and /usr/share/backgrounds/$SHORT
 Apps    : /opt/aurora/app-catalogs and /opt/aurora/apps/native
@@ -431,7 +431,7 @@ chmod 755 "$WORK/etc/xinitrc"
 chroot "$WORK" /bin/bash -c "
   set -e
   id live >/dev/null 2>&1 || useradd -m -u 1000 -s /bin/bash -G sudo,video,audio,input live
-  echo 'live:live' | chpasswd
+  passwd -l live
   passwd -l root
 "
 echo 'live ALL=(ALL) NOPASSWD:ALL' > "$WORK/etc/sudoers.d/90-live"
