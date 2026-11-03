@@ -278,7 +278,7 @@ else
   echo "[SKIP] Chimera SDK CMake source missing at $SDK_SRC"
   printf '{"schema":"CHIMERA-SDK-BUILD-STATUS-1","native_c_cpp":"source-only-no-cmake-project"}\n' > "$SDK_PAY/sdk-build-status.json"
 fi
-\n# Compile repository-owned native desktop application binaries from the pinned source.
+# Compile repository-owned native desktop application binaries from the pinned source.
 DESKTOP_REL="."
 [ "$ED" = "octavian" ] && DESKTOP_REL="vendor/chimera-ii-os/source"
 DESKTOP_BUILDER="$PAY/repo/$DESKTOP_REL/tools/build-desktop-binaries.sh"
