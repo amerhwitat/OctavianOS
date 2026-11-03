@@ -678,8 +678,42 @@ install -m 0644 "$HERE/spitfire-menu.cfg" "$ISODIR/boot/spitfire/spitfire-menu.c
 install -m 0644 "$HERE/gates-menu.cfg" "$ISODIR/boot/gates/gates-menu.cfg"
 install -m 0644 "$HERE/jasper-live.cfg" "$ISODIR/boot/jasper/live-image.cfg"
 install -D -m 0644 "$PAY/wallpapers/wp01.jpg" "$ISODIR/boot/grub/background.jpg"
-# Embed the startup video with the boot menus for provenance; Linux/Openbox plays it after selection.
-install -D -m 0644 "$WORK/usr/share/chimera/aurora/assets/Init.mp4" "$ISODIR/boot/spitfire/Init.mp4"
+# Carry the exact repository Init.mp4 through every boot-menu namespace.
+# GRUB/Jasper preserve their SVG/JPEG/framebuffer visuals and only report that
+# the MP4 asset is present; they do not decode/play MP4. The Linux/Openbox
+# Aurora session plays this same file after the window manager is ready and
+# before the fullscreen kiosk is launched.
+INIT_VIDEO="$WORK/usr/share/chimera/aurora/assets/Init.mp4"
+test -s "$INIT_VIDEO" || { echo "ERROR: canonical Aurora Init.mp4 is missing from the live rootfs." >&2; exit 2; }
+for boot_stage in visual spitfire jasper grub; do
+  install -D -m 0644 "$INIT_VIDEO" "$ISODIR/boot/$boot_stage/Init.mp4"
+done
+python3 - "$INIT_VIDEO" "$ISODIR/boot/visual/init-video-manifest.json" <<'PY_INIT_VIDEO'
+import hashlib, json, pathlib, sys
+source, output = map(pathlib.Path, sys.argv[1:])
+data = source.read_bytes()
+manifest = {
+    "schema": "OCTAVIAN-BOOT-VIDEO-1",
+    "source": "vendor/chimera-ii-os/source/desktop/aurora/assets/Init.mp4",
+    "sha256": hashlib.sha256(data).hexdigest(),
+    "bytes": len(data),
+    "staged_paths": [
+        "/boot/visual/Init.mp4",
+        "/boot/spitfire/Init.mp4",
+        "/boot/jasper/Init.mp4",
+        "/boot/grub/Init.mp4",
+        "/usr/share/chimera/aurora/assets/Init.mp4"
+    ],
+    "playback": {
+        "stage": "Aurora Linux/Openbox session after window-manager readiness and before fullscreen kiosk startup",
+        "player": "mpv",
+        "max_seconds": 12,
+        "grub_mp4_playback": False
+    }
+}
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text(json.dumps(manifest, indent=2) + "\\n")
+PY_INIT_VIDEO
 # Build separate native Koronos Installer and Recovery initramfs candidates.
 # They are deliberately staged outside the active boot paths: the current
 # native CPL3/userspace acceptance gate has not certified these runtimes.
