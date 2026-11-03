@@ -7,6 +7,7 @@ on:
       - 'live-image/**'
       - 'tools/polyglot_apps.py'
       - 'tools/build-repository-sdks.sh'
+      - 'tools/iso/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'live-image/**'
       - 'tools/polyglot_apps.py'
+      - 'tools/iso/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -99,6 +101,8 @@ jobs:
           python3 -m json.tool desktop/shared/network-applications.json >/dev/null
           bash -n tools/build-repository-sdks.sh desktop/shared/voiceconnect-launcher.sh
           python3 -m unittest discover -s tests/live-image -p 'test_desktop_*.py'
+          python3 -m py_compile tools/iso/build_artifact_manifest.py tests/live-image/test_iso_artifact_manifest.py
+          python3 -m unittest discover -s tests/live-image -p 'test_iso_artifact_manifest.py' -v
           bash -n live-image/build.sh live-image/lib/chimera-boot-mode.sh live-image/lib/chimera-recovery.sh tests/live-image/test-grub-targets.sh tests/live-image/test-qemu-live-boot.sh tests/live-image/test-init-video-boot-indicator.sh
           bash -n tests/live-image/test-init-video-boot-indicator.sh
           bash tests/live-image/test-init-video-boot-indicator.sh
@@ -145,6 +149,30 @@ jobs:
           iso="$OUT_DIR/$ISO_NAME"
           (cd "$OUT_DIR" && sha256sum --check "$ISO_NAME.sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain -print '' | tee "$OUT_DIR/ISO-BOOT-REPORT.txt"
+          xorriso -osirrox on -indev "$iso" -extract /boot/artifact-manifest.json "$OUT_DIR/artifact-manifest.json" >/dev/null
+          xorriso -osirrox on -indev "$iso" -extract /boot/candidates/native-runtime-candidates.json "$OUT_DIR/native-runtime-candidates.json" >/dev/null
+          python3 - "$OUT_DIR/artifact-manifest.json" "$OUT_DIR/native-runtime-candidates.json" <<'PY_ARTIFACTS'
+          import json, pathlib, sys
+          manifest=json.loads(pathlib.Path(sys.argv[1]).read_text())
+          candidates=json.loads(pathlib.Path(sys.argv[2]).read_text())
+          assert manifest["schema"] == "OCTAVIAN-ISO-ARTIFACTS-1"
+          paths={x["path"]:x for x in manifest["artifacts"]}
+          required={
+            "live/vmlinuz","live/initrd.img","live/filesystem.squashfs",
+            "boot/grub/grub.cfg","boot/koronos.elf",
+            "boot/spitfire/spitfire-sf0-mbr.bin","boot/spitfire/spitfire-stage2.bin",
+            "boot/candidates/installer/installation.img",
+            "boot/candidates/recovery/chimera-recovery-initramfs.img",
+            "boot/visual/Init.mp4"
+          }
+          missing=sorted(required-set(paths))
+          assert not missing, "artifact manifest omits: "+", ".join(missing)
+          assert all(paths[p]["bytes"] > 0 and len(paths[p]["sha256"]) == 64 for p in required)
+          assert candidates["status"] == "prototype-built-not-native-koronos-runtime"
+          assert candidates["installer"]["bootable_by_koronos"] is False
+          assert candidates["recovery"]["bootable_by_koronos"] is False
+          print(f"ISO artifact inventory verified: {manifest['artifact_count']} files; candidate runtimes remain fail-closed.")
+          PY_ARTIFACTS
           xorriso -osirrox on -indev "$iso" -extract /boot/koronos.elf "$OUT_DIR/koronos.elf" >/dev/null
           python3 - "$OUT_DIR/koronos.elf" <<'PY'
           import pathlib, struct, sys
