@@ -101,7 +101,7 @@
 
 **Interfaces:**
 - Consumes: verified package source/index and process/service capability adapter for the actual backend.
-- Produces: package actions that show source/version/hash and request elevation explicitly; task list that reports real processes or an explicit unsupported state.
+- Produces: package actions that show source/version/hash and request elevation explicitly; `top`/`htop` launchers and a task list that report real processes or an explicit unsupported state.
 
 - [ ] **Step 1: Add failing tests** for bad signature/hash, non-elevated installation, cancellation, missing backend, and fake task/process data.
 - [ ] **Step 2: Run** the focused package/task manager tests. Expected: fake or unsafe operations are rejected.
