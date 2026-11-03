@@ -52,3 +52,22 @@ steps are implemented and independently observed:
 
 This document records the current limitation and acceptance contract; it does
 not claim that the native installer loader has been completed.
+
+
+## Existing Init.mp4 boot indicator
+
+The Octavian live-image build consumes the existing
+`vendor/chimera-ii-os/source/desktop/aurora/assets/Init.mp4` asset (the
+`assets/library/Init.mp4` copy must remain byte-identical). It stages the same
+video at `/boot/visual/Init.mp4`, `/boot/spitfire/Init.mp4`,
+`/boot/jasper/Init.mp4`, and `/boot/grub/Init.mp4`, and retains the runtime
+copy at `/usr/share/chimera/aurora/assets/Init.mp4`. A SHA-256 manifest records
+the source bytes and stage paths.
+
+GRUB/Jasper do not decode MP4. Their SVG/JPEG/framebuffer artwork and verbose
+text progress remain the early boot indicator; the GRUB menu only reports that
+the media is present. The Linux/Openbox Aurora live session invokes the existing
+Aurora splash player after Openbox becomes ready and before starting the
+fullscreen kiosk. Playback is bounded to 12 seconds and is not a prerequisite
+for desktop startup. This is a Linux live-session visual, not evidence of
+native Koronos userspace readiness or a native Installer/Recovery handoff.
