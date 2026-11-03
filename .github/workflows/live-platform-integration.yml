@@ -1,0 +1,26 @@
+name: Live platform integration
+
+on:
+  push:
+    branches: [main, "integration/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  live-platform-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate live image and media scripts
+        run: |
+          bash -n live-image/build.sh
+          bash -n live-image/media/chimera-media-manager.sh
+          python3 -m unittest discover -s tests/platform -v
+      - name: Build and test the pinned Chimera SDK
+        run: |
+          cmake -S vendor/chimera-ii-os/source/sdk -B "$RUNNER_TEMP/chimera-sdk" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/chimera-sdk
+          cmake --build "$RUNNER_TEMP/chimera-sdk" --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/chimera-sdk" --output-on-failure
