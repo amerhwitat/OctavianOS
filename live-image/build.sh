@@ -132,7 +132,7 @@ if [ ! -f "$BASE/.packages-installed-v3" ]; then
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed-v2"
+  touch "$BASE/.packages-installed-v3"
 fi
 
 # ------------------------------------------------------------- rootfs copy
