@@ -243,15 +243,23 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
   umount_chroot "$WORK"
   mkdir -p "$SDK_PAY/rootfs"
   cp -a "$WORK/var/tmp/chimera-sdk-stage/opt/chimera-sdk" "$SDK_PAY/rootfs/"
+  mkdir -p "$WORK/opt/chimera-sdk"
+  cp -a "$SDK_PAY/rootfs/opt/chimera-sdk/." "$WORK/opt/chimera-sdk/"
   if [ -x "$WORK/usr/bin/javac" ] && [ -f "$SDK_SRC/java/build.sh" ]; then
     chroot "$WORK" /bin/bash -c "bash /opt/aurora/repo/$SDK_REL/java/build.sh"
-    [ ! -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" ] || cp -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" "$SDK_PAY/"
+    [ ! -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" ] || {
+      cp -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" "$SDK_PAY/"
+      mkdir -p "$WORK/opt/chimera-sdk/lib"
+      cp -f "$PAY/repo/$SDK_REL/java/chimera-sdk.jar" "$WORK/opt/chimera-sdk/lib/"
+    }
   fi
   RUST_STATUS="not-built"
   if [ -x "$WORK/usr/bin/cargo" ] && [ -f "$SDK_SRC/rust/chimera-runtime/Cargo.toml" ]; then
     chroot "$WORK" /bin/bash -c "cargo build --manifest-path /opt/aurora/repo/$SDK_REL/rust/chimera-runtime/Cargo.toml --release"
     mkdir -p "$SDK_PAY/lib/rust"
     find "$PAY/repo/$SDK_REL/rust/chimera-runtime/target/release" -maxdepth 1 -type f \( -name 'libchimera_runtime*.so' -o -name 'libchimera_runtime*.a' \) -exec cp -f {} "$SDK_PAY/lib/rust/" \; 2>/dev/null || true
+    mkdir -p "$WORK/opt/chimera-sdk/lib/rust"
+    cp -f "$SDK_PAY"/lib/rust/libchimera_runtime* "$WORK/opt/chimera-sdk/lib/rust/" 2>/dev/null || true
     compgen -G "$SDK_PAY/lib/rust/libchimera_runtime*" >/dev/null && RUST_STATUS="built"
   fi
   JAVA_STATUS="not-built"
@@ -294,6 +302,7 @@ if [ -s "$NATIVE_SHELL_SRC" ]; then
   umount_chroot "$WORK"
   mkdir -p "$PAY/apps/native/bin"
   cp -f "$WORK/usr/local/bin/chimera-desktop-shell" "$PAY/apps/native/bin/"
+  mkdir -p "$WORK/usr/share/applications"
   cat > "$WORK/usr/share/applications/chimera-aurora-shell.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -330,8 +339,10 @@ every page's background picker. \`repo/\` is a verbatim snapshot of the source t
 The image boots a Linux kernel. Openbox manages the Aurora kiosk fullscreen state.
 Offline application catalogs and first-party application sources are staged under
 app-catalogs/ and apps/native/; catalog-only upstream entries are not misrepresented
-as installed applications. The native Spit Fire/Koronos kernel remains a separate
-release track until its userspace handoff is verified.
+as installed applications. The image also includes the compiled Chimera SDK and
+native desktop application binaries when their build checks pass. Removable media
+is managed under /media; optical media is read-only. The native Spit Fire/Koronos
+kernel remains a separate release track until its userspace handoff is verified.
 EOF
 
 cat > "$PAY/README.txt" <<EOF
@@ -339,10 +350,13 @@ $TITLE live image — $VERSION
 ===============================
 Desktop : $ENTRY (fullscreen kiosk)
 Keys    : Ctrl+Q quit kiosk · Ctrl+R reload · Ctrl+Alt+F2 text console
-Console : login live / live (passwordless sudo)
+Console : login live / live (passwordless sudo; root account locked)
 Menu    : "Classic X session" boots openbox + xterm
 Artwork : /opt/aurora/wallpapers and /usr/share/backgrounds/$SHORT
 Apps    : /opt/aurora/app-catalogs and /opt/aurora/apps/native
+SDK     : /opt/chimera-sdk (compiled SDK, headers and examples)
+Media   : /media (optical read-only; approved removable filesystems)
+Network : ip, bridge, tc, nft, FRR/BIRD/OVS tooling (daemons disabled by default)
 Source  : $REPO_URL
 EOF
 
