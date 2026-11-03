@@ -29,6 +29,7 @@ class DesktopInteractionLayerTests(unittest.TestCase):
             'oct-managed-window', 'oct-maximized', 'oct-minimized', 'arrangeWindows',
             'Tile Windows', 'Cascade Windows', 'AudioContext', 'e.detail===3',
             'Minimize', 'Maximize or restore', 'scrollbar-gutter:stable',
+            'Toggle UI Sounds', 'soundEnabledKey', 'prefers-reduced-motion:reduce',
         ):
             self.assertIn(contract, source)
 
