@@ -97,15 +97,14 @@ extern "C" int chimera_interrupt_get_snapshot(chimera_interrupt_snapshot *out) {
 extern "C" uint32_t koronos_target_note_user_syscall(uint64_t user_rip, uint64_t user_cs);
 extern "C" void koronos_target_log(const char *message);
 
-extern "C" void chimera_interrupt_dispatch(uint64_t vector, uint64_t frame) {
+extern "C" void chimera_interrupt_dispatch(uint64_t vector, const chimera_interrupt_frame *frame) {
     static volatile uint32_t first_transition_exception = 0;
     if (vector > 255u) return;
     /* Emit one address-bearing record for the first transition exception.
      * Repeatedly IRET'ing to the same faulting RIP must not flood debugcon. */
     if ((vector == 6u || vector == 13u || vector == 14u) &&
         __sync_bool_compare_and_swap(&first_transition_exception, 0u, 1u)) {
-        const uint64_t *saved = reinterpret_cast<const uint64_t *>(static_cast<uintptr_t>(frame));
-        const uint64_t rip = saved ? saved[16] : 0u;
+        const uint64_t rip = chimera_interrupt_frame_rip(frame, vector);
         const char *kind = vector == 6u ? "[EXC] #UD RIP=0x" :
                            (vector == 13u ? "[EXC] #GP RIP=0x" : "[EXC] #PF RIP=0x");
         char message[64]; unsigned int pos = 0;
@@ -124,11 +123,12 @@ extern "C" void chimera_interrupt_dispatch(uint64_t vector, uint64_t frame) {
         ++g_syscalls;
     }
     if (vector == CHIMERA_SYSCALL_VECTOR && frame) {
-        /* interrupts.asm saves 15 GPRs, then vector, then the hardware frame:
-         * frame[16] is RIP and frame[17] is CS. INT 0x80's IDT gate is DPL3;
-         * still check the CPU-saved RPL explicitly before acknowledging. */
-        const uint64_t *saved = reinterpret_cast<const uint64_t *>(static_cast<uintptr_t>(frame));
-        (void)koronos_target_note_user_syscall(saved[16], saved[17]);
+        /* The typed frame accessor accounts for CPU-pushed error codes.
+         * INT 0x80 has no error code; CS.RPL is still checked by the target
+         * handoff before it accepts the syscall acknowledgement. */
+        (void)koronos_target_note_user_syscall(
+            chimera_interrupt_frame_rip(frame, vector),
+            chimera_interrupt_frame_cs(frame, vector));
     }
     chimera_interrupt_identity identity{};
     chimera_compat_recognize_interrupt((uint32_t)vector, &identity);
