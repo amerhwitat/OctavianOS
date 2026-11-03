@@ -6,6 +6,7 @@ on:
     paths:
       - 'live-image/**'
       - 'tools/polyglot_apps.py'
+      - 'tools/build-repository-sdks.sh'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
