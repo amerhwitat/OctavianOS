@@ -4,6 +4,15 @@ This change adds a shared interaction layer to the Aurora Wayland Glass and Mari
 browser-desktop previews. It does not replace the GTK/Wayland native shell, a real file
 manager, or the window compositor.
 
+## Application menus
+
+Both desktop previews expose functional **File, Edit, View, Window and Help** menus.
+File opens Files/Explorer, Terminal or Properties; Edit renames or copies the selected
+shortcut link; View opens backgrounds or refreshes the preview; Window opens the Start /
+Applications launcher or shows the desktop; Help displays keyboard shortcuts and an
+About dialog. Actions unavailable in a given preview report that state instead of
+pretending a native application was started.
+
 ## Pointer behavior
 
 - A single click selects a desktop shortcut.
