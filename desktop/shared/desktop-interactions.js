@@ -109,7 +109,7 @@
     item.addEventListener("click",e=>{
       const now=Date.now(), same=lastClickItem===item, delta=now-lastClickAt;
       if(item.matches("a") && item.closest(".desktop,.workspace,.shortcuts,.icon-grid,.apps,.dock,.taskbar"))e.preventDefault();
-      if(same && delta>360 && (e.target.closest("span,small,b,strong")||e.target===item)){select(item);rename(item);}
+      if(same && delta>700 && (e.target.closest("span,small,b,strong")||e.target===item)){select(item);rename(item);}
       else select(item);
       lastClickItem=item;lastClickAt=now;
     });
