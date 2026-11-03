@@ -101,7 +101,7 @@ jobs:
           python3 -m unittest discover -s tests/live-image -p 'test_desktop_*.py'
           bash -n live-image/build.sh live-image/lib/chimera-boot-mode.sh live-image/lib/chimera-recovery.sh tests/live-image/test-grub-targets.sh tests/live-image/test-qemu-live-boot.sh tests/live-image/test-init-video-boot-indicator.sh
           bash -n tests/live-image/test-init-video-boot-indicator.sh
-          tests/live-image/test-init-video-boot-indicator.sh
+          bash tests/live-image/test-init-video-boot-indicator.sh
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
