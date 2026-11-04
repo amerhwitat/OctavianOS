@@ -410,7 +410,7 @@ for path in sorted(root.rglob("*")):
 out.write_text(json.dumps({"schema":"octavian-native-app-bundle-v1",
                            "binaries":items,
                            "policy":"Only executable first-party build outputs are staged; catalog references are not binaries."},
-                          indent=2)+"\\n")
+                          indent=2)+"\n")
 PYBIN
 
 # Build a local, provenance-tracked JSON knowledge database for desktop retrieval.
