@@ -340,7 +340,7 @@ if [ -x "$REPO_DIR/tools/build-sdks.sh" ]; then
   log "sdk build"
   mkdir -p "$PAY/reports"
   bash "$REPO_DIR/tools/build-sdks.sh" --out "$PAY/reports/sdk-build-report.json" \
-    --max 12 --timeout 180
+    --max 100 --timeout 180
   python3 -c 'import json,pathlib,sys; p=pathlib.Path(sys.argv[1]); p.is_file() or sys.exit("SDK build report missing"); s=json.loads(p.read_text()).get("summary",{}); print("SDK build summary:",s); sys.exit(1 if int(s.get("failed",0))+int(s.get("timeout",0)) else 0)' "$PAY/reports/sdk-build-report.json"
   # macOS app cross-development: package first-party templates and status only.
   # Proprietary Apple SDK content is never copied into the image.
