@@ -345,6 +345,24 @@ if [ -s "$DESKTOP_BUILDER" ]; then
     cp -f "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$PAY/apps/native/manifests/"
   fi
 fi
+    python3 - "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$WORK/usr/local/bin" "$WORK/usr/share/applications" <<'PYDESKTOP'
+import json, pathlib, sys
+manifest_path, binaries, desktop_dir = map(pathlib.Path, sys.argv[1:])
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+for item in manifest.get("native_binaries", []):
+    name = pathlib.Path(item).name
+    if not (binaries / name).is_file():
+        continue
+    terminal = name in {"chimera-neural-chat", "voiceconnect", "chm-utf8"}
+    title = name.replace("-", " ").replace("_", " ").title()
+    if name == "chimera-neural-chat":
+        title = "Chimera Neural Chat (prototype)"
+    (desktop_dir / ("octavian-built-" + name + ".desktop")).write_text(
+        "[Desktop Entry]\nType=Application\nName=" + title +
+        "\nComment=First-party desktop application\nExec=/usr/local/bin/" + name +
+        "\nTerminal=" + ("true" if terminal else "false") +
+        "\nCategories=Utility;Development;\n", encoding="utf-8")
+PYDESKTOP
 # Compile and headlessly validate the shared native GTK4 Aurora/Marine shell.
 NATIVE_SHELL_SRC="$PAY/repo/desktop/native/chimera-desktop-shell.cpp"
 if [ -s "$NATIVE_SHELL_SRC" ]; then
