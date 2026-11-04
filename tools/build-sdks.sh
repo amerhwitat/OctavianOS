@@ -135,7 +135,12 @@ fi
 count=0
 for entry in "${FOUND[@]}"; do
   [ -z "$entry" ] && continue
-  kind="${entry%%
+  kind="${entry%%$'\t'*}"; rel="${entry#*$'\t'}"
+  if [ "$count" -ge "$MAX" ]; then
+    record "$kind" "$rel" "skipped" 0 "not attempted: --max $MAX build limit reached"
+    continue
+  fi
+  dir="$ROOT/$(dirname "$rel")"
   slug="$(printf '%s' "$rel" | tr '/ ' '__')"
   case "$kind" in
     cmake)
