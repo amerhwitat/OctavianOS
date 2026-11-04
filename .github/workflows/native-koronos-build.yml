@@ -508,7 +508,7 @@ jobs:
           cd ..
           mkdir -p dist/six-case-evidence
           set +e
-          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+          python3 tools/boot/verify-six-case-matrix.py \
             --iso dist/output.iso \
             --evidence-dir dist/six-case-evidence \
             --report dist/six-case-report.json
