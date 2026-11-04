@@ -277,7 +277,10 @@ static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        if (!chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+            console_write("[REC ] Recovery initramfs is present, but no native recovery init ELF was supplied");
+        else
+            console_write("[REC ] Native recovery init ELF supplied; repair operations remain report-only until a repair backend is available");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -323,7 +326,10 @@ static void task_installer(void *) {
             break;
         case 4:
             console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
+            if (!chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+                console_write("[INST] No native installer init ELF was supplied; userspace handoff is unavailable");
+            else
+                console_write("[INST] Native installer init ELF supplied; this target payload remains a report-only dry run and performs no disk writes");
             chimera_sched_block();
             break;
         default:
@@ -410,11 +416,8 @@ extern "C" void chimera_register_pci_generic_drivers(void);
 extern "C" int64_t koronos_console_write_user(uint64_t address, uint64_t length) {
     if (length == 0) return 0;
     if (length > 4096u) return -22;
-    uint64_t root = 0;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(root));
-    if (koronos_address_space_validate_user_range(root, address, length, 0u) != 0)
-        return -14;
-    const auto *bytes = reinterpret_cast<const uint8_t *>(static_cast<uintptr_t>(address));
+    uint8_t bytes[4096];
+    if (koronos_copy_from_user(bytes,address,length)!=0) return -14;
     (void)koronos_target_note_user_write(reinterpret_cast<const char *>(bytes), length);
     for (uint64_t i = 0; i < length; ++i) debugcon_write8(bytes[i]);
     return static_cast<int64_t>(length);
