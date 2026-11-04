@@ -422,6 +422,7 @@ if [ -s "$REPO_DIR/tools/knowledge/build-json-index.py" ]; then
   python3 "$REPO_DIR/tools/knowledge/build-json-index.py" --out "$PAY/knowledge/knowledge-index.json"
   cp -f "$PAY/knowledge/knowledge-index.json" "$WORK/var/lib/octavian/knowledge/"
   install -m 0755 "$REPO_DIR/tools/knowledge/build-json-index.py" "$WORK/usr/lib/octavian/tools/knowledge/build-json-index.py"
+  install -m 0755 "$REPO_DIR/tools/knowledge/knowledge-chat.py" "$WORK/usr/lib/octavian/tools/knowledge/knowledge-chat.py"
   cat > "$WORK/usr/share/octavian/knowledge-runtime.json" <<'EOF'
 {
   "schema": "octavian-local-ai-runtime-contract-v1",
@@ -435,6 +436,15 @@ if [ -s "$REPO_DIR/tools/knowledge/build-json-index.py" ]; then
 }
 EOF
   mkdir -p "$WORK/usr/share/applications"
+  cat > "$WORK/usr/share/applications/octavian-knowledge-chat.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Octavian Knowledge Chat
+Comment=Search the local knowledge database with source citations
+Exec=x-terminal-emulator -e python3 /usr/lib/octavian/tools/knowledge/knowledge-chat.py --index /var/lib/octavian/knowledge/knowledge-index.json
+Terminal=true
+Categories=Utility;Education;
+EOF
   cat > "$WORK/usr/share/applications/octavian-knowledge-index.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
