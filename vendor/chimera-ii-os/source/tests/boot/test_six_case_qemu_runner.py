@@ -21,6 +21,14 @@ class SixCaseQemuRunnerTests(unittest.TestCase):
     def test_firmware_and_target_order(self):
         self.assertEqual(RUNNER.TARGETS, ("live", "installer", "recovery"))
         self.assertEqual(RUNNER.FIRMWARES, ("bios", "uefi"))
+
+    def test_release_workflow_uses_actual_grub_menu_indices(self):
+        workflow = (SCRIPT.parents[5] / ".github/workflows/release-artifacts.yml").read_text(encoding="utf-8")
+        self.assertIn("--main-menu-index live=0", workflow)
+        self.assertIn("--main-menu-index installer=2", workflow)
+        self.assertIn("--main-menu-index recovery=5", workflow)
+        self.assertNotIn("--main-menu-index installer=3", workflow)
+        self.assertNotIn("--main-menu-index recovery=6", workflow)
     def test_runner_waits_for_grub_before_selecting_target_and_stays_under_memory_ceiling(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("time.sleep(3.0)", source)
