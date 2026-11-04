@@ -403,6 +403,11 @@ done
 # Ship executable products produced by the SDK and first-party application builds.
 # Catalog entries alone are not treated as installed applications.
 mkdir -p "$PAY/apps/native/bin" "$PAY/sdk" "$PAY/reports"
+if [ -d "$REPO_DIR/build/sdk/javac-out" ]; then
+  mkdir -p "$PAY/sdk/java-classes" "$WORK/opt/aurora/sdk/java-classes"
+  cp -a "$REPO_DIR/build/sdk/javac-out/." "$PAY/sdk/java-classes/"
+  cp -a "$REPO_DIR/build/sdk/javac-out/." "$WORK/opt/aurora/sdk/java-classes/"
+fi
 if [ -d "$REPO_DIR/build/sdk" ]; then
   while IFS= read -r -d '' bin; do
     case "$bin" in *.log|*.tmp|*/CMakeFiles/*) continue;; esac
