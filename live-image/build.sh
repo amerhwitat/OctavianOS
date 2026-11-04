@@ -86,8 +86,9 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-if [ ! -f "$BASE/.packages-installed" ]; then
-  log "installing shared package set (one-off)"
+PACKAGE_SET_VERSION="octavian-live-packages-2026-11-integrations-v1"
+if [ ! -f "$BASE/.packages-installed" ] || [ "$(cat "$BASE/.packages-installed" 2>/dev/null || true)" != "$PACKAGE_SET_VERSION" ]; then
+  log "installing/updating shared package set: $PACKAGE_SET_VERSION"
   mount_chroot "$BASE"
   DEBIAN_FRONTEND=noninteractive chroot "$BASE" /bin/bash -c '
     set -e
@@ -105,12 +106,15 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
-      e2fsprogs dosfstools parted gdisk alsa-utils kmod
+      e2fsprogs dosfstools parted gdisk alsa-utils kmod \
+      samba smbclient cifs-utils wsdd avahi-daemon \
+      realmd adcli sssd-ad sssd-ldap sssd-tools libnss-sss libpam-sss \
+      krb5-user ldap-utils libsasl2-modules-gssapi-mit udisks2 oddjob oddjob-mkhomedir
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed"
+  printf "%s\n" "$PACKAGE_SET_VERSION" > "$BASE/.packages-installed"
 fi
 
 # ------------------------------------------------------------- rootfs copy
