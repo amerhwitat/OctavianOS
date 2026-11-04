@@ -170,6 +170,16 @@ mkdir -p "$PAY/repo"
 tar -C "$REPO_DIR" --exclude=./.git --exclude=./live-image/.build -cf - . 2>/dev/null \
   | tar -C "$PAY/repo" -xf - 2>/dev/null || true
 
+# The vendored desktop builder compiles from the source snapshot. The GTK4 shell
+# source is maintained at the Octavian repository root, so stage it into the
+# vendor build tree explicitly rather than advertising a binary the builder
+# cannot produce.
+if [ "$ED" = "octavian" ] && [ -s "$PAY/repo/desktop/native/chimera-desktop-shell.cpp" ]; then
+  install -D -m 0644 \
+    "$PAY/repo/desktop/native/chimera-desktop-shell.cpp" \
+    "$PAY/repo/vendor/chimera-ii-os/source/desktop/native/chimera-desktop-shell.cpp"
+fi
+
 # Stage every repository-owned application catalog for offline discovery.
 # Catalog-only upstream references remain distinct from installed executables.
 mkdir -p "$PAY/app-catalogs" "$PAY/apps/native/aurora"
