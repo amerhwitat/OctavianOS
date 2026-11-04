@@ -172,6 +172,18 @@ KERNEL="$ROOT/build/koronos/x86_64/koronos.elf"
 [[ -s "$KERNEL" ]] || { echo "Koronos kernel ELF missing: $KERNEL" >&2; exit 1; }
 chimera_copy_if_distinct "$KERNEL" "$DIST/boot/koronos/koronos.elf"
 
+# Native target init payloads are separate Multiboot2 modules. The kernel
+# launcher will not infer a process from initramfs scripts.
+TARGET_BUILD="$ROOT/build/koronos/x86_64"
+mkdir -p "$DIST/boot/targets"
+for target in live installer recovery; do
+  artifact="$TARGET_BUILD/target-init-$target.elf"
+  [[ -s "$artifact" ]] || { echo "Native $target init ELF missing: $artifact" >&2; exit 2; }
+  readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "Native $target init is not ET_EXEC: $artifact" >&2; exit 2; }
+  readelf -lW "$artifact" | grep -Eq 'LOAD.*R E' || { echo "Native $target init lacks executable PT_LOAD: $artifact" >&2; exit 2; }
+  install -m 0644 "$artifact" "$DIST/boot/targets/target-init-$target.elf"
+done
+
 # Bootloader source/artifacts and Jasper recovery configuration.
 cp "$ROOT/boot/spitfire/sf0_mbr.asm" "$ROOT/boot/spitfire/sf1_longmode.asm" "$ROOT/boot/spitfire/sf2_loader.cpp" "$ROOT/boot/spitfire/sf2_loader.h" "$ROOT/boot/spitfire/spitfire.ld" "$DIST/boot/spitfire/"
 cp "$ROOT/boot/spitfire/sfu_uefi.c" "$ROOT/boot/spitfire/sfu_uefi.h" "$ROOT/boot/spitfire/sfu_uefi.ld" "$DIST/EFI/CHIMERA/"
