@@ -30,6 +30,13 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("six-case-evidence/report.json", self.text)
         self.assertIn("Current per-target repacked probe ISOs and test init ELFs are not production evidence.", self.text)
 
+    def test_alternate_release_artifact_workflow_cannot_bypass_six_case_gate(self):
+        alternate = (ROOT / ".github/workflows/release-artifacts.yml").read_text(encoding="utf-8")
+        section = alternate.split("  publish:", 1)[1]
+        self.assertIn("verify-six-case-matrix.outputs.accepted == 'true'", section)
+        self.assertIn("needs: [container, iso, verify-six-case-matrix]", section)
+        self.assertIn("verify-six-case-matrix.py", alternate)
+
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
         section = section.split("      - name:", 1)[0]
