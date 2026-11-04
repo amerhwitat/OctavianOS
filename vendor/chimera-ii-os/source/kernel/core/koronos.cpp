@@ -4,6 +4,7 @@
 #include "chimera/learning.h"
 #include "chimera/multiboot_modules.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/physmap.h"
 #include "chimera/address_space.h"
 #include "chimera/user_entry.h"
 #include "chimera/target_launch.h"
@@ -15,6 +16,11 @@
 #include "chimera/process.h"
 
 extern "C" void koronos_outb(uint16_t port, uint8_t value);
+
+/* Monitor task id, used by the idle loop to drive a periodic diagnostic tick.
+   Without it every bootstrap service blocks and the scheduler has no runnable
+   work, which reads as a stalled runtime. */
+extern "C" uint32_t koronos_monitor_task_id = 0;
 
 namespace {
 volatile uint32_t koronos_state = 0;
@@ -271,7 +277,10 @@ static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        if (!chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+            console_write("[REC ] Recovery initramfs is present, but no native recovery init ELF was supplied");
+        else
+            console_write("[REC ] Native recovery init ELF supplied; repair operations remain report-only until a repair backend is available");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -317,7 +326,10 @@ static void task_installer(void *) {
             break;
         case 4:
             console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
+            if (!chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+                console_write("[INST] No native installer init ELF was supplied; userspace handoff is unavailable");
+            else
+                console_write("[INST] Native installer init ELF supplied; this target payload remains a report-only dry run and performs no disk writes");
             chimera_sched_block();
             break;
         default:
@@ -337,14 +349,9 @@ static const char *task_state_name(uint32_t state) {
 }
 
 static void task_monitor(void *) {
-    static uint32_t ticks = 0;
-    // The scheduler is a tight cooperative loop; sampling every 10 dispatches
-    // floods VGA/serial output and makes a healthy kernel look hung. Keep the
-    // monitor live, but emit a full snapshot only once per 1000 monitor runs.
-    // This is currently a diagnostic snapshot, not a timer-driven service.
-    // Emit it once; repeated polling here floods VGA/serial and obscures the
-    // actual handoff state. A timer/event source can wake a periodic monitor later.
-    if (++ticks > 1u) { chimera_sched_block(); return; }
+    // Driven by the idle loop (koronos_idle_loop), which wakes this task when
+    // nothing else is runnable. Each wake emits one snapshot, then blocks again
+    // so the monitor never consumes the whole scheduler.
     chimera_task_info info[32]{};
     uint32_t n = chimera_sched_snapshot(info, 32);
     console_write("[MON ] ===== REAL-TIME KORONOS TASKS =====");
@@ -368,6 +375,9 @@ static void task_monitor(void *) {
         console_u32_raw((uint32_t)info[i].runs);
         console_endline();
     }
+    /* One snapshot per wake: block until the idle loop drives the next tick,
+       otherwise the scheduler re-dispatches the monitor immediately. */
+    chimera_sched_block();
 }
 
 static void task_kore(void *) {
@@ -391,6 +401,7 @@ static void koronos_submit_bootstrap_tasks() {
     int e = chimera_sched_submit(task_kore, 0, 95);
     int r = chimera_sched_submit(task_recovery, 0, 80);
     int m = chimera_sched_submit(task_monitor, 0, 60);
+    if (m > 0) koronos_monitor_task_id = (uint32_t)m;
     console_write("[SCH ] Bootstrap tasks submitted");
     console_write("[SCH ] console/module/live/installer/recovery/Kore services registered");
     if (a < 0 || b < 0 || c < 0 || d < 0 || e < 0 || r < 0 || m < 0)
@@ -437,10 +448,23 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     console_write("[HW  ] Initializing hardware...");
     uint32_t modules = chimera_multiboot_scan(ctx->boot_info);
     console_write("[MB2 ] Scanned Multiboot2 modules");
-    const int frame_init = koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end);
+    const int physmap_init = koronos_physmap_init();
+    if (physmap_init == 0) {
+        console_write("[MM  ] Verified four-GiB supervisor identity map");
+    } else {
+        console_write("[MM  ] ERROR: bootstrap physical mapping contract is invalid");
+    }
+    const int frame_init = (physmap_init == 0)
+        ? koronos_frame_allocator_init(ctx->boot_info, ctx->kernel_base, ctx->kernel_end) : -6;
     if (frame_init == 0) {
         console_write("[MM  ] Physical frame allocator initialized; free 4 KiB frames: ");
         console_u32(static_cast<uint32_t>(koronos_frame_free_count()));
+        const uint64_t frame_probe = koronos_frame_alloc_contiguous(2u);
+        if (frame_probe && koronos_frame_free_contiguous(frame_probe, 2u) == 0) {
+            console_write("[MM  ] Frame allocation/free self-test passed");
+        } else {
+            console_write("[MM  ] ERROR: frame allocation/free self-test failed");
+        }
     } else {
         console_write("[MM  ] ERROR: physical frame allocator initialization failed");
         console_write("[MM  ] User-image launch must remain disabled until memory ownership is valid");
