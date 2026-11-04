@@ -402,13 +402,18 @@ preflight(){
     fi
   fi
   command -v mksquashfs >/dev/null || { log_error 'mksquashfs is required'; exit 2; }
+  command -v cmake >/dev/null || { log_error 'CMake is required for the SDK build'; exit 2; }
+  command -v ctest >/dev/null || { log_error 'CTest is required for SDK regression tests'; exit 2; }
+  command -v gcc >/dev/null || { log_error 'GCC is required for SDK native components'; exit 2; }
+  command -v g++ >/dev/null || { log_error 'G++ is required for SDK native components'; exit 2; }
+  command -v python3 >/dev/null || { log_error 'Python 3 is required for SDK validation'; exit 2; }
 }
 state_get(){ [[ -f "$STATE_FILE" ]] && sed -n 's/^completed=//p' "$STATE_FILE" | tail -1 || true; }
 state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE" 2>/dev/null || log_warning "Build state could not be written to $STATE_FILE; continuing without persistent resume state."; }
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games macos-compat squashfs iso verify native-iso report'; local ci ti
+  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat squashfs iso verify native-iso report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -416,11 +421,11 @@ run_stage(){ CURRENT_STAGE="$1"; log_info "Starting stage: $1"; "$2"; state_mark
 
 check_deps(){
   header 'BUILD DEPENDENCIES'
-  if ! command -v docker >/dev/null || ! command -v cpio >/dev/null || ! command -v grub-mkrescue >/dev/null || ! command -v xorriso >/dev/null || ! command -v mksquashfs >/dev/null; then
+  if ! command -v docker >/dev/null || ! command -v cpio >/dev/null || ! command -v grub-mkrescue >/dev/null || ! command -v xorriso >/dev/null || ! command -v mksquashfs >/dev/null || ! command -v cmake >/dev/null || ! command -v ctest >/dev/null || ! command -v gcc >/dev/null || ! command -v g++ >/dev/null || ! command -v python3 >/dev/null; then
     if [[ "${CHIMERA_INSTALL_BUILD_DEPS:-0}" == 1 ]]; then
       bash "$SCRIPT_DIR/tools/chimera-build-deps.sh" || { log_error 'Build dependency fallback installer failed'; exit 2; }
     else
-      log_error 'Required build tools are missing. Install Docker, cpio, grub-mkrescue, xorriso and mksquashfs; optional fallback: CHIMERA_INSTALL_BUILD_DEPS=1.'
+      log_error 'Required build tools are missing. Install Docker, cpio, GRUB, xorriso, mksquashfs, CMake/CTest, GCC/G++ and Python 3.'
       exit 2
     fi
   fi
@@ -1400,6 +1405,36 @@ PYMACOS
   log_info "Octavian macOS compatibility status staged; Apple SDK contents are never copied."
 }
 
+stage_sdks(){
+  header 'BUILD, TEST AND STAGE THE POLYGLOT CHIMERA SDK'
+  local sdk_build="$BUILD_DIR/sdk"
+  local sdk_root="$ROOTFS_DIR/opt/chimera-sdk"
+  local sdk_iso="$ISO_DIR/system/sdk"
+  mkdir -p "$sdk_build" "$sdk_iso" "$ROOTFS_DIR"
+  CHIMERA_SDK_BUILD_DIR="$sdk_build" \
+    CHIMERA_SDK_DESTDIR="$ROOTFS_DIR" \
+    CHIMERA_SDK_PREFIX="/opt/chimera-sdk" \
+    CHIMERA_SDK_JOBS="${CHIMERA_SDK_JOBS:-2}" \
+    bash "$SCRIPT_DIR/sdk/tools/build-sdk.sh" 2>&1 | tee "$LOG_DIR/sdk-build.log"
+  [[ -s "$sdk_root/include/chimera/sdk.h" ]] || {
+    log_error "SDK headers were not staged into the ISO rootfs"; return 1;
+  }
+  [[ -s "$sdk_root/share/chimera/toolchain-smoke/status.txt" ]] || {
+    log_error "SDK toolchain smoke status was not staged into the ISO rootfs"; return 1;
+  }
+  mkdir -p "$sdk_root/share/chimera"
+  install -m 0644 "$SCRIPT_DIR/sdk/SDK_BUILD_MANIFEST.json" "$sdk_root/share/chimera/SDK_BUILD_MANIFEST.json"
+  install -m 0644 "$SCRIPT_DIR/sdk/manifest.json" "$sdk_root/share/chimera/manifest.json"
+  mkdir -p "$sdk_root/source"
+  cp -a "$SCRIPT_DIR/sdk/." "$sdk_root/source/"
+  cp -a "$sdk_root/." "$sdk_iso/"
+  find "$sdk_root" -maxdepth 4 -type f -print | sort > "$LOG_DIR/sdk-staged-files.txt"
+  [[ -s "$LOG_DIR/sdk-staged-files.txt" ]] || {
+    log_error "SDK staging manifest is empty"; return 1;
+  }
+  log_success "SDK compiled, tested and staged at /opt/chimera-sdk"
+}
+
 main(){
   # --docker-only is a true Docker pipeline, not a full ISO build with a flag ignored.
   if [[ "$BUILD_ISO" == 0 ]]; then
@@ -1440,7 +1475,7 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games macos-compat squashfs iso verify native-iso report; do
+  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat squashfs iso verify native-iso report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
@@ -1456,6 +1491,7 @@ main(){
       features) run_stage features stage_features;;
       package-managers) run_stage package-managers stage_package_managers;;
       games) run_stage games stage_games;;
+      sdk) run_stage sdk stage_sdks;;
       macos-compat) run_stage macos-compat stage_macos_compat;;
       squashfs) run_stage squashfs build_squashfs;;
       iso) run_stage iso build_iso;;
