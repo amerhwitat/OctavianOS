@@ -260,6 +260,7 @@ cp -f "$REPO_DIR/system/ai/README.md" "$PAY/ai/"
 cp -f "$REPO_DIR/tools/chimera-ai-workspace.py" "$PAY/ai/"
 python3 -m py_compile "$WORK/usr/bin/chimera-ai-workspace"
 python3 -m json.tool "$AI_SHARE/chimera-ai-workspace.json" >/dev/null
+python3 "$REPO_DIR/tests/test_chimera_ai_workspace.py"
 
 install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 
