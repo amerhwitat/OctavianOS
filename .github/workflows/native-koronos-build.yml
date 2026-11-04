@@ -455,15 +455,31 @@ jobs:
     steps:
       - name: Checkout OctavianOS verifier
         uses: actions/checkout@v4
-      - name: Run six-case verifier regression tests
+      - name: Install same-ISO QEMU BIOS/UEFI test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Run six-case verifier and QEMU runner regression tests
         working-directory: vendor/chimera-ii-os/source
-        run: python3 -m unittest discover -s tests/boot -p 'test_six_case_matrix.py' -v
+        run: |
+          python3 -m unittest discover -s tests/boot -p 'test_six_case_matrix.py' -v
+          python3 -m unittest discover -s tests/boot -p 'test_six_case_qemu_runner.py' -v
       - name: Download canonical native ISO candidate
         if: needs.build-koronos.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: octavianos-native-iso-candidate
           path: dist
+      - name: Boot one canonical native ISO for all six BIOS/UEFI cases
+        if: always()
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso || { echo "::warning::Canonical native ISO candidate is missing; no same-ISO QEMU traces can be collected."; exit 0; }
+          python3 vendor/chimera-ii-os/source/tools/boot/run-six-case-qemu.py \
+            --iso dist/output.iso \
+            --evidence-dir six-case-evidence \
+            --timeout 35
+          sha256sum dist/output.iso | tee six-case-evidence/canonical-iso.sha256
       - name: Verify one ISO across six target/firmware cases
         id: six_case
         if: always()
