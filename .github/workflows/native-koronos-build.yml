@@ -426,23 +426,28 @@ jobs:
 
   verify-userspace-handoff:
     name: Verify real Live, Installer, and Recovery userspace
-    needs: build-koronos
+    needs: [build-koronos, verify-six-case-matrix]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout OctavianOS verifier
         uses: actions/checkout@v4
-      - name: Download Live, Installer, and Recovery QEMU traces
+      - name: Download same-ISO six-case raw traces
+        if: always()
         uses: actions/download-artifact@v4
         with:
-          name: octavianos-full-iso-qemu-trace
-          path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+          name: octavianos-koronos-six-case-report
+          path: six-case-evidence
+      - name: Require actual user-mode init acknowledgement for every target and firmware
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          for target in live installer recovery; do
+            for firmware in bios uefi; do
+              trace="six-case-evidence/$target/$firmware/debugcon.log"
+              python3 tests/migration/verify-userspace-handoff.py "$target" "$trace" || result=1
+            done
+          done
           exit "$result"
 
   verify-six-case-matrix:
