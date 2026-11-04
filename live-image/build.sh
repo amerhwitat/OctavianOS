@@ -345,7 +345,8 @@ if [ -s "$DESKTOP_BUILDER" ]; then
     cp -f "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$PAY/apps/native/manifests/"
   fi
 fi
-    python3 - "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$WORK/usr/local/bin" "$WORK/usr/share/applications" <<'PYDESKTOP'
+    mkdir -p "$WORK/usr/share/applications"
+  python3 - "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$WORK/usr/local/bin" "$WORK/usr/share/applications" <<'PYDESKTOP'
 import json, pathlib, sys
 manifest_path, binaries, desktop_dir = map(pathlib.Path, sys.argv[1:])
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
