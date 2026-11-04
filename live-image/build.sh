@@ -439,6 +439,7 @@ if [ -s "$REPO_DIR/tools/knowledge/build-json-index.py" ]; then
   log "building local knowledge JSON database"
   mkdir -p "$PAY/knowledge" "$WORK/var/lib/octavian/knowledge" "$WORK/usr/lib/octavian/tools/knowledge"
   python3 "$REPO_DIR/tools/knowledge/build-json-index.py" --out "$PAY/knowledge/knowledge-index.json"
+  python3 "$REPO_DIR/tools/knowledge/knowledge-chat.py" --index "$PAY/knowledge/knowledge-index.json" --query "Aurora desktop" --limit 2 >/dev/null
   cp -f "$PAY/knowledge/knowledge-index.json" "$WORK/var/lib/octavian/knowledge/"
   install -m 0755 "$REPO_DIR/tools/knowledge/build-json-index.py" "$WORK/usr/lib/octavian/tools/knowledge/build-json-index.py"
   install -m 0755 "$REPO_DIR/tools/knowledge/knowledge-chat.py" "$WORK/usr/lib/octavian/tools/knowledge/knowledge-chat.py"
