@@ -109,6 +109,7 @@ jobs:
           test -x "$root/usr/bin/xprop"
           test -x "$root/usr/local/bin/aurora-session"
           test -s "$root/opt/aurora/application-bundle.json"
+          test -s "$root/opt/aurora/boot-platform.json"
           test -d "$root/opt/aurora/app-catalogs"
           test -d "$root/opt/aurora/apps/native/aurora"
           grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
@@ -117,6 +118,11 @@ jobs:
           root = pathlib.Path(sys.argv[1])
           manifest = json.loads((root / "application-bundle.json").read_text())
           assert manifest["schema"] == "aurora-offline-application-bundle-v1"
+          platform = json.loads((root / "boot-platform.json").read_text())
+          assert platform["schema"] == "octavian-live-platform-v1"
+          assert platform["kernel_family"] == "linux" and platform["native_koronos"] is False
+          assert platform["image_role"] == "live-desktop"
+          assert platform["installer_target"] is False and platform["recovery_target"] is False
           for relative in manifest["catalog_files"]:
               path = root / "app-catalogs" / relative
               assert path.is_file(), f"missing catalog: {relative}"
