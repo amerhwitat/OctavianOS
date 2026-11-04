@@ -1,0 +1,60 @@
+name: Vendored Registry, Network and Optical Integration
+on:
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/services/registry/**"
+      - "vendor/chimera-ii-os/source/services/network/**"
+      - "vendor/chimera-ii-os/source/services/storage/**"
+      - "vendor/chimera-ii-os/source/system/integrations/**"
+      - "vendor/chimera-ii-os/source/desktop/aurora-shell/**"
+      - "vendor/chimera-ii-os/source/tests/integrations/**"
+      - ".github/workflows/chimera-integrations-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/services/registry/**"
+      - "vendor/chimera-ii-os/source/services/network/**"
+      - "vendor/chimera-ii-os/source/services/storage/**"
+      - "vendor/chimera-ii-os/source/system/integrations/**"
+      - "vendor/chimera-ii-os/source/desktop/aurora-shell/**"
+      - "vendor/chimera-ii-os/source/tests/integrations/**"
+      - ".github/workflows/chimera-integrations-contract.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python syntax
+        run: |
+          cd vendor/chimera-ii-os/source
+          python -m py_compile services/registry/registryd.py services/registry/sync-admin-group.py services/network/smb-browse.py services/network/directoryctl.py services/storage/mount-image.py tools/registry/registry_hive.py
+      - name: Integration regression tests
+        run: python -m unittest discover -s vendor/chimera-ii-os/source/tests/integrations -v
+      - name: Aurora JavaScript syntax
+        run: |
+          cd vendor/chimera-ii-os/source
+          node --check desktop/aurora-shell/assets/apps-registry.js
+          node --check desktop/aurora-shell/assets/apps-windows-network.js
+          node --check desktop/aurora-shell/assets/apps-optical-media.js
+      - name: Validate JSON contracts
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          root = pathlib.Path("vendor/chimera-ii-os/source")
+          for path in (root / "system/integrations").glob("*.json"):
+              json.loads(path.read_text())
+          services = json.loads((root / "services/service_registry.json").read_text())
+          ids = {x["id"] for x in services["services"]}
+          required = {"registry", "smb-server", "smb-discovery", "directory-services", "optical-media"}
+          assert required <= ids, required - ids
+          print("vendored integration contracts: OK")
+          PY
