@@ -1,5 +1,7 @@
-import tempfile, unittest
+import tempfile, unittest, sys
 from pathlib import Path
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 from tools.cognition.trainable_rnn_lm import CharRNN
 class TrainableRNNTests(unittest.TestCase):
  def test_training_changes_weights_and_scores_text(self):
