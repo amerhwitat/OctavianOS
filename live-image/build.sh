@@ -246,6 +246,20 @@ EOF
 
 # ------------------------------------------------------------- system config
 log "system configuration"
+# Package the same local-first AI workspace used by the Chimera ISO builder.
+AI_SHARE="$WORK/usr/share/chimera/ai"
+install -d "$AI_SHARE" "$WORK/usr/bin" "$WORK/usr/local/bin" "$WORK/usr/share/applications" "$PAY/ai"
+install -m 0755 "$REPO_DIR/tools/chimera-ai-workspace.py" "$WORK/usr/bin/chimera-ai-workspace"
+install -m 0644 "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$AI_SHARE/chimera-ai-workspace.json"
+install -m 0644 "$REPO_DIR/system/ai/README.md" "$AI_SHARE/README.md"
+install -m 0755 "$REPO_DIR/desktop/shared/chimera-ai-workspace-launcher.sh" "$WORK/usr/local/bin/chimera-ai-workspace-launcher"
+install -m 0644 "$REPO_DIR/desktop/aurora/chimera-ai-workspace.desktop" "$WORK/usr/share/applications/chimera-ai-workspace.desktop"
+cp -f "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$PAY/ai/"
+cp -f "$REPO_DIR/system/ai/README.md" "$PAY/ai/"
+cp -f "$REPO_DIR/tools/chimera-ai-workspace.py" "$PAY/ai/"
+python3 -m py_compile "$WORK/usr/bin/chimera-ai-workspace"
+python3 -m json.tool "$AI_SHARE/chimera-ai-workspace.json" >/dev/null
+
 install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 
 # Linux-style userspace: systemd units, sysusers/tmpfiles, D-Bus policy, helpers.
