@@ -97,7 +97,7 @@ manifest={
  "rnn_heldout_sequences":model.get("metadata",{}).get("heldout_sequences"),
  "rnn_scope":"small advisory character-level RNN; not an LLM"
 }
-(root/"ai-payload-manifest.json").write_text(json.dumps(manifest,indent=2)+"\\n",encoding="utf-8")
+(root/"ai-payload-manifest.json").write_text(json.dumps(manifest,indent=2)+"\n",encoding="utf-8")
 print(json.dumps({"status":"AI payload staged","entries":db["entry_count"],"sources":db["source_count"]}))
 PYAI
 python3 -m json.tool "$AI_DIR/ai-payload-manifest.json" >/dev/null
@@ -162,7 +162,7 @@ for item in hardware-systems-knowledge.json hardware-systems-knowledge.schema.js
   test -s "$AI_VERIFY/$item" || { echo "ERROR: AI ISO payload missing: $item" >&2; exit 2; }
 done
 python3 -m json.tool "$AI_VERIFY/ai-payload-manifest.json" >/dev/null
-printf 'ISO      : %s\\nCommit   : %s\\nKernel   : %s\\nTargets  : live installer recovery (ring 3)\\nAI DB    : %s entries / %s sources\\n' \\
-  "$OUT_ISO" "$KVER" "$KELF" \\
-  "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["knowledge_entries"])' "$AI_VERIFY/ai-payload-manifest.json")" \\
+printf 'ISO      : %s\nCommit   : %s\nKernel   : %s\nTargets  : live installer recovery (ring 3)\nAI DB    : %s entries / %s sources\n' \
+  "$OUT_ISO" "$KVER" "$KELF" \
+  "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["knowledge_entries"])' "$AI_VERIFY/ai-payload-manifest.json")" \
   "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["knowledge_sources"])' "$AI_VERIFY/ai-payload-manifest.json")"
