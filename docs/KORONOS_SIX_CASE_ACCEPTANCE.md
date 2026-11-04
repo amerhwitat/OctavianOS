@@ -21,3 +21,9 @@ accepts evidence bound to the canonical ISO SHA-256. Native-init exit 78,
 CPL3-originated syscall acknowledgement, matching nonzero PID, VFS, SMP,
 desktop readiness, installer persistence and recovery postcondition remain
 fail-closed requirements.
+
+## Same-ISO QEMU evidence collection
+
+The diagnostic runner is `vendor/chimera-ii-os/source/tools/boot/run-six-case-qemu.py`. It boots the canonical ISO for each target and firmware case without remastering the ISO between runs, hashes the ISO before and after each boot, and preserves raw debugcon/serial traces. UEFI uses matched OVMF code and per-case writable variable stores. GRUB passes its actual `grub_platform` value to the target-init module; Koronos emits the BIOS/UEFI identity marker.
+
+The runner does not synthesize any acceptance evidence. It cannot make a case PASS by itself: the six-case verifier still requires real CPL3 PID handoff, root VFS and writable `/tmp`, two-CPU overlap, Aurora/Marine session traces, installer cold-boot persistence and Recovery repair postcondition. Current console/dry-run/diagnostic target payloads remain insufficient for production acceptance.
