@@ -365,25 +365,29 @@ if [ -s "$DESKTOP_BUILDER" ]; then
   mount_chroot "$WORK"
   chroot "$WORK" /bin/bash -c "CHIMERA_DESKTOP_BUILD_DIR=/var/tmp/chimera-desktop-build bash /opt/aurora/repo/$DESKTOP_REL/tools/build-desktop-binaries.sh"
   umount_chroot "$WORK"
-  mkdir -p "$PAY/apps/native/bin" "$PAY/apps/native/objects" "$PAY/apps/native/manifests" "$WORK/usr/local/bin"
-  if [ -d "$WORK/var/tmp/chimera-desktop-build/bin" ]; then
-    cp -a "$WORK/var/tmp/chimera-desktop-build/bin/." "$PAY/apps/native/bin/"
-    cp -a "$WORK/var/tmp/chimera-desktop-build/bin/." "$WORK/usr/local/bin/"
+  mkdir -p "$PAY/apps/native/bin" "$PAY/apps/native/objects" "$PAY/apps/native/manifests" "$WORK/usr/local/bin" "$WORK/usr/share/applications"
+  DESKTOP_BUILD_ROOT="$WORK/var/tmp/chimera-desktop-build"
+  DESKTOP_MANIFEST="$DESKTOP_BUILD_ROOT/manifests/desktop-build-manifest.json"
+  if [ ! -s "$DESKTOP_MANIFEST" ]; then
+    echo "BLOCKED: native desktop builder completed without desktop-build-manifest.json" >&2
+    exit 1
   fi
-  find "$WORK/var/tmp/chimera-desktop-build" -maxdepth 1 -type f -name "*.o" -exec cp -f {} "$PAY/apps/native/objects/" \; 2>/dev/null || true
-  if [ -s "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" ]; then
-    cp -f "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$PAY/apps/native/manifests/"
+  if [ ! -d "$DESKTOP_BUILD_ROOT/bin" ]; then
+    echo "BLOCKED: native desktop builder produced no binary directory" >&2
+    exit 1
   fi
-fi
-    mkdir -p "$WORK/usr/share/applications"
-  python3 - "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$WORK/usr/local/bin" "$WORK/usr/share/applications" <<'PYDESKTOP'
+  cp -a "$DESKTOP_BUILD_ROOT/bin/." "$PAY/apps/native/bin/"
+  cp -a "$DESKTOP_BUILD_ROOT/bin/." "$WORK/usr/local/bin/"
+  find "$DESKTOP_BUILD_ROOT" -maxdepth 1 -type f -name "*.o" -exec cp -f {} "$PAY/apps/native/objects/" \; 2>/dev/null || true
+  cp -f "$DESKTOP_MANIFEST" "$PAY/apps/native/manifests/"
+  python3 - "$DESKTOP_MANIFEST" "$WORK/usr/local/bin" "$WORK/usr/share/applications" <<'PYDESKTOP'
 import json, pathlib, sys
 manifest_path, binaries, desktop_dir = map(pathlib.Path, sys.argv[1:])
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 for item in manifest.get("native_binaries", []):
     name = pathlib.Path(item).name
     if not (binaries / name).is_file():
-        continue
+        raise SystemExit(f"BLOCKED: manifest binary missing from live rootfs: {name}")
     if name == "chimera-desktop-shell":
         continue
     terminal = name in {"chimera-neural-chat", "voiceconnect", "chm-utf8"}
@@ -396,6 +400,12 @@ for item in manifest.get("native_binaries", []):
         "\nTerminal=" + ("true" if terminal else "false") +
         "\nCategories=Utility;Development;\n", encoding="utf-8")
 PYDESKTOP
+  printf 'native_desktop_build=PASS\\n' > "$PAY/reports/native-desktop-build.status"
+else
+  echo "BLOCKED: required first-party native desktop builder missing: $DESKTOP_BUILDER" >&2
+  printf 'native_desktop_build=BLOCKED\\n' > "$PAY/reports/native-desktop-build.status"
+  exit 1
+fi
 # The vendor build-desktop-binaries.sh already compiles and headlessly validates
 # the GTK4 shell. Install its two desktop profiles after the binaries are copied.
 if [ -x "$WORK/usr/local/bin/chimera-desktop-shell" ]; then
