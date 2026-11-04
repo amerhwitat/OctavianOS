@@ -368,13 +368,16 @@ if [ -s "$DESKTOP_BUILDER" ]; then
   mkdir -p "$PAY/apps/native/bin" "$PAY/apps/native/objects" "$PAY/apps/native/manifests" "$WORK/usr/local/bin" "$WORK/usr/share/applications"
   DESKTOP_BUILD_ROOT="$WORK/var/tmp/chimera-desktop-build"
   DESKTOP_MANIFEST="$DESKTOP_BUILD_ROOT/manifests/desktop-build-manifest.json"
-  if [ ! -s "$DESKTOP_MANIFEST" ]; then
-    echo "BLOCKED: native desktop builder completed without desktop-build-manifest.json" >&2
+  desktop_build_blocked() {
+    printf 'native_desktop_build=BLOCKED\n' > "$PAY/reports/native-desktop-build.status"
+    echo "BLOCKED: $1" >&2
     exit 1
+  }
+  if [ ! -s "$DESKTOP_MANIFEST" ]; then
+    desktop_build_blocked "native desktop builder completed without desktop-build-manifest.json"
   fi
   if [ ! -d "$DESKTOP_BUILD_ROOT/bin" ]; then
-    echo "BLOCKED: native desktop builder produced no binary directory" >&2
-    exit 1
+    desktop_build_blocked "native desktop builder produced no binary directory"
   fi
   cp -a "$DESKTOP_BUILD_ROOT/bin/." "$PAY/apps/native/bin/"
   cp -a "$DESKTOP_BUILD_ROOT/bin/." "$WORK/usr/local/bin/"
@@ -400,7 +403,7 @@ for item in manifest.get("native_binaries", []):
         "\nTerminal=" + ("true" if terminal else "false") +
         "\nCategories=Utility;Development;\n", encoding="utf-8")
 PYDESKTOP
-  printf 'native_desktop_build=PASS\\n' > "$PAY/reports/native-desktop-build.status"
+  printf 'native_desktop_build=PASS\n' > "$PAY/reports/native-desktop-build.status"
 else
   echo "BLOCKED: required first-party native desktop builder missing: $DESKTOP_BUILDER" >&2
   printf 'native_desktop_build=BLOCKED\\n' > "$PAY/reports/native-desktop-build.status"
