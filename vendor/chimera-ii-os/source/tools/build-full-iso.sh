@@ -21,6 +21,8 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/full"
 ISO_DIR="$ROOT/build/iso"
+SDK_BUILD="$BUILD/sdk"
+SDK_ROOT="$BUILD/sdk-root"
 mkdir -p "$BUILD" "$ISO_DIR"
 DISK_MANAGER="$ROOT/tools/disk-space-manager.sh"
 # Keep the working tree bounded for low-storage hosts.
@@ -72,6 +74,44 @@ cleanup_finished
 "$ROOT/tools/build-mobile-edition.sh"
 cleanup_finished
 "$ROOT/tools/build-desktop-binaries.sh"
+# Compile and test the SDK through its canonical driver. Optional language
+# frontends are recorded as SKIP; mandatory native SDK build/tests must pass.
+rm -rf "$SDK_ROOT"
+CHIMERA_SDK_BUILD_DIR="$SDK_BUILD" \
+CHIMERA_SDK_DESTDIR="$SDK_ROOT" \
+CHIMERA_SDK_PREFIX="/opt/chimera-sdk" \
+CHIMERA_SDK_JOBS="${CHIMERA_SDK_JOBS:-2}" \
+  bash "$ROOT/sdk/tools/build-sdk.sh"
+SDK_INSTALLED="$SDK_ROOT/opt/chimera-sdk"
+python3 - "$SDK_INSTALLED/share/chimera/sdk-build-status.json" <<'PYSDK'
+import json, pathlib, sys
+p=pathlib.Path(sys.argv[1])
+if not p.is_file():
+    raise SystemExit("SDK status manifest missing from DESTDIR install")
+d=json.loads(p.read_text(encoding="utf-8"))
+if d.get("schema") != "CHM-SDK-STATUS-1":
+    raise SystemExit("invalid SDK status manifest schema")
+results=d.get("results", {})
+if results.get("sdk_overall", {}).get("status") != "PASS":
+    raise SystemExit("mandatory SDK build/CTest did not pass")
+if any(item.get("status") == "BLOCKED" for item in results.values()):
+    raise SystemExit("SDK manifest contains a BLOCKED toolchain result")
+PYSDK
+test -s "$SDK_INSTALLED/include/chimera/sdk.h"
+[[ -s "$SDK_INSTALLED/lib/libchimera_sdk.a" || -s "$SDK_INSTALLED/lib64/libchimera_sdk.a" ]]
+python3 - "$ROOT/build/desktop/manifests/application-build-status.json" <<'PYAPP'
+import json, pathlib, sys
+p=pathlib.Path(sys.argv[1])
+if not p.is_file():
+    raise SystemExit("desktop application status manifest missing")
+d=json.loads(p.read_text(encoding="utf-8"))
+if d.get("schema") != "CHM-APPLICATION-BUILD-STATUS-1":
+    raise SystemExit("invalid desktop application status schema")
+if d.get("overall") != "PASS":
+    raise SystemExit("desktop application build did not pass")
+if any(item.get("status") == "BLOCKED" for item in d.get("results", {}).values()):
+    raise SystemExit("desktop application manifest contains BLOCKED results")
+PYAPP
 cleanup_finished
 "$ROOT/tools/build-live-boot-binaries.sh"
 cleanup_finished
@@ -120,12 +160,40 @@ cp -a "$ROOT/boot/installation/menu.cfg" "$STAGE/boot/installation/"
 cp -a "$ROOT/boot/recovery/." "$STAGE/boot/recovery/"
 cp -a "$ROOT/boot/diagnostics/." "$STAGE/boot/diagnostics/"
 cp -a "$ROOT/boot/boot-menu-contract.json" "$STAGE/boot/"
+
+# Embed boot artwork and splash media in the ISO itself: no network or host
+# filesystem lookup is allowed for early boot visuals.
+mkdir -p "$STAGE/boot/visual" "$STAGE/boot/grub" "$STAGE/desktop/aurora/assets"
+for art in aurora_boot_splash.svg; do
+  [[ -s "$ROOT/boot/splash/$art" ]] && cp -f "$ROOT/boot/splash/$art" "$STAGE/boot/visual/$art"
+done
+for art in aurora-desktop.svg aurora-installer.svg aurora-library.svg aurora-wayland-glass.svg aurora-wayland-glass.png chimera-infinite-research-horizon.svg chimera-artwork-manifest.json; do
+  [[ -s "$ROOT/desktop/aurora/assets/$art" ]] && cp -f "$ROOT/desktop/aurora/assets/$art" "$STAGE/desktop/aurora/assets/$art"
+done
+for art in aurora-wayland-glass.jpg.b64; do
+  if [[ -s "$ROOT/boot/visual/$art" ]]; then
+    base64 -d "$ROOT/boot/visual/$art" > "$STAGE/boot/visual/aurora-wayland-glass.jpg"
+    cp -f "$STAGE/boot/visual/aurora-wayland-glass.jpg" "$STAGE/boot/grub/aurora-wayland-glass.jpg"
+  fi
+done
+if [[ -s "$ROOT/desktop/aurora/assets/Init.mp4" ]]; then
+  cp -f "$ROOT/desktop/aurora/assets/Init.mp4" "$STAGE/boot/grub/Init.mp4"
+  cp -f "$ROOT/desktop/aurora/assets/Init.mp4" "$STAGE/desktop/aurora/assets/Init.mp4"
+fi
+if [[ -s "$ROOT/desktop/aurora/assets/library-artwork-manifest.json" ]]; then
+  cp -f "$ROOT/desktop/aurora/assets/library-artwork-manifest.json" "$STAGE/desktop/aurora/assets/library-artwork-manifest.json"
+fi
 [[ -f "$ROOT/boot/livecd/live-manifest.json" ]] && cp "$ROOT/boot/livecd/live-manifest.json" "$STAGE/boot/"
 [[ -n "$SPIT_IMG" && -f "$SPIT_IMG" ]] && cp "$SPIT_IMG" "$STAGE/boot/spitfire.img"
 cp -a "$ROOT/installer" "$STAGE/install/"
 cp -a "$ROOT/userland" "$STAGE/system/userland"
 cp -a "$ROOT/desktop" "$STAGE/system/desktop"
 cp -a "$ROOT/build/desktop/." "$STAGE/desktop/"
+mkdir -p "$STAGE/system/desktop" "$STAGE/system/sdk"
+install -m 0644 "$ROOT/build/desktop/manifests/application-build-status.json" "$STAGE/system/desktop/application-build-status.json"
+cp -a "$SDK_INSTALLED/." "$STAGE/system/sdk/"
+echo "[ISO] Embedded SDK status: $STAGE/system/sdk/share/chimera/sdk-build-status.json"
+echo "[ISO] Embedded desktop status: $STAGE/system/desktop/application-build-status.json"
 cp -a "$ROOT/services" "$STAGE/system/services"
 cp -a "$ROOT/system/security" "$STAGE/system/security"
 cp -a "$ROOT/tools/initialize-accounts.sh" "$STAGE/install/initialize-accounts.sh"

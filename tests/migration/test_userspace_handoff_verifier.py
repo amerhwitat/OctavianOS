@@ -7,7 +7,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("verify-userspace-handoff.py")
 KERNEL = "[KRN ] KORONOS READY\n"
 ENTRY = "USER INIT SYSCALL: target={target} init_pid={pid}\n"
-READY = "USERSPACE READY: target={target} init_pid={pid}\n"
+READY = "USERSPACE READY: {target} init pid={pid}\n"
 
 
 def run(target, trace):
@@ -18,6 +18,19 @@ def run(target, trace):
 
 
 class UserspaceHandoffVerifierTests(unittest.TestCase):
+    def test_scheduler_never_labels_serial_stepping_as_parallel_execution(self):
+        scheduler = (Path(__file__).resolve().parents[2]
+                     / "vendor/chimera-ii-os/source/kernel/core/scheduler.cpp")
+        source = scheduler.read_text(encoding="utf-8")
+        signature = 'extern "C" uint32_t chimera_sched_run_parallel('
+        self.assertIn(signature, source, "parallel scheduler entry point must be present")
+        body = source.split(signature, 1)[1].split("\n}", 1)[0]
+        self.assertIn("return 0;", body)
+        self.assertNotIn("chimera_sched_run_once", body,
+                         "serial callbacks must not be reported as genuine SMP")
+        self.assertIn("chimera_sched_run_serial_range", source,
+                      "serial stepping must have an explicitly serial API")
+
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
         self.assertEqual(result.returncode, 1)
@@ -40,6 +53,10 @@ class UserspaceHandoffVerifierTests(unittest.TestCase):
 
     def test_requires_ordered_markers(self):
         trace = READY.format(target="live", pid=1) + ENTRY.format(target="live", pid=1) + KERNEL
+        self.assertEqual(run("live", trace).returncode, 1)
+
+    def test_rejects_stale_readiness_format_not_emitted_by_init(self):
+        trace = KERNEL + ENTRY.format(target="live", pid=1) + "USERSPACE READY: target=live init_pid=1\n"
         self.assertEqual(run("live", trace).returncode, 1)
 
     def test_accepts_live_with_user_originated_syscall_and_matching_pid(self):

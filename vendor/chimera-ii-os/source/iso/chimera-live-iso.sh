@@ -84,6 +84,21 @@ cp -a "$ROOT/boot/recovery/." "$STAGE/boot/recovery/"
 cp -a "$ROOT/boot/diagnostics/." "$STAGE/boot/diagnostics/"
 cp -a "$ROOT/boot/boot-menu-contract.json" "$STAGE/boot/"
 
+# Keep all early-boot visuals self-contained in the ISO.
+mkdir -p "$STAGE/boot/visual" "$STAGE/boot/grub" "$STAGE/desktop/aurora/assets"
+for art in aurora-wayland-glass.jpg.b64; do
+  if [[ -s "$ROOT/boot/visual/$art" ]]; then
+    base64 -d "$ROOT/boot/visual/$art" > "$STAGE/boot/visual/aurora-wayland-glass.jpg"
+    cp -f "$STAGE/boot/visual/aurora-wayland-glass.jpg" "$STAGE/boot/grub/aurora-wayland-glass.jpg"
+  fi
+done
+for art in aurora-desktop.svg aurora-installer.svg aurora-library.svg aurora-wayland-glass.svg aurora-wayland-glass.png chimera-infinite-research-horizon.svg chimera-artwork-manifest.json Init.mp4 library-artwork-manifest.json; do
+  [[ -s "$ROOT/desktop/aurora/assets/$art" ]] && cp -f "$ROOT/desktop/aurora/assets/$art" "$STAGE/desktop/aurora/assets/$art"
+done
+if [[ -s "$ROOT/desktop/aurora/assets/Init.mp4" ]]; then
+  cp -f "$ROOT/desktop/aurora/assets/Init.mp4" "$STAGE/boot/grub/Init.mp4"
+fi
+
 install_iso_dependencies() {
   local missing=()
   command -v grub-mkrescue >/dev/null 2>&1 || missing+=(grub-mkrescue)
@@ -149,6 +164,28 @@ mkdir -p "$STAGE/boot/live" "$STAGE/boot/koronos"
 cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.img" "$STAGE/boot/live/"
 cp -f "$LIVE_BOOT/boot/live/live-manifest.json" "$STAGE/boot/live/"
     chimera_copy_if_distinct "$LIVE_BOOT/boot/koronos/koronos.elf" "$STAGE/boot/koronos/koronos.elf"
+
+# Stage the real native ring-3 init payloads as Multiboot2 USER_INIT_ELF
+# modules. The kernel deliberately refuses to infer userspace from initramfs
+# scripts; each boot target must supply exactly one target-specific ELF.
+TARGET_BUILD="$ROOT/build/koronos/x86_64"
+mkdir -p "$STAGE/boot/targets"
+for target in live installer recovery; do
+  artifact="$TARGET_BUILD/target-init-$target.elf"
+  [[ -s "$artifact" ]] || {
+    echo "ERROR: missing native $target init ELF: $artifact" >&2
+    exit 2
+  }
+  readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC' || {
+    echo "ERROR: native $target init is not ET_EXEC: $artifact" >&2
+    exit 2
+  }
+  readelf -lW "$artifact" | grep -Eq 'LOAD.*R E' || {
+    echo "ERROR: native $target init has no executable PT_LOAD: $artifact" >&2
+    exit 2
+  }
+  install -m 0644 "$artifact" "$STAGE/boot/targets/target-init-$target.elf"
+done
 
 install_iso_dependencies
 if [[ ! -f "$ROOT/tools/chimera-stage-installer-media.sh" ]]; then

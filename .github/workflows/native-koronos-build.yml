@@ -105,6 +105,17 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Require production target init ELFs
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          for target in live installer recovery; do
+            artifact="build/koronos/x86_64/target-init-$target.elf"
+            test -s "$artifact" || { echo "ERROR: production target init missing: $artifact" >&2; exit 1; }
+            readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC'
+            readelf -lW "$artifact" | grep -Eq 'LOAD.*R E'
+            sha256sum "$artifact"
+          done
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -296,6 +307,22 @@ jobs:
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
           xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee boot/iso/dist/ISO-BOOT-REPORT-CI.txt
           grep -q 'El Torito' boot/iso/dist/ISO-BOOT-REPORT-CI.txt
+      - name: Verify production target init ELFs and GRUB handoffs in final ISO
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          iso=boot/iso/dist/output.iso
+          inspect=build/target-init-inspect
+          mkdir -p "$inspect"
+          xorriso -osirrox on -indev "$iso" -extract /boot/grub/grub.cfg "$inspect/grub.cfg" >/dev/null
+          for target in live installer recovery; do
+            artifact="$inspect/target-init-$target.elf"
+            xorriso -osirrox on -indev "$iso" -extract "/boot/targets/target-init-$target.elf" "$artifact" >/dev/null
+            test -s "$artifact"
+            readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC'
+            readelf -lW "$artifact" | grep -Eq 'LOAD.*R E'
+            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=\$grub_platform" "$inspect/grub.cfg"
+          done
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -336,6 +363,7 @@ jobs:
           terminal_output console
           menuentry "Recovery module smoke" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
@@ -347,8 +375,15 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery initramfs module was not recognized"; exit 1; }
+          python3 - "$smoke/recovery-debugcon.log" <<'PY'
+          import re, sys
+          text=open(sys.argv[1], encoding="latin1").read()
+          ack=re.search(r"USER INIT SYSCALL: target=recovery init_pid=([1-9][0-9]*)", text)
+          ready=re.search(r"USERSPACE READY: target=recovery init_pid=([1-9][0-9]*)", text)
+          assert ack and ready and ack.group(1)==ready.group(1), "recovery CPL3 acknowledgement/PID readiness missing or mismatched"
+          assert text.find("[KRN ] KORONOS READY") < ack.start() < ready.start(), "recovery readiness markers out of order"
+          PY
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -362,6 +397,7 @@ jobs:
           terminal_output console
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
@@ -377,7 +413,14 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          python3 - "$smoke/installer-debugcon.log" <<'PY'
+          import re, sys
+          text=open(sys.argv[1], encoding="latin1").read()
+          ack=re.search(r"USER INIT SYSCALL: target=installer init_pid=([1-9][0-9]*)", text)
+          ready=re.search(r"USERSPACE READY: target=installer init_pid=([1-9][0-9]*)", text)
+          assert ack and ready and ack.group(1)==ready.group(1), "installer CPL3 acknowledgement/PID readiness missing or mismatched"
+          assert text.find("[KRN ] KORONOS READY") < ack.start() < ready.start(), "installer readiness markers out of order"
+          PY
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -425,7 +468,7 @@ jobs:
           retention-days: 14
 
   verify-userspace-handoff:
-    name: Verify real Live, Installer, and Recovery userspace
+    name: Ring-3 target smoke diagnostics (not production acceptance)
     needs: build-koronos
     runs-on: ubuntu-latest
     steps:
@@ -445,9 +488,63 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  verify-six-case-production:
+    name: Verify one immutable ISO across all six production cases
+    needs: build-koronos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OctavianOS verifier
+        uses: actions/checkout@v4
+      - name: Download the exact native ISO candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Install QEMU and UEFI firmware for immutable ISO matrix
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Boot all six cases from the same immutable ISO
+        run: |
+          set -euo pipefail
+          python3 tools/boot/run-six-case-qemu.py \
+            --iso dist/output.iso \
+            --evidence-dir dist/six-case-evidence \
+            --timeout 35
+          sha256sum dist/output.iso | tee dist/six-case-evidence/canonical-iso.sha256
+      - name: Verify candidate checksum and six-case runtime evidence
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c output.iso.sha256
+          cd ..
+          mkdir -p dist/six-case-evidence
+          set +e
+          python3 tools/boot/verify-six-case-matrix.py \
+            --iso dist/output.iso \
+            --evidence-dir dist/six-case-evidence \
+            --report dist/six-case-report.json
+          rc=$?
+          set -e
+          cat dist/six-case-report.json
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::One immutable ISO has not passed Live/Installer/Recovery x BIOS/UEFI with VFS, real SMP, desktop, persistence and recovery evidence."
+            exit "$rc"
+          fi
+      - name: Upload six-case verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-six-case-production-gate
+          path: |
+            dist/six-case-report.json
+            dist/six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish-native-iso:
-    name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
+    name: Publish prerelease only after six-case production acceptance
+    needs: [build-koronos, verify-userspace-handoff, verify-six-case-production]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -468,7 +565,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after one immutable ISO passes all six BIOS/UEFI target cases, CPL3/PID, VFS, real SMP, installer persistence, recovery repair and desktop postconditions."
           else
             gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi
