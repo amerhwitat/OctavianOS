@@ -39,6 +39,9 @@ class SixCaseQemuRunnerTests(unittest.TestCase):
             self.assertIn(f"/boot/targets/target-init-{target}.elf", main_grub)
         builder = (root / "boot/iso/build-iso.sh").read_text(encoding="utf-8")
         self.assertIn("target-init-$target.elf", builder)
+        self.assertIn('install -m 0644 "$artifact" "$DIST/iso/boot/targets/target-init-$target.elf"', builder)
+        self.assertLess(builder.index('bash "$ISO_ROOT/prepare-layout.sh"'),
+                        builder.index('TARGET_BUILD="$ROOT/build/koronos/x86_64"'))
 
     def test_runner_never_adds_acceptance_markers_to_raw_trace(self):
         source = SCRIPT.read_text(encoding="utf-8")
