@@ -20,6 +20,7 @@ case "$ED" in
 esac
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHIMERA_SRC="$REPO_DIR/vendor/chimera-ii-os/source"
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
 BASE="$BUILD/rootfs-base"
@@ -136,6 +137,78 @@ if [ -d "$REPO_DIR/desktop/aurora-shell" ]; then
   mkdir -p "$PAY/desktop"
   cp -a "$REPO_DIR/desktop/aurora-shell" "$PAY/desktop/aurora-shell"
 fi
+
+# Stage the shared Chimera registry, network-directory and optical-media runtime.
+install -D -m 0755 "$CHIMERA_SRC/services/registry/registryd.py" "$WORK/usr/lib/chimera/registry/registryd.py"
+install -D -m 0755 "$CHIMERA_SRC/services/registry/sync-admin-group.py" "$WORK/usr/lib/chimera/registry/sync-admin-group.py"
+install -D -m 0644 "$CHIMERA_SRC/tools/registry/registry_hive.py" "$WORK/usr/lib/chimera/registry/registry_hive.py"
+install -D -m 0755 "$CHIMERA_SRC/services/network/smb-browse.py" "$WORK/usr/lib/chimera/network/smb-browse.py"
+install -D -m 0755 "$CHIMERA_SRC/services/network/directoryctl.py" "$WORK/usr/lib/chimera/network/directoryctl.py"
+install -D -m 0755 "$CHIMERA_SRC/services/storage/mount-image.py" "$WORK/usr/lib/chimera/storage/mount-image.py"
+install -d "$WORK/etc/chimera/registry" "$WORK/usr/share/chimera/integrations"
+for hive in machine environment kernel; do
+  install -m 0644 "$CHIMERA_SRC/system/registry/$hive.defaults.json" "$WORK/etc/chimera/registry/$hive.json"
+  python3 "$WORK/usr/lib/chimera/registry/registry_hive.py" build --input "$WORK/etc/chimera/registry/$hive.json" --output "$WORK/etc/chimera/registry/$hive.hive"
+  python3 "$WORK/usr/lib/chimera/registry/registry_hive.py" verify "$WORK/etc/chimera/registry/$hive.hive"
+done
+cp -a "$CHIMERA_SRC/system/integrations/." "$WORK/usr/share/chimera/integrations/"
+chroot "$WORK" groupadd --force chimera-admin
+if chroot "$WORK" getent passwd user >/dev/null 2>&1; then chroot "$WORK" usermod -aG chimera-admin user; fi
+install -d "$WORK/etc/systemd/system/multi-user.target.wants"
+cat > "$WORK/etc/systemd/system/chimera-admin-group-sync.service" <<'UNIT'
+[Unit]
+Description=Synchronize Chimera registry administrators from sudo group
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/lib/chimera/registry/sync-admin-group.py
+RemainAfterExit=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/etc
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+ln -sfn ../chimera-admin-group-sync.service "$WORK/etc/systemd/system/multi-user.target.wants/chimera-admin-group-sync.service"
+cat > "$WORK/etc/systemd/system/chimera-registryd.service" <<'UNIT'
+[Unit]
+Description=Chimera CHMRG01 Registry Service
+After=local-fs.target chimera-admin-group-sync.service
+Before=display-manager.service
+
+[Service]
+Type=simple
+User=root
+Group=chimera-admin
+UMask=0007
+RuntimeDirectory=chimera
+RuntimeDirectoryMode=0750
+Environment=CHIMERA_REGISTRY_TOOL=/usr/lib/chimera/registry/registry_hive.py
+ExecStart=/usr/bin/python3 /usr/lib/chimera/registry/registryd.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/etc/chimera/registry /run/chimera
+RestrictAddressFamilies=AF_UNIX
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+ln -sfn ../chimera-registryd.service "$WORK/etc/systemd/system/multi-user.target.wants/chimera-registryd.service"
+systemctl --root="$WORK" enable avahi-daemon.service >/dev/null 2>&1 || true
+for unit in smbd.service nmbd.service wsdd.service sssd.service; do
+  systemctl --root="$WORK" disable "$unit" >/dev/null 2>&1 || true
+done
+install -D -m 0644 "$CHIMERA_SRC/system/integrations/smb.conf" "$WORK/etc/samba/smb.conf"
 
 python3 - "$ART" "$PAY" <<'PY'
 import json, os, subprocess, sys
