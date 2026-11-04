@@ -408,7 +408,7 @@ state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games squashfs iso verify native-iso report'; local ci ti
+  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games macos-compat squashfs iso verify native-iso report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -1331,6 +1331,75 @@ build_command_runtime(){
   log_info "Native command binary staged at $ROOTFS_DIR/usr/bin/chimera-cmd"
 }
 
+stage_macos_compat(){
+  header 'OCTAVIAN MACOS SDK / PORTABLE FOUNDATION COMPATIBILITY'
+  local repo_root
+  repo_root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+  local tools="$repo_root/tools/macos-compat"
+  local docs="$repo_root/docs/MACOS_COMPATIBILITY.md"
+  local smoke="$repo_root/tests/macos_compat/hello_foundation.m"
+  local share="$ROOTFS_DIR/usr/share/octavian/macos-compat"
+  local iso="$ISO_DIR/system/macos-compat"
+  local build="$BUILD_DIR/macos-compat"
+  local extracted="$repo_root/third_party/macos-extracted"
+  local extracted_status="blocked" apple_status="not-available-on-this-host"
+  local portable_status="not-verified" cross_status="not-verified"
+  mkdir -p "$share" "$iso" "$build"
+  [[ -d "$extracted" ]] && extracted_status="review-required"
+  if [[ "$extracted_status" == "blocked" ]]; then
+    log_warning "third_party/macos-extracted absent; extracted SDK inspection BLOCKED."
+  else
+    log_warning "Extracted SDK directory found; license/provenance review required. It will not be copied."
+  fi
+  if bash "$tools/check-sdk.sh" auto >"$build/toolchain-check.log" 2>&1; then
+    cat "$build/toolchain-check.log"
+    if [[ "$(uname -s)" == "Darwin" ]] && grep -q 'APPLE_MACOS_SDK_READY=1' "$build/toolchain-check.log"; then
+      apple_status="available"
+      if [[ -s "$smoke" ]] && bash "$tools/build-app.sh" apple-macos "$smoke" "$build/apple-foundation-smoke" >"$build/apple-build.log" 2>&1 &&
+         "$build/apple-foundation-smoke" >"$build/apple-run.log" 2>&1 && grep -q MACOS_COMPAT_SMOKE_OK "$build/apple-run.log"; then
+        cross_status="passed"
+      else
+        cross_status="failed"
+        log_warning "Apple SDK smoke build failed; see $build/apple-build.log and apple-run.log."
+      fi
+    elif command -v clang >/dev/null 2>&1 && command -v gnustep-config >/dev/null 2>&1 && [[ -s "$smoke" ]]; then
+      if bash "$tools/build-app.sh" portable-gnustep "$smoke" "$build/portable-foundation-smoke" >"$build/portable-build.log" 2>&1 &&
+         "$build/portable-foundation-smoke" >"$build/portable-run.log" 2>&1 && grep -q MACOS_COMPAT_SMOKE_OK "$build/portable-run.log"; then
+        portable_status="passed"
+      else
+        portable_status="failed"
+        log_warning "GNUstep smoke build failed; see $build/portable-build.log and portable-run.log."
+      fi
+    else
+      log_warning "No complete Apple SDK or GNUstep toolchain; macOS application cross-compilation NOT VERIFIED."
+    fi
+  else
+    cat "$build/toolchain-check.log" >&2 || true
+    log_warning "macOS compatibility check failed; no build is claimed."
+  fi
+  python3 - "$build/build-status.json" "$extracted_status" "$apple_status" "$portable_status" "$cross_status" <<'PYMACOS'
+import json,sys
+from pathlib import Path
+out, extracted, apple, portable, cross = sys.argv[1:]
+d={"schema":"OCTAVIAN-MACOS-BUILD-STATUS-1","extracted_sdk_inspection":extracted,
+   "apple_sdk_toolchain":apple,"portable_gnustep_smoke":portable,
+   "macos_application_cross_compilation":cross,"apple_sdk_redistributed":False,
+   "darwin_mach_o_runtime":"blocked-not-implemented"}
+Path(out).write_text(json.dumps(d,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+print(json.dumps(d,sort_keys=True))
+PYMACOS
+  mkdir -p "$share/tools" "$iso/tools"
+  cp -a "$tools/." "$share/tools/"
+  cp -a "$tools/." "$iso/tools/"
+  install -m 0644 "$tools/app-compatibility-manifest.json" "$share/"
+  install -m 0644 "$tools/app-compatibility-manifest.json" "$iso/"
+  install -m 0644 "$build/build-status.json" "$share/"
+  install -m 0644 "$build/build-status.json" "$iso/"
+  install -m 0644 "$docs" "$share/"
+  install -m 0644 "$docs" "$iso/"
+  log_info "Octavian macOS compatibility status staged; Apple SDK contents are never copied."
+}
+
 main(){
   # --docker-only is a true Docker pipeline, not a full ISO build with a flag ignored.
   if [[ "$BUILD_ISO" == 0 ]]; then
@@ -1371,7 +1440,7 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games squashfs iso verify native-iso report; do
+  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games macos-compat squashfs iso verify native-iso report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
@@ -1387,6 +1456,7 @@ main(){
       features) run_stage features stage_features;;
       package-managers) run_stage package-managers stage_package_managers;;
       games) run_stage games stage_games;;
+      macos-compat) run_stage macos-compat stage_macos_compat;;
       squashfs) run_stage squashfs build_squashfs;;
       iso) run_stage iso build_iso;;
       verify) run_stage verify verify_iso;;
