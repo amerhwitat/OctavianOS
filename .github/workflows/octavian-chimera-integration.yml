@@ -153,4 +153,4 @@ jobs:
           for name in ("apps-registry.js", "apps-windows-network.js", "apps-optical-media.js"):
               assert name in index
           PY
-          bash -n vendor/chimera-ii-os/source/live-image/build.sh
+          bash -n live-image/build.sh
