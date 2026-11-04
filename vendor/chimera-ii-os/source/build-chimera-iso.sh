@@ -10,11 +10,12 @@ Usage:
 
 Options:
   -h, --help    Show this help and exit successfully.
-  --refresh-online-catalogs  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
+  --refresh-online-catalogs, --refresh-isa-catalog  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
-  --install-macos-sdk         Request Apple's interactive macOS SDK/Command Line Tools installer (macOS host only), verify, and exit.
+  --install-macos-sdk         Request Apple's interactive SDK installer on licensed macOS hardware; never downloads/vends SDK files.
+  --release                 Require native CPL3, VFS, SMP and six-case firmware acceptance evidence.
 
 Notes:
   This help entry is provided consistently across Chimera II OS shell tools.
@@ -23,6 +24,21 @@ CHIMERA_HELP
   exit 0
 fi
 set -Eeuo pipefail
+
+# Canonical system block-size contract shared by every boot and ISO stage.
+# Default to 4096 bytes (4 KiB); honor an explicit canonical value or legacy
+# alias only when the caller supplies one.
+if [[ -z "${CHIMERA_SYSTEM_BLOCK_SIZE:-}" && -z "${SYSTEM_BLOCK_SIZE:-}" ]]; then
+  printf '[INFO] No system block size supplied; defaulting to 4096 bytes (4 KiB).\n'
+fi
+CHIMERA_SYSTEM_BLOCK_SIZE="${CHIMERA_SYSTEM_BLOCK_SIZE:-${SYSTEM_BLOCK_SIZE:-4096}}"
+if [[ ! "$CHIMERA_SYSTEM_BLOCK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+  printf '[ERROR] CHIMERA_SYSTEM_BLOCK_SIZE must be a positive integer (got: %s)\n' "$CHIMERA_SYSTEM_BLOCK_SIZE" >&2
+  exit 2
+fi
+# Export both names so all downstream scripts and legacy contract checks agree.
+SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE"
+export CHIMERA_SYSTEM_BLOCK_SIZE SYSTEM_BLOCK_SIZE
 
 # CHIMERA_ROOTFS_EXPORT_V3
 chimera_export_docker_rootfs() {
@@ -118,6 +134,7 @@ BUILD_SUCCEEDED=0
 CHIMERA_PUSH="${CHIMERA_PUSH:-1}"
 BUILD_DOCKER=1
 BUILD_ISO=1
+RELEASE_BUILD=0
 
 # Architecture-aware media profile. Current boot artifacts are x86_64-only.
 detect_cpu_arch() {
@@ -198,11 +215,10 @@ header(){ printf '\n============================================================
 
 REFRESH_ONLINE_CATALOGS="${CHIMERA_REFRESH_ONLINE_CATALOGS:-0}"
 DOS_FETCH_ON_BUILD="${CHIMERA_DOS_FETCH_ON_BUILD:-0}"
-INSTALL_MACOS_SDK=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh-online-catalogs) REFRESH_ONLINE_CATALOGS=1; shift;;
+    --refresh-online-catalogs|--refresh-isa-catalog) REFRESH_ONLINE_CATALOGS=1; shift;;
     --sync-dos-payloads) DOS_FETCH_ON_BUILD=1; shift;;
     --docker-only) BUILD_ISO=0; shift;;
     --iso-only) BUILD_DOCKER=0; shift;;
@@ -219,22 +235,16 @@ while [[ $# -gt 0 ]]; do
     --no-push) export CHIMERA_PUSH=0; shift;;
     --skip-native-iso) export CHIMERA_BUILD_NATIVE_ISO_PIPELINE=0; shift;;
     --install-build-deps) export CHIMERA_INSTALL_BUILD_DEPS=1; shift;;
-    --install-macos-sdk) INSTALL_MACOS_SDK=1; shift;;
+    --install-macos-sdk) bash "$SCRIPT_DIR/tools/macos-compat/install-sdk.sh" install; exit $?;;
+    --release) RELEASE_BUILD=1; shift;;
     --registry) export REGISTRY_NAME="$2"; shift 2;;
     *) log_error "Unknown option: $1"; exit 2;;
   esac
 done
 
-# Apple's SDK is host tooling, never an ISO payload. Keep this opt-in and exit
-# after the user-facing installer/verification workflow rather than starting an OS build.
-if (( INSTALL_MACOS_SDK )); then
-  SDK_INSTALLER="$SCRIPT_DIR/tools/macos-compat/install-sdk.sh"
-  if [[ ! -f "$SDK_INSTALLER" ]]; then
-    SDK_INSTALLER="$SCRIPT_DIR/../../../tools/macos-compat/install-sdk.sh"
-  fi
-  [[ -f "$SDK_INSTALLER" ]] || { log_error "macOS SDK installer not found: $SDK_INSTALLER"; exit 2; }
-  bash "$SDK_INSTALLER" install
-  exit $?
+if [[ "$RELEASE_BUILD" == 1 && "${CHIMERA_BUILD_NATIVE_ISO_PIPELINE:-1}" == 0 ]]; then
+  log_error "--release cannot skip the canonical native Koronos ISO pipeline."
+  exit 2
 fi
 
 if [[ -n "${CHIMERA_BUILD_STORAGE_ROOT:-}" ]]; then
@@ -373,6 +383,10 @@ choose_storage(){
 preflight(){
   header 'CAPABILITY STATUS / EVIDENCE PREFLIGHT'
   python3 "$SCRIPT_DIR/tools/validation/validate_capability_status.py" || { log_error 'Capability evidence registry validation failed'; return 1; }
+  if [[ "$RELEASE_BUILD" == 1 ]]; then
+    header 'FAIL-CLOSED NATIVE KORONOS RELEASE ACCEPTANCE'
+    python3 "$SCRIPT_DIR/tools/validate-release-evidence.py" || { log_error 'Production release evidence is incomplete; engineering ISO may still be built without --release.'; return 1; }
+  fi
   header 'CPU / MEDIA PROFILE'
   log_info "Detected build-host CPU: $HOST_ARCH"
   log_info "Selected ISO target CPU: $TARGET_ARCH"
@@ -402,18 +416,18 @@ preflight(){
     fi
   fi
   command -v mksquashfs >/dev/null || { log_error 'mksquashfs is required'; exit 2; }
-  command -v cmake >/dev/null || { log_error 'CMake is required for the SDK build'; exit 2; }
+  command -v cmake >/dev/null || { log_error 'CMake is required for the native SDK build'; exit 2; }
   command -v ctest >/dev/null || { log_error 'CTest is required for SDK regression tests'; exit 2; }
   command -v gcc >/dev/null || { log_error 'GCC is required for SDK native components'; exit 2; }
   command -v g++ >/dev/null || { log_error 'G++ is required for SDK native components'; exit 2; }
-  command -v python3 >/dev/null || { log_error 'Python 3 is required for SDK validation'; exit 2; }
+  command -v python3 >/dev/null || { log_error 'Python 3 is required for SDK and manifest validation'; exit 2; }
 }
 state_get(){ [[ -f "$STATE_FILE" ]] && sed -n 's/^completed=//p' "$STATE_FILE" | tail -1 || true; }
 state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE" 2>/dev/null || log_warning "Build state could not be written to $STATE_FILE; continuing without persistent resume state."; }
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads native-iso squashfs iso verify report'; local ci ti
+  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads ai-workspace native-iso squashfs iso verify report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -425,7 +439,7 @@ check_deps(){
     if [[ "${CHIMERA_INSTALL_BUILD_DEPS:-0}" == 1 ]]; then
       bash "$SCRIPT_DIR/tools/chimera-build-deps.sh" || { log_error 'Build dependency fallback installer failed'; exit 2; }
     else
-      log_error 'Required build tools are missing. Install Docker, cpio, GRUB, xorriso, mksquashfs, CMake/CTest, GCC/G++ and Python 3.'
+      log_error 'Required build tools are missing. Install Docker, cpio, grub-mkrescue, xorriso, mksquashfs, CMake/CTest, GCC/G++ and Python 3; optional fallback: CHIMERA_INSTALL_BUILD_DEPS=1.'
       exit 2
     fi
   fi
@@ -593,10 +607,20 @@ create_boot_menu(){
   else
     log_info "ISA research refresh skipped by CHIMERA_ISA_RESEARCH=0."
   fi
-  "$SCRIPT_DIR/kernel/build-koronos.sh"
+  CHIMERA_SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" bash "$SCRIPT_DIR/kernel/build-koronos.sh"
   local k="$SCRIPT_DIR/build/koronos/x86_64/koronos.elf"; [[ -s "$k" ]] || { log_error 'Koronos ELF missing'; exit 1; }
   mkdir -p "$ISO_DIR/boot/koronos" "$ISO_DIR/boot/jasper" "$ISO_DIR/boot/spitfire" "$ISO_DIR/boot/grub" "$ISO_DIR/boot/live" "$ISO_DIR/EFI/BOOT"
   chimera_copy_if_distinct "$k" "$ISO_DIR/boot/kernel.bin"; chimera_copy_if_distinct "$k" "$ISO_DIR/boot/koronos/koronos.elf"
+  # The native launcher requires exactly one target-specific USER_INIT_ELF.
+  # Build-koronos.sh emits all three ET_EXEC payloads; package them explicitly.
+  mkdir -p "$ISO_DIR/boot/targets"
+  for target in live installer recovery; do
+    local init_elf="$SCRIPT_DIR/build/koronos/x86_64/target-init-$target.elf"
+    [[ -s "$init_elf" ]] || { log_error "Missing native $target init ELF: $init_elf"; exit 1; }
+    readelf -h "$init_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || { log_error "Native $target init is not ET_EXEC"; exit 1; }
+    readelf -lW "$init_elf" | grep -Eq 'LOAD.*R E' || { log_error "Native $target init has no executable PT_LOAD"; exit 1; }
+    install -m 0644 "$init_elf" "$ISO_DIR/boot/targets/target-init-$target.elf"
+  done
   bash "$SCRIPT_DIR/tools/build-boot-artifacts.sh"
   local b="$BUILD_DIR/boot-artifacts"; [[ -s "$b/jasper/jasper.elf" ]] || { log_error 'Jasper ELF missing'; exit 1; }
   cp "$b/jasper/jasper.elf" "$ISO_DIR/boot/jasper/"
@@ -643,12 +667,137 @@ prepare_branding(){
            "$ISO_DIR/boot/visual" \
            "$ISO_DIR/boot/grub"
 
-  # Build the complete deterministic Aurora visual set. Supplied Library artwork
-  # wins; generated SVG artwork remains the offline fallback.
+  # Discover and stage repository artwork recursively. Do not assume that
+  # user-supplied artwork lives in one hard-coded directory: repositories often
+  # contain artwork under desktop, assets, docs, mobile, themes, and app folders.
+  # Keep original filenames/relative paths, exclude VCS/build/vendor caches, and
+  # prefer the named original session wallpaper when present. If it is absent,
+  # keep the generated offline artwork rather than failing on a stale filename.
+  local artwork_stage="$BUILD_DIR/aurora-artwork-library"
+  local artwork_manifest="$artwork_stage/artwork-index.txt"
+  local preferred_wallpaper=""
+  rm -rf -- "$artwork_stage"
+  mkdir -p "$artwork_stage"
+  : > "$artwork_manifest"
+  while IFS= read -r -d '' asset; do
+    local rel dest
+    rel="${asset#"$SCRIPT_DIR"/}"
+    dest="$artwork_stage/$rel"
+    mkdir -p "$(dirname "$dest")"
+    if cp -p -- "$asset" "$dest"; then
+      printf '%s\n' "$rel" >> "$artwork_manifest"
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        duck-ai-image-2026-10-18-06-36.jpeg)
+          preferred_wallpaper="$dest"
+          ;;
+      esac
+    fi
+  done < <(find "$SCRIPT_DIR" \
+    \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+    \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  if [[ -s "$artwork_manifest" ]]; then
+    log_info "Discovered $(wc -l < "$artwork_manifest" | tr -d ' ') artwork files recursively."
+    mkdir -p "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork" \
+             "$ISO_DIR/desktop/aurora/assets/library/repository-artwork" \
+             "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library" \
+             "$ISO_DIR/desktop/aurora/branding/artwork-library" \
+             "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library" \
+             "$ISO_DIR/system/branding/artwork-library"
+    # Keep a complete offline copy in the desktop library AND the canonical
+    # branding namespace, so boot/installer/desktop consumers never need network
+    # access or a particular source-tree layout.
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/system/branding/artwork-library/"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/system/branding/artwork-index.txt"
+    # Record hashes for reproducible offline auditing and detect damaged assets.
+    if command -v sha256sum >/dev/null 2>&1; then
+      (cd "$artwork_stage" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum) \
+        > "$ISO_DIR/system/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ISO_DIR/desktop/aurora/branding/artwork-sha256.txt"
+    fi
+  else
+    log_warning "No raster/SVG artwork files found by recursive scan; generated Aurora artwork remains the fallback."
+  fi
+
+  # Resolve the default wallpaper without depending on a single legacy filename.
+  # Explicit CHIMERA_AURORA_ASSET has priority, then the original session image,
+  # then descriptive wallpaper/background names; generated assets remain fallback.
+  local discovered_wallpaper=""
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "${CHIMERA_AURORA_ASSET}" ]]; then
+    discovered_wallpaper="$CHIMERA_AURORA_ASSET"
+  elif [[ -n "$preferred_wallpaper" && -s "$preferred_wallpaper" ]]; then
+    discovered_wallpaper="$preferred_wallpaper"
+  else
+    while IFS= read -r -d '' asset; do
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        *wallpaper*|*background*|*aurora*desktop*)
+          discovered_wallpaper="$asset"
+          break
+          ;;
+      esac
+    done < <(find "$SCRIPT_DIR" \
+      \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+      \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  fi
+  if [[ -n "$discovered_wallpaper" && -s "$discovered_wallpaper" ]]; then
+    export CHIMERA_AURORA_ASSET="$discovered_wallpaper"
+    log_info "Selected recursively discovered Aurora wallpaper: ${discovered_wallpaper#"$SCRIPT_DIR"/}"
+  fi
+
+  # Build the deterministic Aurora visual set, then actively apply the selected
+  # repository artwork to boot + desktop + showcase + menu surfaces. Discovery
+  # alone is not enough: each consumer needs a normalized raster image staged
+  # under the exact filename it loads at boot/runtime.
   local visual="$BUILD_DIR/aurora-media"
   rm -rf -- "$visual"
   if [[ -x "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" ]]; then
     bash "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" "$visual"
+  fi
+
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "$CHIMERA_AURORA_ASSET" ]]; then
+    local selected_art="$CHIMERA_AURORA_ASSET"
+    local applied_art="$BUILD_DIR/aurora-selected-artwork.png"
+    local png_magic
+    png_magic="$(head -c 8 "$selected_art" 2>/dev/null | od -An -tx1 | tr -d ' \\n')"
+    if [[ "$png_magic" == "89504e470d0a1a0a" ]]; then
+      cp -f -- "$selected_art" "$applied_art"
+    elif command -v convert >/dev/null 2>&1; then
+      if ! convert "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    elif command -v magick >/dev/null 2>&1; then
+      if ! magick "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    fi
+
+    if [[ -s "$applied_art" ]] && [[ "$(head -c 8 "$applied_art" | od -An -tx1 | tr -d ' \\n')" == "89504e470d0a1a0a" ]]; then
+      for surface in \
+        "$visual/backgrounds/boot.png" \
+        "$visual/backgrounds/desktop.png" \
+        "$visual/backgrounds/showcase.png" \
+        "$visual/menus/default.png"; do
+        mkdir -p "$(dirname "$surface")"
+        cp -f "$applied_art" "$surface"
+      done
+      log_info "Applied discovered artwork to Aurora boot, desktop, showcase, and menu surfaces."
+    else
+      log_warning "Selected artwork could not be normalized to PNG; retaining generated Aurora surfaces."
+    fi
   fi
 
   # Stage every boot/menu screen explicitly. GRUB/Jasper/Spit Fire only consume
@@ -1013,11 +1162,25 @@ build_native_iso_pipeline(){
   local native_script="$SCRIPT_DIR/boot/iso/build-iso.sh"
   local native_iso="$SCRIPT_DIR/boot/iso/dist/output.iso"
   [[ -x "$native_script" || -f "$native_script" ]] || { log_error "Native ISO pipeline is missing: $native_script"; return 1; }
-  CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
+  # Forward the target system block size through the canonical native ISO boundary.
+  # 4096 bytes (4 KiB) is the default; callers may override it explicitly.
+  local system_block_size="${CHIMERA_SYSTEM_BLOCK_SIZE:-4096}"
+  [[ "$system_block_size" =~ ^[1-9][0-9]*$ ]] || { log_error "Invalid CHIMERA_SYSTEM_BLOCK_SIZE: $system_block_size"; return 2; }
+  # Pass both the canonical name and the compatibility alias explicitly: the
+  # native ISO builder and its contract verifier must see the same 4 KiB default.
+  CHIMERA_SYSTEM_BLOCK_SIZE="$system_block_size" \
+    SYSTEM_BLOCK_SIZE="$system_block_size" \
+    CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
     bash "$native_script" 2>&1 | tee "$LOG_DIR/native-iso-pipeline.log"
   [[ -s "$native_iso" && -s "$native_iso.sha256" ]] || { log_error "Native ISO pipeline did not produce ISO and SHA-256 checksum"; return 1; }
   (cd "$(dirname "$native_iso")" && sha256sum -c "$(basename "$native_iso").sha256") || { log_error "Native ISO checksum verification failed"; return 1; }
-  log_success "Canonical native ISO and checksum verified: $native_iso"
+  # Embed the verified canonical Koronos ISO as the native candidate inside
+  # the comprehensive media, then generate a checksum for the staged filename.
+  local candidate_dir="$ISO_DIR/boot/candidates"
+  mkdir -p "$candidate_dir"
+  install -m 0644 "$native_iso" "$candidate_dir/koronos-native.iso"
+  sha256sum "$candidate_dir/koronos-native.iso" | awk '{print $1 "  koronos-native.iso"}' > "$candidate_dir/koronos-native.iso.sha256"
+  log_success "Canonical native Koronos ISO verified and staged: $candidate_dir"
 }
 
 
@@ -1211,6 +1374,9 @@ verify_iso(){
   grep -qi 'UEFI' "$LOG_DIR/iso-el-torito.log" || { log_error 'ISO has no UEFI El Torito boot entry'; exit 1; }
   grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB does not load the staged Koronos ELF through Multiboot2'; exit 1; }
   grep -q 'module2 /boot/live/chimera-live-initramfs.img' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB live handoff is missing the live initramfs module'; exit 1; }
+  grep -q 'module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB live entry is missing its native USER_INIT_ELF module'; exit 1; }
+  grep -q 'module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB installer entry is missing its native USER_INIT_ELF module'; exit 1; }
+  grep -q 'module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB recovery entry is missing its native USER_INIT_ELF module'; exit 1; }
   xorriso -indev "$iso" -find /boot/grub/grub.cfg -type f | tee "$LOG_DIR/iso-grub-files.log"
   xorriso -indev "$iso" -find /boot/koronos/koronos.elf -type f | tee -a "$LOG_DIR/iso-grub-files.log"
   xorriso -indev "$iso" -find /boot/recovery/chimera-recovery-initramfs.img -type f | tee -a "$LOG_DIR/iso-grub-files.log"
@@ -1219,6 +1385,9 @@ verify_iso(){
   local required_iso_paths=(
     /boot/grub/grub.cfg
     /boot/koronos/koronos.elf
+    /boot/targets/target-init-live.elf
+    /boot/targets/target-init-installer.elf
+    /boot/targets/target-init-recovery.elf
     /boot/live/chimera-live-initramfs.img
     /boot/live/live-manifest.json
     /boot/grub/aurora-theme.txt
@@ -1239,6 +1408,9 @@ verify_iso(){
     /install/installer/installation-manifest.json
     /install/installer/installer-contract.json
   )
+  if [[ "${CHIMERA_BUILD_NATIVE_ISO_PIPELINE:-1}" != 0 ]]; then
+    required_iso_paths+=(/boot/candidates/koronos-native.iso /boot/candidates/koronos-native.iso.sha256)
+  fi
   local required_path
   for required_path in "${required_iso_paths[@]}"; do
     if ! xorriso -indev "$iso" -find "$required_path" -type f | grep -q .; then
@@ -1247,6 +1419,16 @@ verify_iso(){
     fi
   done
   xorriso -indev "$iso" -find /EFI/BOOT/BOOTX64.EFI -type f | tee "$LOG_DIR/iso-uefi-files.log"
+  if [[ "${CHIMERA_BUILD_NATIVE_ISO_PIPELINE:-1}" != 0 ]]; then
+    local extracted_native="$ISO_TMP_DIR/koronos-native-verify.iso"
+    local expected_native actual_native
+    rm -f "$extracted_native"
+    xorriso -osirrox on -indev "$iso" -extract /boot/candidates/koronos-native.iso "$extracted_native" >/dev/null 2>&1
+    expected_native="$(awk '{print $1}' "$ISO_DIR/boot/candidates/koronos-native.iso.sha256")"
+    actual_native="$(sha256sum "$extracted_native" | awk '{print $1}')"
+    [[ "$actual_native" == "$expected_native" ]] || { log_error "Embedded native Koronos ISO SHA-256 mismatch"; exit 1; }
+    log_success "Embedded native Koronos ISO re-extracted and SHA-256 verified."
+  fi
   log_success "BIOS/UEFI boot files and graphical boot, installer and Aurora asset contract verified."
   if command -v qemu-system-x86_64 >/dev/null 2>&1; then
     log_info 'Launching a non-asserting QEMU firmware smoke probe; timeout is not proof of boot success.'
@@ -1325,8 +1507,19 @@ rows=d.get("commands",[])
 names=[str(x.get("name","")).casefold() for x in rows]
 if not rows or len(names)!=len(set(names)): raise SystemExit("Command manifest empty or contains duplicate names")
 if any(not x.get("mode") or not x.get("provider") for x in rows): raise SystemExit("Command missing runtime/provider classification")
-if d.get("mode_counts",{}).get("native") != 15: raise SystemExit("Native command count differs from compiled multicall contract")
-print(f"[COMMANDS] catalogued={len(rows)} native={d['mode_counts'].get('native',0)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
+expected_native = {"pwd", "echo", "ls", "cp", "mv", "touch", "mkdir", "rm", "cat", "clear", "whoami", "hostname", "date", "true", "false"}
+actual_native = {str(x.get("name", "")).casefold() for x in rows if x.get("mode") == "native"}
+if actual_native != expected_native:
+    missing = sorted(expected_native - actual_native)
+    extra = sorted(actual_native - expected_native)
+    raise SystemExit(
+        "Native multicall contract mismatch: "
+        f"expected={len(expected_native)} actual={len(actual_native)} "
+        f"missing={missing} extra={extra}"
+    )
+if d.get("mode_counts",{}).get("native") != len(expected_native):
+    raise SystemExit("Native command mode_counts does not match the compiled multicall contract")
+print(f"[COMMANDS] catalogued={len(rows)} native={len(actual_native)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
 PYCOMMANDS
 }
 build_command_runtime(){
@@ -1334,75 +1527,6 @@ build_command_runtime(){
   CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" bash "$SCRIPT_DIR/tools/build-chimera-command-compat.sh"
   [[ -x "$ROOTFS_DIR/usr/bin/chimera-cmd" ]] || { log_error "Native command binary was not generated"; return 1; }
   log_info "Native command binary staged at $ROOTFS_DIR/usr/bin/chimera-cmd"
-}
-
-stage_macos_compat(){
-  header 'OCTAVIAN MACOS SDK / PORTABLE FOUNDATION COMPATIBILITY'
-  local repo_root
-  repo_root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-  local tools="$repo_root/tools/macos-compat"
-  local docs="$repo_root/docs/MACOS_COMPATIBILITY.md"
-  local smoke="$repo_root/tests/macos_compat/hello_foundation.m"
-  local share="$ROOTFS_DIR/usr/share/octavian/macos-compat"
-  local iso="$ISO_DIR/system/macos-compat"
-  local build="$BUILD_DIR/macos-compat"
-  local extracted="$repo_root/third_party/macos-extracted"
-  local extracted_status="blocked" apple_status="not-available-on-this-host"
-  local portable_status="not-verified" cross_status="not-verified"
-  mkdir -p "$share" "$iso" "$build"
-  [[ -d "$extracted" ]] && extracted_status="review-required"
-  if [[ "$extracted_status" == "blocked" ]]; then
-    log_warning "third_party/macos-extracted absent; extracted SDK inspection BLOCKED."
-  else
-    log_warning "Extracted SDK directory found; license/provenance review required. It will not be copied."
-  fi
-  if bash "$tools/check-sdk.sh" auto >"$build/toolchain-check.log" 2>&1; then
-    cat "$build/toolchain-check.log"
-    if [[ "$(uname -s)" == "Darwin" ]] && grep -q 'APPLE_MACOS_SDK_READY=1' "$build/toolchain-check.log"; then
-      apple_status="available"
-      if [[ -s "$smoke" ]] && bash "$tools/build-app.sh" apple-macos "$smoke" "$build/apple-foundation-smoke" >"$build/apple-build.log" 2>&1 &&
-         "$build/apple-foundation-smoke" >"$build/apple-run.log" 2>&1 && grep -q MACOS_COMPAT_SMOKE_OK "$build/apple-run.log"; then
-        cross_status="passed"
-      else
-        cross_status="failed"
-        log_warning "Apple SDK smoke build failed; see $build/apple-build.log and apple-run.log."
-      fi
-    elif command -v clang >/dev/null 2>&1 && command -v gnustep-config >/dev/null 2>&1 && [[ -s "$smoke" ]]; then
-      if bash "$tools/build-app.sh" portable-gnustep "$smoke" "$build/portable-foundation-smoke" >"$build/portable-build.log" 2>&1 &&
-         "$build/portable-foundation-smoke" >"$build/portable-run.log" 2>&1 && grep -q MACOS_COMPAT_SMOKE_OK "$build/portable-run.log"; then
-        portable_status="passed"
-      else
-        portable_status="failed"
-        log_warning "GNUstep smoke build failed; see $build/portable-build.log and portable-run.log."
-      fi
-    else
-      log_warning "No complete Apple SDK or GNUstep toolchain; macOS application cross-compilation NOT VERIFIED."
-    fi
-  else
-    cat "$build/toolchain-check.log" >&2 || true
-    log_warning "macOS compatibility check failed; no build is claimed."
-  fi
-  python3 - "$build/build-status.json" "$extracted_status" "$apple_status" "$portable_status" "$cross_status" <<'PYMACOS'
-import json,sys
-from pathlib import Path
-out, extracted, apple, portable, cross = sys.argv[1:]
-d={"schema":"OCTAVIAN-MACOS-BUILD-STATUS-1","extracted_sdk_inspection":extracted,
-   "apple_sdk_toolchain":apple,"portable_gnustep_smoke":portable,
-   "macos_application_cross_compilation":cross,"apple_sdk_redistributed":False,
-   "darwin_mach_o_runtime":"blocked-not-implemented"}
-Path(out).write_text(json.dumps(d,indent=2,sort_keys=True)+"\n",encoding="utf-8")
-print(json.dumps(d,sort_keys=True))
-PYMACOS
-  mkdir -p "$share/tools" "$iso/tools"
-  cp -a "$tools/." "$share/tools/"
-  cp -a "$tools/." "$iso/tools/"
-  install -m 0644 "$tools/app-compatibility-manifest.json" "$share/"
-  install -m 0644 "$tools/app-compatibility-manifest.json" "$iso/"
-  install -m 0644 "$build/build-status.json" "$share/"
-  install -m 0644 "$build/build-status.json" "$iso/"
-  install -m 0644 "$docs" "$share/"
-  install -m 0644 "$docs" "$iso/"
-  log_info "Octavian macOS compatibility status staged; Apple SDK contents are never copied."
 }
 
 stage_sdks(){
@@ -1450,23 +1574,22 @@ PYSDKVERIFY
 }
 
 stage_application_payloads(){
-  header 'STAGE COMPILED DESKTOP APPLICATIONS AND EXPLICIT BUILD RESULTS'
+  header 'STAGE COMPILED DESKTOP APPLICATIONS, LAUNCHERS AND CATALOGS'
   local build_dir="$BUILD_DIR/desktop-binaries"
   mkdir -p "$ROOTFS_DIR/usr/local/bin" "$ROOTFS_DIR/usr/share/applications" "$ROOTFS_DIR/usr/share/chimera/desktop" "$ISO_DIR/system/desktop" "$ISO_DIR/system/applications"
   if [[ -f "$SCRIPT_DIR/tools/build-desktop-binaries.sh" ]]; then
     CHIMERA_DESKTOP_BUILD_DIR="$build_dir" bash "$SCRIPT_DIR/tools/build-desktop-binaries.sh" 2>&1 | tee "$LOG_DIR/desktop-binaries.log"
     [[ ! -d "$build_dir/bin" ]] || cp -a "$build_dir/bin/." "$ROOTFS_DIR/usr/local/bin/"
-    [[ ! -s "$build_dir/manifests/desktop-build-manifest.json" ]] || {
-      cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
-      cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ISO_DIR/system/desktop/"
-    }
-    [[ -s "$build_dir/manifests/application-build-status.json" ]] || {
-      log_error "Application status manifest missing; cannot verify application build results"; return 1;
-    }
-    cp -f "$build_dir/manifests/application-build-status.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
-    cp -f "$build_dir/manifests/application-build-status.json" "$ISO_DIR/system/desktop/"
+    [[ ! -s "$build_dir/manifests/desktop-build-manifest.json" ]] || { cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"; cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ISO_DIR/system/desktop/"; }
+    if [[ -s "$build_dir/manifests/application-build-status.json" ]]; then
+      cp -f "$build_dir/manifests/application-build-status.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
+      cp -f "$build_dir/manifests/application-build-status.json" "$ISO_DIR/system/desktop/"
+    else
+      log_error 'Desktop build completed without application-build-status.json; application evidence is BLOCKED.'
+      return 1
+    fi
   else
-    log_warning "Desktop builder missing; application build state is BLOCKED"
+    log_warning 'Desktop binary builder missing; application build status is BLOCKED.'
     python3 - "$ROOTFS_DIR/usr/share/chimera/desktop/application-build-status.json" "$ISO_DIR/system/desktop/application-build-status.json" <<'PYAPPBLOCKED'
 import json,sys
 from pathlib import Path
@@ -1480,9 +1603,118 @@ PYAPPBLOCKED
     cp -f "$SCRIPT_DIR/desktop/optional_apps_catalog.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
     cp -f "$SCRIPT_DIR/desktop/optional_apps_catalog.json" "$ISO_DIR/system/applications/"
   fi
-  log_success "Desktop application build status staged"
+  if [[ -d "$SCRIPT_DIR/desktop/aurora/apps" ]]; then
+    mkdir -p "$ROOTFS_DIR/usr/share/chimera/desktop/apps/aurora" "$ISO_DIR/system/desktop/apps/aurora"
+    cp -a "$SCRIPT_DIR/desktop/aurora/apps/." "$ROOTFS_DIR/usr/share/chimera/desktop/apps/aurora/"
+    cp -a "$SCRIPT_DIR/desktop/aurora/apps/." "$ISO_DIR/system/desktop/apps/aurora/"
+  fi
+  if [[ -d "$SCRIPT_DIR/desktop/aurora" ]]; then
+    for desktop_dir in "$SCRIPT_DIR/desktop/aurora" "$SCRIPT_DIR/desktop/marine"; do
+      [[ -d "$desktop_dir" ]] || continue
+      find "$desktop_dir" -maxdepth 1 -type f -name '*.desktop' -exec cp -f {} "$ROOTFS_DIR/usr/share/applications/" \;
+    done
+  fi
+  log_info 'First-party compiled binaries and launchers are staged; catalog-only third-party apps remain provider/license gated.'
 }
 
+stage_ai_workspace(){
+  header 'STAGE LOCAL-FIRST CNN/RNN/LLM AI WORKSPACE'
+  local share="$ROOTFS_DIR/usr/share/chimera/ai"
+  local iso="$ISO_DIR/system/ai"
+  mkdir -p "$share" "$iso" "$ROOTFS_DIR/usr/bin" "$ROOTFS_DIR/usr/local/bin" "$ROOTFS_DIR/usr/share/applications"
+  install -m 0755 "$SCRIPT_DIR/tools/chimera-ai-workspace.py" "$ROOTFS_DIR/usr/bin/chimera-ai-workspace"
+  install -m 0644 "$SCRIPT_DIR/system/ai/chimera-ai-workspace.json" "$share/chimera-ai-workspace.json"
+  install -m 0644 "$SCRIPT_DIR/system/ai/README.md" "$share/README.md"
+  install -m 0755 "$SCRIPT_DIR/desktop/shared/chimera-ai-workspace-launcher.sh" "$ROOTFS_DIR/usr/local/bin/chimera-ai-workspace-launcher"
+  install -m 0644 "$SCRIPT_DIR/desktop/aurora/chimera-ai-workspace.desktop" "$ROOTFS_DIR/usr/share/applications/chimera-ai-workspace.desktop"
+  install -m 0644 "$SCRIPT_DIR/desktop/marine/chimera-ai-workspace.desktop" "$ROOTFS_DIR/usr/share/applications/chimera-ai-workspace-marine.desktop"
+  cp -f "$SCRIPT_DIR/system/ai/chimera-ai-workspace.json" "$iso/"
+  cp -f "$SCRIPT_DIR/system/ai/README.md" "$iso/"
+  cp -f "$SCRIPT_DIR/tools/chimera-ai-workspace.py" "$iso/chimera-ai-workspace.py"
+  python3 -m py_compile "$ROOTFS_DIR/usr/bin/chimera-ai-workspace"
+  python3 -m json.tool "$share/chimera-ai-workspace.json" >/dev/null
+  python3 "$SCRIPT_DIR/tests/test_chimera_ai_workspace.py"
+  log_info 'AI workspace installed; resource indexing is explicit/local and metadata-only unless text capture is opted in.'
+  log_info 'CNN/RNN training and LLM inference activate only when compatible frameworks, datasets and model weights are supplied.'
+}
+
+
+
+stage_macos_compat(){
+  header 'MACOS SDK / PORTABLE FOUNDATION COMPATIBILITY'
+  local share="$ROOTFS_DIR/usr/share/chimera/macos-compat"
+  local iso="$ISO_DIR/system/macos-compat"
+  local build="$BUILD_DIR/macos-compat"
+  local extracted="$SCRIPT_DIR/third_party/macos-extracted"
+  local extracted_status="blocked"
+  local apple_status="not-available-on-this-host"
+  local portable_status="not-verified"
+  local cross_status="not-verified"
+  mkdir -p "$share" "$iso" "$build"
+  if [[ -d "$extracted" ]]; then
+    extracted_status="review-required"
+    log_warning "Found third_party/macos-extracted; contents are not copied or executed. License/provenance review is required."
+  else
+    log_warning "third_party/macos-extracted is absent; extracted Apple SDK inspection is BLOCKED."
+  fi
+  if bash "$SCRIPT_DIR/tools/macos-compat/check-sdk.sh" auto >"$build/toolchain-check.log" 2>&1; then
+    cat "$build/toolchain-check.log"
+    if [[ "$(uname -s)" == "Darwin" ]] && grep -q 'APPLE_MACOS_SDK_READY=1' "$build/toolchain-check.log"; then
+      apple_status="available"
+      if [[ -s "$SCRIPT_DIR/tests/macos_compat/hello_foundation.m" ]]; then
+        if bash "$SCRIPT_DIR/tools/macos-compat/build-app.sh" apple-macos "$SCRIPT_DIR/tests/macos_compat/hello_foundation.m" "$build/apple-foundation-smoke" >"$build/apple-build.log" 2>&1 &&
+           "$build/apple-foundation-smoke" >"$build/apple-run.log" 2>&1 &&
+           grep -q 'MACOS_COMPAT_SMOKE_OK' "$build/apple-run.log"; then
+          cross_status="passed"
+        else
+          cross_status="failed"
+          log_warning "Apple SDK smoke compile/runtime failed; inspect $build/apple-build.log and apple-run.log."
+        fi
+      fi
+    elif command -v gnustep-config >/dev/null 2>&1 && command -v clang >/dev/null 2>&1 &&
+         [[ -s "$SCRIPT_DIR/tests/macos_compat/hello_foundation.m" ]]; then
+      if bash "$SCRIPT_DIR/tools/macos-compat/build-app.sh" portable-gnustep "$SCRIPT_DIR/tests/macos_compat/hello_foundation.m" "$build/portable-foundation-smoke" >"$build/portable-build.log" 2>&1 &&
+         "$build/portable-foundation-smoke" >"$build/portable-run.log" 2>&1 &&
+         grep -q 'MACOS_COMPAT_SMOKE_OK' "$build/portable-run.log"; then
+        portable_status="passed"
+      else
+        portable_status="failed"
+        log_warning "GNUstep portable smoke compile/runtime failed; inspect $build/portable-build.log and portable-run.log."
+      fi
+    else
+      log_warning "No complete Apple SDK or GNUstep Foundation toolchain is available; macOS application cross-compilation is not verified."
+    fi
+  else
+    cat "$build/toolchain-check.log" >&2 || true
+    log_warning "macOS compatibility toolchain check failed; no compatibility build is claimed."
+  fi
+  python3 - "$build/status.json" "$extracted_status" "$apple_status" "$portable_status" "$cross_status" <<'PYMACOS'
+import json,sys
+from pathlib import Path
+out, extracted, apple, portable, cross = sys.argv[1:]
+data = {
+  "schema": "CHM-MACOS-BUILD-STATUS-1",
+  "extracted_sdk_inspection": extracted,
+  "apple_sdk_toolchain": apple,
+  "portable_gnustep_smoke": portable,
+  "macos_application_cross_compilation": cross,
+  "apple_sdk_redistributed": False,
+  "darwin_mach_o_runtime": "blocked-not-implemented"
+}
+Path(out).write_text(json.dumps(data, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+print(json.dumps(data, sort_keys=True))
+PYMACOS
+  mkdir -p "$share/tools" "$iso/tools"
+  cp -a "$SCRIPT_DIR/tools/macos-compat/." "$share/tools/"
+  cp -a "$SCRIPT_DIR/tools/macos-compat/." "$iso/tools/"
+  install -m 0644 "$SCRIPT_DIR/tools/macos-compat/app-compatibility-manifest.json" "$share/"
+  install -m 0644 "$SCRIPT_DIR/tools/macos-compat/app-compatibility-manifest.json" "$iso/"
+  install -m 0644 "$build/status.json" "$share/build-status.json"
+  install -m 0644 "$build/status.json" "$iso/build-status.json"
+  install -m 0644 "$SCRIPT_DIR/docs/MACOS_COMPATIBILITY.md" "$share/"
+  install -m 0644 "$SCRIPT_DIR/docs/MACOS_COMPATIBILITY.md" "$iso/"
+  log_info "macOS compatibility status staged; Apple SDK contents are never copied into the ISO."
+}
 
 main(){
   # --docker-only is a true Docker pipeline, not a full ISO build with a flag ignored.
@@ -1524,7 +1756,7 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads native-iso squashfs iso verify report; do
+  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads ai-workspace native-iso squashfs iso verify report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
@@ -1540,14 +1772,15 @@ main(){
       features) run_stage features stage_features;;
       package-managers) run_stage package-managers stage_package_managers;;
       games) run_stage games stage_games;;
-      sdk) run_stage sdk stage_sdks;;
-      macos-compat) run_stage macos-compat stage_macos_compat;;
-      application-payloads) run_stage application-payloads stage_application_payloads;;
+      native-iso) run_stage native-iso build_native_iso_pipeline;;
       squashfs) run_stage squashfs build_squashfs;;
       iso) run_stage iso build_iso;;
       verify) run_stage verify verify_iso;;
-      native-iso) run_stage native-iso build_native_iso_pipeline;;
       report) run_stage report report_build;;
+      sdk) run_stage sdk stage_sdks;;
+      macos-compat) run_stage macos-compat stage_macos_compat;;
+      application-payloads) run_stage application-payloads stage_application_payloads;;
+      ai-workspace) run_stage ai-workspace stage_ai_workspace;;
     esac
     completed="$stage"
   done
