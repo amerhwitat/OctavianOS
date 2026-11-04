@@ -445,6 +445,17 @@ Exec=xterm -e python3 /usr/lib/octavian/tools/knowledge/knowledge-chat.py --inde
 Terminal=true
 Categories=Utility;Education;
 EOF
+  mkdir -p "$WORK/etc/xdg/autostart"
+  cat > "$WORK/etc/xdg/autostart/octavian-knowledge-refresh.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Octavian Knowledge Refresh
+Comment=Refresh the bounded local resource index at desktop login
+Exec=/usr/bin/python3 /usr/lib/octavian/tools/knowledge/build-json-index.py --out /var/lib/octavian/knowledge/knowledge-index.json --root / --source opt/aurora/repo --source opt/aurora/apps --source usr/share/applications --source usr/local/share
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+EOF
   cat > "$WORK/usr/share/applications/octavian-knowledge-index.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
