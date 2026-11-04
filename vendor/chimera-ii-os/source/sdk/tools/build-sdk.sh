@@ -15,13 +15,12 @@ trap 'rc=$?; if [[ $rc -ne 0 ]]; then printf "sdk_overall=BLOCKED (exit %s)\\n" 
 cmake -S "$ROOT" -B "$BUILD/cmake-sdk" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$PREFIX"
-cmake --build "$BUILD/cmake-sdk" --target chimera_sdk chimera-sdk-config \
-  --parallel "$JOBS"
+cmake --build "$BUILD/cmake-sdk" --parallel "$JOBS"
 ctest --test-dir "$BUILD/cmake-sdk" --output-on-failure
 echo "c-cpp=PASS (CMake build and CTest)" >> "$SMOKE/status.txt"
 
 if command -v javac >/dev/null 2>&1 && command -v jar >/dev/null 2>&1; then
-  CHIMERA_SDK_JAVA_BUILD_DIR="$BUILD/java/classes" CHIMERA_SDK_JAVA_JAR="$BUILD/chimera-sdk.jar" "$ROOT/java/build.sh"
+  CHIMERA_SDK_JAVA_BUILD_DIR="$BUILD/java/classes" CHIMERA_SDK_JAVA_JAR="$BUILD/chimera-sdk.jar" bash "$ROOT/java/build.sh"
   echo "java=PASS (OpenJDK and JAR)" >> "$SMOKE/status.txt"
 else
   echo "java=SKIP (OpenJDK javac/jar unavailable)" >> "$SMOKE/status.txt"
