@@ -413,7 +413,7 @@ state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat native-iso squashfs iso verify report'; local ci ti
+  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads native-iso squashfs iso verify report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -1449,6 +1449,41 @@ PYSDKVERIFY
   log_success "SDK compiled, tested and staged at /opt/chimera-sdk"
 }
 
+stage_application_payloads(){
+  header 'STAGE COMPILED DESKTOP APPLICATIONS AND EXPLICIT BUILD RESULTS'
+  local build_dir="$BUILD_DIR/desktop-binaries"
+  mkdir -p "$ROOTFS_DIR/usr/local/bin" "$ROOTFS_DIR/usr/share/applications" "$ROOTFS_DIR/usr/share/chimera/desktop" "$ISO_DIR/system/desktop" "$ISO_DIR/system/applications"
+  if [[ -f "$SCRIPT_DIR/tools/build-desktop-binaries.sh" ]]; then
+    CHIMERA_DESKTOP_BUILD_DIR="$build_dir" bash "$SCRIPT_DIR/tools/build-desktop-binaries.sh" 2>&1 | tee "$LOG_DIR/desktop-binaries.log"
+    [[ ! -d "$build_dir/bin" ]] || cp -a "$build_dir/bin/." "$ROOTFS_DIR/usr/local/bin/"
+    [[ ! -s "$build_dir/manifests/desktop-build-manifest.json" ]] || {
+      cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
+      cp -f "$build_dir/manifests/desktop-build-manifest.json" "$ISO_DIR/system/desktop/"
+    }
+    [[ -s "$build_dir/manifests/application-build-status.json" ]] || {
+      log_error "Application status manifest missing; cannot verify application build results"; return 1;
+    }
+    cp -f "$build_dir/manifests/application-build-status.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
+    cp -f "$build_dir/manifests/application-build-status.json" "$ISO_DIR/system/desktop/"
+  else
+    log_warning "Desktop builder missing; application build state is BLOCKED"
+    python3 - "$ROOTFS_DIR/usr/share/chimera/desktop/application-build-status.json" "$ISO_DIR/system/desktop/application-build-status.json" <<'PYAPPBLOCKED'
+import json,sys
+from pathlib import Path
+data={"schema":"CHM-APPLICATION-BUILD-STATUS-1","overall":"BLOCKED","reason":"desktop binary builder missing","results":{}}
+for p in sys.argv[1:]:
+    Path(p).parent.mkdir(parents=True,exist_ok=True)
+    Path(p).write_text(json.dumps(data,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+PYAPPBLOCKED
+  fi
+  if [[ -s "$SCRIPT_DIR/desktop/optional_apps_catalog.json" ]]; then
+    cp -f "$SCRIPT_DIR/desktop/optional_apps_catalog.json" "$ROOTFS_DIR/usr/share/chimera/desktop/"
+    cp -f "$SCRIPT_DIR/desktop/optional_apps_catalog.json" "$ISO_DIR/system/applications/"
+  fi
+  log_success "Desktop application build status staged"
+}
+
+
 main(){
   # --docker-only is a true Docker pipeline, not a full ISO build with a flag ignored.
   if [[ "$BUILD_ISO" == 0 ]]; then
@@ -1489,7 +1524,7 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat native-iso squashfs iso verify report; do
+  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat application-payloads native-iso squashfs iso verify report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
@@ -1507,6 +1542,7 @@ main(){
       games) run_stage games stage_games;;
       sdk) run_stage sdk stage_sdks;;
       macos-compat) run_stage macos-compat stage_macos_compat;;
+      application-payloads) run_stage application-payloads stage_application_payloads;;
       squashfs) run_stage squashfs build_squashfs;;
       iso) run_stage iso build_iso;;
       verify) run_stage verify verify_iso;;
