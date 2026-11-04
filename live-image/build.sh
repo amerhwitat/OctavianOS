@@ -376,7 +376,7 @@ fi
 for desktop_root in "$PAY/repo/vendor/chimera-ii-os/source/desktop/aurora" "$PAY/repo/vendor/chimera-ii-os/source/desktop/marine"; do
   [ -d "$desktop_root" ] || continue
   while IFS= read -r -d '' desktop_file; do
-    rel="${desktop_file#"$PAY/repo/vendor/chimera-ii-os/source/desktop/"/}"
+    rel="${desktop_file#"$PAY/repo/vendor/chimera-ii-os/source/desktop/"}"
     desktop_name="$(printf '%s' "$rel" | tr '/' '-')"
     install -D -m 0644 "$desktop_file" "$WORK/usr/share/applications/chimera-$desktop_name"
   done < <(find "$desktop_root" -type f -name "*.desktop" -print0)
