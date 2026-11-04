@@ -8,6 +8,7 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/physmap.h"
 
 namespace {
 constexpr uint64_t USER_STACK_TOP = 0x00007FFFFFFFE000ull; // Loader requires a page-aligned stack ceiling
@@ -49,6 +50,19 @@ static const char *target_name(Target target) {
         default: return "unknown";
     }
 }
+
+/* GRUB expands grub_platform in the selected init module command line.
+ * This records the firmware path observed by the actual bootloader/kernel
+ * handoff; the QEMU harness never writes firmware markers into raw traces. */
+static void log_boot_firmware(const char *cmdline) {
+    if (token(cmdline, "firmware=efi")) {
+        koronos_target_log("BOOT FIRMWARE: UEFI");
+    } else if (token(cmdline, "firmware=pc")) {
+        koronos_target_log("BOOT FIRMWARE: BIOS");
+    } else {
+        koronos_target_log("[BOOT] firmware identity missing from GRUB module command line");
+    }
+}
 static void log_user_init_syscall(Target target, uint32_t pid) {
     char message[96];
     const char *name = target_name(target);
@@ -65,32 +79,54 @@ static void log_user_init_syscall(Target target, uint32_t pid) {
     message[used] = 0;
     koronos_target_log(message);
 }
-static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
-    const char *name = target_name(target);
-    char prefix[80];
-    uint64_t p=0;
-    const char *a="USERSPACE READY: ";
-    while (*a) prefix[p++]=*a++;
-    while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
-    while (*b) prefix[p++]=*b++;
-    if (length < p+2u) return false;
-    bool found=false;
-    for (uint64_t i=0; i+p<length; ++i) {
-        uint64_t j=0;
-        while (j<p && bytes[i+j]==prefix[j]) ++j;
-        if (j!=p) continue;
-        uint64_t k=i+p;
-        uint32_t parsed=0, digits=0;
-        while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
+static bool marker_prefix_matches(const char *bytes, uint64_t length,
+                                  const char *prefix, uint64_t prefix_len,
+                                  uint32_t pid) {
+    /* The canonical production contract is
+         USERSPACE READY: target=<t> init_pid=<pid>
+       The earlier acceptance probe used
+         USERSPACE READY: <t> init pid=<pid>
+       Accept both so a real payload is not reported as missing, while still
+       requiring the exact target and PID the kernel itself assigned. */
+    if (length < prefix_len + 2u) return false;
+    for (uint64_t i = 0; i + prefix_len < length; ++i) {
+        uint64_t j = 0;
+        while (j < prefix_len && bytes[i + j] == prefix[j]) ++j;
+        if (j != prefix_len) continue;
+        uint64_t k = i + prefix_len;
+        uint32_t parsed = 0, digits = 0;
+        while (k < length && bytes[k] >= '0' && bytes[k] <= '9') {
+            parsed = parsed * 10u + (uint32_t)(bytes[k] - '0');
             ++k; ++digits;
         }
-        if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
-            found=true; break;
+        if (digits && parsed == pid &&
+            (k == length || bytes[k] == '\n' || bytes[k] == '\r' || bytes[k] == ' ')) {
+            return true;
         }
     }
-    return found;
+    return false;
+}
+
+static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
+    const char *name = target_name(target);
+    char canonical[96];
+    char legacy[96];
+    uint64_t c = 0, l = 0;
+    const char *a = "USERSPACE READY: target=";
+    while (*a) canonical[c++] = *a++;
+    const char *n = name;
+    while (*n) canonical[c++] = *n++;
+    const char *b = " init_pid=";
+    while (*b) canonical[c++] = *b++;
+
+    const char *p = "USERSPACE READY: ";
+    while (*p) legacy[l++] = *p++;
+    n = name;
+    while (*n) legacy[l++] = *n++;
+    const char *q = " init pid=";
+    while (*q) legacy[l++] = *q++;
+    if (marker_prefix_matches(bytes, length, canonical, c, pid)) return true;
+    return marker_prefix_matches(bytes, length, legacy, l, pid);
 }
 }
 
@@ -155,6 +191,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    log_boot_firmware(selected->cmdline);
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
@@ -165,8 +202,13 @@ extern "C" int koronos_launch_selected_userspace(void) {
         return -4;
     }
 
+    const void *init_image = koronos_phys_to_virt(selected->base, selected->size);
+    if (!init_image) {
+        koronos_target_log("[RUN ] ERROR: USER_INIT_ELF has no verified physical-to-virtual alias");
+        return -5;
+    }
     chimera_process_image process{};
-    const int pid=chimera_process_admit_elf(reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),
+    const int pid=chimera_process_admit_elf(init_image,
         selected->size,KORONOS_EM_X86_64,USER_STACK_TOP,&process);
     if (pid<=0) {
         koronos_target_log("[RUN ] ERROR: selected user init failed protected-process admission");
@@ -174,10 +216,11 @@ extern "C" int koronos_launch_selected_userspace(void) {
     }
     chimera_loaded_elf loaded{};
     const int load_rc=chimera_elf_load_user_image(
-        reinterpret_cast<const void *>(static_cast<uintptr_t>(selected->base)),selected->size,
+        init_image,selected->size,
         KORONOS_EM_X86_64,USER_STACK_TOP,USER_STACK_SIZE,ops,nullptr,&loaded);
     if (load_rc!=0) {
         (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_reap(static_cast<uint32_t>(pid), nullptr);
         koronos_target_log("[RUN ] ERROR: selected user init ELF load failed");
         return -6;
     }
@@ -185,6 +228,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (!root) {
         ops->destroy_address_space(nullptr,loaded.address_space);
         (void)chimera_process_set_state(static_cast<uint32_t>(pid),CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_reap(static_cast<uint32_t>(pid), nullptr);
         koronos_target_log("[RUN ] ERROR: selected user init has no owned CR3 root");
         return -7;
     }
@@ -200,6 +244,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     if (koronos_user_timeout_arm(1000u) != 0) {
         ops->destroy_address_space(nullptr,loaded.address_space);
         (void)chimera_process_set_state(active_pid,CHIMERA_PROCESS_FAULTED);
+        (void)chimera_process_reap(active_pid, nullptr);
         active_target=TARGET_NONE;
         koronos_target_log("[RUN ] ERROR: failed to arm PIT-backed in-kernel user timeout");
         return -10;
@@ -213,6 +258,7 @@ extern "C" int koronos_launch_selected_userspace(void) {
     koronos_user_timeout_disarm();
     ops->destroy_address_space(nullptr,loaded.address_space);
     (void)chimera_process_set_state(active_pid,exit_code==0 ? CHIMERA_PROCESS_EXITED : CHIMERA_PROCESS_FAULTED);
+    (void)chimera_process_reap(active_pid, nullptr);
     active_target=TARGET_NONE;
     active_root=0;
     if (exit_code == -10) {
