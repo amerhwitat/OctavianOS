@@ -48,6 +48,7 @@ jobs:
           node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-registry.js
           node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-windows-network.js
           node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-optical-media.js
+          node --check vendor/chimera-ii-os/source/web/system-services.js
       - name: JSON and build contracts
         run: |
           python - <<'PY'
