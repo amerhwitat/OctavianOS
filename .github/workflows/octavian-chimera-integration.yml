@@ -57,6 +57,10 @@ jobs:
           python -m py_compile vendor/chimera-ii-os/source/tools/build/build_all_editions.py
           python -m py_compile vendor/chimera-ii-os/source/tools/build/main.py
           python -m py_compile vendor/chimera-ii-os/source/tools/build/orchestrator.py
+      - name: Validate vendored comprehensive ISO builder release-mode contract
+        run: |
+          bash -n vendor/chimera-ii-os/source/build-chimera-iso.sh
+          python vendor/chimera-ii-os/source/tests/test_build_cli_options.py
       - name: Syntax-check imported shell build tools
         run: |
           bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/aurora-emulator-window.sh
