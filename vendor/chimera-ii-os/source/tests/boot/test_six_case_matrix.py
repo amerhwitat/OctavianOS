@@ -8,9 +8,9 @@ def trace_for(target, firmware):
     return "\n".join([
         "[KRN ] KORONOS READY", f"BOOT FIRMWARE: {firmware.upper()}",
         f"USER INIT SYSCALL: target={target} init_pid=42",
-        f"USERSPACE READY: target={target} init_pid=42",
         f"VFS ACCEPTANCE: ROOT MOUNTED target={target} path=/",
         f"VFS ACCEPTANCE: TMP WRITE-READ VERIFIED target={target} path=/tmp",
+        f"USERSPACE READY: target={target} init_pid=42",
         "SMP CPU ONLINE: logical_id=0 apic_id=0", "SMP CPU ONLINE: logical_id=1 apic_id=1",
         "SMP OVERLAP VERIFIED: cpu_a=0 cpu_b=1 overlap_ticks=12"]) + "\n"
 
@@ -76,6 +76,20 @@ class SixCaseMatrixTests(unittest.TestCase):
     def test_recovery_requires_matching_postcondition(self):
         c = next(x for x in self.manifest["cases"] if x["target"] == "recovery")
         (self.evidence / c["postcondition_trace"]).write_text("RECOVERY REPAIR STARTED: transaction=a\nRECOVERY POSTCONDITION VERIFIED: transaction=b\n")
+        self.assertEqual(self.run_verifier().returncode, 1)
+
+    def test_trace_path_cannot_escape_evidence_directory(self):
+        self.manifest["cases"][0]["trace"] = "../outside.log"
+        self.write_manifest()
+        self.assertEqual(self.run_verifier().returncode, 1)
+
+    def test_duplicate_case_is_blocked(self):
+        self.manifest["cases"].append(dict(self.manifest["cases"][0]))
+        self.write_manifest()
+        self.assertEqual(self.run_verifier().returncode, 1)
+
+    def test_non_object_manifest_is_blocked(self):
+        (self.evidence / "matrix.json").write_text("[]")
         self.assertEqual(self.run_verifier().returncode, 1)
 
 if __name__ == "__main__": unittest.main()
