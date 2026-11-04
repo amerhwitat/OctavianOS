@@ -28,6 +28,8 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("  verify-six-case-matrix:", self.text)
         self.assertIn("verify-six-case-matrix.py", self.text)
         self.assertIn("six-case-evidence/report.json", self.text)
+        self.assertIn("accepted=false", self.text)
+        self.assertIn("Current per-target repacked probe ISOs and test init ELFs are not production evidence.", self.text)
         self.assertIn("Current per-target repacked probe ISOs and test init ELFs are not production evidence.", self.text)
 
     def test_alternate_release_artifact_workflow_cannot_bypass_six_case_gate(self):
