@@ -14,6 +14,7 @@ Options:
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
+  --skip-native-six-case-diagnostics Skip optional same-ISO BIOS/UEFI QEMU trace collection after native ISO mastering.
 
 Notes:
   This help entry is provided consistently across Chimera II OS shell tools.
@@ -117,6 +118,7 @@ BUILD_SUCCEEDED=0
 CHIMERA_PUSH="${CHIMERA_PUSH:-1}"
 BUILD_DOCKER=1
 BUILD_ISO=1
+RUN_NATIVE_SIX_CASE_DIAGNOSTICS=1
 
 # Architecture-aware media profile. Current boot artifacts are x86_64-only.
 detect_cpu_arch() {
@@ -217,6 +219,7 @@ while [[ $# -gt 0 ]]; do
     --no-push) export CHIMERA_PUSH=0; shift;;
     --skip-native-iso) export CHIMERA_BUILD_NATIVE_ISO_PIPELINE=0; shift;;
     --install-build-deps) export CHIMERA_INSTALL_BUILD_DEPS=1; shift;;
+    --skip-native-six-case-diagnostics) RUN_NATIVE_SIX_CASE_DIAGNOSTICS=0; shift;;
     --registry) export REGISTRY_NAME="$2"; shift 2;;
     *) log_error "Unknown option: $1"; exit 2;;
   esac
@@ -997,6 +1000,33 @@ build_native_iso_pipeline(){
     bash "$native_script" 2>&1 | tee "$LOG_DIR/native-iso-pipeline.log"
   [[ -s "$native_iso" && -s "$native_iso.sha256" ]] || { log_error "Native ISO pipeline did not produce ISO and SHA-256 checksum"; return 1; }
   (cd "$(dirname "$native_iso")" && sha256sum -c "$(basename "$native_iso").sha256") || { log_error "Native ISO checksum verification failed"; return 1; }
+
+  # Capture raw six-case traces from one canonical ISO when QEMU + OVMF exist.
+  # These traces are diagnostic only; they do not assert CPL3, VFS, SMP,
+  # desktop, installer persistence or recovery repair readiness.
+  if [[ "$RUN_NATIVE_SIX_CASE_DIAGNOSTICS" == 1 ]]; then
+    local six_case_runner="$SCRIPT_DIR/tools/boot/run-six-case-qemu.py"
+    local six_case_verifier="$SCRIPT_DIR/tools/boot/verify-six-case-matrix.py"
+    local ovmf_code="" ovmf_vars="" ovmf_dir
+    if [[ -f "$six_case_runner" && -f "$six_case_verifier" ]] && command -v qemu-system-x86_64 >/dev/null 2>&1; then
+      for ovmf_dir in /usr/share/OVMF /usr/share/ovmf /usr/share/qemu /usr/share/edk2/x64; do
+        [[ -d "$ovmf_dir" ]] || continue
+        [[ -n "$ovmf_code" ]] || ovmf_code="$(find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_CODE_4M.fd' -print -quit 2>/dev/null || find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_CODE.fd' -print -quit 2>/dev/null || true)"
+        [[ -n "$ovmf_vars" ]] || ovmf_vars="$(find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_VARS_4M.fd' -print -quit 2>/dev/null || find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_VARS.fd' -print -quit 2>/dev/null || true)"
+      done
+      if [[ -n "$ovmf_code" && -n "$ovmf_vars" ]]; then
+        local six_case_evidence="$BUILD_DIR/native-six-case-evidence"
+        python3 "$six_case_runner" --iso "$native_iso" --evidence-dir "$six_case_evidence" --main-menu-index live=0 --main-menu-index installer=3 --main-menu-index recovery=6 2>&1 | tee "$LOG_DIR/native-six-case-runner.log"
+        if ! python3 "$six_case_verifier" --evidence-dir "$six_case_evidence" 2>&1 | tee "$LOG_DIR/native-six-case-verifier.log"; then
+          log_warning "Native six-case acceptance remains BLOCKED; raw traces retained at $six_case_evidence. No release evidence was synthesized."
+        fi
+      else
+        log_warning "QEMU is installed but OVMF_CODE/OVMF_VARS were not found; skipping six-case diagnostics."
+      fi
+    else
+      log_info "QEMU + OVMF six-case diagnostic prerequisites unavailable; skipping optional local trace collection."
+    fi
+  fi
   log_success "Canonical native ISO and checksum verified: $native_iso"
 }
 
