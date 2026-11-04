@@ -8,6 +8,8 @@ on:
       - "vendor/chimera-ii-os/source/system/integrations/**"
       - "vendor/chimera-ii-os/source/desktop/aurora-shell/**"
       - "vendor/chimera-ii-os/source/live-image/**"
+      - "live-image/**"
+      - "desktop/aurora-shell/**"
       - "vendor/chimera-ii-os/source/tests/integrations/**"
       - ".github/workflows/chimera-integration-contract.yml"
   push:
@@ -60,4 +62,4 @@ jobs:
           for name in ("apps-registry.js", "apps-windows-network.js", "apps-optical-media.js"):
               assert name in index
           PY
-          bash -n vendor/chimera-ii-os/source/live-image/build.sh
+          bash -n live-image/build.sh
