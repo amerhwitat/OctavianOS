@@ -355,6 +355,8 @@ for item in manifest.get("native_binaries", []):
     name = pathlib.Path(item).name
     if not (binaries / name).is_file():
         continue
+    if name == "chimera-desktop-shell":
+        continue
     terminal = name in {"chimera-neural-chat", "voiceconnect", "chm-utf8"}
     title = name.replace("-", " ").replace("_", " ").title()
     if name == "chimera-neural-chat":
