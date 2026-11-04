@@ -1,39 +1,44 @@
-# Linux userspace parity gap matrix — OctavianOS
+# Linux userspace parity gap matrix
 
-**Scope:** OctavianOS's native Koronos path and its vendored ChimeraIIOS source compared with Linux's kernel-to-userspace contract. This document distinguishes vendored source, Octavian-specific integration, and runtime proof.
+**Scope:** native Koronos userspace in ChimeraIIOS and the vendored Koronos userspace in OctavianOS, compared with the Linux userspace boot/runtime contract. This is an engineering gap inventory, not a claim of Linux ABI compatibility or production acceptance.
 
-## Architecture comparison
+## Linux baseline
 
-OctavianOS vendors the ChimeraIIOS source under vendor/chimera-ii-os/source/, but the vendored code and Octavian's top-level release/target integration are separate layers. A fix to one layer must not be assumed to update the other. Linux is the behavioral reference; copying Linux implementation code directly is not the goal.
+A Linux boot does not stop at loading an ELF. The kernel establishes memory/address-space and privilege-transition state, mounts an initramfs root, executes PID 1, provides a process-aware syscall boundary and file descriptor/VFS APIs, and lets init supervise services. The distribution supplies additional userland components (dynamic linker, libc, shell, utilities, service manager, device management, logging, networking, and desktop stack).
 
-| Area | Linux contract | OctavianOS current evidence | Gap to close |
+## Current state and gaps
+
+| Area | Linux behavior | ChimeraIIOS evidence/state | Required implementation / acceptance |
 |---|---|---|---|
-| Production init identity | Bootloader supplies root/init; kernel executes the selected init | Target payload contract and staged-init checks exist; Multiboot module classification is only identification | Bind selected Live/Installer/Recovery payload to exact production init ELF and verify hash/target end to end |
-| Rootfs/VFS | Initramfs is unpacked into a usable root; VFS resolves paths and mounts | Rootfs validation and payload staging do not prove VFS publication in the running kernel | Add bounded CPIO extraction to kernel VFS, mount root before launch, validate required nodes and writable tmpfs |
-| ELF + ring 3 | Process has isolated mappings, user stack, transition state and an executable entry | Vendored ELF loader maps through callbacks; Octavian has native user-entry/context code, but production target execution must be traced | Wire the exact staged init to the real loader, process-owned address space and architecture entry/return path |
-| Syscall context | Syscalls use caller-owned PID, validated pointers and lifecycle state | Octavian native dispatcher checks syscall context and obtains active PID; compatibility dispatcher has no process context | Keep compat path fail-closed; demonstrate native ring-3 syscall path and same-PID readiness in QEMU |
-| Exit/wait/supervision | Exit tears down a process; parent can wait/reap; init supervises children | Process/task records and some lifecycle bookkeeping exist; complete scheduler-linked parent/child wait semantics remain unproven | Implement and test exit cleanup, wait queues, child status/reaping, restart policy and service health checks |
-| Scheduling/SMP | Architecture context switch, preemption, wakeups and per-CPU execution | Vendored scheduler intentionally does not claim parallel execution; source-level CPU count is not AP startup | Bring up APs, install per-CPU state, switch real task contexts and prove overlapping execution on ≥2 CPUs |
-| File descriptors/VFS syscalls | open/read/write/close, fd ownership, file offsets and errno semantics | Native console write is narrow; a complete process-owned VFS/fd path is not proven | Implement fd table and VFS-backed read/write/open/close, user pointer checks, permission tests and /tmp writes |
-| PID 1/service manager | Init mounts pseudo filesystems, starts and monitors services, handles failures | Service registry/dependency planning does not by itself launch services | Start actual service executables; require successful start + health checks; test dependency failure and restart |
-| Linux userland compatibility | libc/dynamic loader, shell/coreutils, procfs, signals, pipes, sockets, mmap and wait semantics | Compatibility mapping recognizes syscall identities, not full Linux userspace compatibility | Define supported ABI subset; add native libc/sysroot; implement each advertised syscall and test real dynamically/static linked programs |
-| Task/process observability | procfs exposes process, memory and CPU state | Scheduler snapshots are internal APIs; TaskMon or shell tools are not proof of procfs-backed telemetry | Expose kernel-owned telemetry and make ps/top/TaskMon read it; no static/mock counts |
-| GUI + targets | Init starts display/input/session services; system target is health-checked | Aurora/Marine target definitions and assets exist; desktop readiness requires actual process/display health | Launch the real session from PID 1 and verify display, input, application launch and shutdown |
-| Installer/recovery | Target-specific init, persistent storage and meaningful recovery actions | Six-case release verifier and input validator enforce fail-closed checks | Pass each Live/Installer/Recovery × BIOS/UEFI run, installed cold reboot, and recovery postcondition before release |
+| Boot payload | Kernel consumes initramfs and executes its /init as PID 1 | Multiboot2 module scanner classifies init ELF and Live/Recovery payloads; classification alone is not extraction or execution | Verify target-specific module identity/hash; bounded CPIO-newc extraction; reject traversal, duplicate paths, malformed headers and truncated archives |
+| Root filesystem/VFS | Initramfs entries are published as a root mount; mount namespace and VFS mediate path lookup | Existing build/initramfs code does not prove a production root was published through a kernel VFS | Implement archive-to-VFS publication using the real mount ABI; verify /, /init, /dev, /proc, /tmp; fail closed on partial mount |
+| ELF/process | execve maps PT_LOAD, BSS, stack/auxv, permissions, then enters user mode | A selected single init ELF is mapped into an owned address space and entered through the x86-64 ring-3 trampoline; the kernel validates its CR3/RIP and the DPL3 INT 0x80 acknowledgement. This is a single synchronous init launch, not a general scheduled process model. | Move ownership into scheduler-managed task contexts; implement guarded stacks, per-process kernel stacks/TSS.RSP0, safe CR3 context switching, fault isolation and concurrent task teardown |
+| Syscalls | Syscalls operate on the calling task and validate user pointers | The single-init path has kernel-owned PID lookup, CPL3 INT 0x80 audit acknowledgement, bounded console WRITE and synchronous EXIT/teardown. The general compatibility dispatcher still fails closed. READ/OPEN/CLOSE/SEEK and VFS-backed descriptors are not implemented. | Add a task-owned syscall context, full user-copy/pointer validation, VFS-backed OPEN/READ/WRITE/CLOSE/SEEK, wait/exit semantics, mmap/munmap and negative tests |
+| Process lifecycle | fork/clone, exec, wait/reap, signals and exit status have defined semantics | The selected init is synchronously entered and reaped after exit/timeout. The process record is not a scheduler-owned task; no general parent/child, wait, signal or multi-process lifecycle exists. | Add scheduler-owned task/process association, child creation, wait queues, signals, reference-counted resources and race-safe deferred reaping |
+| Scheduling | Preemptive task scheduling, block/wake, timers and SMP coordination | Cooperative callback scheduler exists; parallel dispatch deliberately returns zero until real AP workers exist | Architecture context switch, timer preemption, blocking syscalls, wake queues, per-CPU current task and independently running AP workers |
+| File descriptors | Per-process fd table, open/read/write/close/dup/pipe, permissions and error semantics | No process-owned descriptor table or kernel VFS is wired to the native syscall path; WRITE is a bounded console operation only. | Implement fd tables, reference counts, path lookup, OPEN/READ/WRITE/CLOSE/SEEK, permissions, pipe/IPC and negative tests |
+| Device and pseudo filesystems | devtmpfs/devices, procfs, sysfs, tmpfs and block-backed filesystems | No native VFS mount layer or APIC-backed block-device filesystem path is present in the native kernel tree. | Implement initramfs CPIO extraction and VFS root mount; mount proc/sys/dev/tmp; prove writable tmpfs and read-only boot media; then persistent storage |
+| Service supervision | PID 1 starts dependencies, tracks exits, restarts configured services and exposes status/logs | Dependency ordering and service state registry exist, but registry/bootstrap do not launch or health-check services | A real init/service manager with start/stop/restart, dependency failure propagation, logs, health checks and target completion |
+| Runtime/toolchain | ELF interpreter, libc, shell, core utilities, package/runtime metadata | BusyBox-based initramfs exists as diagnostic environment; native ABI completeness is not established | Define native libc/sysroot and syscall ABI; package production shell/utilities; test real applications without host fallbacks |
+| Observability | procfs task/memory stats, logs, tracing, resource accounting | Scheduler snapshots and host-side tools exist; no proven kernel-backed procfs/task telemetry | Publish kernel-owned process/memory/cpu data; make ps/top/TaskMon consume that API, not fabricated/static data |
+| GUI | Session manager, graphics/input/audio device interfaces and compositor | Aurora/Marine assets and launch routing exist; a running desktop is not established by assets | Start session from real init; validate display/input services, compositor health, app launch and clean shutdown |
+| Installer/recovery | Target-specific userspace, storage writes, transaction/repair postconditions | Target payloads/routing are present but not full install/repair acceptance | Six BIOS/UEFI target runs; install + cold reboot persistence; recovery action with verified postcondition |
+| Security | Credentials/capabilities, syscall pointer validation, mount policy, W^X and isolation | Some ELF bounds/W^X checks exist; full end-to-end isolation remains unproven | Audit every syscall and VFS boundary; capability/credential policy; negative tests and isolation tests |
 
-## Priority implementation plan
+## Immediate implementation order
 
-- **P0 — Rootfs:** CPIO-newc bounds/path validation; extraction to a real VFS; mount / before process launch; verify /init, /dev, /proc, /tmp.
-- **P0 — Process execution:** connect target-specific production ELF to Octavian's native user-entry path; assert real PID and CPL3-originated syscall acknowledgement.
-- **P0 — Lifecycle:** implement process-bound exit/wait/reap and descriptor cleanup; never let context-free compatibility dispatch fabricate success.
-- **P1 — Userland:** native libc/sysroot, shell, file descriptors, pipes, signals, mmap, procfs and a real service manager.
-- **P1 — Targets:** health-checked Aurora/Marine sessions, installer writes and cold reboot persistence, recovery action/postcondition.
-- **P2 — SMP:** AP bring-up, per-CPU scheduler entry and real overlapping execution; keep SMP claims blocked until proven.
+1. Rootfs archive extraction and actual VFS root publication.
+2. Kernel-owned process context connected to ELF loader, ring-3 entry and syscall entry.
+3. Real PID/exit/wait semantics and fd/VFS syscall path.
+4. Runnable init/service manager and health-checked Live/Installer/Recovery targets.
+5. procfs/task telemetry and shell utilities backed by kernel data.
+6. Real AP startup/context switching before claiming SMP.
+7. Aurora/Marine, installer persistence and recovery postcondition tests.
 
-## Release policy
+## Release evidence
 
-Do not merge or publish by weakening tests/migration/verify-userspace-handoff.py or manufacturing markers. Required order remains kernel-ready → genuine user-originated syscall acknowledgement → target readiness with the same nonzero PID. Run each of the six target/firmware cases separately against the exact candidate ISO hash. Also require rootfs/VFS, Aurora, installer, recovery and SMP follow-up evidence. Static source checks are necessary but insufficient.
+The production gate remains fail-closed. Required evidence is a native build and unit tests, real CPIO-to-VFS tests, ring-3 init syscall acknowledgement followed by readiness from the same nonzero PID, and six separate Live/Installer/Recovery × BIOS/UEFI traces against the unchanged verifier. Follow with Aurora startup, installer cold-reboot persistence, recovery repair postcondition and overlapping execution on at least two CPUs. Source inspection or a passing contract test is not runtime acceptance.
 
-## Linux behavioral references
+## Linux source mapping
 
-Use Linux source as a contract reference: init/initramfs.c and fs/ for rootfs/VFS; kernel/fork.c and kernel/exit.c for process lifecycle; arch/x86/entry/ and kernel/sys.c for syscalls; kernel/sched/ for scheduling; fs/proc/ for task telemetry. Adapt semantics to Koronos's own architecture and ABI rather than copying Linux internals.
+Use Linux as a behavioral reference, not as code to copy wholesale: initramfs and rootfs handling (init/initramfs.c, fs/), process creation and exit (kernel/fork.c, kernel/exit.c), syscall entry and dispatch (arch/x86/entry/, kernel/sys.c), scheduler (kernel/sched/), and procfs (fs/proc/). Exact Linux APIs and source paths vary by kernel release and architecture.

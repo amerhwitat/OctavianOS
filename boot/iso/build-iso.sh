@@ -60,6 +60,48 @@ for f in installation.img installation-manifest.json installer-contract.json ins
   [ -f "$src" ] && cp -f "$src" "$ISO_ROOT/install/installer/$f"
 done
 
+log "3b/6 staging source-attributed AI knowledge and advisory RNN"
+AI_DIR="$ISO_ROOT/system/ai"
+mkdir -p "$AI_DIR"
+python3 "$VENDOR/tools/cognition/knowledge_database.py" validate --database "$VENDOR/data/ai/hardware_systems_knowledge.json"
+python3 "$VENDOR/tools/cognition/train_knowledge_rnn.py" \
+  --database "$VENDOR/data/ai/hardware_systems_knowledge.json" \
+  --output "$AI_DIR/trained-hardware-systems-rnn.json" --epochs "${OCTAVIAN_AI_RNN_EPOCHS:-2}" --hidden 8
+cp -f "$VENDOR/data/ai/hardware_systems_knowledge.json" "$AI_DIR/hardware-systems-knowledge.json"
+cp -f "$VENDOR/data/ai/hardware_systems_knowledge.schema.json" "$AI_DIR/hardware-systems-knowledge.schema.json"
+cp -f "$VENDOR/system/ai/chimera-ai-workspace.json" "$AI_DIR/"
+cp -f "$VENDOR/system/ai/README.md" "$AI_DIR/"
+cp -f "$VENDOR/tools/chimera-ai-workspace.py" "$AI_DIR/"
+cp -f "$VENDOR/tools/cognition/knowledge_database.py" "$AI_DIR/"
+cp -f "$VENDOR/tools/cognition/train_knowledge_rnn.py" "$AI_DIR/"
+cp -f "$VENDOR/tools/cognition/trainable_rnn_lm.py" "$AI_DIR/"
+python3 -m py_compile "$AI_DIR/chimera-ai-workspace.py" "$AI_DIR/knowledge_database.py" "$AI_DIR/train_knowledge_rnn.py" "$AI_DIR/trainable_rnn_lm.py"
+python3 -m json.tool "$AI_DIR/hardware-systems-knowledge.json" >/dev/null
+python3 -m json.tool "$AI_DIR/hardware-systems-knowledge.schema.json" >/dev/null
+python3 -m json.tool "$AI_DIR/trained-hardware-systems-rnn.json" >/dev/null
+python3 - "$AI_DIR" <<'PYAI'
+import hashlib, json, pathlib, sys
+root=pathlib.Path(sys.argv[1])
+db=json.loads((root/"hardware-systems-knowledge.json").read_text(encoding="utf-8"))
+model=json.loads((root/"trained-hardware-systems-rnn.json").read_text(encoding="utf-8"))
+manifest={
+ "schema":"OCTAVIAN-AI-PAYLOAD-1",
+ "knowledge_database":"system/ai/hardware-systems-knowledge.json",
+ "knowledge_schema":"system/ai/hardware-systems-knowledge.schema.json",
+ "knowledge_entries":db["entry_count"],
+ "knowledge_sources":db["source_count"],
+ "knowledge_sha256":hashlib.sha256((root/"hardware-systems-knowledge.json").read_bytes()).hexdigest(),
+ "rnn_model":"system/ai/trained-hardware-systems-rnn.json",
+ "rnn_corpus_sha256":model.get("metadata",{}).get("corpus_sha256"),
+ "rnn_train_sequences":model.get("metadata",{}).get("train_sequences"),
+ "rnn_heldout_sequences":model.get("metadata",{}).get("heldout_sequences"),
+ "rnn_scope":"small advisory character-level RNN; not an LLM"
+}
+(root/"ai-payload-manifest.json").write_text(json.dumps(manifest,indent=2)+"\n",encoding="utf-8")
+print(json.dumps({"status":"AI payload staged","entries":db["entry_count"],"sources":db["source_count"]}))
+PYAI
+python3 -m json.tool "$AI_DIR/ai-payload-manifest.json" >/dev/null
+
 log "4/6 staging boot artwork"
 python3 - "$ROOT" "$ISO_ROOT" <<'PY' || true
 import os, subprocess, sys
@@ -112,5 +154,15 @@ grub-mkrescue -o "$OUT_ISO" "$ISO_ROOT" >"$WORK/grub-mkrescue.log" 2>&1 || {
   echo "ERROR: grub-mkrescue failed; see $WORK/grub-mkrescue.log" >&2; exit 2; }
 sha256sum "$OUT_ISO" | tee "$OUT_ISO.sha256"
 xorriso -indev "$OUT_ISO" -report_el_torito plain -report_system_area plain > "$OUT_ISO.boot-report.txt" 2>&1 || true
-printf 'ISO      : %s\nCommit   : %s\nKernel   : %s\nTargets  : live installer recovery (ring 3)\n' \
-  "$OUT_ISO" "$KVER" "$KELF"
+# Verify the AI knowledge and model files exist inside the final ISO.
+AI_VERIFY="$WORK/ai-payload-verify"
+mkdir -p "$AI_VERIFY"
+for item in hardware-systems-knowledge.json hardware-systems-knowledge.schema.json trained-hardware-systems-rnn.json ai-payload-manifest.json; do
+  xorriso -osirrox on -indev "$OUT_ISO" -extract "/system/ai/$item" "$AI_VERIFY/$item" >/dev/null
+  test -s "$AI_VERIFY/$item" || { echo "ERROR: AI ISO payload missing: $item" >&2; exit 2; }
+done
+python3 -m json.tool "$AI_VERIFY/ai-payload-manifest.json" >/dev/null
+printf 'ISO      : %s\nCommit   : %s\nKernel   : %s\nTargets  : live installer recovery (ring 3)\nAI DB    : %s entries / %s sources\n' \
+  "$OUT_ISO" "$KVER" "$KELF" \
+  "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["knowledge_entries"])' "$AI_VERIFY/ai-payload-manifest.json")" \
+  "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["knowledge_sources"])' "$AI_VERIFY/ai-payload-manifest.json")"

@@ -1,0 +1,68 @@
+name: Octavian AI hardware knowledge database and RNN validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/data/ai/**"
+      - "vendor/chimera-ii-os/source/data/isa/cpu_architecture_matrix.json"
+      - "vendor/chimera-ii-os/source/tools/cognition/knowledge_database.py"
+      - "vendor/chimera-ii-os/source/tools/cognition/train_knowledge_rnn.py"
+      - "vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py"
+      - "vendor/chimera-ii-os/source/tools/chimera-ai-workspace.py"
+      - "vendor/chimera-ii-os/source/system/ai/**"
+      - "vendor/chimera-ii-os/source/build-chimera-iso.sh"
+      - "vendor/chimera-ii-os/source/boot/iso/build-iso.sh"
+      - "boot/iso/build-iso.sh"
+      - "vendor/chimera-ii-os/source/tests/cognition/**"
+      - "vendor/chimera-ii-os/source/tests/test_chimera_ai_workspace.py"
+      - ".github/workflows/ai-knowledge-database.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/data/ai/**"
+      - "vendor/chimera-ii-os/source/data/isa/cpu_architecture_matrix.json"
+      - "vendor/chimera-ii-os/source/tools/cognition/knowledge_database.py"
+      - "vendor/chimera-ii-os/source/tools/cognition/train_knowledge_rnn.py"
+      - "vendor/chimera-ii-os/source/tools/cognition/trainable_rnn_lm.py"
+      - "vendor/chimera-ii-os/source/tools/chimera-ai-workspace.py"
+      - "vendor/chimera-ii-os/source/system/ai/**"
+      - "vendor/chimera-ii-os/source/tests/cognition/**"
+      - "vendor/chimera-ii-os/source/tests/test_chimera_ai_workspace.py"
+      - ".github/workflows/ai-knowledge-database.yml"
+permissions:
+  contents: read
+jobs:
+  validate-and-train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile knowledge tools
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          python -m py_compile tools/cognition/knowledge_database.py tools/cognition/trainable_rnn_lm.py tools/cognition/train_knowledge_rnn.py tools/chimera-ai-workspace.py
+          bash -n build-chimera-iso.sh boot/iso/build-iso.sh
+          bash -n "$GITHUB_WORKSPACE/boot/iso/build-iso.sh"
+      - name: Validate provenance and append semantics
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          python tools/cognition/knowledge_database.py validate --database data/ai/hardware_systems_knowledge.json
+          python -m unittest tools.cognition.test_trainable_rnn_lm -v
+          python tests/cognition/test_knowledge_database.py
+          python tests/test_chimera_ai_workspace.py
+      - name: Train, hold out, evaluate and round-trip the knowledge RNN
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          python tools/cognition/train_knowledge_rnn.py --database data/ai/hardware_systems_knowledge.json --output build/trained-hardware-systems-rnn.json --epochs 2 --hidden 8
+          python -m json.tool build/trained-hardware-systems-rnn.json >/dev/null
+          test -s build/trained-hardware-systems-rnn.json
+          python tools/chimera-ai-workspace.py rnn-score --model build/trained-hardware-systems-rnn.json --runtime-module tools/cognition/trainable_rnn_lm.py --text "hardware architecture compiler driver"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: octavian-hardware-systems-rnn
+          path: vendor/chimera-ii-os/source/build/trained-hardware-systems-rnn.json
+          if-no-files-found: error
+          retention-days: 14
