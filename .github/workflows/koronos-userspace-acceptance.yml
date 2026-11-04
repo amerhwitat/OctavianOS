@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Diagnostic Probes (not production ISO acceptance)
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
         run: python3 tests/migration/test_userspace_handoff_verifier.py
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
-      - name: Require all target init artifacts before ISO composition
+      - name: Require all diagnostic probe ELFs before probe ISO composition
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -57,7 +57,7 @@ jobs:
             kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
             -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
+      - name: Build target-specific BIOS/UEFI diagnostic probe ISO
         env:
           TARGET: ${{ matrix.target }}
         run: |
