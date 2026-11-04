@@ -413,7 +413,7 @@ state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat squashfs iso verify native-iso report'; local ci ti
+  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat native-iso squashfs iso verify report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -1422,6 +1422,20 @@ stage_sdks(){
   [[ -s "$sdk_root/share/chimera/toolchain-smoke/status.txt" ]] || {
     log_error "SDK toolchain smoke status was not staged into the ISO rootfs"; return 1;
   }
+  [[ -s "$sdk_root/share/chimera/sdk-build-status.json" ]] || {
+    log_error "SDK per-toolchain PASS/SKIP/BLOCKED manifest is missing"; return 1;
+  }
+  python3 - "$sdk_root/share/chimera/sdk-build-status.json" <<'PYSDKVERIFY'
+import json,sys
+from pathlib import Path
+data=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert data.get("schema")=="CHM-SDK-STATUS-1", "invalid SDK status schema"
+assert data.get("results"), "SDK status results are empty"
+allowed={"PASS","SKIP","BLOCKED"}
+for name,item in data["results"].items():
+    assert item.get("status") in allowed, f"invalid status for {name}"
+assert data["results"].get("sdk_overall",{}).get("status")=="PASS", "mandatory SDK build did not pass"
+PYSDKVERIFY
   mkdir -p "$sdk_root/share/chimera"
   install -m 0644 "$SCRIPT_DIR/sdk/SDK_BUILD_MANIFEST.json" "$sdk_root/share/chimera/SDK_BUILD_MANIFEST.json"
   install -m 0644 "$SCRIPT_DIR/sdk/manifest.json" "$sdk_root/share/chimera/manifest.json"
@@ -1475,7 +1489,7 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat squashfs iso verify native-iso report; do
+  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games sdk macos-compat native-iso squashfs iso verify report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
