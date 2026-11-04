@@ -63,7 +63,12 @@ def probe() -> dict:
             modules[name] = {"available": True, "version": str(getattr(m, "__version__", ""))}
         except Exception:
             modules[name] = {"available": False, "version": ""}
-    return {"commands": commands, "python_modules": modules}
+    ai_dir = Path("/usr/share/chimera/ai")
+    knowledge = ai_dir / "hardware-systems-knowledge.json"
+    rnn_model = ai_dir / "trained-hardware-systems-rnn.json"
+    assets = {"knowledge_database": {"available": knowledge.is_file(), "path": str(knowledge)},
+              "trained_rnn": {"available": rnn_model.is_file(), "path": str(rnn_model)}}
+    return {"commands": commands, "python_modules": modules, "ai_assets": assets}
 
 def scan(args) -> int:
     roots = [Path(x).expanduser().resolve() for x in args.root]
@@ -134,6 +139,40 @@ def retrieve_context(database: dict, query: str, limit: int) -> list[dict]:
     scored.sort(key=lambda row: (-row[0], row[1].get("path", "")))
     return [{"score": score, **item} for score, item in scored[:max(1, min(limit, 20))]]
 
+def retrieve_knowledge_context(path: str, query: str, limit: int) -> list[dict]:
+    """Retrieve source-attributed curated hardware/systems knowledge records."""
+    db_path = Path(path).expanduser()
+    if not db_path.is_file():
+        return []
+    try:
+        db = json.loads(db_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if db.get("schema") != "CHIMERA-HARDWARE-SYSTEMS-KNOWLEDGE-1":
+        return []
+    source_map = {x.get("id"): x for x in db.get("sources", []) if isinstance(x, dict)}
+    terms = {x.casefold() for x in __import__("re").findall(r"[\w-]{2,}", query)}
+    ranked = []
+    for row in db.get("entries", []):
+        if not isinstance(row, dict):
+            continue
+        text = " ".join([str(row.get("title", "")), str(row.get("summary", "")),
+                         " ".join(str(x) for x in row.get("tags", [])),
+                         json.dumps(row.get("facts", {}), ensure_ascii=False)])
+        haystack = text.casefold()
+        score = sum(haystack.count(term) for term in terms)
+        if not score:
+            continue
+        refs = [{"id": sid, "title": source_map[sid].get("title", ""),
+                 "url": source_map[sid].get("url", "")}
+                for sid in row.get("source_ids", []) if sid in source_map]
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        ranked.append({"score": score, "root": "curated-knowledge",
+                       "path": str(row.get("id", "")), "sha256": digest,
+                       "text": text, "sources": refs})
+    ranked.sort(key=lambda item: (-item["score"], item["path"]))
+    return ranked[:max(1, min(limit, 20))]
+
 def load_ai_config(path: str) -> dict:
     try:
         value = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
@@ -153,15 +192,29 @@ def chat(args) -> int:
         backend = "ollama" if shutil.which("ollama") else "llama.cpp" if shutil.which("llama-cli") else ""
     if backend not in {"ollama", "llama.cpp"}:
         raise SystemExit("No supported local LLM backend found; install Ollama or llama.cpp and configure a local model.")
-    database = load_resource_database(args.database)
+    try:
+        database = load_resource_database(args.database)
+    except SystemExit:
+        # Packaged curated knowledge is useful even before the user indexes files.
+        database = {"schema": SCHEMA, "resources": []}
+    knowledge_path = Path(args.knowledge_database).expanduser()
+    if not knowledge_path.is_file():
+        packaged = Path("/usr/share/chimera/ai/hardware-systems-knowledge.json")
+        knowledge_path = packaged if packaged.is_file() else knowledge_path
     def answer(query: str) -> int:
         matches = retrieve_context(database, query, args.limit)
+        matches.extend(retrieve_knowledge_context(str(knowledge_path), query, args.limit))
+        matches.sort(key=lambda item: (-item.get("score", 0), item.get("path", "")))
+        matches = matches[:max(1, min(args.limit, 20))]
         if not matches:
             print("No indexed text matched. Run scan with --include-text on explicitly selected roots first.", file=sys.stderr)
             return 2
         excerpts = []
         for n, item in enumerate(matches, 1):
-            excerpts.append(f"[{n}] {item.get('root','')}/{item.get('path','')} sha256={item.get('sha256','')}\n{item.get('text','')}")
+            source_lines = "\n".join(
+                f"  - {source.get('title','')} {source.get('url','')}"
+                for source in item.get("sources", []))
+            excerpts.append(f"[{n}] {item.get('root','')}/{item.get('path','')} sha256={item.get('sha256','')}\n{item.get('text','')}\nSources:\n{source_lines}")
         prompt = (
             "Answer the user's question using the local source excerpts below. "
             "Cite excerpt numbers for factual claims. If the excerpts do not support an answer, say so. "
@@ -254,6 +307,26 @@ def infer_onnx(args) -> int:
         print(encoded, end="")
     return 0
 
+def score_rnn(args) -> int:
+    """Score a sequence with the packaged small RNN; this is not semantic verification."""
+    import importlib.util
+    module_path = Path(args.runtime_module).expanduser()
+    if not module_path.is_file():
+        raise SystemExit(f"RNN runtime module not found: {module_path}")
+    spec = importlib.util.spec_from_file_location("chimera_trainable_rnn_lm", module_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit("could not load RNN runtime module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    model = module.CharRNN.load(str(Path(args.model).expanduser()))
+    result = {"schema": "CHIMERA-RNN-SCORE-1", "model_type": "trained-character-level-vanilla-RNN",
+              "score_kind": "mean-next-character-log-probability", "score": model.score(args.text),
+              "metadata": model.metadata if hasattr(model, "metadata") else
+                          json.loads(Path(args.model).expanduser().read_text(encoding="utf-8")).get("metadata", {}),
+              "scope": "advisory text-pattern score only; not factual validation or an LLM"}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
@@ -267,6 +340,8 @@ def main() -> int:
         func=lambda _: (print(json.dumps(probe(), indent=2)) or 0))
     c = sub.add_parser("chat", help="local LLM retrieval-augmented chat over explicitly indexed text")
     c.add_argument("--database", default="~/.local/share/chimera-ai/resources.json")
+    c.add_argument("--knowledge-database", default="~/.local/share/chimera-ai/knowledge.json",
+                   help="appendable curated knowledge database; packaged database is used when absent")
     c.add_argument("--config", default="~/.config/chimera-ai/config.json")
     c.add_argument("--model", help="local Ollama model name or llama.cpp model file")
     c.add_argument("--backend", choices=("auto", "ollama", "llama.cpp"), default="auto")
@@ -282,6 +357,11 @@ def main() -> int:
     n.add_argument("--input-name")
     n.add_argument("--output", help="write result JSON to this path; stdout if omitted")
     n.set_defaults(func=infer_onnx)
+    r = sub.add_parser("rnn-score", help="score a text sequence with the packaged advisory RNN")
+    r.add_argument("--model", default="/usr/share/chimera/ai/trained-hardware-systems-rnn.json")
+    r.add_argument("--runtime-module", default="/usr/share/chimera/ai/trainable_rnn_lm.py")
+    r.add_argument("--text", required=True)
+    r.set_defaults(func=score_rnn)
     args = p.parse_args()
     return args.func(args)
 
