@@ -207,6 +207,19 @@ else
   find "$REPO_DIR/desktop/aurora" -maxdepth 1 -type f -name '*.desktop' \
     -exec cp -f {} "$PAY/apps/native/aurora/launchers/" \;
 fi
+
+# Install the optional VoiceConnect launcher and both desktop entries into the
+# live rootfs. The launcher reports a truthful not-installed fallback when no
+# local package binary is present.
+if [ "$ED" = "octavian" ]; then
+  install -Dm755 "$REPO_DIR/desktop/shared/voiceconnect-launcher.sh" \
+    "$WORK/usr/local/bin/octavian-voiceconnect-launcher"
+  install -Dm644 "$REPO_DIR/desktop/aurora/voiceconnect.desktop" \
+    "$WORK/usr/share/applications/octavian-voiceconnect-aurora.desktop"
+  install -Dm644 "$REPO_DIR/desktop/marine/voiceconnect.desktop" \
+    "$WORK/usr/share/applications/octavian-voiceconnect-marine.desktop"
+fi
+
 python3 - "$PAY/app-catalogs" "$PAY" "$ED" <<'PY'
 import json, pathlib, sys
 catalog_root, payload, edition = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
@@ -240,8 +253,8 @@ if [ -f "$SDK_SRC/CMakeLists.txt" ]; then
     ctest --test-dir /var/tmp/chimera-sdk-build --output-on-failure
     DESTDIR=/var/tmp/chimera-sdk-stage cmake --install /var/tmp/chimera-sdk-build
   "
-  mkdir -p "$SDK_PAY/rootfs"
-  cp -a "$WORK/var/tmp/chimera-sdk-stage/opt/chimera-sdk" "$SDK_PAY/rootfs/"
+  mkdir -p "$SDK_PAY/rootfs/opt"
+  cp -a "$WORK/var/tmp/chimera-sdk-stage/opt/chimera-sdk" "$SDK_PAY/rootfs/opt/"
   mkdir -p "$WORK/opt/chimera-sdk"
   cp -a "$SDK_PAY/rootfs/opt/chimera-sdk/." "$WORK/opt/chimera-sdk/"
   if [ -x "$WORK/usr/bin/javac" ] && [ -f "$SDK_SRC/java/build.sh" ]; then
