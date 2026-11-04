@@ -272,6 +272,32 @@ cp -f "$AI_SHARE/trained-hardware-systems-rnn.json" "$PAY/ai/"
 cp -f "$AI_SHARE/knowledge_database.py" "$PAY/ai/"
 cp -f "$AI_SHARE/train_knowledge_rnn.py" "$PAY/ai/"
 cp -f "$AI_SHARE/trainable_rnn_lm.py" "$PAY/ai/"
+python3 - "$AI_SHARE" <<'PYAI'
+import hashlib, json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+db_path = root / "hardware-systems-knowledge.json"
+model_path = root / "trained-hardware-systems-rnn.json"
+db = json.loads(db_path.read_text(encoding="utf-8"))
+model = json.loads(model_path.read_text(encoding="utf-8"))
+meta = model.get("metadata", {})
+manifest = {
+    "schema": "CHIMERA-AI-PAYLOAD-1",
+    "knowledge_entries": db.get("entry_count"),
+    "knowledge_sources": db.get("source_count"),
+    "knowledge_sha256": hashlib.sha256(db_path.read_bytes()).hexdigest(),
+    "rnn_checkpoint": model_path.name,
+    "rnn_corpus_sha256": meta.get("corpus_sha256"),
+    "rnn_train_sequences": meta.get("train_sequences"),
+    "rnn_heldout_sequences": meta.get("heldout_sequences"),
+    "rnn_loss_history": meta.get("loss_history"),
+    "rnn_scope": "small advisory character-level RNN; not an LLM",
+    "cnn_status": "not trained: no separately labelled and licensed CNN task dataset supplied",
+    "llm_status": "local inference only; RAG does not fine-tune model weights"
+}
+(root / "ai-payload-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+PYAI
+cp -f "$AI_SHARE/ai-payload-manifest.json" "$PAY/ai/"
+python3 -m json.tool "$AI_SHARE/ai-payload-manifest.json" >/dev/null
 python3 -m py_compile "$WORK/usr/bin/chimera-ai-workspace" "$WORK/usr/bin/chimera-ai-knowledge" "$AI_SHARE/train_knowledge_rnn.py" "$AI_SHARE/trainable_rnn_lm.py"
 python3 -m json.tool "$AI_SHARE/chimera-ai-workspace.json" >/dev/null
 python3 "$REPO_DIR/tests/cognition/test_knowledge_database.py"
