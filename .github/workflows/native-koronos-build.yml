@@ -12,6 +12,11 @@ on:
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
+      - 'vendor/chimera-ii-os/source/data/ai/**'
+      - 'vendor/chimera-ii-os/source/system/ai/**'
+      - 'vendor/chimera-ii-os/source/tools/chimera-ai-workspace.py'
+      - 'vendor/chimera-ii-os/source/tests/cognition/**'
+      - 'vendor/chimera-ii-os/source/tests/test_chimera_ai_workspace.py'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
@@ -57,6 +62,12 @@ on:
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
+      - 'vendor/chimera-ii-os/source/data/ai/**'
+      - 'vendor/chimera-ii-os/source/system/ai/**'
+      - 'vendor/chimera-ii-os/source/tools/cognition/**'
+      - 'vendor/chimera-ii-os/source/tools/chimera-ai-workspace.py'
+      - 'vendor/chimera-ii-os/source/tests/cognition/**'
+      - 'vendor/chimera-ii-os/source/tests/test_chimera_ai_workspace.py'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
@@ -327,6 +338,32 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      - name: Verify embedded AI knowledge database and RNN in mastered ISO
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          iso=boot/iso/dist/output.iso
+          inspect=build/ai-payload-inspect
+          mkdir -p "$inspect"
+          for item in hardware-systems-knowledge.json hardware-systems-knowledge.schema.json trained-hardware-systems-rnn.json ai-payload-manifest.json; do
+            xorriso -osirrox on -indev "$iso" -extract "/system/ai/$item" "$inspect/$item" >/dev/null
+            test -s "$inspect/$item" || { echo "ERROR: mastered ISO missing AI payload: $item"; exit 2; }
+          done
+          python3 - "$inspect" <<'PYAI'
+          import hashlib, json, pathlib, sys
+          root=pathlib.Path(sys.argv[1])
+          db=json.loads((root/"hardware-systems-knowledge.json").read_text())
+          model=json.loads((root/"trained-hardware-systems-rnn.json").read_text())
+          manifest=json.loads((root/"ai-payload-manifest.json").read_text())
+          assert db["entry_count"] >= 151 and db["source_count"] >= 42
+          assert manifest["knowledge_entries"] == db["entry_count"]
+          assert manifest["knowledge_sources"] == db["source_count"]
+          assert manifest["knowledge_sha256"] == hashlib.sha256((root/"hardware-systems-knowledge.json").read_bytes()).hexdigest()
+          assert manifest["rnn_corpus_sha256"] == model["metadata"]["corpus_sha256"]
+          assert model["metadata"]["heldout_sequences"] > 0
+          print("AI ISO payload verified:", db["entry_count"], "entries,", db["source_count"], "sources")
+          PYAI
+          python tools/chimera-ai-workspace.py rnn-score --model "$inspect/trained-hardware-systems-rnn.json" --runtime-module tools/cognition/trainable_rnn_lm.py --text "hardware architecture compiler driver"
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
