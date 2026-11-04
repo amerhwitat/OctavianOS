@@ -323,7 +323,17 @@ if [ -x "$REPO_DIR/tools/build-sdks.sh" ]; then
   log "sdk build"
   mkdir -p "$PAY/reports"
   bash "$REPO_DIR/tools/build-sdks.sh" --out "$PAY/reports/sdk-build-report.json" \
-    --max 12 --timeout 180 || true
+    --max 12 --timeout 180
+  python3 - "$PAY/reports/sdk-build-report.json" <<'PYSDK'
+  import json, pathlib, sys
+  report = pathlib.Path(sys.argv[1])
+  if not report.is_file():
+      raise SystemExit("SDK build report missing")
+  summary = json.loads(report.read_text(encoding="utf-8")).get("summary", {})
+  failed = int(summary.get("failed", 0)) + int(summary.get("timeout", 0))
+  if failed:
+      raise SystemExit(f"SDK build gate failed: {summary}")
+  PYSDK
 fi
 
 # Compile the vendor Chimera/Aurora first-party desktop application set in
