@@ -60,7 +60,7 @@ REPO_URL="$(git -C "$REPO_DIR" config --get remote.origin.url 2>/dev/null | sed 
 log() { printf '\n== [%s] %s\n' "$ED" "$*"; }
 
 # ---------------------------------------------------------------- base rootfs
-if [ ! -x "$BASE/bin/bash" ] || [ "${REBUILD_BASE:-0}" = "1" ]; then
+if [ ! -x "$BASE/bin/bash" ] || [ ! -f "$BASE/.packages-installed-v2-native-apps" ] || [ "${REBUILD_BASE:-0}" = "1" ]; then
   log "debootstrap trixie -> $BASE"
   rm -rf "$BASE"; mkdir -p "$BASE"
   debootstrap --arch=amd64 --variant=minbase \
@@ -99,7 +99,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       xserver-xorg-core xserver-xorg-legacy xserver-xorg-input-libinput \
       xserver-xorg-video-vesa xserver-xorg-video-fbdev xserver-xorg-video-cirrus \
       xinit xauth x11-xserver-utils x11-utils xfonts-base \
-      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 g++ make \
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
@@ -110,7 +110,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed"
+  touch "$BASE/.packages-installed-v2-native-apps"
 fi
 
 # ------------------------------------------------------------- rootfs copy
@@ -326,6 +326,25 @@ if [ -x "$REPO_DIR/tools/build-sdks.sh" ]; then
     --max 12 --timeout 180 || true
 fi
 
+# Compile the vendor Chimera/Aurora first-party desktop application set in
+# the target live-image userspace, then install the binaries and build manifest.
+DESKTOP_REL="vendor/chimera-ii-os/source"
+DESKTOP_BUILDER="$PAY/repo/$DESKTOP_REL/tools/build-desktop-binaries.sh"
+if [ -s "$DESKTOP_BUILDER" ]; then
+  log "compiling native Aurora application binaries in the live rootfs"
+  mount_chroot "$WORK"
+  chroot "$WORK" /bin/bash -c "CHIMERA_DESKTOP_BUILD_DIR=/var/tmp/chimera-desktop-build bash /opt/aurora/repo/$DESKTOP_REL/tools/build-desktop-binaries.sh"
+  umount_chroot "$WORK"
+  mkdir -p "$PAY/apps/native/bin" "$PAY/apps/native/objects" "$PAY/apps/native/manifests" "$WORK/usr/local/bin"
+  if [ -d "$WORK/var/tmp/chimera-desktop-build/bin" ]; then
+    cp -a "$WORK/var/tmp/chimera-desktop-build/bin/." "$PAY/apps/native/bin/"
+    cp -a "$WORK/var/tmp/chimera-desktop-build/bin/." "$WORK/usr/local/bin/"
+  fi
+  find "$WORK/var/tmp/chimera-desktop-build" -maxdepth 1 -type f -name "*.o" -exec cp -f {} "$PAY/apps/native/objects/" \; 2>/dev/null || true
+  if [ -s "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" ]; then
+    cp -f "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$PAY/apps/native/manifests/"
+  fi
+fi
 # Ship executable products produced by the SDK and first-party application builds.
 # Catalog entries alone are not treated as installed applications.
 mkdir -p "$PAY/apps/native/bin" "$PAY/sdk" "$PAY/reports"
