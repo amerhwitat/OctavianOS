@@ -86,7 +86,7 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-PACKAGE_SET_VERSION="chimera-live-packages-2026-11-integrations-v2"
+PACKAGE_SET_VERSION="chimera-live-packages-2026-11-integrations-v3"
 if [ ! -f "$BASE/.packages-installed" ] || [ "$(cat "$BASE/.packages-installed" 2>/dev/null || true)" != "$PACKAGE_SET_VERSION" ]; then
   log "installing/updating shared package set: $PACKAGE_SET_VERSION"
   mount_chroot "$BASE"
@@ -100,7 +100,7 @@ if [ ! -f "$BASE/.packages-installed" ] || [ "$(cat "$BASE/.packages-installed" 
       xserver-xorg-core xserver-xorg-legacy xserver-xorg-input-libinput \
       xserver-xorg-video-vesa xserver-xorg-video-fbdev xserver-xorg-video-cirrus \
       xinit xauth x11-xserver-utils x11-utils xfonts-base \
-      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 gvfs-backends gvfs-fuse \
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
@@ -143,6 +143,10 @@ install -D -m 0755 "$REPO_DIR/services/registry/registryd.py" "$WORK/usr/lib/chi
 install -D -m 0755 "$REPO_DIR/services/registry/sync-admin-group.py" "$WORK/usr/lib/chimera/registry/sync-admin-group.py"
 install -D -m 0644 "$REPO_DIR/tools/registry/registry_hive.py" "$WORK/usr/lib/chimera/registry/registry_hive.py"
 install -D -m 0644 "$REPO_DIR/services/registry/registry_client.py" "$WORK/usr/lib/chimera/registry/registry_client.py"
+install -D -m 0755 "$REPO_DIR/services/registry/registry-editor-api.py" "$WORK/usr/lib/chimera/registry/registry-editor-api.py"
+install -D -m 0755 "$REPO_DIR/services/registry/registry-editor-launcher.py" "$WORK/usr/lib/chimera/registry/registry-editor-launcher.py"
+install -D -m 0644 "$REPO_DIR/desktop/aurora/registry-editor.html" "$WORK/usr/share/chimera/aurora/registry-editor.html"
+install -D -m 0644 "$REPO_DIR/desktop/aurora/chimera-registry-editor.desktop" "$WORK/usr/share/applications/chimera-registry-editor.desktop"
 install -D -m 0755 "$REPO_DIR/services/network/smb-browse.py" "$WORK/usr/lib/chimera/network/smb-browse.py"
 install -D -m 0755 "$REPO_DIR/services/network/directoryctl.py" "$WORK/usr/lib/chimera/network/directoryctl.py"
 install -D -m 0755 "$REPO_DIR/services/network/directory-discovery.py" "$WORK/usr/lib/chimera/network/directory-discovery.py"
@@ -163,6 +167,7 @@ if chroot "$WORK" getent passwd user >/dev/null 2>&1; then chroot "$WORK" usermo
 install -d "$WORK/etc/systemd/system/multi-user.target.wants"
 install -D -m 0644 "$REPO_DIR/platform/systemd/chimera-admin-group-sync.service" "$WORK/usr/lib/systemd/system/chimera-admin-group-sync.service"
 install -D -m 0644 "$REPO_DIR/platform/systemd/chimera-registryd.service" "$WORK/usr/lib/systemd/system/chimera-registryd.service"
+install -D -m 0644 "$REPO_DIR/platform/systemd/chimera-smbd.service" "$WORK/usr/lib/systemd/system/chimera-smbd.service"
 systemctl --root="$WORK" enable chimera-admin-group-sync.service chimera-registryd.service >/dev/null
 systemctl --root="$WORK" enable avahi-daemon.service >/dev/null 2>&1 || true
 for unit in smbd.service nmbd.service wsdd.service sssd.service; do systemctl --root="$WORK" disable "$unit" >/dev/null 2>&1 || true; done
