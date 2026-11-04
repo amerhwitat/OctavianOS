@@ -60,7 +60,7 @@ REPO_URL="$(git -C "$REPO_DIR" config --get remote.origin.url 2>/dev/null | sed 
 log() { printf '\n== [%s] %s\n' "$ED" "$*"; }
 
 # ---------------------------------------------------------------- base rootfs
-if [ ! -x "$BASE/bin/bash" ] || [ ! -f "$BASE/.packages-installed-v2-native-apps" ] || [ "${REBUILD_BASE:-0}" = "1" ]; then
+if [ ! -x "$BASE/bin/bash" ] || [ ! -f "$BASE/.packages-installed-v3-macos-sdk" ] || [ "${REBUILD_BASE:-0}" = "1" ]; then
   log "debootstrap trixie -> $BASE"
   rm -rf "$BASE"; mkdir -p "$BASE"
   debootstrap --arch=amd64 --variant=minbase \
@@ -100,6 +100,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       xserver-xorg-video-vesa xserver-xorg-video-fbdev xserver-xorg-video-cirrus \
       xinit xauth x11-xserver-utils x11-utils xfonts-base \
       python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 libgtk-4-dev xvfb g++ make \
+      clang clangd llvm lld cmake ninja-build pkg-config gobjc libobjc-13-dev gnustep-make libgnustep-base-dev \
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
@@ -110,7 +111,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed-v2-native-apps"
+  touch "$BASE/.packages-installed-v3-macos-sdk"
 fi
 
 # ------------------------------------------------------------- rootfs copy
