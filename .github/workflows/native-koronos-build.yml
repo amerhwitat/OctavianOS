@@ -321,7 +321,7 @@ jobs:
             test -s "$artifact"
             readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC'
             readelf -lW "$artifact" | grep -Eq 'LOAD.*R E'
-            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target" "$inspect/grub.cfg"
+            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=$grub_platform" "$inspect/grub.cfg"
           done
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
@@ -363,7 +363,7 @@ jobs:
           terminal_output console
           menuentry "Recovery module smoke" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
+            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
@@ -397,7 +397,7 @@ jobs:
           terminal_output console
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer
+            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
