@@ -450,7 +450,7 @@ EOF
 Type=Application
 Name=Octavian Knowledge Index
 Comment=Refresh the local, provenance-tracked knowledge database
-Exec=python3 /usr/lib/octavian/tools/knowledge/build-json-index.py --out /var/lib/octavian/knowledge/knowledge-index.json
+Exec=xterm -e python3 /usr/lib/octavian/tools/knowledge/build-json-index.py --out /var/lib/octavian/knowledge/knowledge-index.json --root /opt/aurora/repo
 Terminal=true
 Categories=Utility;Education;
 EOF
