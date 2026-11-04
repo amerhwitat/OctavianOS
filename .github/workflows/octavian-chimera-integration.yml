@@ -155,3 +155,56 @@ jobs:
               assert name in index
           PY
           bash -n live-image/build.sh
+
+  registry-network-optical:
+    name: Vendored registry, SMB, AD/LDAP, optical and FHS contracts
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: vendor/chimera-ii-os/source
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compile all vendored integration Python entry points
+        run: |
+          find services tools live-image -type f -name '*.py' -print0 |
+            xargs -0 -r python -m py_compile
+      - name: Run integration and service regression suites
+        run: |
+          python -m unittest discover -s tests/integrations -v
+          bash tests/services/run-service-tests.sh
+      - name: Check Aurora integration JavaScript
+        run: |
+          node --check desktop/aurora-shell/assets/apps-registry.js
+          node --check desktop/aurora-shell/assets/apps-windows-network.js
+          node --check desktop/aurora-shell/assets/apps-optical-media.js
+          node --check web/system-services.js
+      - name: Validate vendored manifests and user unit
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          for path in pathlib.Path("system/integrations").glob("*.json"):
+              json.loads(path.read_text())
+          services = json.loads(pathlib.Path("services/service_registry.json").read_text())
+          ids = {item["id"] for item in services["services"]}
+          required = {"registry", "smb-server", "smb-discovery", "directory-services", "optical-media"}
+          assert required <= ids, required - ids
+          for required_path in (
+              "services/registry/registry-editor-api.py",
+              "services/registry/registry-editor-launcher.py",
+              "desktop/aurora/registry-editor.html",
+              "userspace/systemd/user/chimera-registry-editor.service",
+              "services/network/directory-discovery.py",
+              "services/storage/mount-image.py",
+          ):
+              assert pathlib.Path(required_path).is_file(), required_path
+          print("vendored registry/network/storage contracts: OK")
+          PY
+          make -C userspace check
+      - name: Shell syntax
+        run: bash -n live-image/build.sh
