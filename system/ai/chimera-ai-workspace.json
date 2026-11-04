@@ -13,7 +13,10 @@
     "network_upload": false
   },
   "llm": {
-    "local_backends": ["Ollama", "llama.cpp"],
+    "local_backends": [
+      "Ollama",
+      "llama.cpp"
+    ],
     "retrieval_augmented_chat": true,
     "weights_bundled": false,
     "automatic_training": false
@@ -22,8 +25,26 @@
     "inference_backend": "ONNX Runtime",
     "requires_numpy": true,
     "weights_bundled": false,
-    "automatic_training": false
+    "automatic_training": false,
+    "rnn_weights_bundled": true,
+    "rnn_training_status": "trained during ISO build; corpus hash, held-out evaluation and round-trip validation recorded",
+    "cnn_training_status": "not trained: no separately labelled and licensed CNN task dataset supplied",
+    "llm_training_status": "no LLM fine-tuning; local model inference uses retrieval context only"
   },
   "training_policy": "No automatic training or weight updates. CNN/RNN training requires a user-selected dataset, architecture, training budget, and output path. LLM chat uses local inference with retrieved text excerpts; it does not fine-tune model weights.",
-  "release_boundary": "Runtime probes, indexing and local inference availability do not establish Koronos userspace readiness."
+  "release_boundary": "Linux-kernel live edition; AI packaging does not establish native Koronos CPL3, VFS, SMP or six-case release acceptance.",
+  "knowledge_database": {
+    "packaged": "/usr/share/chimera/ai/hardware-systems-knowledge.json",
+    "schema": "CHIMERA-HARDWARE-SYSTEMS-KNOWLEDGE-1",
+    "append_tool": "/usr/bin/chimera-ai-knowledge",
+    "user_overlay": "~/.local/share/chimera-ai/knowledge.json",
+    "source_attribution_required": true,
+    "retrieval_in_local_chat": true
+  },
+  "rnn": {
+    "inference_model": "/usr/share/chimera/ai/trained-hardware-systems-rnn.json",
+    "training_tool": "/usr/share/chimera/ai/train_knowledge_rnn.py",
+    "training": "small advisory character-level RNN trained during live ISO build from curated source-attributed records",
+    "role": "advisory text-pattern component; not an LLM and not authoritative"
+  }
 }
