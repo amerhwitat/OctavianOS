@@ -17,7 +17,7 @@ Koronos must preserve equivalent responsibilities while keeping its own ABI:
 ## Multi-core execution sequence
 
 Linux x86-64 separates firmware topology discovery, AP bring-up and scheduler activation. Koronos' corresponding implementation order is:
-1. CPUID leaf 0x1F/0x0B (or AMD extended topology) discovers package logical CPUs, core count, SMT width and the BSP APIC ID. ACPI MADT enumeration of enabled APIC IDs remains required.
+1. CPUID leaf 0x1F/0x0B (or AMD extended topology) discovers package logical CPUs, core count, SMT width and the BSP APIC ID. A bounded MADT entry-stream parser now handles legacy Local APIC (type 0) and x2APIC (type 9) records, validates lengths/duplicates, caps entries at 256 and requires the enabled BSP record. Runtime ACPI root-table discovery and parser wiring remain required.
 2. BSP initialization followed by per-AP startup records, stacks, GDT/TSS and GS/per-CPU anchors.
 3. Local APIC INIT/SIPI startup through a low-memory trampoline, with bounded APIC-ID-specific online acknowledgements.
 4. Per-CPU run queues and current-task ownership only after AP online; IPIs for rescheduling, TLB shootdown and stop.
@@ -32,6 +32,6 @@ The bounded PID-keyed descriptor table wraps VFS handles and process reaping clo
 
 CPUID topology detection now reports package logical processors, physical cores, SMT width and BSP APIC ID. The scheduler deliberately exposes only the BSP as online until AP startup is implemented and acknowledged.
 
-The process table remains an ELF admission/load-plan registry, not a scheduler-owned task lifecycle. ACPI MADT enumeration, AP INIT/SIPI startup, per-CPU interrupt execution, IPIs, scheduler-owned saved contexts and measured overlap remain unimplemented.
+The process table remains an ELF admission/load-plan registry, not a scheduler-owned task lifecycle. The MADT parser is compiled and covered by a host-test target, but runtime ACPI root-table discovery, AP INIT/SIPI startup, per-CPU interrupt execution, IPIs, scheduler-owned saved contexts and measured overlap remain unimplemented.
 
 Installer disk persistence, Recovery repair postconditions, target-specific production init, and the immutable six-case ISO acceptance also remain blocked. Release stays fail-closed until actual runtime evidence proves every required gate.
