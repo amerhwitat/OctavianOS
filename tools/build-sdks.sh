@@ -140,6 +140,11 @@ for entry in "${FOUND[@]}"; do
   slug="$(printf '%s' "$rel" | tr '/ ' '__')"
   case "$kind" in
     cmake)
+      case "$rel" in
+        sdk/macos/*)
+          record cmake "$rel" "skipped" 0 "Apple SDK target requires licensed macOS or reviewed osxcross; handled by tools/build-macos-sdk.sh"
+          continue ;;
+      esac
       have cmake || { record cmake "$rel" "skipped" 0 "cmake not installed"; continue; }
       if run_step cmake "$rel" "$dir" cmake -S . -B "$WORK/cmake-$slug" -DCMAKE_BUILD_TYPE=Release; then
         run_step cmake "$rel" "$dir" cmake --build "$WORK/cmake-$slug" -j "${JOBS:-2}" || true
@@ -186,11 +191,21 @@ done
 
 # Plain-language sources that need no build system but must still parse.
 if have javac; then
-  mapfile -t JAVA < <(cd "$ROOT" && find . -path ./.git -prune -o -name '*.java' -print 2>/dev/null | grep -v '/build/' | head -20)
+  JAVA=()
+  for base in java sdk/java services/java drivers/java isa/java applications/java desktop/java quantum/languages/java p2p/java network/java sdk/examples/java ISO-Tool/java/src/main/java vendor/chimera-ii-os/source/java vendor/chimera-ii-os/source/sdk/java vendor/chimera-ii-os/source/services/java vendor/chimera-ii-os/source/drivers/java vendor/chimera-ii-os/source/isa/java vendor/chimera-ii-os/source/applications/java vendor/chimera-ii-os/source/desktop/java vendor/chimera-ii-os/source/quantum/languages/java vendor/chimera-ii-os/source/p2p/java vendor/chimera-ii-os/source/network/java vendor/chimera-ii-os/source/sdk/examples/java vendor/chimera-ii-os/source/ISO-Tool/java/src/main/java; do
+    [ -d "$ROOT/$base" ] || continue
+    while IFS= read -r -d '' source_file; do JAVA+=("$source_file"); done < <(
+      find "$ROOT/$base" -type f -name '*.java' ! -name '*Test.java' -print0 2>/dev/null)
+  done
   if [ "${#JAVA[@]}" -gt 0 ]; then
     mkdir -p "$WORK/javac-out"
-    run_step java "java-sources" "$ROOT" javac -d "$WORK/javac-out" "${JAVA[@]}"
+    run_step java "portable-java-sources" "$ROOT" javac -d "$WORK/javac-out" "${JAVA[@]}" || true
+  else
+    record java "portable-java-sources" "skipped" 0 "no portable Java sources found"
   fi
+else
+  record java "portable-java-sources" "skipped" 0 "javac unavailable"
+fi
 fi
 
 python3 - "$REPORT_ITEMS" "$OUT" "$ROOT" <<'PY'
