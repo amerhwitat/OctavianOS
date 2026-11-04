@@ -500,6 +500,18 @@ jobs:
         with:
           name: octavianos-native-iso-candidate
           path: dist
+      - name: Install QEMU and UEFI firmware for immutable ISO matrix
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Boot all six cases from the same immutable ISO
+        run: |
+          set -euo pipefail
+          python3 tools/boot/run-six-case-qemu.py \
+            --iso dist/output.iso \
+            --evidence-dir dist/six-case-evidence \
+            --timeout 35
+          sha256sum dist/output.iso | tee dist/six-case-evidence/canonical-iso.sha256
       - name: Verify candidate checksum and six-case runtime evidence
         run: |
           set -euo pipefail
