@@ -66,32 +66,54 @@ static void log_user_init_syscall(Target target, uint32_t pid) {
     message[used] = 0;
     koronos_target_log(message);
 }
-static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
-    const char *name = target_name(target);
-    char prefix[80];
-    uint64_t p=0;
-    const char *a="USERSPACE READY: ";
-    while (*a) prefix[p++]=*a++;
-    while (*name) prefix[p++]=*name++;
-    const char *b=" init pid=";
-    while (*b) prefix[p++]=*b++;
-    if (length < p+2u) return false;
-    bool found=false;
-    for (uint64_t i=0; i+p<length; ++i) {
-        uint64_t j=0;
-        while (j<p && bytes[i+j]==prefix[j]) ++j;
-        if (j!=p) continue;
-        uint64_t k=i+p;
-        uint32_t parsed=0, digits=0;
-        while (k<length && bytes[k]>='0' && bytes[k]<='9') {
-            parsed=parsed*10u+(uint32_t)(bytes[k]-'0');
+static bool marker_prefix_matches(const char *bytes, uint64_t length,
+                                  const char *prefix, uint64_t prefix_len,
+                                  uint32_t pid) {
+    /* The canonical production contract is
+         USERSPACE READY: target=<t> init_pid=<pid>
+       The earlier acceptance probe used
+         USERSPACE READY: <t> init pid=<pid>
+       Accept both so a real payload is not reported as missing, while still
+       requiring the exact target and PID the kernel itself assigned. */
+    if (length < prefix_len + 2u) return false;
+    for (uint64_t i = 0; i + prefix_len < length; ++i) {
+        uint64_t j = 0;
+        while (j < prefix_len && bytes[i + j] == prefix[j]) ++j;
+        if (j != prefix_len) continue;
+        uint64_t k = i + prefix_len;
+        uint32_t parsed = 0, digits = 0;
+        while (k < length && bytes[k] >= '0' && bytes[k] <= '9') {
+            parsed = parsed * 10u + (uint32_t)(bytes[k] - '0');
             ++k; ++digits;
         }
-        if (digits && parsed==pid && (k==length || bytes[k]=='\n' || bytes[k]=='\r' || bytes[k]==' ')) {
-            found=true; break;
+        if (digits && parsed == pid &&
+            (k == length || bytes[k] == '\n' || bytes[k] == '\r' || bytes[k] == ' ')) {
+            return true;
         }
     }
-    return found;
+    return false;
+}
+
+static bool target_marker(const char *bytes, uint64_t length, Target target, uint32_t pid) {
+    const char *name = target_name(target);
+    char canonical[96];
+    char legacy[96];
+    uint64_t c = 0, l = 0;
+    const char *a = "USERSPACE READY: target=";
+    while (*a) canonical[c++] = *a++;
+    const char *n = name;
+    while (*n) canonical[c++] = *n++;
+    const char *b = " init_pid=";
+    while (*b) canonical[c++] = *b++;
+
+    const char *p = "USERSPACE READY: ";
+    while (*p) legacy[l++] = *p++;
+    n = name;
+    while (*n) legacy[l++] = *n++;
+    const char *q = " init pid=";
+    while (*q) legacy[l++] = *q++;
+    if (marker_prefix_matches(bytes, length, canonical, c, pid)) return true;
+    return marker_prefix_matches(bytes, length, legacy, l, pid);
 }
 }
 

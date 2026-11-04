@@ -1,0 +1,15 @@
+xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+
+Drive current: -outdev 'stdio:/tmp/OctavianOS/build/native-iso/octavian-os-native-amd64.iso'
+Media current: stdio file, overwriteable
+Media status : is blank
+Media summary: 0 sessions, 0 data blocks, 0 data, 27.3g free
+Added to ISO image: directory '/'='/tmp/grub.BsCYDj'
+xorriso : UPDATE :     674 files added in 1 seconds
+Added to ISO image: directory '/'='/tmp/OctavianOS/build/native-iso/iso'
+xorriso : UPDATE :     708 files added in 1 seconds
+xorriso : NOTE : Copying to System Area: 512 bytes from file '/usr/lib/grub/i386-pc/boot_hybrid.img'
+ISO image produced: 13285 sectors
+Written to medium : 13285 sectors at LBA 0
+Writing to 'stdio:/tmp/OctavianOS/build/native-iso/octavian-os-native-amd64.iso' completed successfully.
+
