@@ -114,3 +114,43 @@ jobs:
           name: chimera-source-inventory
           path: reports/chimera-source-inventory.json
           if-no-files-found: warn
+
+
+  registry-network-optical-contracts:
+    name: Registry, SMB, directory and optical contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python syntax
+        run: |
+          cd vendor/chimera-ii-os/source
+          python -m py_compile services/registry/registryd.py services/registry/sync-admin-group.py services/network/smb-browse.py services/network/directoryctl.py services/storage/mount-image.py live-image/lib/aurora-kiosk.py tools/registry/registry_hive.py
+      - name: Registry, SMB and optical regression tests
+        run: python -m unittest discover -s vendor/chimera-ii-os/source/tests/integrations -v
+      - name: Aurora UI syntax
+        run: |
+          node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-registry.js
+          node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-windows-network.js
+          node --check vendor/chimera-ii-os/source/desktop/aurora-shell/assets/apps-optical-media.js
+      - name: JSON and live-image build contracts
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          root = pathlib.Path("vendor/chimera-ii-os/source")
+          for path in (root / "system/integrations").glob("*.json"):
+              json.loads(path.read_text())
+          services = json.loads((root / "services/service_registry.json").read_text())
+          ids = {item["id"] for item in services["services"]}
+          assert {"registry", "smb-server", "smb-discovery", "directory-services", "optical-media"} <= ids
+          index = (root / "desktop/aurora-shell/index.html").read_text()
+          for name in ("apps-registry.js", "apps-windows-network.js", "apps-optical-media.js"):
+              assert name in index
+          PY
+          bash -n vendor/chimera-ii-os/source/live-image/build.sh
