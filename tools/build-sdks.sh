@@ -13,7 +13,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/build/sdk-build-report.json"
 TIMEOUT=300
-MAX=40
+MAX=100
 ONLY=""
 LIST_ONLY=0
 
@@ -96,6 +96,7 @@ run_step() { # kind rel workdir cmd...
     tail -n 30 "$log" 2>/dev/null || true
     echo "---- end diagnostics ----"
   fi
+  return "$status"
 }
 
 discover() { # prints "kind<TAB>relpath"
@@ -134,8 +135,218 @@ fi
 count=0
 for entry in "${FOUND[@]}"; do
   [ -z "$entry" ] && continue
-  [ "$count" -ge "$MAX" ] && { echo "   reached --max $MAX, stopping"; break; }
-  kind="${entry%%$'\t'*}"; rel="${entry#*$'\t'}"
+  kind="${entry%%
+  dir="$ROOT/$(dirname "$rel")"
+  slug="$(printf '%s' "$rel" | tr '/ ' '__')"
+  case "$kind" in
+    cmake)
+      have cmake || { record cmake "$rel" "skipped" 0 "cmake not installed"; continue; }
+      if run_step cmake "$rel" "$dir" cmake -S . -B "$WORK/cmake-$slug" -DCMAKE_BUILD_TYPE=Release; then
+        run_step cmake "$rel" "$dir" cmake --build "$WORK/cmake-$slug" -j "${JOBS:-2}" || true
+      fi
+      ;;
+    rust)
+      if ! have cargo; then record rust "$rel" "skipped" 0 "cargo not installed"; continue; fi
+      run_step rust "$rel" "$dir" env CARGO_TARGET_DIR="$WORK/cargo-target" cargo build --release
+      ;;
+    swift)
+      have swiftc || { record swift "$rel" "skipped" 0 "swift toolchain not installed"; continue; }
+      run_step swift "$rel" "$dir" swift build -c release
+      ;;
+    dart)
+      have dart || { record dart "$rel" "skipped" 0 "dart not installed"; continue; }
+      run_step dart "$rel" "$dir" dart pub get
+      ;;
+    maven)
+      have mvn || { record maven "$rel" "skipped" 0 "maven not installed"; continue; }
+      run_step maven "$rel" "$dir" mvn -q -B -DskipTests package
+      ;;
+    gradle)
+      have gradle || { record gradle "$rel" "skipped" 0 "gradle not installed"; continue; }
+      run_step gradle "$rel" "$dir" gradle --no-daemon -q build -x test
+      ;;
+    dotnet)
+      have dotnet || { record dotnet "$rel" "skipped" 0 "dotnet SDK not installed"; continue; }
+      run_step dotnet "$rel" "$dir" dotnet build -c Release --nologo
+      ;;
+    node)
+      if ! have npm; then record node "$rel" "skipped" 0 "npm not installed"; continue; fi
+      run_step node "$rel" "$dir" npm install --no-audit --no-fund --loglevel=error
+      ;;
+    go)
+      have go || { record go "$rel" "skipped" 0 "go not installed"; continue; }
+      run_step go "$rel" "$dir" go build ./...
+      ;;
+    python)
+      run_step python "$rel" "$dir" python3 -m compileall -q .
+      ;;
+  esac
+  count=$((count + 1))
+done
+
+# Probe the macOS cross-development toolchain and SDK without bundling Apple SDK files.
+# The helper writes blocked/review-required when the external SDK or license is unavailable.
+if [ -x "$ROOT/tools/build-macos-sdk.sh" ]; then
+  bash "$ROOT/tools/build-macos-sdk.sh" "$WORK/macos-sdk-report.json" || true
+  record macos-sdk "sdk/macos" "skipped" 0 "cross-toolchain discovery only; inspect macos-sdk-report.json before compiling"
+else
+  record macos-sdk "sdk/macos" "skipped" 0 "macOS integration helper missing"
+fi
+
+# Plain-language sources that need no build system but must still parse.
+# Compile portable Java SDK/runtime sources as one compilation unit so
+# package dependencies resolve together. Android sources and JUnit test files
+# are excluded because they require separate Android/JUnit toolchains.
+if have javac; then
+  JAVA=()
+  for base in java sdk/java services/java drivers/java isa/java applications/java desktop/java quantum/languages/java p2p/java network/java sdk/examples/java ISO-Tool/java/src/main/java vendor/chimera-ii-os/source/java vendor/chimera-ii-os/source/sdk/java vendor/chimera-ii-os/source/services/java vendor/chimera-ii-os/source/drivers/java vendor/chimera-ii-os/source/isa/java vendor/chimera-ii-os/source/applications/java vendor/chimera-ii-os/source/desktop/java vendor/chimera-ii-os/source/quantum/languages/java vendor/chimera-ii-os/source/p2p/java vendor/chimera-ii-os/source/network/java vendor/chimera-ii-os/source/sdk/examples/java vendor/chimera-ii-os/source/ISO-Tool/java/src/main/java; do
+    [ -d "$ROOT/$base" ] || continue
+    while IFS= read -r -d '' source_file; do JAVA+=("$source_file"); done < <(
+      find "$ROOT/$base" -type f -name '*.java' ! -name '*Test.java' -print0 2>/dev/null)
+  done
+  if [ "${#JAVA[@]}" -gt 0 ]; then
+    mkdir -p "$WORK/javac-out"
+    run_step java "portable-java-sources" "$ROOT" javac -d "$WORK/javac-out" "${JAVA[@]}"
+  fi
+fi
+
+python3 - "$REPORT_ITEMS" "$OUT" "$ROOT" <<'PY'
+import json, os, platform, subprocess, sys
+items_path, out_path, root = sys.argv[1:4]
+items = [json.loads(line) for line in open(items_path, encoding="utf-8") if line.strip()]
+summary = {"ok": 0, "failed": 0, "skipped": 0, "timeout": 0}
+verification = {"PASS": 0, "SKIP": 0, "BLOCKED": 0}
+for item in items:
+    summary[item["status"]] = summary.get(item["status"], 0) + 1
+    verdict = "PASS" if item["status"] == "ok" else (
+        "SKIP" if item["status"] == "skipped" else "BLOCKED")
+    item["verification"] = verdict
+    verification[verdict] += 1
+try:
+    commit = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"],
+                            capture_output=True, text=True, timeout=10).stdout.strip()
+except Exception:
+    commit = ""
+payload = {
+    "schema": "chimera-sdk-build-report-1",
+    "generated": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], capture_output=True, text=True).stdout.strip(),
+    "commit": commit,
+    "host": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version()},
+    "summary": summary,
+    "verification": verification,
+    "projects": items,
+}
+json.dump(payload, open(out_path, "w", encoding="utf-8"), indent=1)
+print("report: %s (%s)" % (out_path, summary))
+PY
+
+# Never fail the caller: the report carries the failures.
+exit 0
+\t'*}"; rel="${entry#*
+  dir="$ROOT/$(dirname "$rel")"
+  slug="$(printf '%s' "$rel" | tr '/ ' '__')"
+  case "$kind" in
+    cmake)
+      have cmake || { record cmake "$rel" "skipped" 0 "cmake not installed"; continue; }
+      run_step cmake "$rel" "$dir" cmake -S . -B "$WORK/cmake-$slug" -DCMAKE_BUILD_TYPE=Release
+      run_step cmake "$rel" "$dir" cmake --build "$WORK/cmake-$slug" -j "${JOBS:-2}"
+      ;;
+    rust)
+      if ! have cargo; then record rust "$rel" "skipped" 0 "cargo not installed"; continue; fi
+      run_step rust "$rel" "$dir" env CARGO_TARGET_DIR="$WORK/cargo-target" cargo build --release
+      ;;
+    swift)
+      have swiftc || { record swift "$rel" "skipped" 0 "swift toolchain not installed"; continue; }
+      run_step swift "$rel" "$dir" swift build -c release
+      ;;
+    dart)
+      have dart || { record dart "$rel" "skipped" 0 "dart not installed"; continue; }
+      run_step dart "$rel" "$dir" dart pub get
+      ;;
+    maven)
+      have mvn || { record maven "$rel" "skipped" 0 "maven not installed"; continue; }
+      run_step maven "$rel" "$dir" mvn -q -B -DskipTests package
+      ;;
+    gradle)
+      have gradle || { record gradle "$rel" "skipped" 0 "gradle not installed"; continue; }
+      run_step gradle "$rel" "$dir" gradle --no-daemon -q build -x test
+      ;;
+    dotnet)
+      have dotnet || { record dotnet "$rel" "skipped" 0 "dotnet SDK not installed"; continue; }
+      run_step dotnet "$rel" "$dir" dotnet build -c Release --nologo
+      ;;
+    node)
+      if ! have npm; then record node "$rel" "skipped" 0 "npm not installed"; continue; fi
+      run_step node "$rel" "$dir" npm install --no-audit --no-fund --loglevel=error
+      ;;
+    go)
+      have go || { record go "$rel" "skipped" 0 "go not installed"; continue; }
+      run_step go "$rel" "$dir" go build ./...
+      ;;
+    python)
+      run_step python "$rel" "$dir" python3 -m compileall -q .
+      ;;
+  esac
+  count=$((count + 1))
+done
+
+# Probe the macOS cross-development toolchain and SDK without bundling Apple SDK files.
+# The helper writes blocked/review-required when the external SDK or license is unavailable.
+if [ -x "$ROOT/tools/build-macos-sdk.sh" ]; then
+  bash "$ROOT/tools/build-macos-sdk.sh" "$WORK/macos-sdk-report.json" || true
+  record macos-sdk "sdk/macos" "skipped" 0 "cross-toolchain discovery only; inspect macos-sdk-report.json before compiling"
+else
+  record macos-sdk "sdk/macos" "skipped" 0 "macOS integration helper missing"
+fi
+
+# Plain-language sources that need no build system but must still parse.
+# Compile portable Java SDK/runtime sources as one compilation unit so
+# package dependencies resolve together. Android sources and JUnit test files
+# are excluded because they require separate Android/JUnit toolchains.
+if have javac; then
+  JAVA=()
+  for base in java sdk/java services/java drivers/java isa/java applications/java desktop/java quantum/languages/java p2p/java network/java sdk/examples/java ISO-Tool/java/src/main/java vendor/chimera-ii-os/source/java vendor/chimera-ii-os/source/sdk/java vendor/chimera-ii-os/source/services/java vendor/chimera-ii-os/source/drivers/java vendor/chimera-ii-os/source/isa/java vendor/chimera-ii-os/source/applications/java vendor/chimera-ii-os/source/desktop/java vendor/chimera-ii-os/source/quantum/languages/java vendor/chimera-ii-os/source/p2p/java vendor/chimera-ii-os/source/network/java vendor/chimera-ii-os/source/sdk/examples/java vendor/chimera-ii-os/source/ISO-Tool/java/src/main/java; do
+    [ -d "$ROOT/$base" ] || continue
+    while IFS= read -r -d '' source_file; do JAVA+=("$source_file"); done < <(
+      find "$ROOT/$base" -type f -name '*.java' ! -name '*Test.java' -print0 2>/dev/null)
+  done
+  if [ "${#JAVA[@]}" -gt 0 ]; then
+    mkdir -p "$WORK/javac-out"
+    run_step java "portable-java-sources" "$ROOT" javac -d "$WORK/javac-out" "${JAVA[@]}"
+  fi
+fi
+
+python3 - "$REPORT_ITEMS" "$OUT" "$ROOT" <<'PY'
+import json, os, platform, subprocess, sys
+items_path, out_path, root = sys.argv[1:4]
+items = [json.loads(line) for line in open(items_path, encoding="utf-8") if line.strip()]
+summary = {"ok": 0, "failed": 0, "skipped": 0, "timeout": 0}
+for item in items:
+    summary[item["status"]] = summary.get(item["status"], 0) + 1
+try:
+    commit = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"],
+                            capture_output=True, text=True, timeout=10).stdout.strip()
+except Exception:
+    commit = ""
+payload = {
+    "schema": "chimera-sdk-build-report-1",
+    "generated": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], capture_output=True, text=True).stdout.strip(),
+    "commit": commit,
+    "host": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version()},
+    "summary": summary,
+    "projects": items,
+}
+json.dump(payload, open(out_path, "w", encoding="utf-8"), indent=1)
+print("report: %s (%s)" % (out_path, summary))
+PY
+
+# Never fail the caller: the report carries the failures.
+exit 0
+\t'}"
+  if [ "$count" -ge "$MAX" ]; then
+    record "$kind" "$rel" "skipped" 0 "not attempted: --max $MAX build limit reached"
+    continue
+  fi
   dir="$ROOT/$(dirname "$rel")"
   slug="$(printf '%s' "$rel" | tr '/ ' '__')"
   case "$kind" in
