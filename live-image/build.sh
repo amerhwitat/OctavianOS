@@ -367,15 +367,10 @@ for item in manifest.get("native_binaries", []):
         "\nTerminal=" + ("true" if terminal else "false") +
         "\nCategories=Utility;Development;\n", encoding="utf-8")
 PYDESKTOP
-# Compile and headlessly validate the shared native GTK4 Aurora/Marine shell.
-NATIVE_SHELL_SRC="$PAY/repo/desktop/native/chimera-desktop-shell.cpp"
-if [ -s "$NATIVE_SHELL_SRC" ]; then
-  cp -f "$NATIVE_SHELL_SRC" "$WORK/tmp/chimera-desktop-shell.cpp"
-  mount_chroot "$WORK"
-  chroot "$WORK" /bin/bash -c 'set -e; c++ -std=c++20 -O2 -Wall -Wextra $(pkg-config --cflags gtk4) /tmp/chimera-desktop-shell.cpp $(pkg-config --libs gtk4) -o /usr/local/bin/chimera-desktop-shell; xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test; xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test'
-  umount_chroot "$WORK"
-  mkdir -p "$PAY/apps/native/bin" "$WORK/usr/share/applications"
-  cp -f "$WORK/usr/local/bin/chimera-desktop-shell" "$PAY/apps/native/bin/"
+# The vendor build-desktop-binaries.sh already compiles and headlessly validates
+# the GTK4 shell. Install its two desktop profiles after the binaries are copied.
+if [ -x "$WORK/usr/local/bin/chimera-desktop-shell" ]; then
+  mkdir -p "$WORK/usr/share/applications"
   cat > "$WORK/usr/share/applications/chimera-aurora-shell.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
