@@ -326,6 +326,71 @@ if [ -x "$REPO_DIR/tools/build-sdks.sh" ]; then
     --max 12 --timeout 180 || true
 fi
 
+# Ship executable products produced by the SDK and first-party application builds.
+# Catalog entries alone are not treated as installed applications.
+mkdir -p "$PAY/apps/native/bin" "$PAY/sdk" "$PAY/reports"
+if [ -d "$REPO_DIR/build/sdk" ]; then
+  while IFS= read -r -d '' bin; do
+    case "$bin" in *.log|*.tmp|*/CMakeFiles/*) continue;; esac
+    rel="${bin#"$REPO_DIR/build/sdk"/}"
+    install -D -m 0755 "$bin" "$PAY/apps/native/bin/sdk/$rel"
+  done < <(find "$REPO_DIR/build/sdk" -type f -perm /111 -print0 2>/dev/null)
+fi
+for source in "$REPO_DIR/apps/bin" "$REPO_DIR/desktop/aurora/apps" "$REPO_DIR/desktop/marine/apps"; do
+  [ -d "$source" ] || continue
+  while IFS= read -r -d '' bin; do
+    rel="${bin#"$source"/}"
+    install -D -m 0755 "$bin" "$PAY/apps/native/bin/$(basename "$source")/$rel"
+  done < <(find "$source" -type f -perm /111 -print0 2>/dev/null)
+done
+python3 - "$PAY/apps/native/bin" "$PAY/apps/native/binary-manifest.json" <<'PYBIN'
+import hashlib, json, pathlib, sys
+root, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+items=[]
+for path in sorted(root.rglob("*")):
+    if path.is_file():
+        data=path.read_bytes()
+        items.append({"path":path.relative_to(root).as_posix(),"size_bytes":len(data),
+                      "sha256":hashlib.sha256(data).hexdigest()})
+out.write_text(json.dumps({"schema":"octavian-native-app-bundle-v1",
+                           "binaries":items,
+                           "policy":"Only executable first-party build outputs are staged; catalog references are not binaries."},
+                          indent=2)+"\\n")
+PYBIN
+
+# Build a local, provenance-tracked JSON knowledge database for desktop retrieval.
+# Only repository-local allowlisted text roots are indexed; arbitrary host files,
+# credentials and home directories are never crawled.
+if [ -s "$REPO_DIR/tools/knowledge/build-json-index.py" ]; then
+  log "building local knowledge JSON database"
+  mkdir -p "$PAY/knowledge" "$WORK/var/lib/octavian/knowledge" "$WORK/usr/lib/octavian/tools/knowledge"
+  python3 "$REPO_DIR/tools/knowledge/build-json-index.py" --out "$PAY/knowledge/knowledge-index.json"
+  cp -f "$PAY/knowledge/knowledge-index.json" "$WORK/var/lib/octavian/knowledge/"
+  install -m 0755 "$REPO_DIR/tools/knowledge/build-json-index.py" "$WORK/usr/lib/octavian/tools/knowledge/build-json-index.py"
+  cat > "$WORK/usr/share/octavian/knowledge-runtime.json" <<'EOF'
+{
+  "schema": "octavian-local-ai-runtime-contract-v1",
+  "knowledge_database": "/var/lib/octavian/knowledge/knowledge-index.json",
+  "mode": "local-retrieval-index",
+  "cnn_inference": "requires separately installed model and runtime",
+  "rnn_inference": "requires separately installed model and runtime",
+  "llm_inference": "requires separately installed model and runtime",
+  "training": false,
+  "privacy": "repository-local allowlisted text only; no arbitrary host ingestion"
+}
+EOF
+  mkdir -p "$WORK/usr/share/applications"
+  cat > "$WORK/usr/share/applications/octavian-knowledge-index.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Octavian Knowledge Index
+Comment=Refresh the local, provenance-tracked knowledge database
+Exec=python3 /usr/lib/octavian/tools/knowledge/build-json-index.py --out /var/lib/octavian/knowledge/knowledge-index.json
+Terminal=true
+Categories=Utility;Education;
+EOF
+fi
+
 log "trimming"
 rm -rf "$WORK"/usr/share/doc/* "$WORK"/usr/share/man/* "$WORK"/usr/share/info/* 2>/dev/null || true
 rm -rf "$WORK"/usr/share/fonts/truetype/noto "$WORK"/usr/share/fonts/opentype/noto* 2>/dev/null || true
