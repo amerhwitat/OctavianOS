@@ -206,7 +206,6 @@ if have javac; then
 else
   record java "portable-java-sources" "skipped" 0 "javac unavailable"
 fi
-fi
 
 python3 - "$REPORT_ITEMS" "$OUT" "$ROOT" <<'PY'
 import json, os, platform, subprocess, sys
