@@ -1,0 +1,63 @@
+name: Native SDK Cross-Platform Reference Matrix
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/sdk/**'
+      - 'sdk/**'
+      - '.github/workflows/native-sdk-platform-matrix.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vendor/chimera-ii-os/source/sdk/**'
+      - 'sdk/**'
+      - '.github/workflows/native-sdk-platform-matrix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sdk-host-compat:
+    name: SDK host compatibility / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure the portable native SDK
+        run: cmake -S vendor/chimera-ii-os/source/sdk -B build/platform-sdk -DCMAKE_BUILD_TYPE=Release
+      - name: Build SDK and examples
+        run: cmake --build build/platform-sdk --config Release --parallel 2
+      - name: Run SDK API, event and host-file tests
+        run: ctest --test-dir build/platform-sdk -C Release --output-on-failure
+      - name: Record host toolchain identity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, platform, sys
+          from pathlib import Path
+          report = {
+              "schema": "octavian-sdk-host-matrix-v1",
+              "system": platform.system(),
+              "release": platform.release(),
+              "machine": platform.machine(),
+              "python": sys.version,
+              "scope": "host SDK/API portability only; not native Koronos boot acceptance",
+          }
+          Path("build/platform-sdk/host-report.json").write_text(
+              json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          PY
+      - name: Upload SDK host report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-sdk-host-${{ matrix.os }}
+          path: |
+            build/platform-sdk/host-report.json
+            build/platform-sdk/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+          retention-days: 14
