@@ -618,6 +618,13 @@ create_boot_menu(){
   local k="$SCRIPT_DIR/build/koronos/x86_64/koronos.elf"; [[ -s "$k" ]] || { log_error 'Koronos ELF missing'; exit 1; }
   mkdir -p "$ISO_DIR/boot/koronos" "$ISO_DIR/boot/jasper" "$ISO_DIR/boot/spitfire" "$ISO_DIR/boot/grub" "$ISO_DIR/boot/live" "$ISO_DIR/EFI/BOOT"
   chimera_copy_if_distinct "$k" "$ISO_DIR/boot/kernel.bin"; chimera_copy_if_distinct "$k" "$ISO_DIR/boot/koronos/koronos.elf"
+  # Ship the complete CPU/ISA reference matrix with the boot media. Inventory
+  # rows are descriptive; only explicit native backends are executable.
+  local cpu_matrix="$SCRIPT_DIR/data/isa/cpu_architecture_matrix.json"
+  local cpu_matrix_doc="$SCRIPT_DIR/docs/CPU_ARCHITECTURE_MATRIX.md"
+  [[ -s "$cpu_matrix" && -s "$cpu_matrix_doc" ]] || { log_error 'CPU architecture matrix or documentation is missing'; exit 1; }
+  install -m 0644 "$cpu_matrix" "$ISO_DIR/boot/koronos/cpu-architecture-matrix.json"
+  install -m 0644 "$cpu_matrix_doc" "$ISO_DIR/boot/koronos/CPU_ARCHITECTURE_MATRIX.md"
   # The native launcher requires exactly one target-specific USER_INIT_ELF.
   # Build-koronos.sh emits all three ET_EXEC payloads; package them explicitly.
   mkdir -p "$ISO_DIR/boot/targets"
@@ -1255,13 +1262,16 @@ build_native_iso_pipeline(){
   if [[ "$RUN_NATIVE_SIX_CASE_DIAGNOSTICS" == 1 ]]; then
     local six_case_runner="$SCRIPT_DIR/tools/boot/run-six-case-qemu.py"
     local six_case_verifier="$SCRIPT_DIR/tools/boot/verify-six-case-matrix.py"
-    local ovmf_code="" ovmf_vars="" ovmf_dir
+    local ovmf_code="" ovmf_vars=""
     if [[ -f "$six_case_runner" && -f "$six_case_verifier" ]] && command -v qemu-system-x86_64 >/dev/null 2>&1; then
-      for ovmf_dir in /usr/share/OVMF /usr/share/ovmf /usr/share/qemu /usr/share/edk2/x64; do
-        [[ -d "$ovmf_dir" ]] || continue
-        [[ -n "$ovmf_code" ]] || ovmf_code="$(find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_CODE*.fd' -print -quit 2>/dev/null || true)"
-        [[ -n "$ovmf_vars" ]] || ovmf_vars="$(find "$ovmf_dir" -maxdepth 1 -type f -name 'OVMF_VARS*.fd' -print -quit 2>/dev/null || true)"
-      done
+      # Match the exact OVMF pairs supported by run-six-case-qemu.py.
+      if [[ -s /usr/share/OVMF/OVMF_CODE_4M.fd && -s /usr/share/OVMF/OVMF_VARS_4M.fd ]]; then
+        ovmf_code=/usr/share/OVMF/OVMF_CODE_4M.fd; ovmf_vars=/usr/share/OVMF/OVMF_VARS_4M.fd
+      elif [[ -s /usr/share/OVMF/OVMF_CODE.fd && -s /usr/share/OVMF/OVMF_VARS.fd ]]; then
+        ovmf_code=/usr/share/OVMF/OVMF_CODE.fd; ovmf_vars=/usr/share/OVMF/OVMF_VARS.fd
+      elif [[ -s /usr/share/edk2/ovmf/OVMF_CODE.fd && -s /usr/share/edk2/ovmf/OVMF_VARS.fd ]]; then
+        ovmf_code=/usr/share/edk2/ovmf/OVMF_CODE.fd; ovmf_vars=/usr/share/edk2/ovmf/OVMF_VARS.fd
+      fi
       if [[ -n "$ovmf_code" && -n "$ovmf_vars" ]]; then
         local six_case_evidence="$BUILD_DIR/native-six-case-evidence"
         log_info "Running diagnostic Live/Installer/Recovery BIOS+UEFI matrix against one immutable native ISO."
@@ -1272,9 +1282,11 @@ build_native_iso_pipeline(){
         fi
       else
         log_warning "QEMU is installed but OVMF_CODE/OVMF_VARS were not found; skipping six-case diagnostics (no UEFI evidence claimed)."
+        [[ "$RELEASE_BUILD" == 0 ]] || { log_error "Release mode requires a matching OVMF_CODE/OVMF_VARS pair."; return 1; }
       fi
     else
       log_info "QEMU + OVMF six-case diagnostic prerequisites unavailable; skipping optional local trace collection."
+      [[ "$RELEASE_BUILD" == 0 ]] || { log_error "Release mode requires QEMU and OVMF for all six same-ISO cases."; return 1; }
     fi
   fi
 
@@ -1491,6 +1503,8 @@ verify_iso(){
     /boot/grub/grub.cfg
     /boot/koronos/koronos.elf
     /boot/koronos/native-capability-audit.json
+    /boot/koronos/cpu-architecture-matrix.json
+    /boot/koronos/CPU_ARCHITECTURE_MATRIX.md
     /boot/targets/target-init-live.elf
     /boot/targets/target-init-installer.elf
     /boot/targets/target-init-recovery.elf
