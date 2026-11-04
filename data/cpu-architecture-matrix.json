@@ -45,7 +45,22 @@
       "runtime_limitations": [
         "legacy-PIC/PIT IRQ path is present; full APIC/x2APIC interrupt routing not accepted",
         "user syscall acknowledgement exists but complete process/VFS syscall lifecycle remains blocked"
-      ]
+      ],
+      "linux_syscall_instruction": "syscall",
+      "linux_syscall_number": "EAX",
+      "linux_syscall_args": [
+        "RDI",
+        "RSI",
+        "RDX",
+        "R10",
+        "R8",
+        "R9"
+      ],
+      "linux_syscall_return": "RAX",
+      "linux_syscall_secondary_return": "RDX",
+      "linux_syscall_error": "negative errno encoded in RAX",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "i386",
@@ -62,7 +77,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "int $0x80",
+      "linux_syscall_number": "EAX",
+      "linux_syscall_args": [
+        "EBX",
+        "ECX",
+        "EDX",
+        "ESI",
+        "EDI",
+        "EBP"
+      ],
+      "linux_syscall_return": "EAX",
+      "linux_syscall_secondary_return": "EDX",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "m68k",
@@ -79,7 +108,20 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "trap #0",
+      "linux_syscall_number": "D0",
+      "linux_syscall_args": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "A0"
+      ],
+      "linux_syscall_return": "D0",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "s390x",
@@ -96,7 +138,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "svc 0",
+      "linux_syscall_number": "R1",
+      "linux_syscall_args": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "linux_syscall_return": "R2",
+      "linux_syscall_secondary_return": "R3",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "alpha",
@@ -113,7 +169,22 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "callsys",
+      "linux_syscall_number": "V0",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "linux_syscall_return": "V0",
+      "linux_syscall_secondary_return": "A4",
+      "linux_syscall_error": "A3",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "arm64",
@@ -144,7 +215,21 @@
         "no complete exception vector table or GIC driver",
         "no EL0 SVC syscall path or context switch",
         "no platform DT/ACPI, timer or PSCI/SMP acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "svc #0",
+      "linux_syscall_number": "W8",
+      "linux_syscall_args": [
+        "X0",
+        "X1",
+        "X2",
+        "X3",
+        "X4",
+        "X5"
+      ],
+      "linux_syscall_return": "X0",
+      "linux_syscall_secondary_return": "X1",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "arm",
@@ -161,7 +246,22 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "swi 0x0 (EABI)",
+      "linux_syscall_number": "R7",
+      "linux_syscall_args": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "linux_syscall_return": "R0",
+      "linux_syscall_secondary_return": "R1",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "riscv64",
@@ -188,7 +288,21 @@
         "FDT/ACPI CPU discovery and SBI extension probing not implemented",
         "M-mode-only CSRs intentionally not read from S-mode",
         "no stvec trap dispatcher, PLIC/APLIC+IMSIC, timer or ECALL/SRET syscall path"
-      ]
+      ],
+      "linux_syscall_instruction": "ecall",
+      "linux_syscall_number": "A7",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "linux_syscall_return": "A0",
+      "linux_syscall_secondary_return": "A1",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "riscv32",
@@ -205,7 +319,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "ecall",
+      "linux_syscall_number": "A7",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "linux_syscall_return": "A0",
+      "linux_syscall_secondary_return": "A1",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "powerpc64",
@@ -222,7 +350,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "sc",
+      "linux_syscall_number": "R0",
+      "linux_syscall_args": [
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "linux_syscall_return": "R3",
+      "linux_syscall_error": "CR0.SO",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "mips",
@@ -239,7 +381,22 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "syscall",
+      "linux_syscall_number": "V0",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5 (n32/n64; o32 uses stack for args 5–8)"
+      ],
+      "linux_syscall_return": "V0",
+      "linux_syscall_secondary_return": "V1",
+      "linux_syscall_error": "A3",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "sparc64",
@@ -256,7 +413,22 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "t 0x6d",
+      "linux_syscall_number": "G1",
+      "linux_syscall_args": [
+        "O0",
+        "O1",
+        "O2",
+        "O3",
+        "O4",
+        "O5"
+      ],
+      "linux_syscall_return": "O0",
+      "linux_syscall_secondary_return": "O1",
+      "linux_syscall_error": "PSR/CSR carry flag",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "loongarch64",
@@ -273,7 +445,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "syscall 0",
+      "linux_syscall_number": "A7",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "linux_syscall_return": "A0",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "arc",
@@ -290,7 +476,20 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "trap0",
+      "linux_syscall_number": "R8",
+      "linux_syscall_args": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "linux_syscall_return": "R0",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "openrisc",
@@ -300,14 +499,27 @@
       "feature_probe": "implementation-specific feature registers",
       "interrupt_model": "exception vectors/PIC",
       "syscall_entry": "OpenRISC Linux trap entry",
-      "linux_syscall_abi": "OpenRISC Linux UAPI",
+      "linux_syscall_abi": "Architecture-specific; consult Linux arch/openrisc/entry and UAPI syscall definitions for the exact ABI",
       "koronos_status": "reference-only",
       "xnu_reference": false,
       "detector_status": "not-implemented",
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_abi_status": "verified-from-Linux-entry-assembly",
+      "linux_syscall_instruction": "l.sys exception entry",
+      "linux_syscall_number": "R11",
+      "linux_syscall_args": [
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "linux_syscall_return": "R11",
+      "linux_syscall_abi_source": "https://github.com/torvalds/linux/blob/master/arch/openrisc/kernel/entry.S"
     },
     {
       "id": "parisc",
@@ -324,7 +536,20 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "ble 0x100(%sr2,%r0)",
+      "linux_syscall_number": "R20",
+      "linux_syscall_args": [
+        "R26",
+        "R25",
+        "R24",
+        "R23",
+        "R22",
+        "R21"
+      ],
+      "linux_syscall_return": "R28",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "nios2",
@@ -341,7 +566,21 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "trap",
+      "linux_syscall_number": "R2",
+      "linux_syscall_args": [
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "linux_syscall_return": "R2",
+      "linux_syscall_error": "R7",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "microblaze",
@@ -358,7 +597,20 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "brki r14,8",
+      "linux_syscall_number": "R12",
+      "linux_syscall_args": [
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "linux_syscall_return": "R3",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "xtensa",
@@ -375,7 +627,20 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "syscall",
+      "linux_syscall_number": "A2",
+      "linux_syscall_args": [
+        "A6",
+        "A3",
+        "A4",
+        "A5",
+        "A8",
+        "A9"
+      ],
+      "linux_syscall_return": "A2",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "sh",
@@ -392,7 +657,22 @@
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_instruction": "trapa #31",
+      "linux_syscall_number": "R3",
+      "linux_syscall_args": [
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R0",
+        "R1",
+        "R2"
+      ],
+      "linux_syscall_return": "R0",
+      "linux_syscall_secondary_return": "R1",
+      "linux_syscall_abi_status": "verified-from-Linux-man-pages",
+      "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html"
     },
     {
       "id": "csky",
@@ -402,14 +682,26 @@
       "feature_probe": "ISA and extension registers",
       "interrupt_model": "exception vectors/interrupt controller",
       "syscall_entry": "C-SKY Linux trap entry",
-      "linux_syscall_abi": "C-SKY Linux UAPI",
+      "linux_syscall_abi": "Architecture-specific; consult Linux arch/csky/entry and UAPI syscall definitions for the exact ABI",
       "koronos_status": "reference-only",
       "xnu_reference": false,
       "detector_status": "not-implemented",
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_abi_status": "verified-from-Linux-entry-assembly; ABI-version-specific",
+      "linux_syscall_instruction": "C-SKY TRAP0 syscall entry",
+      "linux_syscall_number": "syscallid special register",
+      "linux_syscall_args": [
+        "A0",
+        "A1",
+        "A2",
+        "A3",
+        "ABI v1: R6,R7; ABI v2: R4,R5"
+      ],
+      "linux_syscall_return": "A0",
+      "linux_syscall_abi_source": "https://github.com/torvalds/linux/blob/master/arch/csky/kernel/entry.S"
     },
     {
       "id": "hexagon",
@@ -419,14 +711,27 @@
       "feature_probe": "DSP/ISA feature registers",
       "interrupt_model": "vectored exceptions/interrupts",
       "syscall_entry": "Hexagon Linux trap entry",
-      "linux_syscall_abi": "Hexagon Linux UAPI",
+      "linux_syscall_abi": "Architecture-specific; consult Linux arch/hexagon/entry and UAPI syscall definitions for the exact ABI",
       "koronos_status": "reference-only",
       "xnu_reference": false,
       "detector_status": "not-implemented",
       "backend_files": [],
       "runtime_limitations": [
         "catalogue only; no Koronos native backend or runtime detection acceptance"
-      ]
+      ],
+      "linux_syscall_abi_status": "verified-from-Linux-trap-handler",
+      "linux_syscall_instruction": "trap0 #1",
+      "linux_syscall_number": "R6",
+      "linux_syscall_args": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "linux_syscall_return": "R0",
+      "linux_syscall_abi_source": "https://github.com/torvalds/linux/blob/master/arch/hexagon/kernel/traps.c"
     }
   ],
   "non_goals": [
@@ -447,5 +752,7 @@
     "unknown_values": "zero/unknown; never infer from marketing names",
     "feature_policy": "A feature is usable only after hardware support and kernel context-save, privilege and scheduler support are all verified",
     "cpu_count_policy": "reported package/hart topology is not the number of processors currently online; only AP/hart acknowledgements establish online CPUs"
-  }
+  },
+  "linux_syscall_abi_source": "https://man7.org/linux/man-pages/man2/syscall.2.html",
+  "linux_syscall_abi_note": "Register calling convention only. Syscall numbers are versioned per architecture and are not copied into Koronos native syscall IDs."
 }
