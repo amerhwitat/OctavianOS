@@ -2,6 +2,12 @@ name: Native Koronos kernel build
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'vendor/chimera-ii-os/source/**'
+      - '.github/workflows/native-koronos-build.yml'
+      - 'tests/migration/**'
   push:
     branches: [main]
     paths:
