@@ -34,10 +34,13 @@ jobs:
         run: cmake --build build/platform-sdk --config Release --parallel 2
       - name: Run SDK API, event and host-file tests
         run: ctest --test-dir build/platform-sdk -C Release --output-on-failure
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
       - name: Record host toolchain identity
         shell: bash
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           import json, platform, sys
           from pathlib import Path
           report = {
