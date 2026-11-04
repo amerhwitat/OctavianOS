@@ -43,6 +43,7 @@ jobs:
             echo "- This workflow builds per-target candidate probe ISOs with test init ELFs."
             echo "- Those probe boots are not the immutable production ISO six-case matrix."
             echo "- Native production status remains BLOCKED until one canonical Koronos ISO supplies all six target/firmware traces, desktop sessions, VFS, persistence, recovery and SMP evidence."
+            echo "- The verifier's synthetic fixtures test the checker only; they are not boot evidence."
             echo "- OctavianOS live-image/build.sh remains a separate Debian/Linux-kernel live edition."
           } >> "$GITHUB_STEP_SUMMARY"
 
