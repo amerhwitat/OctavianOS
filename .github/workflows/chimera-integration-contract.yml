@@ -42,6 +42,7 @@ jobs:
   contracts:
     name: Registry, SMB, AD/LDAP, optical and FHS contracts
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: vendor/chimera-ii-os/source
