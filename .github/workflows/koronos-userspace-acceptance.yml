@@ -34,6 +34,18 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Test the fail-closed six-case production evidence verifier
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          python3 -m unittest discover -s tests/boot -p 'test_six_case_matrix.py' -v
+          {
+            echo "### Native Koronos production matrix boundary"
+            echo "- This workflow builds per-target candidate probe ISOs with test init ELFs."
+            echo "- Those probe boots are not the immutable production ISO six-case matrix."
+            echo "- Native production status remains BLOCKED until one canonical Koronos ISO supplies all six target/firmware traces, desktop sessions, VFS, persistence, recovery and SMP evidence."
+            echo "- OctavianOS live-image/build.sh remains a separate Debian/Linux-kernel live edition."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
