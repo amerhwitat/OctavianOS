@@ -109,8 +109,8 @@ jobs:
             --evidence-dir six-case-evidence \
             --timeout 35 \
             --main-menu-index live=0 \
-            --main-menu-index installer=3 \
-            --main-menu-index recovery=6
+            --main-menu-index installer=2 \
+            --main-menu-index recovery=5
           sha256sum dist/octavianos-release.iso | tee six-case-evidence/canonical-iso.sha256
       - name: Run same-ISO runner regression tests
         working-directory: vendor/chimera-ii-os/source
