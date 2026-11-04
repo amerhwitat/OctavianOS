@@ -468,7 +468,7 @@ jobs:
           retention-days: 14
 
   verify-userspace-handoff:
-    name: Verify real Live, Installer, and Recovery userspace
+    name: Ring-3 target smoke diagnostics (not production acceptance)
     needs: build-koronos
     runs-on: ubuntu-latest
     steps:
@@ -488,9 +488,51 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  verify-six-case-production:
+    name: Verify one immutable ISO across all six production cases
+    needs: build-koronos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OctavianOS verifier
+        uses: actions/checkout@v4
+      - name: Download the exact native ISO candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify candidate checksum and six-case runtime evidence
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c output.iso.sha256
+          cd ..
+          mkdir -p dist/six-case-evidence
+          set +e
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+            --iso dist/output.iso \
+            --evidence-dir dist/six-case-evidence \
+            --report dist/six-case-report.json
+          rc=$?
+          set -e
+          cat dist/six-case-report.json
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::One immutable ISO has not passed Live/Installer/Recovery x BIOS/UEFI with VFS, real SMP, desktop, persistence and recovery evidence."
+            exit "$rc"
+          fi
+      - name: Upload six-case verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-six-case-production-gate
+          path: |
+            dist/six-case-report.json
+            dist/six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish-native-iso:
-    name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
+    name: Publish prerelease only after six-case production acceptance
+    needs: [build-koronos, verify-userspace-handoff, verify-six-case-production]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -511,7 +553,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after one immutable ISO passes all six BIOS/UEFI target cases, CPL3/PID, VFS, real SMP, installer persistence, recovery repair and desktop postconditions."
           else
             gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi
