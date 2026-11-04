@@ -80,9 +80,58 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  verify-six-case-matrix:
+    name: Require native Koronos six-case evidence
+    needs: iso
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      accepted: ${{ steps.six_case.outputs.accepted }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download native ISO candidate
+        if: needs.iso.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-release-iso
+          path: dist
+      - name: Verify immutable six-case matrix
+        id: six_case
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p six-case-evidence
+          set +e
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+            --iso dist/octavianos-release.iso \
+            --evidence-dir six-case-evidence \
+            --report six-case-evidence/report.json
+          rc=$?
+          set -e
+          accepted=false
+          if [[ "$rc" -eq 0 ]]; then accepted=true; fi
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          status=BLOCKED
+          if [[ "$accepted" == true ]]; then status=PASS; fi
+          {
+            echo "### Native Koronos six-case acceptance"
+            echo "- Status: **$status**"
+            echo "- One canonical ISO SHA-256 must be shared by all six cases."
+            echo "- Missing BIOS/UEFI, VFS, CPL3, desktop, persistence, recovery or SMP evidence blocks publication."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload six-case report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-release-six-case-report
+          path: six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
-    needs: [container, iso]
+    if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish) && needs.verify-six-case-matrix.outputs.accepted == 'true'
+    needs: [container, iso, verify-six-case-matrix]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
