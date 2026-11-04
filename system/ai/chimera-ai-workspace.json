@@ -19,7 +19,8 @@
     ],
     "retrieval_augmented_chat": true,
     "weights_bundled": false,
-    "automatic_training": false
+    "automatic_training": false,
+    "training_status": "NOT TRAINED: separately installed local model weights are not fine-tuned by knowledge ingestion"
   },
   "cnn_rnn": {
     "inference_backend": "ONNX Runtime",
@@ -27,11 +28,12 @@
     "weights_bundled": false,
     "automatic_training": false,
     "rnn_weights_bundled": true,
-    "rnn_training_status": "trained during ISO build; corpus hash, held-out evaluation and round-trip validation recorded",
-    "cnn_training_status": "not trained: no separately labelled and licensed CNN task dataset supplied",
-    "llm_training_status": "no LLM fine-tuning; local model inference uses retrieval context only"
+    "rnn_training_status": "trained during ISO build from the versioned knowledge database; report/evaluation metadata stored with weights",
+    "cnn_training_status": "NOT TRAINED: no separately labelled, licensed CNN task dataset supplied",
+    "llm_training_status": "no LLM fine-tuning; local model inference uses retrieval context only",
+    "rnn_training_at_build": true
   },
-  "training_policy": "No automatic training or weight updates. CNN/RNN training requires a user-selected dataset, architecture, training budget, and output path. LLM chat uses local inference with retrieved text excerpts; it does not fine-tune model weights.",
+  "training_policy": "The small advisory RNN is trained and evaluated during ISO image staging from the versioned knowledge database; no runtime weight updates occur. CNN training requires a separately selected, labelled and licensed task dataset. LLM chat uses local inference with retrieved evidence and does not fine-tune LLM weights.",
   "release_boundary": "Linux-kernel live edition; AI packaging does not establish native Koronos CPL3, VFS, SMP or six-case release acceptance.",
   "knowledge_database": {
     "packaged": "/usr/share/chimera/ai/hardware-systems-knowledge.json",
