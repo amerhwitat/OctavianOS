@@ -321,7 +321,7 @@ jobs:
             test -s "$artifact"
             readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC'
             readelf -lW "$artifact" | grep -Eq 'LOAD.*R E'
-            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=$grub_platform" "$inspect/grub.cfg"
+            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=\$grub_platform" "$inspect/grub.cfg"
           done
       - name: Verify Octavian artwork inside the final ISO
         working-directory: vendor/chimera-ii-os/source
