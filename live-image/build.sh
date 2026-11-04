@@ -254,6 +254,7 @@ install -m 0644 "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$AI_SHARE/chime
 install -m 0644 "$REPO_DIR/system/ai/README.md" "$AI_SHARE/README.md"
 install -m 0755 "$REPO_DIR/desktop/shared/chimera-ai-workspace-launcher.sh" "$WORK/usr/local/bin/chimera-ai-workspace-launcher"
 install -m 0644 "$REPO_DIR/desktop/aurora/chimera-ai-workspace.desktop" "$WORK/usr/share/applications/chimera-ai-workspace.desktop"
+install -m 0644 "$REPO_DIR/desktop/marine/chimera-ai-workspace.desktop" "$WORK/usr/share/applications/chimera-ai-workspace-marine.desktop"
 cp -f "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$PAY/ai/"
 cp -f "$REPO_DIR/system/ai/README.md" "$PAY/ai/"
 cp -f "$REPO_DIR/tools/chimera-ai-workspace.py" "$PAY/ai/"
