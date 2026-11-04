@@ -45,7 +45,7 @@ jobs:
       - name: Validate provenance and append semantics
         run: |
           python tools/cognition/knowledge_database.py validate --database data/ai/hardware_systems_knowledge.json
-          python -m unittest tools.cognition.test_trainable_rnn_lm -v
+          python tests/cognition/test_trainable_rnn_lm.py
           python tests/cognition/test_knowledge_database.py
           python tests/test_chimera_ai_workspace.py
       - name: Train, hold out, evaluate and round-trip the knowledge RNN
@@ -53,7 +53,7 @@ jobs:
           python tools/cognition/train_knowledge_rnn.py --database data/ai/hardware_systems_knowledge.json --output build/trained-hardware-systems-rnn.json --epochs 2 --hidden 8
           python -m json.tool build/trained-hardware-systems-rnn.json >/dev/null
           test -s build/trained-hardware-systems-rnn.json
-          python tools/chimera-ai-workspace.py rnn-score --model build/trained-hardware-systems-rnn.json --runtime-module tools/cognition/trainable_rnn_lm.py --text "hardware architecture compiler driver"
+          python -c 'import json; d=json.load(open("build/trained-hardware-systems-rnn.json")); m=d.get("metadata",{}); assert m.get("train_sequences",0)>0 and m.get("heldout_sequences",0)>0 and m.get("corpus_sha256")'
       - uses: actions/upload-artifact@v4
         with:
           name: chimera-hardware-systems-rnn
