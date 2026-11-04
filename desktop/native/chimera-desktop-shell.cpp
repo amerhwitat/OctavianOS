@@ -13,6 +13,22 @@ bool self_test = false;
 GtkLabel* status_label = nullptr;
 GtkWindow* main_window = nullptr;
 GtkWidget* selected_card = nullptr;
+guint pending_open_source = 0;
+
+void card_pressed(GtkGestureClick*, int, double, double, gpointer);
+
+struct RenameData { GtkWidget* label; GtkWidget* entry; };
+
+void rename_response(GtkDialog* dialog, int response, gpointer user_data) {
+  auto* data = static_cast<RenameData*>(user_data);
+  if (response == GTK_RESPONSE_ACCEPT && data) {
+    const char* value = gtk_editable_get_text(GTK_EDITABLE(data->entry));
+    if (value && *value) gtk_label_set_text(GTK_LABEL(data->label), value);
+    set_status("Desktop label updated for this session only; host files were not renamed.");
+  }
+  delete data;
+  gtk_window_destroy(GTK_WINDOW(dialog));
+}
 
 const char* desktop_name() {
   return std::strcmp(desktop_id, "marine") == 0
@@ -91,6 +107,8 @@ GtkWidget* app_card(const char* glyph, const char* title, const char* detail,
   gtk_widget_add_css_class(icon, "app-glyph");
   GtkWidget* name = gtk_label_new(title);
   gtk_widget_add_css_class(name, "app-name");
+  g_object_set_data(G_OBJECT(card),"name-label",name);
+  g_object_set_data(G_OBJECT(card),"launch-action",const_cast<char*>(action));
   GtkWidget* description = gtk_label_new(detail);
   gtk_label_set_wrap(GTK_LABEL(description), TRUE);
   gtk_widget_add_css_class(description, "app-detail");
@@ -134,11 +152,38 @@ void show_properties(GtkWidget* parent, const char* title) {
   g_signal_connect(dialog,"response",G_CALLBACK(+[](GtkDialog* d,int,GtkWidget*){gtk_window_destroy(GTK_WINDOW(d));}),nullptr);
   gtk_window_present(GTK_WINDOW(dialog));
 }
+
+void rename_card(GtkWidget* card){
+  if(!card){set_status("Select an application card first.");return;}
+  GtkWidget* label=GTK_WIDGET(g_object_get_data(G_OBJECT(card),"name-label"));
+  if(!label)return;
+  GtkWidget* dialog=gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(dialog),"Rename desktop item");
+  gtk_window_set_transient_for(GTK_WINDOW(dialog),main_window);
+  gtk_window_set_modal(GTK_WINDOW(dialog),TRUE);
+  GtkWidget* area=gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+  GtkWidget* entry=gtk_entry_new();
+  gtk_editable_set_text(GTK_EDITABLE(entry),gtk_label_get_text(GTK_LABEL(label)));
+  gtk_widget_set_margin_top(entry,18);gtk_widget_set_margin_bottom(entry,18);
+  gtk_widget_set_margin_start(entry,18);gtk_widget_set_margin_end(entry,18);
+  gtk_box_append(GTK_BOX(area),entry);
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Cancel",GTK_RESPONSE_CANCEL);
+  gtk_dialog_add_button(GTK_DIALOG(dialog),"Rename",GTK_RESPONSE_ACCEPT);
+  auto* rename_data = new RenameData{label, entry};
+  g_signal_connect(dialog, "response", G_CALLBACK(rename_response), rename_data);
+  gtk_window_present(GTK_WINDOW(dialog));
+}
 void context_action(GtkButton*,gpointer data){
   const char* action=static_cast<const char*>(data);
-  if(std::strcmp(action,"properties")==0)show_properties(selected_card,"Selected application");
-  else if(std::strcmp(action,"rename")==0)set_status("Rename is available for session-local desktop labels; host files are not modified.");
-  else if(std::strcmp(action,"open")==0)set_status("Double-click an application card or use its Open button.");
+  if(std::strcmp(action,"properties")==0){
+    GtkWidget* label=selected_card?GTK_WIDGET(g_object_get_data(G_OBJECT(selected_card),"name-label")):nullptr;
+    show_properties(selected_card,label?gtk_label_get_text(GTK_LABEL(label)):"Selected application");
+  }else if(std::strcmp(action,"rename")==0)rename_card(selected_card);
+  else if(std::strcmp(action,"open")==0){
+    const char* target=selected_card?static_cast<const char*>(g_object_get_data(G_OBJECT(selected_card),"launch-action")):nullptr;
+    if(target)launch_clicked(nullptr,const_cast<char*>(target));
+    else set_status("No application is selected.");
+  }
 }
 void card_pressed(GtkGestureClick* gesture,int presses,double,double,gpointer data){
   GtkWidget* card=GTK_WIDGET(data);
@@ -162,9 +207,20 @@ void card_pressed(GtkGestureClick* gesture,int presses,double,double,gpointer da
   while(sibling){gtk_widget_remove_css_class(sibling,"selected");sibling=gtk_widget_get_next_sibling(sibling);}
   gtk_widget_add_css_class(card,"selected");
   if(presses==2){
-    GtkWidget* open=static_cast<GtkWidget*>(g_object_get_data(G_OBJECT(card),"open-button"));
-    if(open){play_sound("complete");g_signal_emit_by_name(open,"clicked");}
-  }else if(presses>=3){play_sound("dialog-information");show_properties(card,"Selected application");}
+    if(pending_open_source)g_source_remove(pending_open_source);
+    pending_open_source=g_timeout_add(280,[](gpointer data)->gboolean{
+      GtkWidget* target=GTK_WIDGET(data);
+      pending_open_source=0;
+      GtkWidget* open=static_cast<GtkWidget*>(g_object_get_data(G_OBJECT(target),"open-button"));
+      if(open){play_sound("complete");g_signal_emit_by_name(open,"clicked");}
+      return G_SOURCE_REMOVE;
+    },card);
+  }else if(presses>=3){
+    if(pending_open_source){g_source_remove(pending_open_source);pending_open_source=0;}
+    play_sound("dialog-information");
+    GtkWidget* label=GTK_WIDGET(g_object_get_data(G_OBJECT(card),"name-label"));
+    show_properties(card,label?gtk_label_get_text(GTK_LABEL(label)):"Selected application");
+  }
 }
 
 void install_style() {
@@ -215,7 +271,7 @@ void desktop_menu_action(GSimpleAction* action,GVariant*,gpointer data){
   if(std::strcmp(name,"maximize")==0){if(main_window){if(gtk_window_is_maximized(main_window))gtk_window_unmaximize(main_window);else gtk_window_maximize(main_window);}return;}
   if(std::strcmp(name,"close")==0){if(main_window)gtk_window_close(main_window);return;}
   if(std::strcmp(name,"tile")==0||std::strcmp(name,"cascade")==0){set_status("Window tiling/cascading across applications is provided by the active Wayland compositor. Use its window overview or keyboard shortcuts.");return;}
-  if(std::strcmp(name,"rename")==0){set_status("Select a desktop item; host filesystem rename is delegated to a real file manager.");return;}
+  if(std::strcmp(name,"rename")==0){rename_card(selected_card);return;}
   if(std::strcmp(name,"properties")==0){show_properties(GTK_WIDGET(main_window),"Desktop workspace");return;}
   if(std::strcmp(name,"about")==0){show_properties(GTK_WIDGET(main_window),desktop_name());return;}
   if(std::strcmp(name,"refresh")==0){set_status("Desktop shell refreshed.");return;}
