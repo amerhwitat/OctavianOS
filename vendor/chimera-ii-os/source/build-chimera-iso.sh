@@ -249,6 +249,10 @@ if [[ "$RELEASE_BUILD" == 1 && "${CHIMERA_BUILD_NATIVE_ISO_PIPELINE:-1}" == 0 ]]
   log_error "--release cannot skip the canonical native Koronos ISO pipeline."
   exit 2
 fi
+if [[ "$RELEASE_BUILD" == 1 && "$RUN_NATIVE_SIX_CASE_DIAGNOSTICS" != 1 ]]; then
+  log_error "--release cannot skip same-ISO BIOS/UEFI six-case runtime verification."
+  exit 2
+fi
 
 if [[ -n "${CHIMERA_BUILD_STORAGE_ROOT:-}" ]]; then
   root="${CHIMERA_BUILD_STORAGE_ROOT%/}"
