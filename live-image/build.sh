@@ -99,7 +99,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       xserver-xorg-core xserver-xorg-legacy xserver-xorg-input-libinput \
       xserver-xorg-video-vesa xserver-xorg-video-fbdev xserver-xorg-video-cirrus \
       xinit xauth x11-xserver-utils x11-utils xfonts-base \
-      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 g++ make \
+      python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 libgtk-4-dev xvfb g++ make \
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
@@ -345,6 +345,42 @@ if [ -s "$DESKTOP_BUILDER" ]; then
     cp -f "$WORK/var/tmp/chimera-desktop-build/manifests/desktop-build-manifest.json" "$PAY/apps/native/manifests/"
   fi
 fi
+# Compile and headlessly validate the shared native GTK4 Aurora/Marine shell.
+NATIVE_SHELL_SRC="$PAY/repo/desktop/native/chimera-desktop-shell.cpp"
+if [ -s "$NATIVE_SHELL_SRC" ]; then
+  cp -f "$NATIVE_SHELL_SRC" "$WORK/tmp/chimera-desktop-shell.cpp"
+  mount_chroot "$WORK"
+  chroot "$WORK" /bin/bash -c 'set -e; c++ -std=c++20 -O2 -Wall -Wextra $(pkg-config --cflags gtk4) /tmp/chimera-desktop-shell.cpp $(pkg-config --libs gtk4) -o /usr/local/bin/chimera-desktop-shell; xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=aurora --self-test; xvfb-run -a /usr/local/bin/chimera-desktop-shell --desktop=marine --self-test'
+  umount_chroot "$WORK"
+  mkdir -p "$PAY/apps/native/bin" "$WORK/usr/share/applications"
+  cp -f "$WORK/usr/local/bin/chimera-desktop-shell" "$PAY/apps/native/bin/"
+  cat > "$WORK/usr/share/applications/chimera-aurora-shell.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Chimera Aurora Native Shell
+Exec=/usr/local/bin/chimera-desktop-shell --desktop=aurora
+Terminal=false
+Categories=System;DesktopSettings;
+EOF
+  cat > "$WORK/usr/share/applications/chimera-marine-shell.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Chimera Marine Native Shell
+Exec=/usr/local/bin/chimera-desktop-shell --desktop=marine
+Terminal=false
+Categories=System;DesktopSettings;
+EOF
+fi
+
+# Install every repository-provided Aurora/Marine desktop entry beside the compiled app binaries.
+for desktop_root in "$PAY/repo/vendor/chimera-ii-os/source/desktop/aurora" "$PAY/repo/vendor/chimera-ii-os/source/desktop/marine"; do
+  [ -d "$desktop_root" ] || continue
+  while IFS= read -r -d '' desktop_file; do
+    rel="${desktop_file#"$PAY/repo/vendor/chimera-ii-os/source/desktop/"/}"
+    desktop_name="$(printf '%s' "$rel" | tr '/' '-')"
+    install -D -m 0644 "$desktop_file" "$WORK/usr/share/applications/chimera-$desktop_name"
+  done < <(find "$desktop_root" -type f -name "*.desktop" -print0)
+done
 # Ship executable products produced by the SDK and first-party application builds.
 # Catalog entries alone are not treated as installed applications.
 mkdir -p "$PAY/apps/native/bin" "$PAY/sdk" "$PAY/reports"
