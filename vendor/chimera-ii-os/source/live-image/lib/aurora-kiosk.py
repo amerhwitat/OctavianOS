@@ -3,6 +3,8 @@
 import json
 import os
 import pathlib
+import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -43,6 +45,7 @@ BRIDGE_JS = r"""
   };
   window.chimeraNetwork = {
     browseSmb: host => call("network", "browseSmb", {host}),
+    openSmb: (host, share) => call("network", "openSmb", {host, share}),
     discoverSmb: () => call("network", "discoverSmb"),
     joinDomain: (domain, user) => call("network", "joinDomain", {domain, user}),
     realmStatus: () => call("network", "realmStatus"),
@@ -125,8 +128,26 @@ def dispatch(service, method, args, parent):
             return command_json([sys.executable, SMB_TOOL, host], timeout=30)
         if method == "discoverSmb":
             return command_json([sys.executable, SMB_TOOL, "--network"], timeout=40)
+        if method == "openSmb":
+            host = args.get("host", "")
+            share = args.get("share", "")
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.:-]{0,252}", host):
+                raise ValueError("invalid SMB host")
+            if share not in (None, "") and (not isinstance(share, str) or
+                    not re.fullmatch(r"[A-Za-z0-9._$ -]{1,80}", share) or share in (".", "..")):
+                raise ValueError("invalid SMB share name")
+            if not shutil.which("gio"):
+                raise RuntimeError("GVFS/GIO is required to open SMB shares")
+            from urllib.parse import quote
+            uri = "smb://" + host + (("/" + quote(share, safe="")) if share else "/")
+            result = subprocess.run(["gio", "open", uri], capture_output=True, text=True,
+                                    timeout=30, check=False,
+                                    env={**os.environ, "PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"})
+            if result.returncode:
+                raise RuntimeError(result.stderr[-2000:] or "GVFS could not open SMB share")
+            return {"opened": uri}
         if method == "joinDomain":
-            argv = [sys.executable, DIRECTORY_TOOL, "join", args.get("domain", "")]
+            argv = [sys.executable, DIRECTORY_TOOL, "join", args.get("domain", ""), "--elevate"]
             if args.get("user"):
                 argv += ["--user", args["user"]]
             return command_json(argv, timeout=180)
