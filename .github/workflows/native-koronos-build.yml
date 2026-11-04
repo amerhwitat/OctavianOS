@@ -445,10 +445,66 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  verify-six-case-matrix:
+    name: Verify immutable native Koronos six-case matrix
+    needs: build-koronos
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      accepted: ${{ steps.six_case.outputs.accepted }}
+    steps:
+      - name: Checkout OctavianOS verifier
+        uses: actions/checkout@v4
+      - name: Run six-case verifier regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: python3 -m unittest discover -s tests/boot -p 'test_six_case_matrix.py' -v
+      - name: Download canonical native ISO candidate
+        if: needs.build-koronos.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Verify one ISO across six target/firmware cases
+        id: six_case
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p six-case-evidence
+          set +e
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+            --iso dist/output.iso \
+            --evidence-dir six-case-evidence \
+            --report six-case-evidence/report.json
+          rc=$?
+          set -e
+          accepted=false
+          if [[ "$rc" -eq 0 ]]; then accepted=true; fi
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          status=BLOCKED
+          if [[ "$accepted" == true ]]; then status=PASS; fi
+          {
+            echo "### Native Koronos six-case acceptance"
+            echo "- Status: **$status**"
+            echo "- The six cases must use one identical ISO SHA-256."
+            echo "- Current per-target repacked probe ISOs and test init ELFs are not production evidence."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$accepted" != true ]]; then
+            echo "::warning::Native Koronos six-case evidence is incomplete; prerelease publication is blocked."
+          fi
+      - name: Upload six-case evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-koronos-six-case-report
+          path: six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish-native-iso:
-    name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Publish prerelease only after six-case acceptance
+    needs: [build-koronos, verify-userspace-handoff, verify-six-case-matrix]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-six-case-matrix.outputs.accepted == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -468,7 +524,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after the CPL3 userspace handoff and immutable six-case Live/Installer/Recovery x BIOS/UEFI matrix pass."
           else
             gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi
