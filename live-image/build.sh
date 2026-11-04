@@ -441,7 +441,7 @@ EOF
 Type=Application
 Name=Octavian Knowledge Chat
 Comment=Search the local knowledge database with source citations
-Exec=x-terminal-emulator -e python3 /usr/lib/octavian/tools/knowledge/knowledge-chat.py --index /var/lib/octavian/knowledge/knowledge-index.json
+Exec=xterm -e python3 /usr/lib/octavian/tools/knowledge/knowledge-chat.py --index /var/lib/octavian/knowledge/knowledge-index.json
 Terminal=true
 Categories=Utility;Education;
 EOF
