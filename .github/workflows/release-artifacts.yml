@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
+          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json build/iso-root/boot/jasper/recovery.cfg build/iso-root/boot/targets/target-init-live.elf build/iso-root/boot/targets/target-init-installer.elf build/iso-root/boot/targets/target-init-recovery.elf)
           missing=0
           for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
           if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
@@ -80,9 +80,78 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  verify-six-case-matrix:
+    name: Require native Koronos six-case evidence
+    needs: iso
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      accepted: ${{ steps.six_case.outputs.accepted }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download native ISO candidate
+        if: needs.iso.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-release-iso
+          path: dist
+      - name: Install QEMU BIOS/UEFI acceptance dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Run same-ISO native target boot probes
+        if: always()
+        run: |
+          set -euo pipefail
+          test -s dist/octavianos-release.iso || { echo "::warning::Release ISO missing; no native boot traces collected."; exit 0; }
+          python3 vendor/chimera-ii-os/source/tools/boot/run-six-case-qemu.py \
+            --iso dist/octavianos-release.iso \
+            --evidence-dir six-case-evidence \
+            --timeout 35 \
+            --main-menu-index live=0 \
+            --main-menu-index installer=2 \
+            --main-menu-index recovery=5
+          sha256sum dist/octavianos-release.iso | tee six-case-evidence/canonical-iso.sha256
+      - name: Run same-ISO runner regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: python3 -m unittest discover -s tests/boot -p 'test_six_case_qemu_runner.py' -v
+      - name: Verify immutable six-case matrix
+        id: six_case
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p six-case-evidence
+          set +e
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+            --iso dist/octavianos-release.iso \
+            --evidence-dir six-case-evidence \
+            --report six-case-evidence/report.json
+          rc=$?
+          set -e
+          accepted=false
+          if [[ "$rc" -eq 0 ]]; then accepted=true; fi
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          status=BLOCKED
+          if [[ "$accepted" == true ]]; then status=PASS; fi
+          {
+            echo "### Native Koronos six-case acceptance"
+            echo "- Status: **$status**"
+            echo "- One canonical ISO SHA-256 must be shared by all six cases."
+            echo "- Missing BIOS/UEFI, VFS, CPL3, desktop, persistence, recovery or SMP evidence blocks publication."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload six-case report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-release-six-case-report
+          path: six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
-    needs: [container, iso]
+    if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish) && needs.verify-six-case-matrix.outputs.accepted == 'true'
+    needs: [container, iso, verify-six-case-matrix]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

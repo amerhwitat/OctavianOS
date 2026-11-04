@@ -22,12 +22,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build/koronos/x86_64"
 mkdir -p "$BUILD"
 "$ROOT/tests/kernel/run-frame-allocator-host-tests.sh"
+bash "$ROOT/tests/kernel/run-vfs-host-tests.sh"
+bash "$ROOT/tests/kernel/run-process-fd-host-tests.sh"
+bash "$ROOT/tests/kernel/run-hardware-topology-host-tests.sh"
 python3 "$ROOT/tools/isa/generate_registry.py"
 CXX="${CXX:-g++}"; NASM="${NASM:-nasm}"; LD="${LD:-ld}"
 CXXFLAGS=(-ffreestanding -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -I"$ROOT/kernel/include")
 rm -f "$BUILD"/*.o "$BUILD/koronos.elf"
 
-sources=(koronos elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator physmap address_space target_launch)
+# Native CPL3 syscall boundary: process-owned VFS descriptors and validated user-copy helpers are linked below.
+sources=(koronos vfs process_fd elf64 module relocate arch_init runtime runtime_loop scheduler process process_loader thread sync timer apc dpc hardware nbit firmware device multiboot_modules parallel driver learning microkernel service object utf8 platform_features compat interrupt syscall isa_registry ai_model frame_allocator physmap address_space target_launch)
 for src in "${sources[@]}"; do
   "$CXX" "${CXXFLAGS[@]}" -c "$ROOT/kernel/core/$src.cpp" -o "$BUILD/$src.o"
 done
@@ -60,7 +64,7 @@ if command -v readelf >/dev/null 2>&1; then
   readelf -h "$BUILD/koronos.elf" | grep -Eq 'Class:[[:space:]]+ELF64' || { echo "ERROR: Koronos is not ELF64" >&2; exit 1; }
 fi
 if command -v nm >/dev/null 2>&1; then
-  required_symbols=(koronos_idle_loop chimera_multiboot_scan chimera_thread_create chimera_wait_one chimera_timer_tick chimera_apc_deliver chimera_dpc_run chimera_hardware_probe chimera_nbit_init chimera_firmware_probe chimera_hardware_enumerate_devices chimera_driver_probe_all chimera_mk_init chimera_mk_syscall chimera_process_init chimera_process_admit_elf chimera_service_validate chimera_service_resolve chimera_service_set_state chimera_platform_probe chimera_platform_get_snapshot chimera_object_model_version chimera_object_model_refcount_enabled chimera_sched_run_parallel chimera_compat_init chimera_compat_probe chimera_compat_recognize_syscall chimera_compat_recognize_interrupt chimera_interrupt_init chimera_interrupt_dispatch chimera_syscall_init chimera_syscall_dispatch chimera_isa_init chimera_isa_count chimera_isa_find chimera_isa_find_opcode chimera_ai_model_init chimera_ai_event_count chimera_ai_record_event chimera_ai_provider memset memcpy memmove koronos_frame_allocator_init koronos_frame_alloc koronos_frame_alloc_contiguous koronos_frame_free koronos_frame_free_contiguous koronos_frame_free_count koronos_frame_managed_limit koronos_physmap_init koronos_physmap_validate_range koronos_phys_to_virt koronos_physmap_ready koronos_address_space_init koronos_address_space_ready koronos_address_space_self_test koronos_address_space_loader_ops koronos_address_space_root koronos_address_space_validate_user_range koronos_address_space_count koronos_user_entry_init koronos_arch_enter_user koronos_syscall_entry koronos_syscall_user_dispatch koronos_console_write_user koronos_launch_selected_userspace koronos_target_note_user_write koronos_target_userspace_ready koronos_target_note_user_syscall koronos_target_validate_syscall_context koronos_target_active_pid koronos_target_log)
+  required_symbols=(koronos_copy_from_user koronos_copy_to_user koronos_syscall_int80_dispatch koronos_process_fd_init koronos_process_fd_open koronos_process_fd_read koronos_process_fd_write koronos_process_fd_seek koronos_process_fd_close koronos_process_fd_close_all koronos_process_fd_count koronos_vfs_init koronos_vfs_mount_tmpfs koronos_vfs_open koronos_vfs_read koronos_vfs_write koronos_vfs_seek koronos_vfs_close koronos_vfs_get_snapshot koronos_idle_loop chimera_multiboot_scan chimera_thread_create chimera_wait_one chimera_timer_tick chimera_apc_deliver chimera_dpc_run chimera_hardware_probe chimera_nbit_init chimera_firmware_probe chimera_hardware_enumerate_devices chimera_driver_probe_all chimera_mk_init chimera_mk_syscall chimera_process_init chimera_process_admit_elf chimera_process_reap chimera_service_validate chimera_service_resolve chimera_service_set_state chimera_platform_probe chimera_platform_get_snapshot chimera_object_model_version chimera_object_model_refcount_enabled chimera_sched_run_parallel chimera_compat_init chimera_compat_probe chimera_compat_recognize_syscall chimera_compat_recognize_interrupt chimera_interrupt_init chimera_interrupt_dispatch chimera_syscall_init chimera_syscall_dispatch chimera_isa_init chimera_isa_count chimera_isa_find chimera_isa_find_opcode chimera_ai_model_init chimera_ai_event_count chimera_ai_record_event chimera_ai_provider memset memcpy memmove koronos_frame_allocator_init koronos_frame_alloc koronos_frame_alloc_contiguous koronos_frame_free koronos_frame_free_contiguous koronos_frame_free_count koronos_frame_managed_limit koronos_physmap_init koronos_physmap_validate_range koronos_phys_to_virt koronos_physmap_ready koronos_address_space_init koronos_address_space_ready koronos_address_space_self_test koronos_address_space_loader_ops koronos_address_space_root koronos_address_space_validate_user_range koronos_address_space_count koronos_user_entry_init koronos_arch_enter_user koronos_syscall_entry koronos_syscall_user_dispatch koronos_console_write_user koronos_launch_selected_userspace koronos_target_note_user_write koronos_target_userspace_ready koronos_target_note_user_syscall koronos_target_validate_syscall_context koronos_target_active_pid koronos_target_log)
   for symbol in "${required_symbols[@]}"; do
     nm -a --defined-only "$BUILD/koronos.elf" | awk -v sym="$symbol" '$NF == sym { found=1 } END { exit !found }' || {
       echo "ERROR: $symbol is not linked" >&2; nm -a "$BUILD/koronos.elf" 2>/dev/null | awk -v sym="$symbol" '$NF == sym || index($0,sym)' >&2 || true; exit 1;
@@ -74,7 +78,7 @@ grep -aF '[KORE] Service orchestration online' "$BUILD/koronos.elf" >/dev/null |
 grep -aF '[ABI ] Compatibility syscall/interrupt registry ready' "$BUILD/koronos.elf" >/dev/null || { echo "ERROR: compatibility ABI bootstrap is missing from Koronos ELF" >&2; exit 1; }
 
 auto_banner=''
-printf '%s\n' 'Protected-process admission/load-plan boundary + Native OOP object model + SMP-safe scheduler + syscall/interrupt compatibility + parallel dispatch linked.'
+printf '%s\n' 'Protected-process admission/load-plan boundary + process-owned VFS descriptors + native OOP model + multi-CPU scheduler metadata linked; AP startup and parallel execution remain blocked.'
 cp "$BUILD/koronos.elf" "$BUILD/koronos.elf64"
 mkdir -p "$BUILD/nbit"
 for bits in 8 16 32 64 128 256 512 1024 2048 4096 8192; do
@@ -82,7 +86,7 @@ for bits in 8 16 32 64 128 256 512 1024 2048 4096 8192; do
   "$LD" -nostdlib -z max-page-size=0x1000 --build-id=none -T "$ROOT/kernel/arch/x86_64/koronos.ld" "${link_objects[@]}" "$BUILD/nbit-note-$bits.o" -o "$BUILD/nbit/koronos-nbit-$bits.elf"
 done
 printf 'Koronos ELF64: %s\n' "$BUILD/koronos.elf"
-printf 'Koronos + native Kore + OOP object model + SMP-safe scheduler + hardware/firmware + drivers + syscall/interrupt compatibility + N-bit runtime linked.\n'
+printf 'Koronos + native Kore + OOP object model + multi-CPU scheduler metadata + hardware/firmware + drivers + syscall/interrupt compatibility + N-bit runtime linked; AP startup/parallel execution not yet implemented.\n'
 
 # Build target-specific, high-address ring-3 acceptance probes. These are test
 # payloads, not production shells or installer implementations.

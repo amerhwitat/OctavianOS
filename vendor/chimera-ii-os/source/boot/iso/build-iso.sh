@@ -57,6 +57,19 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# Stage production ring-3 init ELFs as separate Multiboot2 modules.
+# Test probes are never substituted for these target-specific payloads.
+TARGET_BUILD="$ROOT/build/koronos/x86_64"
+mkdir -p "$DIST/iso/boot/targets"
+for target in live installer recovery; do
+  artifact="$TARGET_BUILD/target-init-$target.elf"
+  test -s "$artifact" || { echo "ERROR: production $target init ELF missing: $artifact" >&2; exit 2; }
+  readelf -h "$artifact" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $artifact is not ET_EXEC" >&2; exit 2; }
+  readelf -lW "$artifact" | grep -Eq 'LOAD.*R E' || { echo "ERROR: $artifact has no executable PT_LOAD" >&2; exit 2; }
+  install -m 0644 "$artifact" "$DIST/iso/boot/targets/target-init-$target.elf"
+done
+
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
@@ -165,6 +178,9 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+for target in live installer recovery; do
+  grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=\$grub_platform" "$ROOT/boot/iso/grub.cfg" "$ROOT/boot/jasper/recovery.cfg"
+done
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 

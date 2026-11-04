@@ -3,7 +3,7 @@ name: Native Koronos kernel build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "release/desktop-apps-knowledge-20261104"]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
@@ -49,7 +49,10 @@ on:
       - 'tests/runtime/**'
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
+    branches: [main]
     paths:
+      - 'vendor/chimera-ii-os/source/**'
+      - 'tests/migration/**'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
@@ -90,7 +93,7 @@ concurrency:
 jobs:
   build-koronos:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 120
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
@@ -426,29 +429,106 @@ jobs:
 
   verify-userspace-handoff:
     name: Verify real Live, Installer, and Recovery userspace
-    needs: build-koronos
+    needs: [build-koronos, verify-six-case-matrix]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout OctavianOS verifier
         uses: actions/checkout@v4
-      - name: Download Live, Installer, and Recovery QEMU traces
+      - name: Download same-ISO six-case raw traces
+        if: always()
         uses: actions/download-artifact@v4
         with:
-          name: octavianos-full-iso-qemu-trace
-          path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+          name: octavianos-koronos-six-case-report
+          path: six-case-evidence
+      - name: Require actual user-mode init acknowledgement for every target and firmware
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          for target in live installer recovery; do
+            for firmware in bios uefi; do
+              trace="six-case-evidence/$target/$firmware/debugcon.log"
+              python3 tests/migration/verify-userspace-handoff.py "$target" "$trace" || result=1
+            done
+          done
           exit "$result"
 
+  verify-six-case-matrix:
+    name: Verify immutable native Koronos six-case matrix
+    needs: build-koronos
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      accepted: ${{ steps.six_case.outputs.accepted }}
+    steps:
+      - name: Checkout OctavianOS verifier
+        uses: actions/checkout@v4
+      - name: Install same-ISO QEMU BIOS/UEFI test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Run six-case verifier and QEMU runner regression tests
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          python3 -m unittest discover -s tests/boot -p 'test_six_case_matrix.py' -v
+          python3 -m unittest discover -s tests/boot -p 'test_six_case_qemu_runner.py' -v
+      - name: Download canonical native ISO candidate
+        if: needs.build-koronos.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: octavianos-native-iso-candidate
+          path: dist
+      - name: Boot one canonical native ISO for all six BIOS/UEFI cases
+        if: always()
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso || { echo "::warning::Canonical native ISO candidate is missing; no same-ISO QEMU traces can be collected."; exit 0; }
+          python3 vendor/chimera-ii-os/source/tools/boot/run-six-case-qemu.py \
+            --iso dist/output.iso \
+            --evidence-dir six-case-evidence \
+            --timeout 35
+          sha256sum dist/output.iso | tee six-case-evidence/canonical-iso.sha256
+      - name: Verify one ISO across six target/firmware cases
+        id: six_case
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p six-case-evidence
+          set +e
+          python3 vendor/chimera-ii-os/source/tools/boot/verify-six-case-matrix.py \
+            --iso dist/output.iso \
+            --evidence-dir six-case-evidence \
+            --report six-case-evidence/report.json
+          rc=$?
+          set -e
+          accepted=false
+          if [[ "$rc" -eq 0 ]]; then accepted=true; fi
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          status=BLOCKED
+          if [[ "$accepted" == true ]]; then status=PASS; fi
+          {
+            echo "### Native Koronos six-case acceptance"
+            echo "- Status: **$status**"
+            echo "- The six cases must use one identical ISO SHA-256."
+            echo "- Current per-target repacked probe ISOs and test init ELFs are not production evidence."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$accepted" != true ]]; then
+            echo "::warning::Native Koronos six-case evidence is incomplete; prerelease publication is blocked."
+          fi
+      - name: Upload six-case evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-koronos-six-case-report
+          path: six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   publish-native-iso:
-    name: Publish prerelease only after userspace acceptance
-    needs: [build-koronos, verify-userspace-handoff]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Publish prerelease only after six-case acceptance
+    needs: [build-koronos, verify-userspace-handoff, verify-six-case-matrix]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-six-case-matrix.outputs.accepted == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -468,7 +548,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after the CPL3 userspace handoff and immutable six-case Live/Installer/Recovery x BIOS/UEFI matrix pass."
           else
             gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi

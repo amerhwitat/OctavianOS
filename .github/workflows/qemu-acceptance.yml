@@ -1,4 +1,4 @@
-name: OctavianOS QEMU target acceptance
+name: OctavianOS GRUB target-route probes (not six-case release acceptance)
 
 on:
   workflow_dispatch:
@@ -21,6 +21,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes qemu-system-x86 grub-pc-bin grub-efi-amd64-bin grub-common xorriso
           test -s build/iso-root/boot/grub/grub.cfg || { echo 'Stage a validated ISO root before running QEMU acceptance.'; exit 2; }
+      - name: Record scope boundary
+        run: |
+          {
+            echo "### QEMU scope"
+            echo "These are target-routing probes from remastered ISO roots."
+            echo "They are not six boots of one immutable ISO and do not cover BIOS plus UEFI."
+            echo "They do not prove native Koronos CPL3, VFS, installer persistence, recovery repair or SMP."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Boot target and collect serial logs
         run: |
           set -euo pipefail

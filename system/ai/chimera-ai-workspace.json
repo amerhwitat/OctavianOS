@@ -1,0 +1,29 @@
+{
+  "schema": "CHIMERA-AI-WORKSPACE-1",
+  "runtime": "local-first",
+  "desktop_entry": "chimera-ai-workspace.desktop",
+  "resource_database": "~/.local/share/chimera-ai/resources.json",
+  "user_config": "~/.config/chimera-ai/config.json",
+  "resource_indexer": "/usr/bin/chimera-ai-workspace",
+  "index_policy": {
+    "explicit_roots_only": true,
+    "metadata_only_by_default": true,
+    "text_extraction_requires_opt_in": true,
+    "exclude_credentials_keys_hidden_profiles_and_caches": true,
+    "network_upload": false
+  },
+  "llm": {
+    "local_backends": ["Ollama", "llama.cpp"],
+    "retrieval_augmented_chat": true,
+    "weights_bundled": false,
+    "automatic_training": false
+  },
+  "cnn_rnn": {
+    "inference_backend": "ONNX Runtime",
+    "requires_numpy": true,
+    "weights_bundled": false,
+    "automatic_training": false
+  },
+  "training_policy": "No automatic training or weight updates. CNN/RNN training requires a user-selected dataset, architecture, training budget, and output path. LLM chat uses local inference with retrieved text excerpts; it does not fine-tune model weights.",
+  "release_boundary": "Runtime probes, indexing and local inference availability do not establish Koronos userspace readiness."
+}
