@@ -156,7 +156,8 @@ jobs:
         run: |
           set -x
           ARCH="${{ matrix.arch }}"
-          BUILD_DIR="build/iso"
+          BUILD_DIR="${GITHUB_WORKSPACE}/build/iso"
+          SOURCE_DIR="${GITHUB_WORKSPACE}"
           
           mkdir -p "${BUILD_DIR}/${ARCH}/init-build"
           cd "${BUILD_DIR}/${ARCH}/init-build"
@@ -178,7 +179,7 @@ jobs:
           esac
           command -v "$INIT_CC"
           
-          cmake ../../.. \
+          cmake "${SOURCE_DIR}" \
             -DKORONOS_ARCH="${ARCH}" \
             -DKORONOS_ARCH_MARCH="${INIT_MARCH}" \
             -DCMAKE_SYSTEM_NAME=Linux \
