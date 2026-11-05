@@ -290,7 +290,44 @@ jobs:
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
-          bash boot/iso/build-iso.sh
+          extra=/tmp/octavian-boot-artwork
+          mkdir -p "$extra"
+          cp /tmp/octavian-octopus-aurora.png "$extra/octavian-octopus-aurora.png"
+          cp /tmp/octavian-octopus-aurora.png "$extra/aurora-boot.png"
+          cp "$GITHUB_WORKSPACE/desktop/aurora/assets/octavian-artwork-manifest.json" "$extra/octavian-artwork-manifest.json"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("boot/iso/build-iso.sh")
+          source = p.read_text(encoding="utf-8")
+          marker = '''for stage in spitfire jasper grub koronos; do
+            mkdir -p "$DIST/iso/boot/$stage"
+            cp -f "$MEDIA/Init.mp4" "$DIST/iso/boot/$stage/Init.mp4"
+            cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
+          done
+          '''
+          overlay = r'''
+          # Octavian artwork is applied after generic media staging.
+          if [[ -n "${CHIMERA_EXTRA_BOOT_ARTWORK_DIR:-}" ]]; then
+            extra="$CHIMERA_EXTRA_BOOT_ARTWORK_DIR"
+            for asset in octavian-octopus-aurora.png aurora-boot.png octavian-artwork-manifest.json; do
+              [[ -s "$extra/$asset" ]] || { echo "Required Octavian boot artwork missing: $extra/$asset" >&2; exit 2; }
+            done
+            install -m 0644 "$extra/octavian-octopus-aurora.png" "$VISUAL_OUT/octavian-octopus-aurora.png"
+            install -m 0644 "$extra/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
+            install -m 0644 "$extra/aurora-boot.png" "$VISUAL_OUT/aurora-boot.png"
+            for stage in spitfire jasper grub koronos; do
+              install -m 0644 "$extra/aurora-boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
+            done
+          fi
+          '''
+          if "CHIMERA_EXTRA_BOOT_ARTWORK_DIR" not in source:
+              if marker not in source:
+                  raise SystemExit("Could not find stable post-media ISO artwork insertion point")
+              source = source.replace(marker, marker + overlay + "\n", 1)
+              p.write_text(source, encoding="utf-8")
+          print("Octavian post-media artwork overlay staged in the build workspace")
+          PY
+          CHIMERA_EXTRA_BOOT_ARTWORK_DIR="$extra" bash boot/iso/build-iso.sh
           iso=boot/iso/dist/output.iso
           test -s "$iso"
           (cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256")
