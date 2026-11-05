@@ -46,7 +46,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          apt-get install -y \
+          sudo apt-get install -y \
             build-essential gcc g++ cmake \
             grub2 grub2-common xorriso \
             qemu-system-x86 qemu-system-arm \
