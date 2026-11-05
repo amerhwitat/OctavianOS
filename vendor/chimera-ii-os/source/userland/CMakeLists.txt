@@ -37,6 +37,17 @@ add_executable(chm-resource-manager ../system/resource/chimera_resource_manager.
 # Keep the native Unix implementation intact while allowing the MSVC
 # compatibility build to compile the rest of ChimeraIIOS.
 if(NOT WIN32)
+  # crypt.h and libcrypt are provided by libxcrypt/libcrypt development packages.
+  # Fail during configuration with an actionable message instead of later
+  # failing to compile multiple security targets with "crypt.h: No such file".
+  find_path(CHIMERA_CRYPT_INCLUDE_DIR NAMES crypt.h)
+  find_library(CHIMERA_CRYPT_LIBRARY NAMES crypt)
+
+  if(NOT CHIMERA_CRYPT_INCLUDE_DIR OR NOT CHIMERA_CRYPT_LIBRARY)
+    message(FATAL_ERROR
+      "Chimera security tools require crypt.h and libcrypt. "
+      "On Debian/Ubuntu, install the libcrypt-dev package.")
+  endif()
   add_executable(chm-user-setup ../system/security/chimera_account_manager.cpp)
   add_executable(chm-ad ../system/security/chimera_ad_manager.cpp)
   add_executable(chm-passwd ../system/security/chimera_passwd.cpp)
@@ -45,11 +56,21 @@ if(NOT WIN32)
   add_executable(chm-usermod ../system/security/chimera_user_mod.cpp)
   add_executable(chm-groupmod ../system/security/chimera_group_mod.cpp)
   add_executable(chm-security-selftest ../system/security/chimera_security_selftest.cpp)
-  target_link_libraries(chm-passwd PRIVATE crypt)
-  target_link_libraries(chm-user-setup PRIVATE crypt)
+  # Share crypt.h and libcrypt usage requirements through one interface target.
+  # This avoids repeating target_include_directories/target_link_libraries
+  # calls for each security executable.
+  add_library(chimera_crypt_dependency INTERFACE)
+  target_include_directories(chimera_crypt_dependency INTERFACE "${CHIMERA_CRYPT_INCLUDE_DIR}")
+  target_link_libraries(chimera_crypt_dependency INTERFACE "${CHIMERA_CRYPT_LIBRARY}")
+  foreach(chm_security_target IN ITEMS
+      chm-user-setup chm-ad chm-passwd chm-groupadd
+      chm-perms chm-usermod chm-groupmod chm-security-selftest)
+    target_link_libraries(${chm_security_target} PRIVATE chimera_crypt_dependency)
+  endforeach()
 endif()
 add_executable(aurora-utf-selftest ../desktop/aurora/i18n/aurora_utf_selftest.cpp)
 add_executable(aurora-settings ../desktop/aurora/apps/aurora_settings.cpp)
+target_include_directories(aurora-settings PRIVATE "${CMAKE_SOURCE_DIR}/userspace/hive")
 set(CHIMERA_COMMON_TARGETS chmctl chm-diagnostics chmhelp chm-utf8 chm-knowledge-daemon chm-patch chm-reboot chm-resource-manager aurora-settings aurora-utf-selftest)
 if(NOT WIN32)
   list(APPEND CHIMERA_COMMON_TARGETS chm-user-setup chm-ad chm-passwd chm-groupadd chm-perms chm-usermod chm-groupmod chm-security-selftest)
@@ -95,3 +116,49 @@ install(FILES ../system/learning/chimera-boot-learning.json DESTINATION share/ch
 add_executable(chimera-runtime-recovery boot/chimera_runtime_recovery.cpp)
 target_compile_features(chimera-runtime-recovery PRIVATE cxx_std_20)
 install(TARGETS chimera-runtime-recovery RUNTIME DESTINATION bin)
+
+
+# Hive registry: durable WAL-backed database and administration tools.
+add_library(chimera_hive_registry STATIC ../userspace/hive/registry_store.cpp)
+target_include_directories(chimera_hive_registry PUBLIC "${CMAKE_SOURCE_DIR}/userspace/hive")
+target_compile_features(chimera_hive_registry PUBLIC cxx_std_20)
+add_executable(chm-registry ../userspace/hive/registryctl.cpp)
+target_link_libraries(chm-registry PRIVATE chimera_hive_registry)
+target_compile_features(chm-registry PRIVATE cxx_std_20)
+install(TARGETS chimera_hive_registry chm-registry ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
+install(FILES ../userspace/hive/registry_store.hpp ../userspace/hive/registry_paths.hpp DESTINATION include/chimera/hive)
+
+# Aurora graphical registry editor is optional: headless builds remain supported.
+find_package(Qt6 COMPONENTS Widgets QUIET)
+if(Qt6Widgets_FOUND)
+  add_executable(aurora-registry-editor
+    ../desktop/aurora/apps/aurora_registry_editor.cpp)
+  target_link_libraries(aurora-registry-editor PRIVATE chimera_hive_registry Qt6::Widgets)
+  target_compile_features(aurora-registry-editor PRIVATE cxx_std_20)
+  install(TARGETS aurora-registry-editor RUNTIME DESTINATION bin)
+  install(FILES ../desktop/aurora/registry-editor.desktop DESTINATION share/applications)
+endif()
+
+if(BUILD_TESTING)
+  add_executable(chimera-hive-registry-test ../tests/hive/test_registry_store.cpp)
+  target_link_libraries(chimera-hive-registry-test PRIVATE chimera_hive_registry)
+  add_test(NAME chimera-hive-registry COMMAND chimera-hive-registry-test)
+endif()
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(FUSE3 QUIET IMPORTED_TARGET fuse3)
+  if(FUSE3_FOUND)
+    add_executable(chm-registry-mount ../userspace/hive/registry_fuse.cpp)
+    target_link_libraries(chm-registry-mount PRIVATE chimera_hive_registry PkgConfig::FUSE3)
+    target_compile_features(chm-registry-mount PRIVATE cxx_std_20)
+    install(TARGETS chm-registry-mount RUNTIME DESTINATION bin)
+    install(FILES ../services/storage/chimera-hive-vfs@.service DESTINATION lib/systemd/system)
+  endif()
+endif()
+
+target_link_libraries(aurora-settings PRIVATE chimera_hive_registry)
+if(TARGET aurora_settings)
+  target_link_libraries(aurora_settings PRIVATE chimera_hive_registry)
+endif()
+target_include_directories(aurora-settings PRIVATE "${CMAKE_SOURCE_DIR}/userspace/hive")

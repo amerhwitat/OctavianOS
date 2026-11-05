@@ -18,3 +18,48 @@ python3 tools/installer/chimera_hardware_advisor.py --facts hardware-facts.json
 ```
 
 The installer UI should show each recommendation with the detected fact and reason, allow the user to correct facts, provide a safe fallback path, and ask explicit confirmation before any destructive operation. Hardware inventories remain local by default; sending them to an external model requires consent. A future RNN/LLM can summarize or rank recommendations only within validated compatibility rules and with a clear uncertainty label.
+
+
+## Automated import and RNN-assisted candidate retrieval (2026-10-18)
+
+- `tools/isa/import_riscv_opcodes.py` imports fixed-bit instruction encodings from an immutable upstream revision. The latest validated run imported 1,459 source-backed records from 141 files with zero file-fetch failures.
+- `tools/isa/build_universal_catalog.py --input isa/sources/imports/riscv-opcodes.json` combines those records with the legacy database without asserting executable support. The latest generated catalog contains 1,613 forms across 15 architecture identifiers; all 1,613 currently remain `not-implemented` in execution status.
+- `tools/isa/isa_candidate_router.py` and `tools/commands/command_candidate_router.py` use the existing bounded recurrent-state module for advisory ranking. This module is a deterministic research cell, **not a trained LLM**. It cannot infer authoritative semantics, create verified encodings, claim native support, or execute commands.
+- Command import currently inventories 4,081 candidates: 15 backed by the existing native multicall allowlist and 4,066 deferred for provider discovery and tests. Unknown commands stay queued rather than falling back to arbitrary shell execution.
+- The validated CI job persists generated source-backed catalogs and uploads the same run's artifact. Catalog, decode, execution, conformance, and userspace-ready are separate evidence levels.
+
+
+## Optional trained local LLM inference (2026-10-18)
+
+The command and ISA routers now support an explicit `--llm` mode through `tools/cognition/local_llm.py`. It calls a separately installed, trained OpenAI-compatible model server on loopback only (`CHIMERA_LLM_BASE_URL`, `CHIMERA_LLM_MODEL`). The response is strict-JSON parsed and every returned candidate ID must belong to the supplied allowlist. Malformed/unavailable model responses fall back to deterministic retrieval. The adapter is tested in CI. This repository does not bundle trained weights or claim that the deterministic `RecurrentState` is itself an LLM. The model can rank candidates; it cannot assert executable ISA support or trigger command execution.
+
+
+**Native runtime caveat:** the command and ISA router sources/catalogs are staged by the native command builder, but the current BusyBox initramfs does not contain a verified Python 3 runtime and Koronos does not yet launch initramfs processes through a verified ring-3 transition. The shell wrappers now fail explicitly if `python3` is unavailable. CI packaging success must not be read as proof of native OS execution.
+
+
+## Trained RNN language model and execution evidence (2026-10-18)
+
+- The repository contains `tools/cognition/trainable_rnn_lm.py`, a trainable character-level vanilla RNN LM with next-character training, scoring, JSON weight serialization, and round-trip validation. It is a small research LM, **not an LLM-scale foundation model**.
+- The native command build trains `trained-command-isa-rnn.json` from catalog text and smoke-tests both command and ISA routers with `--rnn-model`. The trained model may rerank candidates only; it cannot authorize execution or assign ISA semantics.
+- The RV32I Python interpreter has expanded CI vectors for register and immediate ALU families, signed/unsigned loads, all store widths, branch conditions, and encoding round trips. These are interpreter-level vectors, not native Koronos opcode execution or full privileged-spec conformance.
+- Userspace acceptance now uses the explicit `USERSPACE READY: target=<live|installer|recovery> init_pid=<nonzero PID>` marker, checked against `[KRN ] KORONOS READY`. A marker emitted only by a kernel or module scan is not userspace readiness. Each target requires its own QEMU trace.
+
+
+## Follow-up implementation status (2026-10-18)
+
+The native command compatibility builder now prefers `tools/cognition/train_command_isa_rnn.py` when both generated catalogs are present. It trains a small vanilla character-level RNN from a deterministic, balanced sample of the imported command-candidate and universal-ISA catalogs, writes weights into the staged rootfs, validates weight round-tripping, and keeps the model advisory-only. The latest `ISA and Native Command Runtime CI` run trained 400 sequences from 4,081 command candidates and 1,613 ISA forms; training loss fell from 1.5734 to 1.3877 over two epochs, and both command and ISA routers reported `trained-character-rnn`. This is a genuinely trained small RNN language model, **not an LLM-scale foundation model**.
+
+The RV32 machine has a separate interpreter-tested subset manifest (`tools/isa/rv32-machine-tested-subset.json`) tied to named unit tests. It is intentionally scoped to the Python interpreter and does not promote imported catalog rows to native execution or architecture-spec conformance. All untested imported forms remain `not-implemented`.
+
+The native Koronos boot chain remains blocked on a real userspace execution context. The ELF loader validates and maps segments through injected address-space callbacks, but the kernel still withholds readiness until it can establish the actual user address space, ring-3 entry, kernel/TSS stack, and user-originated syscall acknowledgement. The release gate now runs as a separate CI job after the ISO build, checks Live, Installer and Recovery traces independently, and prevents prerelease publication unless every target emits the ordered kernel-ready -> user-originated init syscall -> matching nonzero init PID readiness markers. A green ISO-build job is not a green userspace-acceptance job.
+
+
+## Verified runtime status — 2026-10-19
+
+- The catalog import CI passed on `2ba3014efd652c9153c41ed321bb8c542c32c5a2`: 1,459 sourced RISC-V encoding records from 141 files (zero fetch failures), 1,613 universal forms, and 4,081 command candidates (15 native allowlisted; 4,066 deferred).
+- The compatibility builder trains `CHIMERA-CHAR-RNN-LM-1` from balanced command/ISA catalog samples, writes `trained-command-isa-rnn.json`, reloads it, checks weight/score round-trip, and smoke-tests both routers using the model. CI reported 400 sequences and training loss falling from 1.5734 to 1.3877 in two epochs. This is a small trainable character RNN language model, not an LLM-scale model.
+- The optional `--llm` adapter is separate and loopback-only; it can only reorder allowlisted candidate IDs and falls back to deterministic ranking. No remote endpoint is called by default.
+- The generated-model artifact from the passing CI run is available at https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39183538290/artifacts/12157426365.
+- `rv32-machine-tested-subset.json` describes evidence for a Python simulator's tested instruction subset only. It is not proof of native Koronos execution or full RISC-V conformance. Catalog import, encoding source validation, simulator behavior, native execution, and conformance remain distinct statuses.
+- The CI import step now skips the catalog commit/push on `pull_request` events (whose token may be read-only) but still uploads the generated catalogs and trained model artifact. Push/workflow-dispatch events may persist generated catalog files.
+- Real userspace readiness is not claimed. ELF admission/load-plan creation does not execute an init process. A future acceptance run must prove a user-originated syscall from CPL 3 and a matching nonzero init PID for each target before emitting `USERSPACE READY`.
