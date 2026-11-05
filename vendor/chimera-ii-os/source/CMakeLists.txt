@@ -135,3 +135,10 @@ if(BUILD_TESTING AND Python3_Interpreter_FOUND)
 endif()
 
 add_subdirectory(tests/kernel)
+
+# A callback-only scheduler must not report successful YIELD without a real
+# architecture context switch.
+if(BUILD_TESTING AND Python3_Interpreter_FOUND)
+  add_test(NAME chimera_syscall_yield_fail_closed
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/unit/test_syscall_yield_fail_closed.py)
+endif()
