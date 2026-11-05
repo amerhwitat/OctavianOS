@@ -121,7 +121,11 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+          # Tie the PR branch to the exact upstream revision. This avoids
+          # stale-ref force-push races when scheduled/manual syncs overlap or
+          # an older sync branch is updated by another workflow.
           branch: chore/chimera-source-sync
+          branch-suffix: short-commit
           delete-branch: true
           commit-message: "Sync vendored ChimeraIIOS source snapshot"
           title: "Sync vendored ChimeraIIOS source snapshot"
