@@ -134,6 +134,9 @@ jobs:
       - name: Verify fail-closed YIELD syscall contract
         working-directory: vendor/chimera-ii-os/source
         run: python3 tests/unit/test_syscall_yield_fail_closed.py
+      - name: Verify target init syscall ABI translation
+        working-directory: vendor/chimera-ii-os/source
+        run: python3 tests/unit/test_target_init_syscall_abi.py
       - name: Verify target-specific ring-3 init handoff wiring
         run: python3 tests/migration/test_target_init_handoff_workflow.py
       - name: Validate ELF and Multiboot2 entry contract
