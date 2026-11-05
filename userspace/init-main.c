@@ -136,6 +136,7 @@ int mount_essential_fs(void) {
 
 /* Signal handler for SIGCHLD - reap zombies */
 static void sigchld_handler(int sig) {
+    (void)sig; /* signal number is intentionally not used by the reaper */
     pid_t child;
     int status;
     
