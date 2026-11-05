@@ -52,11 +52,12 @@ add_executable(octavian-init
     ${INIT_ENTRY_ASM}
 )
 
-# Link with minimal libc (musl preferred for static embedding)
-# This ensures init can run standalone without glibc
+# Link against the architecture-specific musl sysroot while retaining libc and
+# compiler runtime libraries. Only the CRT startup objects are omitted because
+# the kernel enters at _init_entry; -nostdlib would incorrectly drop libc.
 target_link_options(octavian-init PRIVATE
     -static-pie           # Position-independent executable with static linking
-    -nostdlib             # No default libc startup
+    -nostartfiles         # Custom _init_entry replaces the CRT entry point
     -fno-ident            # No .comment section
     -Wl,--gc-sections     # Remove unused sections
     -Wl,--strip-all       # Strip all symbols (production)
