@@ -32,7 +32,10 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        # Native Koronos currently has only the x86-64 user-entry contract.
+        # ARM64 is intentionally excluded until its kernel entry, syscall ABI,
+        # boot payload and runtime acceptance tests exist.
+        arch: [x86_64]
         target: [live, installer, recovery]
       max-parallel: 3
     
@@ -196,6 +199,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/${ARCH}/rootfs"
           
           make -j${{ steps.env.outputs.BUILD_JOBS }}
+          ctest --output-on-failure
           make install
           
           file "${BUILD_DIR}/${ARCH}/rootfs/sbin/octavian-init"
