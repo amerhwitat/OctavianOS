@@ -187,7 +187,7 @@ jobs:
             -DCMAKE_ASM_COMPILER="${INIT_ASM_CC}" \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/${ARCH}/rootfs"
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/${BUILD_DIR}/${ARCH}/rootfs"
           
           make -j${{ steps.env.outputs.BUILD_JOBS }}
           make install
@@ -365,7 +365,11 @@ jobs:
     name: Publish to GitHub Releases
     needs: build-matrix
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.publish == 'true'
+    # This legacy matrix builds per-target Linux-aligned candidate images. It does
+    # not produce the native Koronos ISO or the six same-ISO BIOS/UEFI runtime
+    # traces required for production. Keep its publisher disabled; use the
+    # fail-closed release-artifacts.yml workflow after native payload gates pass.
+    if: false
     
     steps:
       - name: Checkout
