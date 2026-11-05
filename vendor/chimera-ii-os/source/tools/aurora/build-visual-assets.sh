@@ -141,7 +141,7 @@ if [[ -n "${CHIMERA_OCTAVIAN_BOOT_ARTWORK:-}" ]]; then
 import pathlib, sys
 p = pathlib.Path(sys.argv[1])
 data = p.read_bytes()
-if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(data) <= 1024:
+if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) <= 1024:
     raise SystemExit(f"invalid Octavian boot artwork: {p}")
 PYPNG
   cp -f -- "$CHIMERA_OCTAVIAN_BOOT_ARTWORK" "$OUT/backgrounds/boot.png"
