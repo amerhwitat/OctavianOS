@@ -1,0 +1,22 @@
+#!/bin/bash
+# Aurora Desktop Integration - Desktop Startup Fix
+# 
+# Ensures Aurora GUI launches after init is ready
+# Integrates with systemd or openrc service manager
+
+[Unit]
+Description=Aurora Wayland Desktop Environment
+After=multi-user.target network.target
+Wants=display-manager.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/aurora-desktop
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical.target
