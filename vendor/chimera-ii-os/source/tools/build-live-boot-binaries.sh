@@ -50,6 +50,12 @@ KORONOS="${CHIMERA_KORONOS_KERNEL:-$BUILD_DIR/koronos/x86_64/koronos.elf}"
 [[ -f "$KORONOS" ]] || KORONOS="$(find "$BUILD_DIR" "$ROOT/kernel" -type f \( -name 'koronos*.elf' -o -name 'kernel.bin' \) 2>/dev/null | head -n1 || true)"
 if [[ -n "$KORONOS" && -f "$KORONOS" ]]; then chimera_copy_if_distinct "$KORONOS" "$OUT/boot/koronos/koronos.elf"; sha256sum "$OUT/boot/koronos/koronos.elf" > "$OUT/boot/koronos/koronos.elf.sha256"; else echo "ERROR: Koronos ELF64 kernel not found." >&2; exit 2; fi
 INIT="$OUT/initramfs/root"
+# Initramfs packing needs cpio and gzip on the build host; fail loudly rather
+# than emitting a truncated image when either is missing (the cpio pipeline used
+# to hide "command not found" behind 2>/dev/null and still exit 127).
+for tool in cpio gzip; do
+  command -v "$tool" >/dev/null || { echo "ERROR: $tool is required to pack the live/recovery initramfs." >&2; exit 2; }
+done
 BUSYBOX="$(command -v busybox || true)"
 [[ -n "$BUSYBOX" ]] || { echo "ERROR: busybox is required to build the live/recovery initramfs." >&2; exit 2; }
 cp -f "$BUSYBOX" "$INIT/bin/busybox"
@@ -110,10 +116,13 @@ else
   echo "Available block devices:"
   ls -l /dev/sr* /dev/vd* /dev/sd* /dev/mmcblk* 2>/dev/null || true
 fi
-exec /bin/sh
+# This marker is emitted by the initramfs userspace process, not by Koronos.
+# It proves the diagnostic shell handoff only; Aurora desktop readiness is separate.
+printf 'USERSPACE READY: target=live init_pid=%s\n' "$$" > /dev/console 2>/dev/null || printf 'USERSPACE READY: target=live init_pid=%s\n' "$$"
+exec /bin/sh -i
 EOF
 chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || true
-(cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
+(cd "$INIT" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
 # Dedicated recovery image: same hardware/filesystem utilities as Live, but
@@ -151,10 +160,13 @@ if [ -x /bin/chimera-driver-manager.sh ]; then
   /bin/chimera-driver-manager.sh inventory || recovery_progress 50 "Drivers" "inventory returned an error; repair shell remains available"
 fi
 recovery_progress 100 "Recovery shell" "repair console is ready; individual repair actions report their own status"
+# This marker confirms that recovery initramfs reached its userspace handoff.
+# It does not claim that any individual repair operation succeeded.
+printf 'USERSPACE READY: target=recovery init_pid=%s\n' "$$" > /dev/console 2>/dev/null || printf 'USERSPACE READY: target=recovery init_pid=%s\n' "$$"
 exec /bin/chimera-recovery-console.sh
 EOF
 chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
-(cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
+(cd "$REC" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
 
 for arch in arm64 armv7 x86_64; do

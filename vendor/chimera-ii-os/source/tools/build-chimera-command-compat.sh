@@ -73,6 +73,97 @@ BACKUP="$ROOT/.chimera-fix-backups/command-compat"
 JOBS="${JOBS:-$(nproc 2>/dev/null || echo 2)}"
 mkdir -p "$BIN" "$SBIN" "$LIB" "$ETC" "$CMDROOT" "$SHARE" "$BACKUP" "$BUILD"
 
+# Train the advisory RNN on the imported command and universal ISA catalogs when
+# available. Legacy catalogs are only a bootstrap fallback; model output never
+# changes the native command allowlist or ISA execution/conformance status.
+COGSHARE="$OUT/usr/share/chimera/cognition"
+mkdir -p "$COGSHARE"
+if [[ -f "$ROOT/tools/cognition/train_command_isa_rnn.py" \
+      && -f "$ROOT/system/commands/native-command-candidates.json" \
+      && -f "$ROOT/isa/generated/universal-instruction-catalog.json" ]]; then
+    python3 "$ROOT/tools/cognition/train_command_isa_rnn.py" \
+        --commands "$ROOT/system/commands/native-command-candidates.json" \
+        --isa "$ROOT/isa/generated/universal-instruction-catalog.json" \
+        --output "$COGSHARE/trained-command-isa-rnn.json" --epochs 2 --hidden 12
+elif [[ -f "$ROOT/tools/cognition/trainable_rnn_lm.py" \
+        && -f "$ROOT/isa/isa_database.json" \
+        && -f "$ROOT/system/commands/chimera-command-list.json" ]]; then
+    python3 "$ROOT/tools/cognition/trainable_rnn_lm.py" train \
+        --source "$ROOT/isa/isa_database.json" \
+        --source "$ROOT/system/commands/chimera-command-list.json" \
+        --output "$COGSHARE/trained-command-isa-rnn.json" --epochs 2 --hidden 12
+else
+    echo "[CHIMERA-CMD][WARNING] RNN model not trained: imported catalogs are missing." >&2
+fi
+
+# Install the candidate catalog and advisory RNN router alongside the native command runtime.
+# Catalog rows are discovery metadata only; the native multicall allowlist remains authoritative.
+if [[ -f "$ROOT/system/commands/native-command-candidates.json" ]]; then
+    install -m 0644 "$ROOT/system/commands/native-command-candidates.json" "$SHARE/native-command-candidates.json"
+fi
+if [[ -f "$ROOT/tools/commands/command_candidate_router.py" && -f "$ROOT/tools/cognition/chimera_rnn.py" ]]; then
+    install -m 0644 "$ROOT/tools/commands/command_candidate_router.py" "$SHARE/command_candidate_router.py"
+    install -m 0644 "$ROOT/tools/cognition/chimera_rnn.py" "$SHARE/chimera_rnn.py"
+    install -m 0644 "$ROOT/tools/cognition/local_llm.py" "$SHARE/local_llm.py"
+    install -m 0644 "$ROOT/tools/cognition/trainable_rnn_lm.py" "$SHARE/trainable_rnn_lm.py"
+    cat > "$BIN/chimera-learn-command" <<'LEARN'
+#!/bin/sh
+set -eu
+prefix="${CHIMERA_ROOT_PREFIX:-}"
+if [ -n "$prefix" ]; then
+  router="$prefix/usr/share/chimera/commands/command_candidate_router.py"
+  catalog="$prefix/usr/share/chimera/commands/native-command-candidates.json"
+  model="$prefix/usr/share/chimera/cognition/trained-command-isa-rnn.json"
+else
+  router="/usr/share/chimera/commands/command_candidate_router.py"
+  catalog="/usr/share/chimera/commands/native-command-candidates.json"
+  model="/usr/share/chimera/cognition/trained-command-isa-rnn.json"
+fi
+[ -r "$router" ] && [ -r "$catalog" ] || { echo "chimera-learn-command: candidate runtime is not installed" >&2; exit 127; }
+command -v python3 >/dev/null 2>&1 || { echo "chimera-learn-command: Python 3 userspace runtime is not installed" >&2; exit 127; }
+if [ -r "$model" ]; then
+  exec python3 "$router" "$@" --rnn-model "$model" --catalog "$catalog"
+else
+  exec python3 "$router" "$@" --catalog "$catalog"
+fi
+LEARN
+    chmod 0755 "$BIN/chimera-learn-command"
+fi
+
+# The ISA research router uses the same bounded recurrent-state module and a
+# source-backed universal catalog. Missing matches are queued for later review.
+ISASHARE="$OUT/usr/share/chimera/isa"
+mkdir -p "$ISASHARE"
+if [[ -f "$ROOT/isa/generated/universal-instruction-catalog.json" && -f "$ROOT/tools/isa/isa_candidate_router.py" && -f "$ROOT/tools/cognition/chimera_rnn.py" ]]; then
+    install -m 0644 "$ROOT/isa/generated/universal-instruction-catalog.json" "$ISASHARE/universal-instruction-catalog.json"
+    install -m 0644 "$ROOT/tools/isa/isa_candidate_router.py" "$ISASHARE/isa_candidate_router.py"
+    install -m 0644 "$ROOT/tools/cognition/chimera_rnn.py" "$ISASHARE/chimera_rnn.py"
+    install -m 0644 "$ROOT/tools/cognition/local_llm.py" "$ISASHARE/local_llm.py"
+    install -m 0644 "$ROOT/tools/cognition/trainable_rnn_lm.py" "$ISASHARE/trainable_rnn_lm.py"
+    cat > "$BIN/chimera-learn-isa" <<'LEARNISA'
+#!/bin/sh
+set -eu
+prefix="${CHIMERA_ROOT_PREFIX:-}"
+if [ -n "$prefix" ]; then
+  router="$prefix/usr/share/chimera/isa/isa_candidate_router.py"
+  catalog="$prefix/usr/share/chimera/isa/universal-instruction-catalog.json"
+  model="$prefix/usr/share/chimera/cognition/trained-command-isa-rnn.json"
+else
+  router="/usr/share/chimera/isa/isa_candidate_router.py"
+  catalog="/usr/share/chimera/isa/universal-instruction-catalog.json"
+  model="/usr/share/chimera/cognition/trained-command-isa-rnn.json"
+fi
+[ -r "$router" ] && [ -r "$catalog" ] || { echo "chimera-learn-isa: ISA candidate runtime is not installed" >&2; exit 127; }
+command -v python3 >/dev/null 2>&1 || { echo "chimera-learn-isa: Python 3 userspace runtime is not installed" >&2; exit 127; }
+if [ -r "$model" ]; then
+  exec python3 "$router" "$@" --rnn-model "$model" --catalog "$catalog"
+else
+  exec python3 "$router" "$@" --catalog "$catalog"
+fi
+LEARNISA
+    chmod 0755 "$BIN/chimera-learn-isa"
+fi
+
 log() { printf '[CHIMERA-CMD] %s\n' "$*"; }
 warn() { printf '[CHIMERA-CMD][WARNING] %s\n' "$*" >&2; }
 die() { printf '[CHIMERA-CMD][ERROR] %s\n' "$*" >&2; exit 1; }
