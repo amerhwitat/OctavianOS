@@ -20,7 +20,7 @@ emitted by the payload itself. Traces in `traces/`, one per target and firmware.
 
 ## Verification status
 
-<badge>NOT PRODUCTION ACCEPTED</badge>
+**Release decision: BLOCKED — diagnostic image only.**
 
 The six files under `traces/` are diagnostic traces. Their presence does not prove
 that all six boots used the exact ISO identified by the single SHA-256 above.
