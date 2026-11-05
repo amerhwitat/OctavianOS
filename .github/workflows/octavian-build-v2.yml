@@ -29,10 +29,7 @@ jobs:
   build-matrix:
     name: Build OctavianOS [${{ matrix.arch }}-${{ matrix.target }}]
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:24.04
-      options: --privileged --ipc=host
-    
+
     strategy:
       matrix:
         arch: [x86_64, arm64]
@@ -48,7 +45,7 @@ jobs:
       
       - name: Install build dependencies
         run: |
-          apt-get update
+          sudo apt-get update
           apt-get install -y \
             build-essential gcc g++ cmake \
             grub2 grub2-common xorriso \
@@ -59,7 +56,7 @@ jobs:
             tree
           
           # Install musl development tools
-          apt-get install -y musl-tools musl-dev
+          sudo apt-get install -y musl-tools musl-dev
       
       - name: Environment detection
         id: env
@@ -81,7 +78,7 @@ jobs:
           qemu-system-x86_64 --version | head -1
       
       - name: Cache FOSS components
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .iso-build-cache/musl-*
