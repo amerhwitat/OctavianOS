@@ -164,8 +164,8 @@ jobs:
           
           case "$ARCH" in
             x86_64)
-              INIT_CC="gcc"
-              INIT_ASM_CC="gcc"
+              INIT_CC="x86_64-linux-musl-gcc"
+              INIT_ASM_CC="x86_64-linux-musl-gcc"
               INIT_PROCESSOR="x86_64"
               INIT_MARCH="x86-64"
               ;;
@@ -186,6 +186,11 @@ jobs:
             -DCMAKE_SYSTEM_PROCESSOR="${INIT_PROCESSOR}" \
             -DCMAKE_C_COMPILER="${INIT_CC}" \
             -DCMAKE_ASM_COMPILER="${INIT_ASM_CC}" \
+            -DCMAKE_SYSROOT="${BUILD_DIR}/${ARCH}/musl" \
+            -DCMAKE_FIND_ROOT_PATH="${BUILD_DIR}/${ARCH}/musl" \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/${ARCH}/rootfs"
