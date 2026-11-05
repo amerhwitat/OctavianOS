@@ -100,12 +100,17 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       xserver-xorg-video-vesa xserver-xorg-video-fbdev xserver-xorg-video-cirrus \
       xinit xauth x11-xserver-utils x11-utils xfonts-base \
       python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
-      libgl1 libglx-mesa0 libegl1 libgles2 \
+      libgl1 libglx-mesa0 libegl1 libgles2 libgbm1 libgl1-mesa-dri \
+      libwayland-egl1 libdrm2 mesa-utils mesa-vulkan-drivers firefox-esr \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
+    for package in libgl1 libglx-mesa0 libegl1 libgles2 libgbm1 libgl1-mesa-dri libwayland-egl1 libdrm2 mesa-utils mesa-vulkan-drivers firefox-esr; do
+      status="$(dpkg-query -W -f='${db:Status-Status}' "$package")"
+      [ "$status" = installed ] || { echo "graphics runtime package missing: $package ($status)" >&2; exit 1; }
+    done
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
