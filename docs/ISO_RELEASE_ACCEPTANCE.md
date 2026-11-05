@@ -85,3 +85,35 @@ The six-case BIOS/UEFI userspace matrix and target handoff verification steps in
 ## Final result correction — 2026-10-19
 
 [Run #1388](https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39207743325) ended with FAILURE at the final fail-closed acceptance gate. All six target × firmware traces report missing user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness. Build/ISO composition, ISO validation, payload/artwork validation, Koronos boot smoke, ISO compression, and artifact uploads passed. The release publication step was skipped. Preserved artifacts: ISO ID 12166940637; target traces ID 12166193261. The intermediate matrix step reported a successful *step conclusion* while exporting `accepted=false`; do not interpret that as matrix pass. Production acceptance is NOT VERIFIED and release remains BLOCKED.
+
+
+## Current fail-closed audit — 2026-11-05
+
+**Production release: BLOCKED.** The checked-in diagnostic bundle
+`docs/releases/octavian-native-2026.11.05/` must not be treated as proof of
+production acceptance:
+
+- The six trace files do not have a machine-generated provenance manifest
+  binding every target/firmware trace to the same immutable ISO SHA-256.
+- Live logs show a ring-3 text console probe, explicitly not a graphical
+  desktop session; no Aurora or Marine readiness is demonstrated.
+- Installer logs state that no block-device backend is present and that the
+  run is a report-only dry-run; no installation, persistence, or reboot is
+  demonstrated.
+- Recovery logs state that the recovery initramfs is recognized but the
+  native recovery init ELF/runtime handoff is withheld.
+- The inspected logs report one logical CPU; no AP startup or overlapping
+  execution is demonstrated.
+- The native syscall trace does not establish the required VFS OPEN/READ/
+  CLOSE and writable /tmp tests, process lifecycle, or signal delivery.
+
+The readiness markers in those logs establish only that diagnostic probe
+payloads ran. They do not clear the Live/Installer/Recovery production gates.
+Do not publish this image as a production ISO. The legacy Linux-aligned
+Octavian build is not a substitute for the native Koronos release path.
+
+Next required work: implement and test the native VFS and block-device path,
+QFS mount/write/recovery, real installer disk operations, recovery actions,
+desktop sessions, AP/SMP, and process/syscall/signal lifecycle; then generate
+six traces from one immutable ISO and have the unchanged fail-closed verifier
+bind each trace to that ISO's SHA-256 before enabling release publication.
