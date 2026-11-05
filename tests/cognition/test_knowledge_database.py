@@ -29,8 +29,11 @@ class KnowledgeDatabaseTests(unittest.TestCase):
             self.assertEqual(kb.append(args),0)
             after=kb.read_db(dest)
             self.assertEqual(len(after["entries"]),len(before["entries"])+1)
-            self.assertEqual(after["version"],"1.0.1")
+            parts=[int(part) for part in before["version"].split(".")]
+            expected=".".join(map(str,(parts[0],parts[1],parts[2]+1)))
+            self.assertEqual(after["version"],expected)
             with self.assertRaises(SystemExit):kb.append(args)
+            self.assertEqual(kb.read_db(dest)["version"],expected)
 
     def test_rejects_unknown_source_reference(self):
         row={"id":"bad-source-entry","domain":"Test","title":"Bad","summary":"No source",
