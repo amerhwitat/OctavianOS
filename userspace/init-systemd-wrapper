@@ -1,0 +1,12 @@
+#!/bin/sh
+# Compatibility handoff for deployments that package systemd in the rootfs.
+# This wrapper deliberately fails closed when no service manager is present.
+set -eu
+
+SYSTEMD=/usr/lib/systemd/systemd
+if [ ! -x "$SYSTEMD" ]; then
+    echo "OCTAVIAN SERVICE MANAGER BLOCKED: $SYSTEMD is not installed" >&2
+    exit 78
+fi
+
+exec "$SYSTEMD" --system "$@"
