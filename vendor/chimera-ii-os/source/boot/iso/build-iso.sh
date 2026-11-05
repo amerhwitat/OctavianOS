@@ -121,6 +121,12 @@ MEDIA="$ROOT/build/aurora-media"
 test -s "$MEDIA/Init.mp4" || { echo "ERROR: Aurora Init.mp4 was not generated or supplied." >&2; exit 2; }
 mkdir -p "$DIST/iso/boot/visual/aurora-media"
 cp -a "$MEDIA/." "$DIST/iso/boot/visual/aurora-media/"
+# Preserve the Octavian-specific firmware artwork and manifest in the
+# canonical visual namespace; the boot PNG is also used by all boot stages.
+if [[ -s "$MEDIA/octavian-artwork-manifest.json" ]]; then
+  cp -f "$MEDIA/backgrounds/boot.png" "$VISUAL_OUT/octavian-octopus-aurora.png"
+  cp -f "$MEDIA/octavian-artwork-manifest.json" "$VISUAL_OUT/octavian-artwork-manifest.json"
+fi
 for f in   backgrounds/boot.png   backgrounds/desktop.png   menus/default.png   splash/aurora-splash.png   installer/aurora-installer.png   recovery/aurora-recovery.png   diagnostics/aurora-diagnostics.png   live/aurora-live.png   mobile/aurora-mobile.png   manifest.json   progress/state.json   progress/stages.json   progress/style.json   Init.mp4; do
   test -s "$MEDIA/$f" || { echo "ERROR: Aurora asset missing: $MEDIA/$f" >&2; exit 2; }
 done
