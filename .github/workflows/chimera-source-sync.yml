@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/chimera-source-sync.yml"
+      - "docs/KORONOS_UPSTREAM_SYNC_REQUEST.md"
 
 permissions:
   contents: write
