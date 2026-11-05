@@ -4,6 +4,7 @@ CHIMERA II OS / KORONOS
 OK
 [PROG] [#-------------------] 5% Koronos boot context accepted
 [HW  ] Initializing hardware...
+[AI  ] Knowledge database staged: 269 entries, 110668 bytes
 [MB2 ] Scanned Multiboot2 modules
 [MM  ] Verified four-GiB supervisor identity map
 [MM  ] Physical frame allocator initialized; free 4 KiB frames: 
@@ -11,7 +12,7 @@ OK
 [MM  ] Frame allocation/free self-test passed
 [PROG] [###-----------------] 15% Multiboot2 modules scanned
 [MB2 ] Count: 
-3
+4
 [MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed
 [ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance
 [MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map
@@ -65,7 +66,7 @@ C[TASK] Console service online
 [KORE] Core storage/security/logging services active
 [TASK] Module manager online
 [MB2 ] Module registry: 
-3
+4
  module(s)
 [MB2 ] type=
 OTHER
@@ -91,6 +92,14 @@ chimera-recovery-manifest
 00010000
 [MB2 ] size=
 0000023D
+[MB2 ] type=
+OTHER
+[MB2 ] cmdline=
+ai-knowledge-db
+[MB2 ] base=
+00011000
+[MB2 ] size=
+0001B04C
 [RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline
 [RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline
 USER INIT SYSCALL: target=recovery init_pid=1

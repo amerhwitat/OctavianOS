@@ -5,8 +5,8 @@ Koronos transactional ELF loader: mapping, BSS, stack, W^X, overlap and rollback
 process loader: PT_LOAD copy, BSS zeroing, W^X and stack mapping passed
 recovered ISA registry from canonical isa/isa_database.json (2921 bytes, 154 entries)
 generated 154 ISA entries -> /tmp/OctavianOS/vendor/chimera-ii-os/source/kernel/generated/chimera_isa_registry.generated.h
-/tmp/OctavianOS/vendor/chimera-ii-os/source/kernel/core/koronos.cpp:23:21: warning: 'koronos_monitor_task_id' initialized and declared 'extern'
-   23 | extern "C" uint32_t koronos_monitor_task_id = 0;
+/tmp/OctavianOS/vendor/chimera-ii-os/source/kernel/core/koronos.cpp:24:21: warning: 'koronos_monitor_task_id' initialized and declared 'extern'
+   24 | extern "C" uint32_t koronos_monitor_task_id = 0;
       |                     ^~~~~~~~~~~~~~~~~~~~~~~
 Protected-process admission/load-plan boundary + Native OOP object model + SMP-safe scheduler + syscall/interrupt compatibility + parallel dispatch linked.
 Koronos ELF64: /tmp/OctavianOS/vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf

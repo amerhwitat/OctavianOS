@@ -60,6 +60,14 @@ for f in installation.img installation-manifest.json installer-contract.json ins
   [ -f "$src" ] && cp -f "$src" "$ISO_ROOT/install/installer/$f"
 done
 
+log "3b/6 staging the AI knowledge database"
+KB="$ROOT/config/ai/knowledge-db.json"
+test -s "$KB" || { echo "ERROR: knowledge database missing: $KB" >&2; exit 2; }
+mkdir -p "$ISO_ROOT/boot/ai"
+cp -f "$KB" "$ISO_ROOT/boot/ai/knowledge-db.json"
+python3 "$ROOT/tools/ai/knowledge_db.py" validate --db "$ISO_ROOT/boot/ai/knowledge-db.json" >/dev/null || {
+  echo "ERROR: staged knowledge database failed validation" >&2; exit 2; }
+
 log "4/6 staging boot artwork"
 python3 - "$ROOT" "$ISO_ROOT" <<'PY' || true
 import os, subprocess, sys
@@ -97,6 +105,7 @@ for cfg in boot/jasper/live.cfg boot/jasper/install.cfg boot/jasper/recovery.cfg
 done
 
 log "5/6 validating menu contract"
+grep -q "ai-knowledge-db" "$ISO_ROOT/boot/grub/grub.cfg" || { echo "ERROR: no knowledge-db module in menu" >&2; exit 2; }
 for t in live installer recovery; do
   grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \
     || grep -rq "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/jasper" "$ISO_ROOT/boot/installation" 2>/dev/null || {
