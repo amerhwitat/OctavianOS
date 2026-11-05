@@ -4,6 +4,23 @@ The initial cross-repository Java audit, parity rules, and phased conversion pla
 
 # Chimera II OS
 
+## Live ISO download
+
+A bootable amd64 live image is published from this repository:
+
+- **Latest: Chimera II OS 2026.11.03 — 26-wallpaper build** — [`chimera-ii-os-live-amd64.iso`](https://github.com/amerhwitat/ChimeraIIOS/releases/download/chimera-ii-os-live-2026.11.03-desktop-5c5ecae/chimera-ii-os-live-amd64.iso) · 467 MiB · SHA-256 `5fec26dd53a3c90b124ca58437fd6552ebb4263b8bdeb865b01ad14d8a4e5a70`
+- Release notes, checksum and BIOS/UEFI boot report: [2026.11.03 26-wallpaper release](https://github.com/amerhwitat/ChimeraIIOS/releases/tag/chimera-ii-os-live-2026.11.03-desktop-5c5ecae)
+- Local copy of the release note, checksum and boot report: [`docs/releases/chimera-ii-os-live-2026.11.03-desktop-5c5ecae/RELEASE.md`](docs/releases/chimera-ii-os-live-2026.11.03-desktop-5c5ecae/RELEASE.md)
+- Previous: **Chimera II OS 2026.11.02** — [`chimera-ii-os-live-amd64.iso`](https://github.com/amerhwitat/ChimeraIIOS/releases/download/chimera-ii-os-2026.11.02/chimera-ii-os-live-amd64.iso) · 467 MiB · SHA-256 `e599df3c6b82bc7e98f152edf1d4ee26b988c842c4eace65df6b0138f4007de8`
+- Release notes, checksums and build evidence: [`docs/releases/chimera-ii-os-2026.11.02/RELEASE.md`](docs/releases/chimera-ii-os-2026.11.02/RELEASE.md)
+- Mirror / download index: https://amerhwitat.github.io/downloads/
+- Named desktop gallery: [`web/desktop-showcase/index.html`](web/desktop-showcase/index.html) — offline HTML/CSS desktop previews with project names; browser concepts are not native Koronos verification.
+
+Boots BIOS and UEFI, live login `live` / `live`, Aurora WebKit kiosk on tty1, 26 offline
+wallpapers. The image runs the Debian Linux kernel plus this repository's Aurora desktop and
+userspace payload — see the release notes for exactly what it does and does not prove about
+the native Koronos kernel.
+
 > **Verification policy:** documented, cataloged, compiled, booted, userspace-ready, conformance-tested, and SMP-verified are distinct evidence levels. See [the verification evidence contract](docs/VERIFICATION_EVIDENCE_CONTRACT.md); do not infer a higher level from a lower one.
 
 Chimera II OS is a cross-language research operating-system and application platform centered on the Koronos microkernel, wide-register C8192/R8192 research ISA, multidimensional cognition, portable tooling, trusted peer networking and separate hosted/bare-metal computer and mobile editions.
@@ -59,6 +76,18 @@ On x86/x86-64, the mode-transition boundary is real16 -> protected32 -> long64. 
 Startup is **menu first, GUI second**. Jasper/Spit Fire exposes Live, Install, Safe Graphics, Diagnostics, Recovery, Network Install/Recovery and controlled native-chainload choices. After handoff, Aurora presents the **Gates Menu** for desktop personalities, applications, games, networking, crypto/wallet tools, Thamudic, NLP, browsers, development and system administration.
 
 The boot visual is represented by `boot/splash/aurora_boot_splash.svg`; the requested support footer is stored in `boot/splash/support_footer.txt` and staged into the ISO.
+
+## Hive registry database and Aurora editor
+
+Hive now includes a durable userspace registry store with a write-ahead log, committed-transaction recovery, atomic snapshot checkpointing, and a command-line manager. Aurora Settings persists preferences through Hive while retaining a legacy configuration mirror. When Qt 6 Widgets is present, the graphical Hive Registry Editor is built; when FUSE 3 is present, an optional registry VFS mount exposes registry keys as files.
+
+See [Hive Registry and VFS documentation](docs/HIVE_REGISTRY_VFS.md) and [Hive validation workflow](.github/workflows/hive-registry-validation.yml). Live Koronos process/kernel setting projection remains gated on a versioned, authorized IPC contract and verified x86-64 interrupt/syscall/SMP foundations.
+
+## Network interoperability and optical media
+
+Chimera's network integration includes SMB2/SMB3 browsing and share mounting, Windows WS-Discovery, Avahi DNS-SD, administrator-driven Active Directory joining through realmd/adcli/SSSD, and TLS-verified LDAP searches. Optical-media tools mount ISO-9660/UDF images and CD/DVD devices read-only, while the FHS provisioner creates the Linux and Chimera mountpoint hierarchy.
+
+See [Network, Active Directory, LDAP and optical-media integration](docs/NETWORK_AND_MEDIA_INTEGRATION.md), the [filesystem capability profile](installer/profiles/filesystem-support.json), and the [network/media validation workflow](.github/workflows/network-media-validation.yml). These services are staged in the runtime image; network daemons and domain joining remain explicit administrator-controlled operations.
 
 ## Universal source-first ISO
 
@@ -171,3 +200,33 @@ An isolated Multiboot/ELF32 serial probe is available under `kernel/arch/x86_32/
 ## Endianness across Koronos, microkernel, compatibility and mobile
 
 The canonical rules are defined in [`system/architecture/endianness.json`](system/architecture/endianness.json), with freestanding byte-order helpers in [`kernel/include/chimera/endianness.h`](kernel/include/chimera/endianness.h). x86 real16/protected32/long64 are little-endian; ARM32/AArch64 depend on target architecture and active controls; RISC-V uses the standard little-endian profile unless a concrete supported platform specifies otherwise; MIPS/PowerPC are target-ABI-selected; s390x is big-endian. The boot handoff carries explicit endian metadata. Serialized microkernel IPC and fixed-width boot fields use canonical little-endian encoding, while native in-memory structures remain ABI-specific. Emulation and compatibility modes must preserve guest byte order independently of host order. See also the [mobile sync contract](mobile/mobile-sync.json) and [compatibility-mode matrix](system/hardware/compatibility-modes.json). Contract and static tests are not proof of each CPU backend's correctness; backend conformance and big-endian-host execution remain required.
+
+## Live ISO images
+
+`live-image/` builds a bootable hybrid BIOS/UEFI x86_64 live ISO whose session renders
+this repository's own HTML desktop fullscreen (WebKit2GTK kiosk) with the shipped
+artwork available as desktop backgrounds:
+
+```sh
+sudo ./live-image/build.sh chimera     # -> live-image/.build/out/chimera-ii-os-live-amd64.iso
+```
+
+The builder bootstraps its own Debian rootfs (`debootstrap`), stages the desktop payload,
+the wallpaper set and a verbatim source snapshot, patches every page's background picker,
+and produces the ISO with `grub-mkrescue`. See `live-image/README.md`.
+
+Scope: the image boots a Linux kernel plus this project's userland. The native
+Spit Fire/Koronos microkernel is not in the boot path, because upstream remains blocked
+on the userspace handoff gate that the ISO release acceptance workflow enforces.
+
+## Linux services
+
+The Linux systemd service catalog and optional service manager are documented in [docs/LINUX_SERVICES.md](docs/LINUX_SERVICES.md). Aurora Settings declares service-management pages; administrators can inspect units, install service packages or named profiles, and explicitly enable services with `sudo chimera-services`. Optional listeners are not activated automatically.
+
+## Cross-platform Hosted and BareMetal compatibility
+
+The platform contract for Linux, FreeBSD, Windows and macOS is documented in [docs/PLATFORM_COMPATIBILITY_MATRIX.md](docs/PLATFORM_COMPATIBILITY_MATRIX.md). Hosted uses native host APIs; BareMetal boots Koronos and uses host OSes only for build/flash workflows. Unsupported API calls must be reported rather than silently emulated.
+
+## Cisco and Juniper routing CLI
+
+A bounded, safe Cisco IOS/Junos command adapter is documented in [docs/CISCO_JUNIPER_ROUTING_CLI.md](docs/CISCO_JUNIPER_ROUTING_CLI.md). Mutating commands are plan-only unless explicitly confirmed with administrator privileges. Dynamic routing backends remain optional.
