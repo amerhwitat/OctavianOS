@@ -48,20 +48,13 @@ add_executable(octavian-init
     ${INIT_ENTRY_ASM}
 )
 
-# Link against the architecture-specific musl sysroot while retaining libc and
-# compiler runtime libraries. Only the CRT startup objects are omitted because
-# the kernel enters at _init_entry; -nostdlib would incorrectly drop libc.
+# Use the musl CRT entry point so TLS, stdio and libc initialization happen
+# before main(). The kernel must provide the normal argc/argv/envp initial stack.
 target_link_options(octavian-init PRIVATE
     -static-pie           # Position-independent executable with static linking
-    -nostartfiles         # Custom _init_entry replaces the CRT entry point
     -fno-ident            # No .comment section
     -Wl,--gc-sections     # Remove unused sections
     -Wl,--strip-all       # Strip all symbols (production)
-)
-
-# Set entry point
-set_target_properties(octavian-init PROPERTIES
-    LINK_FLAGS "-Wl,-e,_init_entry"
 )
 
 # Build flags for production init
