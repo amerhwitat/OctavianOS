@@ -39,6 +39,16 @@ jobs:
           rsync -a --delete --exclude='.git/' upstream-chimera/ vendor/chimera-ii-os/source/
           git -C upstream-chimera rev-parse HEAD > vendor/chimera-ii-os/UPSTREAM_REVISION
           echo "Synced from ChimeraIIOS revision $(cat vendor/chimera-ii-os/UPSTREAM_REVISION)"
+      - name: Verify recorded upstream revision
+        run: |
+          set -euo pipefail
+          expected="$(git -C upstream-chimera rev-parse HEAD)"
+          recorded="$(cat vendor/chimera-ii-os/UPSTREAM_REVISION)"
+          test "$recorded" = "$expected" || {
+            echo "::error::Vendored revision $recorded does not match checked-out upstream $expected"
+            exit 1
+          }
+          echo "Verified exact upstream revision: $recorded"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
