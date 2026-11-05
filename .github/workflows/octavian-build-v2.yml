@@ -141,7 +141,7 @@ jobs:
           command -v "$RANLIB"
           
           "${CACHE_DIR}/musl-1.2.4/configure" \
-            --prefix="${PREFIX}" \
+            --prefix="${PREFIX}/usr" \
             --target="${TARGET_TRIPLE}" \
             --enable-static \
             --enable-shared \
@@ -150,7 +150,7 @@ jobs:
           make -j${{ steps.env.outputs.BUILD_JOBS }}
           make install
           
-          ls -la "${PREFIX}/lib/"
+          ls -la "${PREFIX}/usr/lib/"
       
       - name: Build octavian-init (${{ matrix.arch }})
         run: |
