@@ -128,6 +128,9 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Verify fail-closed YIELD syscall contract
+        working-directory: vendor/chimera-ii-os/source
+        run: python3 tests/unit/test_syscall_yield_fail_closed.py
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
