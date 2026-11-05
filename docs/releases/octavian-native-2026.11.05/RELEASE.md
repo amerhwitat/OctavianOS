@@ -1,7 +1,6 @@
-# OctavianOS — native Koronos ISO octavian-native-2026.11.05
+# OctavianOS — native Koronos diagnostic image (NOT A PRODUCTION RELEASE) octavian-native-2026.11.05
 
-Hybrid BIOS+UEFI image that boots the Koronos microkernel (Multiboot2, no Linux kernel) and hands
-Live, Installer and Recovery their own ring-3 init payload, with the embedded AI knowledge database staged.
+Diagnostic BIOS/UEFI image and trace bundle for Koronos bring-up. The logs show ring-3 probe payloads, not production Live, Installer, and Recovery environments. This artifact is **not accepted for production release**.
 
 | Field | Value |
 | --- | --- |
@@ -19,16 +18,32 @@ Live, Installer and Recovery their own ring-3 init payload, with the embedded AI
 `USER INIT SYSCALL: target=<t> init_pid=<n>` (CPL-3 proof) → `USERSPACE READY: target=<t> init_pid=<n>`
 emitted by the payload itself. Traces in `traces/`, one per target and firmware.
 
-## Verification (unchanged fail-closed verifier)
+## Verification status
 
-| Case | READY markers | Verifier |
+<badge>NOT PRODUCTION ACCEPTED</badge>
+
+The six files under `traces/` are diagnostic traces. Their presence does not prove
+that all six boots used the exact ISO identified by the single SHA-256 above.
+The repository does not contain a machine-generated manifest binding each trace
+to that ISO hash and its firmware/target configuration.
+
+| Case | What the trace actually demonstrates | Production result |
 | --- | --- | --- |
-| live / bios | 1 | PASS: target=live init entered user mode and reported readiness with a consistent PID |
-| live / uefi | 1 | PASS: target=live init entered user mode and reported readiness with a consistent PID |
-| installer / bios | 1 | PASS: target=installer init entered user mode and reported readiness with a consistent PID |
-| installer / uefi | 1 | PASS: target=installer init entered user mode and reported readiness with a consistent PID |
-| recovery / bios | 1 | PASS: target=recovery init entered user mode and reported readiness with a consistent PID |
-| recovery / uefi | 1 | PASS: target=recovery init entered user mode and reported readiness with a consistent PID |
+| Live / BIOS | Ring-3 console probe; no graphical session | BLOCKED |
+| Live / UEFI | Ring-3 console probe; no graphical session | BLOCKED |
+| Installer / BIOS | Ring-3 dry-run; no block-device backend and no disk writes | BLOCKED |
+| Installer / UEFI | Ring-3 dry-run; no block-device backend and no disk writes | BLOCKED |
+| Recovery / BIOS | Ring-3 diagnostics probe; recovery initramfs handoff is withheld | BLOCKED |
+| Recovery / UEFI | Ring-3 diagnostics probe; recovery initramfs handoff is withheld | BLOCKED |
+
+All inspected traces report one logical CPU. None demonstrates AP startup or
+measured concurrent execution. The Live traces explicitly say there is no
+graphical session. Installer explicitly says it is report-only. Recovery says
+the native recovery init ELF/runtime is not wired to the payload.
+
+Accordingly, the table above supersedes any earlier summary in this file that
+described the six cases as PASS. A probe readiness marker is not production
+target readiness.
 
 ## What each target does
 
