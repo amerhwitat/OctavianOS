@@ -117,3 +117,35 @@ QFS mount/write/recovery, real installer disk operations, recovery actions,
 desktop sessions, AP/SMP, and process/syscall/signal lifecycle; then generate
 six traces from one immutable ISO and have the unchanged fail-closed verifier
 bind each trace to that ISO's SHA-256 before enabling release publication.
+
+
+## Follow-up implementation/build audit — 2026-11-05
+
+The x86-64 init payload now compiles with GNU assembler syntax and a per-build
+musl sysroot. The static-PIE ELF contract test passed in run
+[42083396378](https://github.com/amerhwitat/OctavianOS/actions/runs/42083396378).
+That run then failed at `make install` because CMake used absolute
+`/sbin` destinations and attempted to write into the CI host. The destinations
+have been changed to relative `sbin`; rerun
+[42083915601](https://github.com/amerhwitat/OctavianOS/actions/runs/42083915601)
+is queued and has not yet validated the correction.
+
+The current native userspace build matrix is deliberately x86-64 only.
+ARM64 and RISC-V init entry sources and kernel user-entry contracts are absent;
+the workflow must not package placeholder binaries as architecture support.
+
+The Linux x86-64 syscall translation now maps the supported getpid/write/exit
+calls into the stable Chimera syscall IDs. Fork, execve, wait4, mount, signal,
+and other missing operations remain ENOSYS. The init no longer emits a generic
+userspace-ready marker before mounts and service startup have succeeded. A
+static-PIE build is not proof of a bootable or functional init process.
+
+Filesystem capability claims are also fail-closed: the native installer profile
+has an empty installable set until real native backends pass probe, format,
+mount, read/write, sync, unmount, corruption and reboot tests. QFS still has
+host-side formatter/inspection only; NTFS, XFS, FAT/exFAT, ext, Btrfs, ZFS and
+other formats are not native Koronos drivers.
+
+**Production remains BLOCKED.** The latest build, six same-ISO BIOS/UEFI target
+traces, actual desktop sessions, installation/recovery postconditions, and
+measured AP-backed SMP must all pass before any production release.
