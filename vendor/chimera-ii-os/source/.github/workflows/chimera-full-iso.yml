@@ -12,7 +12,10 @@ on:
       - "tools/build-live-boot-binaries.sh"
       - "tools/build-full-iso.sh"
       - "tools/build-full-iso.*"
+      - "build-chimera-iso.sh"
+      - "tests/test_build_cli_options.py"
       - "CMakeLists.txt"
+      - "tests/boot/**"
       - ".github/workflows/chimera-full-iso.yml"
   push:
     branches: [main]
@@ -31,6 +34,7 @@ on:
       - "tools/build-full-iso.*"
       - "sdk/**"
       - "CMakeLists.txt"
+      - "tests/boot/**"
       - ".github/workflows/chimera-full-iso.yml"
 
 permissions:
@@ -38,13 +42,14 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   CHIMERA_FETCH_SOURCES: "0"
 
 jobs:
   build:
+    timeout-minutes: 180
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +57,22 @@ jobs:
       - name: Install ISO and cross-build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build nasm xorriso grub-pc-bin grub-efi-amd64-bin grub-common grub2-common mtools dosfstools qemu-system-x86 gcc g++ clang openjdk-21-jdk python3 python3-pip git curl busybox-static cpio zstd
+          sudo apt-get install -y cmake ninja-build nasm xorriso grub-pc-bin grub-efi-amd64-bin grub-common grub2-common mtools dosfstools qemu-system-x86 ovmf gcc g++ clang openjdk-21-jdk python3 python3-pip git curl busybox-static cpio zstd
+
+      - name: Validate comprehensive ISO builder release-mode contract
+        run: |
+          bash -n build-chimera-iso.sh
+          python3 tests/test_build_cli_options.py
+
+      - name: Validate boot target routing and embedded artwork contract
+        run: python3 tests/boot/test_iso_target_routing_artwork.py
+
+      - name: Test fail-closed userspace handoff evidence verifier and release gate
+        run: |
+          python3 -m unittest discover -s tests/boot -p "test_userspace_handoff_verifier.py" -v
+          python3 -m unittest discover -s tests/boot -p "test_chimera_iso_release_gate.py" -v
+          python3 -m unittest discover -s tests/boot -p "test_six_case_matrix.py" -v
+          python3 -m unittest discover -s tests/boot -p "test_six_case_qemu_runner.py" -v
 
       - name: Build ASM/C/C++ and compose ISO
         env:
@@ -67,6 +87,64 @@ jobs:
           test -f build/iso/chimera-ii-os.iso.sha256
           file build/iso/chimera-ii-os.iso
           sha256sum -c build/iso/chimera-ii-os.iso.sha256
+
+      - name: Validate ISO contains target payloads and offline artwork
+        run: |
+          set -euo pipefail
+          iso=build/iso/chimera-ii-os.iso
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          extract() {
+            local source="$1" output="$2"
+            xorriso -osirrox on -indev "$iso" -extract "$source" "$output" >/dev/null
+            test -s "$output" || { echo "::error::ISO payload missing or empty: $source"; exit 1; }
+          }
+          extract /boot/koronos/koronos.elf "$tmp/koronos.elf"
+          extract /boot/targets/target-init-live.elf "$tmp/target-init-live.elf"
+          extract /boot/targets/target-init-installer.elf "$tmp/target-init-installer.elf"
+          extract /boot/targets/target-init-recovery.elf "$tmp/target-init-recovery.elf"
+          extract /boot/live/chimera-live-initramfs.img "$tmp/live-initramfs.img"
+          extract /boot/live/live-manifest.json "$tmp/live-manifest.json"
+          extract /boot/recovery/chimera-recovery-initramfs.img "$tmp/recovery-initramfs.img"
+          extract /boot/recovery/recovery-manifest.json "$tmp/recovery-manifest.json"
+          extract /install/installer/installation.img "$tmp/installation.img"
+          extract /install/installer/installation-manifest.json "$tmp/installation-manifest.json"
+          extract /install/installer/installer-contract.json "$tmp/installer-contract.json"
+          extract /boot/grub/grub.cfg "$tmp/grub.cfg"
+          for target in live installer recovery; do
+            readelf -h "$tmp/target-init-$target.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
+            readelf -lW "$tmp/target-init-$target.elf" | grep -Eq 'LOAD.*R E'
+            grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target firmware=\$grub_platform" "$tmp/grub.cfg"
+          done
+          extract /boot/grub/aurora-wayland-glass.jpg "$tmp/aurora-wayland-glass.jpg"
+          extract /boot/grub/Init.mp4 "$tmp/Init.mp4"
+          mkdir -p "$tmp/live-root" "$tmp/recovery-root"
+          (cd "$tmp/live-root" && gzip -dc "$tmp/live-initramfs.img" | cpio -id --quiet)
+          (cd "$tmp/recovery-root" && gzip -dc "$tmp/recovery-initramfs.img" | cpio -id --quiet)
+          grep -Fq 'USERSPACE READY: target=live' "$tmp/live-root/init"
+          grep -Fq 'USERSPACE READY: target=recovery' "$tmp/recovery-root/init"
+          grep -Fq 'exec /bin/sh -i' "$tmp/live-root/init"
+          grep -Fq 'exec /bin/chimera-recovery-console.sh' "$tmp/recovery-root/init"
+          extract /desktop/aurora/assets/chimera-infinite-research-horizon.svg "$tmp/chimera-wallpaper.svg"
+          extract /desktop/aurora/assets/chimera-artwork-manifest.json "$tmp/chimera-artwork-manifest.json"
+          python3 - "$tmp" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for name in ("live-manifest.json", "recovery-manifest.json",
+                       "installation-manifest.json", "installer-contract.json",
+                       "chimera-artwork-manifest.json"):
+              json.loads((root / name).read_text())
+          if "<svg" not in (root / "chimera-wallpaper.svg").read_text():
+              raise SystemExit("embedded Chimera wallpaper is not SVG source")
+          artwork = json.loads((root / "chimera-artwork-manifest.json").read_text())
+          if not any(item.get("path") == "desktop/aurora/assets/chimera-infinite-research-horizon.svg" for item in artwork.get("artworks", [])):
+              raise SystemExit("artwork manifest does not declare the embedded Chimera wallpaper")
+          grub = (root / "grub.cfg").read_text()
+          for target in ("aurora-live", "install", "recovery"):
+              if f"--id {target}" not in grub:
+                  raise SystemExit(f"GRUB config missing required target: {target}")
+          print("ISO payload check passed: Koronos, Live, Recovery, Installer and offline Aurora artwork are embedded.")
+          PY
 
       - name: QEMU headless Koronos boot smoke test
         run: |
@@ -98,6 +176,100 @@ jobs:
             exit 1
           fi
 
+      - name: Boot the same canonical ISO in all six BIOS/UEFI target cases
+        id: same_iso_qemu
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          iso=build/iso/chimera-ii-os.iso
+          evidence=build/six-case-evidence
+          if [[ ! -s "$iso" ]]; then
+            echo "::warning::Canonical ISO missing; six-case evidence cannot be generated."
+            exit 0
+          fi
+          python3 tools/boot/run-six-case-qemu.py --iso "$iso" --evidence-dir "$evidence" --timeout 35
+          sha256sum "$iso" | tee build/six-case-evidence/canonical-iso.sha256
+          echo "Attempted six BIOS/UEFI boots from one unchanged ISO; raw traces are not acceptance until the strict verifier passes."
+
+      - name: Verify target-specific CPL3 handoff from same canonical ISO traces
+        id: userspace_gate
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          evidence=build/six-case-evidence
+          accepted=true
+          for target in live installer recovery; do
+            for firmware in bios uefi; do
+              trace="$evidence/$target/$firmware/debugcon.log"
+              if ! python3 tests/boot/verify-userspace-handoff.py "$target" "$trace"; then
+                accepted=false
+              fi
+            done
+          done
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          if [[ "$accepted" == true ]]; then
+            echo "All six raw traces prove the target-specific CPL3 syscall and matching nonzero PID readiness chain."
+          else
+            echo "At least one same-ISO target/firmware trace lacks genuine CPL3 readiness evidence."
+          fi
+
+      - name: Verify immutable native Koronos six-case matrix
+        id: six_case_gate
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          iso=build/iso/chimera-ii-os.iso
+          evidence=build/six-case-evidence
+          report=build/six-case-evidence/report.json
+          mkdir -p "$evidence"
+          set +e
+          python3 tools/boot/verify-six-case-matrix.py --iso "$iso" --evidence-dir "$evidence" --report "$report"
+          rc=$?
+          set -e
+          accepted=false
+          if [[ "$rc" -eq 0 ]]; then accepted=true; fi
+          echo "accepted=$accepted" >> "$GITHUB_OUTPUT"
+          status=BLOCKED
+          if [[ "$accepted" == true ]]; then status=PASS; fi
+          {
+            echo "### Native Koronos six-case acceptance"
+            echo "- Status: **$status**"
+            echo "- Canonical ISO: $iso"
+            echo "- Evidence directory: $evidence"
+            echo "- This gate requires one identical ISO SHA across Live/Installer/Recovery × BIOS/UEFI."
+            echo "- The existing per-target extracted/repacked smoke ISOs are diagnostic probes, not six-case release evidence."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$accepted" != true ]]; then
+            echo "::warning::Six-case evidence incomplete. Release publication remains blocked."
+          fi
+
+      - name: Upload target-specific userspace acceptance traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-target-userspace-traces
+          path: build/six-case-evidence/*/*/debugcon.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload six-case acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-six-case-acceptance-report
+          path: build/six-case-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Mark incomplete userspace acceptance as a failed gate
+        if: always() && steps.userspace_gate.outputs.accepted != 'true'
+        run: |
+          echo "::error::Live, Installer and Recovery have not all proved CPL3 syscall acknowledgement and matching nonzero init PID readiness."
+          exit 1
+
       - name: Compress ISO for GitHub release asset size limit
         run: |
           set -euo pipefail
@@ -114,17 +286,17 @@ jobs:
             sha256sum chimera-ii-os.iso.zst > chimera-ii-os.iso.zst.sha256
           )
       - name: Upload ISO artifacts
-        if: github.event_name == 'pull_request'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: chimera-ii-os-live-installer
           path: |
-            build/iso/chimera-ii-os.iso
+            build/iso/chimera-ii-os.iso.zst
+            build/iso/chimera-ii-os.iso.zst.sha256
             build/iso/chimera-ii-os.iso.sha256
-            chimera-ii-os.iso
 
       - name: Publish validated ISO candidate to GitHub Releases
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.userspace_gate.outputs.accepted == 'true' && steps.six_case_gate.outputs.accepted == 'true' && vars.CHIMERA_RELEASE_ACCEPTANCE_APPROVED == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
