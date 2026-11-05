@@ -8,6 +8,8 @@
 #include "chimera/address_space.h"
 #include "chimera/elf64.h"
 #include "chimera/frame_allocator.h"
+#include "chimera/vfs.h"
+#include "chimera/process_fd.h"
 #include "chimera/physmap.h"
 
 namespace {
@@ -178,6 +180,22 @@ extern "C" int koronos_launch_selected_userspace(void) {
         koronos_target_log("[RUN ] ERROR: user init module must select exactly one target=live|installer|recovery");
         return -2;
     }
+    /* The bootstrap VFS seeds /etc/os-release and a volatile /tmp.
+       It is deliberately not reported as a persistent block-backed root. */
+    if (koronos_vfs_init()!=0 || koronos_vfs_mount_tmpfs()!=0) {
+        koronos_target_log("[VFS] bootstrap store/tmpfs initialization failed");
+        return -12;
+    }
+    koronos_vfs_snapshot vfs_state{};
+    if (koronos_vfs_get_snapshot(&vfs_state)!=0 || !vfs_state.initialized || !vfs_state.tmp_mounted) {
+        koronos_target_log("[VFS] bootstrap store/tmpfs postcondition failed");
+        return -12;
+    }
+    if (koronos_process_fd_init()!=0) {
+        koronos_target_log("[VFS] process descriptor table initialization failed");
+        return -12;
+    }
+    koronos_target_log("[VFS] bootstrap /etc and volatile /tmp ready; persistent block-backed root NOT mounted");
     if (!koronos_address_space_ready()) {
         koronos_target_log("[RUN ] ERROR: address-space/ring-3 backend unavailable");
         return -3;
