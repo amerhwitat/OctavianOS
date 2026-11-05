@@ -48,6 +48,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential gcc g++ cmake \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
             grub2 grub2-common xorriso \
             qemu-system-x86 qemu-system-arm \
             squashfs-tools dosfstools mtools \
@@ -119,10 +120,25 @@ jobs:
           mkdir -p "${BUILD_DIR}/${ARCH}/musl-build"
           cd "${BUILD_DIR}/${ARCH}/musl-build"
           
-          TARGET_TRIPLE=$(case "$ARCH" in
-            x86_64) echo "x86_64-linux-musl" ;;
-            arm64) echo "aarch64-linux-musl" ;;
-          esac)
+          case "$ARCH" in
+            x86_64)
+              TARGET_TRIPLE="x86_64-linux-musl"
+              export CC="x86_64-linux-musl-gcc"
+              # musl-tools supplies no x86_64-linux-musl-ar wrapper.
+              export AR="ar"
+              export RANLIB="ranlib"
+              ;;
+            arm64)
+              TARGET_TRIPLE="aarch64-linux-musl"
+              export CC="aarch64-linux-gnu-gcc"
+              export AR="aarch64-linux-gnu-ar"
+              export RANLIB="aarch64-linux-gnu-ranlib"
+              ;;
+            *) echo "::error::Unsupported architecture: $ARCH"; exit 2 ;;
+          esac
+          command -v "$CC"
+          command -v "$AR"
+          command -v "$RANLIB"
           
           "${CACHE_DIR}/musl-1.2.4/configure" \
             --prefix="${PREFIX}" \
@@ -145,8 +161,31 @@ jobs:
           mkdir -p "${BUILD_DIR}/${ARCH}/init-build"
           cd "${BUILD_DIR}/${ARCH}/init-build"
           
+          case "$ARCH" in
+            x86_64)
+              INIT_CC="gcc"
+              INIT_ASM_CC="gcc"
+              INIT_PROCESSOR="x86_64"
+              INIT_MARCH="x86-64"
+              ;;
+            arm64)
+              INIT_CC="aarch64-linux-gnu-gcc"
+              INIT_ASM_CC="aarch64-linux-gnu-gcc"
+              INIT_PROCESSOR="aarch64"
+              INIT_MARCH="armv8-a"
+              ;;
+            *) echo "::error::Unsupported architecture: $ARCH"; exit 2 ;;
+          esac
+          command -v "$INIT_CC"
+          
           cmake ../../.. \
             -DKORONOS_ARCH="${ARCH}" \
+            -DKORONOS_ARCH_MARCH="${INIT_MARCH}" \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR="${INIT_PROCESSOR}" \
+            -DCMAKE_C_COMPILER="${INIT_CC}" \
+            -DCMAKE_ASM_COMPILER="${INIT_ASM_CC}" \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/${ARCH}/rootfs"
           
