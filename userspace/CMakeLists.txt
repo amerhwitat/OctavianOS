@@ -16,7 +16,6 @@ project(octavian-init C ASM)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS_INIT "-fPIE -fpic -static-pie -fno-stack-protector")
 set(CMAKE_ASM_FLAGS_INIT "-x assembler-with-cpp")
 
 # Architecture detection
@@ -34,17 +33,14 @@ endif()
 
 message(STATUS "Building for architecture: ${KORONOS_ARCH}")
 
-# Architecture-specific entry point
-if(KORONOS_ARCH STREQUAL "x86_64")
-    set(INIT_ENTRY_ASM "init-entry-x86_64.s")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mcmodel=large")
-elseif(KORONOS_ARCH STREQUAL "arm64")
-    set(INIT_ENTRY_ASM "init-entry-arm64.s")
-elseif(KORONOS_ARCH STREQUAL "riscv64")
-    set(INIT_ENTRY_ASM "init-entry-riscv64.s")
-else()
-    message(FATAL_ERROR "Architecture ${KORONOS_ARCH} not yet supported")
+# Only x86-64 currently has a real native Koronos entry/syscall veneer.
+# ARM64 and RISC-V source files and kernel user-entry contracts are not present;
+# do not build placeholder ELFs and advertise them as runnable targets.
+if(NOT KORONOS_ARCH STREQUAL "x86_64")
+    message(FATAL_ERROR "Native Koronos userspace is not implemented for ${KORONOS_ARCH}; refusing to build a placeholder init")
 endif()
+set(INIT_ENTRY_ASM "init-entry-x86_64.s")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mcmodel=large")
 
 # Production init binary
 add_executable(octavian-init
@@ -77,6 +73,8 @@ target_compile_options(octavian-init PRIVATE
     -ffunction-sections      # Allow fine-grained garbage collection
     -fdata-sections
     -O2                      # Optimize for size and speed
+    -fPIE                    # Required for static PIE image
+    -fno-stack-protector     # No TLS/canary runtime before init setup
     -march=${KORONOS_ARCH_MARCH}  # Specific CPU tuning
 )
 
@@ -115,32 +113,17 @@ install(FILES init-systemd-wrapper
     PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
-# CPL3 entry verification
-if(KORONOS_ARCH STREQUAL "x86_64")
-    add_test(NAME verify-x86_64-entry
-        COMMAND bash -c "objdump -d ${CMAKE_CURRENT_BINARY_DIR}/octavian-init | grep -A 20 '_init_entry:' | grep -E '(mov.*cs|and.*3|cmp.*3|je.*fatal)'"
+# Real static-ELF validation. The previous echo-only CTest entries were
+# placeholders and must never count as runtime acceptance.
+include(CTest)
+if(BUILD_TESTING)
+    add_test(
+        NAME init-static-elf-contract
+        COMMAND ${CMAKE_COMMAND}
+            -DINIT_BINARY=$<TARGET_FILE:octavian-init>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_init_elf.cmake
     )
 endif()
-
-# Create test: verify init accepts argc/argv/envp
-add_test(NAME init-startup
-    COMMAND bash -c "echo 'TODO: QEMU boot test'"
-)
-
-# CPL3 acknowledgement test
-add_test(NAME init-cpl3-proof
-    COMMAND bash -c "echo 'TODO: check for [KORONOS_INIT_CPL3_ACKNOWLEDGEMENT] marker in QEMU logs'"
-)
-
-# Process lifecycle test
-add_test(NAME init-process-lifecycle
-    COMMAND bash -c "echo 'TODO: verify fork/exec/waitpid traced in QEMU'"
-)
-
-# Syscall integration test
-add_test(NAME init-syscall-integration
-    COMMAND bash -c "echo 'TODO: verify mount/chdir/getpid calls succeed'"
-)
 
 message(STATUS "Build configuration:")
 message(STATUS "  Architecture: ${KORONOS_ARCH}")
