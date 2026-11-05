@@ -88,12 +88,12 @@ target_compile_definitions(octavian-init PRIVATE
 # here: CMake's POST_BUILD COMMAND does not interpret shell metacharacters.
 # Install into rootfs
 install(TARGETS octavian-init
-    RUNTIME DESTINATION /sbin
+    RUNTIME DESTINATION sbin
 )
 
 # Install systemd compatibility wrapper
 install(FILES init-systemd-wrapper
-    DESTINATION /sbin
+    DESTINATION sbin
     PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
