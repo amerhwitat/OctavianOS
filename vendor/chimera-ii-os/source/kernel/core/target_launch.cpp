@@ -123,6 +123,11 @@ extern "C" uint32_t koronos_target_userspace_ready(void) { return ready_seen; }
 extern "C" uint32_t koronos_target_active_pid(void) {
     return active_target != TARGET_NONE ? active_pid : 0u;
 }
+extern "C" int koronos_target_validate_user_buffer(uint64_t address,uint64_t length,uint32_t write_access) {
+    if (!active_root || length > 65536u) return 0;
+    if (!length) return 1;
+    return koronos_address_space_validate_user_range(active_root,address,length,write_access)==0 ? 1 : 0;
+}
 static uint32_t validate_active_user_context(uint64_t user_rip) {
     if (active_target == TARGET_NONE || !active_pid || !active_root) return 0u;
     if (user_rip < 0x0000000100000000ull || user_rip >= 0x0000800000000000ull) return 0u;
