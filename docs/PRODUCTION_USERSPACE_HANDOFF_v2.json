@@ -1,0 +1,275 @@
+{
+  "title": "OctavianOS / Koronos Production Userspace Handoff Contract v2.0",
+  "description": "Implements real CPL3 init with genuine syscalls, aligned with Linux ABI and proven init workflow",
+  "alignment": "Linux kernel (5.10+), musl libc, systemd, glibc",
+  "status": "ALIGNED - ready for implementation",
+  
+  "kernel_prerequisites": {
+    "address_space": {
+      "requirement": "Process-owned CR3 (page tables)",
+      "verification": "Kernel owns all PTEs, user has read-only access to own directory",
+      "alignment": "Linux: cr3 per task_struct, CFI guard, SMAP/SMEP"
+    },
+    "privilege_entry": {
+      "requirement": "Real ring-3 trampoline (GDT user descriptors, TSS, RSP0)",
+      "verification": "IRET/SYSEXIT transition with canonical user stack address",
+      "alignment": "Linux x86-64: set_tss_desc, load_TR, LSTAR MSR"
+    },
+    "syscall_gateway": {
+      "requirement": "SYSCALL/SYSRET or interrupt gate at CPL 0",
+      "verification": "SYSCALL from CPL3 enters verified kernel boundary",
+      "alignment": "Linux x86-64: MSR_LSTAR, MSR_CSTAR, MSR_SYSCALL_MASK"
+    },
+    "signal_delivery": {
+      "requirement": "Real POSIX signal delivery (SIGCHLD, SIGTERM, SIGKILL)",
+      "verification": "Signals delivered to CPL3, handler runs at CPL3, signal return via SIGRETURN",
+      "alignment": "Linux: signal frame layout, SA_RESTART semantics"
+    }
+  },
+  
+  "init_process": {
+    "executable": "/sbin/octavian-init",
+    "entry_point": "_init_entry",
+    "cpl_required": 3,
+    "pid_required": 1,
+    "arch_support": ["x86_64", "arm64", "riscv64"],
+    
+    "entry_requirements": {
+      "cpu_state": {
+        "rax": 0,
+        "rbx": "kernel_api_revision",
+        "rcx": "handoff_flags",
+        "rsi": "kernel_info_ptr",
+        "rdi": "argc",
+        "rsp": "valid_ring3_stack",
+        "cs": "0x23 (ring-3 code)",
+        "ss": "0x2b (ring-3 stack)",
+        "rflags": "0x202 (IF=1, IOPL=0)"
+      },
+      "memory": {
+        "kernel_mappings": "canonical high half preserved",
+        "user_stack": "16-byte aligned, guard pages below",
+        "libc_required": "musl (static), glibc (static), or minimal libc"
+      },
+      "stack_setup": {
+        "argc": "argument count",
+        "argv": "pointer to argument strings",
+        "envp": "pointer to environment strings",
+        "auxiliary": "AT_ENTRY, AT_PHDR, AT_BASE, AT_PHNUM, AT_PAGESZ"
+      }
+    },
+    
+    "initialization_sequence": {
+      "step_1_cpl3_acknowledgement": {
+        "action": "Call getpid(), verify PID==1, emit CPL3 proof marker",
+        "output": "[KORONOS_INIT_CPL3_ACKNOWLEDGEMENT] PID=1",
+        "evidence": "Output appears in QEMU console / serial log",
+        "syscall": "KORONOS_SYSCALL_GETPID (20)",
+        "verification": "Proves init is running at CPL3 with real PID"
+      },
+      "step_2_init_ready": {
+        "action": "Emit readiness marker after CPL3 proof",
+        "output": "[KORONOS_INIT_READY] PID=1 CPL=3",
+        "evidence": "Readiness marker in logs after CPL3 acknowledgement",
+        "timeout": "1 second from kernel entry"
+      },
+      "step_3_filesystem_mount": {
+        "action": "Mount essential filesystems (proof of real syscalls)",
+        "filesystems": {
+          "/dev": "devtmpfs",
+          "/proc": "proc",
+          "/sys": "sysfs",
+          "/tmp": "tmpfs"
+        },
+        "syscall": "KORONOS_SYSCALL_MOUNT (165)",
+        "failure_handling": "Log warning, continue (non-fatal)"
+      },
+      "step_4_parse_cmdline": {
+        "action": "Read kernel command line, find 'init=' target",
+        "default": "systemd",
+        "source": "argc/argv from kernel handoff",
+        "supported_targets": ["systemd", "openrc", "s6", "runit"]
+      },
+      "step_5_fork_manager": {
+        "action": "fork() and exec() service manager",
+        "syscall_fork": "KORONOS_SYSCALL_FORK (57)",
+        "syscall_exec": "KORONOS_SYSCALL_EXEC (59)",
+        "evidence": "Manager process visible in QEMU ps output",
+        "child_pid": "2 (first spawned process)"
+      },
+      "step_6_wait_manager": {
+        "action": "waitpid() for service manager to stabilize",
+        "syscall": "KORONOS_SYSCALL_WAIT4 (114)",
+        "signal_handlers": ["SIGCHLD (17) - reap children"]
+      },
+      "step_7_idle_reaping": {
+        "action": "Infinite loop reaping children (normal init state)",
+        "purpose": "Zombie reaping, signal handling",
+        "evidence": "Init PID=1 in QEMU ps, no exit until shutdown"
+      }
+    }
+  },
+  
+  "syscall_abi": {
+    "architecture": "x86-64",
+    "calling_convention": "System V AMD64 ABI",
+    "registers": {
+      "syscall_nr": "rdi (first argument -> rax)",
+      "arg1": "rsi -> rdi",
+      "arg2": "rdx",
+      "arg3": "rcx -> rdx",
+      "arg4": "r8 -> r10",
+      "arg5": "r9",
+      "arg6": "[rsp+8]"
+    },
+    "return_value": "rax (-errno on error, or value)",
+    "preserved": ["rbx", "rsp", "rbp", "r12-r15"],
+    "clobbered": ["rax", "rcx", "rdx", "rsi", "rdi", "r8-r11"],
+    
+    "syscall_numbers": {
+      "GETPID": 20,
+      "EXIT": 60,
+      "EXIT_GROUP": 231,
+      "FORK": 57,
+      "EXEC": 59,
+      "WAIT4": 114,
+      "SIGNAL": 67,
+      "MOUNT": 165,
+      "CHDIR": 80,
+      "SIGACTION": 13,
+      "SIGPROCMASK": 14
+    },
+    
+    "real_implementations": {
+      "getpid": {
+        "signature": "pid_t getpid(void)",
+        "syscall": 20,
+        "implementation": "Kernel returns current process PID",
+        "not_a_stub": "Real kernel value, not cache"
+      },
+      "fork": {
+        "signature": "pid_t fork(void)",
+        "syscall": 57,
+        "implementation": "Kernel clones process, returns child PID to parent and 0 to child",
+        "address_space": "New CR3 allocated",
+        "return_values": "Child PID (parent), 0 (child), -errno (error)"
+      },
+      "execve": {
+        "signature": "int execve(const char *path, char *const argv[], char *const envp[])",
+        "syscall": 59,
+        "implementation": "Kernel loads ELF, replaces address space",
+        "permissions": "Loaded ELF must be readable executable",
+        "return": "Never returns on success, -errno on error"
+      },
+      "waitpid": {
+        "signature": "pid_t waitpid(pid_t pid, int *wstatus, int options)",
+        "syscall": 114,
+        "implementation": "Kernel blocks until child exits or signal delivered",
+        "WNOHANG": "Return immediately if child not yet exited",
+        "return": "Child PID, 0 (WNOHANG + not yet exited), -errno"
+      },
+      "mount": {
+        "signature": "int mount(const char *src, const char *tgt, const char *fstype, ulong flags, const void *data)",
+        "syscall": 165,
+        "implementation": "Kernel mounts filesystem at target path",
+        "namespace": "Target process namespace (init's is root)",
+        "return": "0 (success), -errno (error)"
+      },
+      "signal": {
+        "signature": "sighandler_t signal(int signum, sighandler_t handler)",
+        "syscall": 67,
+        "implementation": "Kernel registers signal handler for CPL3 delivery",
+        "delivery": "Signal interrupts CPL3 code, calls handler at CPL3, SIGRETURN returns"
+      }
+    }
+  },
+  
+  "verification_workflow": {
+    "stage_1_cpl3_proof": {
+      "requirement": "[KORONOS_INIT_CPL3_ACKNOWLEDGEMENT] PID=1 in logs",
+      "gate": "MUST PASS before stage 2",
+      "evidence": "Serial output / debugcon",
+      "failure": "Init not running at CPL3"
+    },
+    "stage_2_init_ready": {
+      "requirement": "[KORONOS_INIT_READY] PID=1 CPL=3 in logs",
+      "gate": "MUST PASS before stage 3",
+      "evidence": "Serial output after CPL3 acknowledgement",
+      "failure": "Init reached but not ready (syscalls not working)"
+    },
+    "stage_3_filesystem_mounts": {
+      "requirement": "getconf _NPROCESSORS_ONLN, df (proof of /proc, /sys mounts)",
+      "gate": "MUST PASS before stage 4",
+      "evidence": "QEMU shell commands after boot",
+      "failure": "Mount syscall not working"
+    },
+    "stage_4_service_manager": {
+      "requirement": "systemd/openrc running as PID 2, init in reaping loop",
+      "gate": "MUST PASS before stage 5",
+      "evidence": "ps aux output shows init and manager",
+      "failure": "fork/exec not working"
+    },
+    "stage_5_child_reaping": {
+      "requirement": "No zombie processes, SIGCHLD handler active",
+      "gate": "MUST PASS for production",
+      "evidence": "ps aux shows no <defunct> init children",
+      "failure": "waitpid or signal handlers broken"
+    },
+    "stage_6_aurora_startup": {
+      "requirement": "Aurora desktop/kiosk running, GUI visible",
+      "gate": "MUST PASS before Live image release",
+      "evidence": "QEMU screenshot or VNC connection",
+      "failure": "Service manager not starting Aurora"
+    },
+    "stage_7_six_target_matrix": {
+      "requirement": "Live + Installer + Recovery × BIOS + UEFI = 6 cases",
+      "gate": "MUST PASS all 6 before ISO release",
+      "evidence": "All 6 verification scripts pass",
+      "failure": "One or more target/firmware combinations broken"
+    }
+  },
+  
+  "alignment_with_linux": {
+    "init_process": {
+      "octavian_approach": "CPL3 init calls real syscalls, manages process tree, reaps zombies",
+      "linux_equivalent": "systemd (PID 1), or sysvinit, or runit",
+      "difference": "Octavian init is minimal init launcher, delegates to systemd/openrc",
+      "syscall_compat": "Syscall numbers match Linux x86-64 (glibc/musl compatible)"
+    },
+    "filesystems": {
+      "octavian": "Mount devtmpfs, proc, sysfs, tmpfs in init",
+      "linux": "Same (done by early init or PID 1)",
+      "standards": "FHS 3.0 - /dev, /proc, /sys, /tmp"
+    },
+    "signal_handling": {
+      "octavian": "SIGCHLD handler reaps children",
+      "linux": "POSIX signal delivery, handlers at CPL3",
+      "standards": "POSIX.1-2008"
+    },
+    "libc_integration": {
+      "octavian": "Static musl libc or glibc",
+      "linux": "Dynamic or static depending on distro",
+      "compat": "octavian-init is self-contained, no runtime dependencies"
+    }
+  },
+  
+  "known_limitations": {
+    "single_init_target": "Only one service manager executable at a time",
+    "no_multi_user": "No per-user services, only system-wide targets",
+    "minimal_libc": "musl is 2MB, glibc is larger - production may need more",
+    "no_cgroups": "Process groups managed by kernel directly, no cgroups v1/v2",
+    "no_namespaces": "No containers - Koronos may add later"
+  },
+  
+  "production_readiness_checklist": {
+    "kernel_ready": false,
+    "init_executable_builds": false,
+    "cpl3_acknowledgement_works": false,
+    "real_syscalls_work": false,
+    "mount_syscall_works": false,
+    "fork_exec_wait_work": false,
+    "signal_delivery_works": false,
+    "all_6_targets_pass": false,
+    "production_iso_release": false
+  }
+}
