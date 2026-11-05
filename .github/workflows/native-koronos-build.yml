@@ -7,6 +7,7 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/unit/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
@@ -63,6 +64,8 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/unit/**'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/chimera-full-iso.yml'
