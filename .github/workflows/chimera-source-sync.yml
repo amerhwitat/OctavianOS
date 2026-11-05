@@ -125,7 +125,7 @@ jobs:
           # stale-ref force-push races when scheduled/manual syncs overlap or
           # an older sync branch is updated by another workflow.
           branch: chore/chimera-source-sync
-          branch-suffix: short-commit
+          branch-suffix: timestamp
           delete-branch: true
           commit-message: "Sync vendored ChimeraIIOS source snapshot"
           title: "Sync vendored ChimeraIIOS source snapshot"
