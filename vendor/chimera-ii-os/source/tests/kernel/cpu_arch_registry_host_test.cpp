@@ -1,4 +1,5 @@
 #include "chimera/cpu_arch_registry.h"
+#include "cpu_arch_registry.generated.h"
 #include <assert.h>
 #include <string.h>
 int main(void) {
