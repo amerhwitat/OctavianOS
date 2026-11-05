@@ -46,6 +46,7 @@ has_fs_driver() {
 }
 has_block_device() {
   for pattern in sd[a-z] vd[a-z] xvd[a-z] nvme[0-9]n[0-9] mmcblk[0-9] virtio[0-9]; do
+    # The glob is intentionally limited to whole-disk device names.
     for device in "$ROOT"/dev/$pattern; do
       [ -b "$device" ] && return 0
     done
@@ -59,18 +60,25 @@ progress 20 'Hardware' 'Checking storage inventory and block-device access'
 
 missing=''
 for tool in lsblk blkid mount umount; do
-  if ! find_tool "$tool" >/dev/null 2>&1; then missing="$missing $tool"; fi
+  if ! find_tool "$tool" >/dev/null 2>&1; then
+    missing="$missing $tool"
+  fi
 done
 if ! find_tool sfdisk >/dev/null 2>&1 && ! find_tool parted >/dev/null 2>&1; then
   missing="$missing sfdisk|parted"
 fi
-if [ -n "$missing" ]; then log "[INST][BLOCKED] Required storage utilities unavailable:$missing"; fi
+
+if [ -n "$missing" ]; then
+  log "[INST][BLOCKED] Required storage utilities unavailable:$missing"
+fi
 if ! has_block_device; then
   log '[INST][BLOCKED] No supported whole-disk block device found under /dev'
   missing="$missing block-device"
 fi
 
 available=''
+# A filesystem is offered only when both its kernel driver is currently
+# registered and a matching formatter is present in the live environment.
 if has_fs_driver ext4 && find_tool mkfs.ext4 >/dev/null 2>&1; then available="$available ext4"; fi
 if has_fs_driver xfs && find_tool mkfs.xfs >/dev/null 2>&1; then available="$available xfs"; fi
 if has_fs_driver btrfs && find_tool mkfs.btrfs >/dev/null 2>&1; then available="$available btrfs"; fi
