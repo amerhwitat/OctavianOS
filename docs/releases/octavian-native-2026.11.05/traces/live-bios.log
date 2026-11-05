@@ -1,0 +1,192 @@
+ELB[KRN ] koronos_boot entered
+CHIMERA II OS / KORONOS
+[BOOT] Boot handoff: 
+OK
+[PROG] [#-------------------] 5% Koronos boot context accepted
+[HW  ] Initializing hardware...
+[AI  ] Knowledge database staged: 269 entries, 110668 bytes
+[MB2 ] Scanned Multiboot2 modules
+[MM  ] Verified four-GiB supervisor identity map
+[MM  ] Physical frame allocator initialized; free 4 KiB frames: 
+129728
+[MM  ] Frame allocation/free self-test passed
+[PROG] [###-----------------] 15% Multiboot2 modules scanned
+[MB2 ] Count: 
+4
+[MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed
+[ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance
+[MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map
+[PROG] [#####---------------] 25% Architecture discovery and address-space safety checks complete
+[CPU ] 
+AuthenticAMD
+[CPU ] Logical CPUs: 
+00000001
+[VM  ] Hypervisor detected: 
+00000001
+[SCH ] Initializing scheduler...
+[PROG] [#######-------------] 35% Scheduler and learning runtime initialized
+[IO  ] Initializing virtual I/O drivers...
+[PROG] [#########-----------] 45% Display and PCI driver registries populated
+[HW  ] Architecture profile ready
+[HW  ] Native N-bit mode: 
+64
+[HW  ] Best N-bit mode: 
+64
+[FW  ] Firmware: 
+BIOS
+[FW  ] ACPI present: 
+yes
+[FW  ] SMBIOS present: 
+no
+[FW  ] UEFI system table: 
+absent
+[PCI ] Enumerated devices: 
+[PROG] [###########---------] 55% Hardware inventory enumerated
+6
+[DRV ] Native/compatible bindings: 
+6
+[DRV ] Active driver set: 
+[PROG] [#############-------] 65% Driver probing and start requests completed
+1
+[PROC] Protected-process admission layer ready (load-plan mode)
+[PROG] [###############-----] 75% Process admission and module registries initialized
+[PLT ] Native platform feature registry ready
+[KRN ] KORONOS READY
+[KRN ] KORONOS READY
+[IO  ] Console: VGA text + COM1
+[SCH ] Bootstrap tasks submitted
+[SCH ] console/module/live/installer/recovery/Kore services registered
+[PROG] [##################--] 90% Bootstrap services registered
+[RUN ] Starting cooperative scheduler runtime...
+[RUN ] Scheduler now has runnable bootstrap tasks
+[RUN ] Entering Koronos scheduler loop
+[PROG] [####################] 100% Kernel initialization complete; scheduler loop entered (not desktop readiness)
+C[TASK] Console service online
+[KORE] Service orchestration online
+[KORE] Core storage/security/logging services active
+[TASK] Module manager online
+[MB2 ] Module registry: 
+4
+ module(s)
+[MB2 ] type=
+OTHER
+[MB2 ] cmdline=
+chimera-user-init-elf target=live
+[MB2 ] base=
+003EF000
+[MB2 ] size=
+00001558
+[MB2 ] type=
+LIVE INITRAMFS
+[MB2 ] cmdline=
+chimera-live-initramfs
+[MB2 ] base=
+003F1000
+[MB2 ] size=
+0011BE00
+[MB2 ] type=
+LIVE MANIFEST
+[MB2 ] cmdline=
+chimera-live-manifest
+[MB2 ] base=
+0050D000
+[MB2 ] size=
+00000117
+[MB2 ] type=
+OTHER
+[MB2 ] cmdline=
+ai-knowledge-db
+[MB2 ] base=
+0050E000
+[MB2 ] size=
+0001B04C
+[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline
+[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline
+USER INIT SYSCALL: target=live init_pid=1
+USER INIT SYSCALL: target=live init_pid=1
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+USERSPACE READY: target=live init_pid=1
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+LIVE: native console session banner
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+LIVE: ring-3 text console active (no graphical session)
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+LIVE: scheduler tick count=[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+0[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+
+[SYSC] entered native user syscall dispatcher
+[SYSC] entered native user syscall dispatcher
+[SYSC] accepted user syscall context
+[SYSC] accepted user syscall context
+[SYSC] userspace exit syscall received
+[SYSC] userspace exit syscall received
+[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly
+[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly
+[INST] Installer target not selected: no installer modules
+[REC ] Recovery target not selected: no recovery initramfs module
+[MON ] ===== REAL-TIME KORONOS TASKS =====
+[MON ] CPUs: 
+1
+[MON ] Runnable: 
+0
+[PROC] id=1 cpu=0 state=BLOCKED priority=100 runs=1
+[PROC] id=2 cpu=0 state=BLOCKED priority=90 runs=1
+[PROC] id=3 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=4 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=5 cpu=0 state=BLOCKED priority=95 runs=1
+[PROC] id=6 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=7 cpu=0 state=RUNNING priority=60 runs=0
+[MON ] ===== REAL-TIME KORONOS TASKS =====
+[MON ] CPUs: 
+1
+[MON ] Runnable: 
+0
+[PROC] id=1 cpu=0 state=BLOCKED priority=100 runs=1
+[PROC] id=2 cpu=0 state=BLOCKED priority=90 runs=1
+[PROC] id=3 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=4 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=5 cpu=0 state=BLOCKED priority=95 runs=1
+[PROC] id=6 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=7 cpu=0 state=RUNNING priority=60 runs=1
+[MON ] ===== REAL-TIME KORONOS TASKS =====
+[MON ] CPUs: 
+1
+[MON ] Runnable: 
+0
+[PROC] id=1 cpu=0 state=BLOCKED priority=100 runs=1
+[PROC] id=2 cpu=0 state=BLOCKED priority=90 runs=1
+[PROC] id=3 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=4 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=5 cpu=0 state=BLOCKED priority=95 runs=1
+[PROC] id=6 cpu=0 state=BLOCKED priority=80 runs=1
+[PROC] id=7 cpu=0 state=RUNNING priority=60 runs=2
