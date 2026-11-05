@@ -29,15 +29,18 @@
 #include <errno.h>
 
 /* Koronos syscall ABIs - must match kernel definitions */
-#define KORONOS_SYSCALL_GETPID    20
-#define KORONOS_SYSCALL_EXIT      60
+/* Raw Linux x86-64 syscall numbers; the kernel translates these to the
+ * stable Chimera semantic ABI before dispatch. Unsupported calls remain
+ * ENOSYS until their process/VFS implementations are present. */
+#define KORONOS_SYSCALL_GETPID     39
+#define KORONOS_SYSCALL_EXIT       60
 #define KORONOS_SYSCALL_EXIT_GROUP 231
-#define KORONOS_SYSCALL_FORK      57
-#define KORONOS_SYSCALL_EXEC      59
-#define KORONOS_SYSCALL_WAIT4     114
-#define KORONOS_SYSCALL_SIGNAL    67
-#define KORONOS_SYSCALL_MOUNT     165
-#define KORONOS_SYSCALL_CHDIR     80
+#define KORONOS_SYSCALL_FORK       57
+#define KORONOS_SYSCALL_EXEC       59
+#define KORONOS_SYSCALL_WAIT4      61
+#define KORONOS_SYSCALL_SIGNAL     13
+#define KORONOS_SYSCALL_MOUNT      165
+#define KORONOS_SYSCALL_CHDIR      80
 
 /* Declare real syscall entry points */
 extern long koronos_syscall(long nr, long a1, long a2, long a3, long a4, long a5, long a6);
@@ -88,8 +91,19 @@ int chdir(const char *path) {
     return (int)syscall1(KORONOS_SYSCALL_CHDIR, (long)path);
 }
 
+/* Verify the actual privilege level before emitting a CPL3 proof. */
+static int running_at_cpl3(void) {
+    unsigned short cs = 0;
+    __asm__ volatile ("mov %%cs, %0" : "=r"(cs));
+    return (cs & 3u) == 3u;
+}
+
 /* Acknowledge real CPL3 origin to parent kernel verifier */
 void emit_cpl3_acknowledgement(void) {
+    if (!running_at_cpl3()) {
+        fprintf(stderr, "[init] ERROR: init entered outside CPL3\\n");
+        exit(78);
+    }
     pid_t init_pid = getpid();
     
     /* Must be called from ring-3 context with real PID */
@@ -169,9 +183,8 @@ int main(int argc, char *argv[], char *envp[]) {
     /* Emit acknowledgement to kernel verifier (proof of CPL3 origin) */
     emit_cpl3_acknowledgement();
     
-    /* Send init readiness marker */
-    fprintf(stdout, "[KORONOS_INIT_READY] PID=%d CPL=3\n", init_pid);
-    fflush(stdout);
+    /* No USERSPACE READY marker is emitted here. Filesystem mounts,
+     * service-manager startup, and target health must pass first. */
     
     /* Mount essential filesystems (proof of real syscall execution) */
     fprintf(stdout, "[init] mounting essential filesystems\n");
