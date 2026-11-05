@@ -112,8 +112,8 @@ jobs:
         run: |
           set -x
           ARCH="${{ matrix.arch }}"
-          BUILD_DIR="build/iso"
-          CACHE_DIR=".iso-build-cache"
+          BUILD_DIR="${GITHUB_WORKSPACE}/build/iso"
+          CACHE_DIR="${GITHUB_WORKSPACE}/.iso-build-cache"
           PREFIX="${BUILD_DIR}/${ARCH}/musl"
           
           mkdir -p "${BUILD_DIR}/${ARCH}/musl-build"
