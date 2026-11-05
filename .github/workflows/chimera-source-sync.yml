@@ -49,6 +49,11 @@ jobs:
             exit 1
           }
           echo "Verified exact upstream revision: $recorded"
+          {
+            echo "### ChimeraIIOS source snapshot"
+            echo "- Exact upstream commit: `$recorded`"
+            echo "- Snapshot inventory: strict SHA-256/path parity"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
