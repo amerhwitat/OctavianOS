@@ -134,6 +134,23 @@ generate_png_fallback "$OUT/backgrounds/desktop.png" "CHIMERA II OS" "AURORA DES
 generate_png_fallback "$OUT/backgrounds/showcase.png" "CHIMERA II OS" "AURORA SHOWCASE"
 generate_png_fallback "$OUT/menus/default.png" "CHIMERA II OS" "AURORA BOOT MENU"
 
+# Optional Octavian firmware artwork is injected by the Octavian ISO workflow.
+# Validate it as a real PNG before replacing the deterministic boot background.
+if [[ -n "${CHIMERA_OCTAVIAN_BOOT_ARTWORK:-}" ]]; then
+  python3 - "${CHIMERA_OCTAVIAN_BOOT_ARTWORK}" <<'PYPNG'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+data = p.read_bytes()
+if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) <= 1024:
+    raise SystemExit(f"invalid Octavian boot artwork: {p}")
+PYPNG
+  cp -f -- "$CHIMERA_OCTAVIAN_BOOT_ARTWORK" "$OUT/backgrounds/boot.png"
+fi
+if [[ -n "${CHIMERA_OCTAVIAN_ARTWORK_MANIFEST:-}" ]]; then
+  test -s "$CHIMERA_OCTAVIAN_ARTWORK_MANIFEST"
+  cp -f -- "$CHIMERA_OCTAVIAN_ARTWORK_MANIFEST" "$OUT/octavian-artwork-manifest.json"
+fi
+
 for spec in \
   "splash/aurora-splash.png aurora-splash.svg" \
   "installer/aurora-installer.png aurora-installer.svg" \
