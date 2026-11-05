@@ -157,7 +157,7 @@ jobs:
           set -x
           ARCH="${{ matrix.arch }}"
           BUILD_DIR="${GITHUB_WORKSPACE}/build/iso"
-          SOURCE_DIR="${GITHUB_WORKSPACE}"
+          SOURCE_DIR="${GITHUB_WORKSPACE}/userspace"
           
           mkdir -p "${BUILD_DIR}/${ARCH}/init-build"
           cd "${BUILD_DIR}/${ARCH}/init-build"
@@ -188,7 +188,7 @@ jobs:
             -DCMAKE_ASM_COMPILER="${INIT_ASM_CC}" \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/${BUILD_DIR}/${ARCH}/rootfs"
+            -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/${ARCH}/rootfs"
           
           make -j${{ steps.env.outputs.BUILD_JOBS }}
           make install
