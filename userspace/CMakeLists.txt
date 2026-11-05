@@ -84,17 +84,8 @@ target_compile_definitions(octavian-init PRIVATE
     KORONOS_SYSCALL_CHDIR=80
 )
 
-# Production verification
-add_custom_command(TARGET octavian-init POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "=== Init binary verification ==="
-    COMMAND file $<TARGET_FILE:octavian-init>
-    COMMAND nm -nt $<TARGET_FILE:octavian-init> | head -20
-    COMMAND ${CMAKE_COMMAND} -E echo "=== Checking for real syscall symbols ==="
-    COMMAND nm $<TARGET_FILE:octavian-init> | grep -E "(getpid|fork|exec|waitpid|mount|chdir|exit|syscall)" || true
-    COMMAND ${CMAKE_COMMAND} -E echo "=== Verifying no glibc dynamic symbols ==="
-    COMMAND ! nm $<TARGET_FILE:octavian-init> | grep -E "@GLIBC" || echo "WARNING: glibc symbols found"
-)
-
+# ELF validation is performed by the CTest script below. Avoid shell pipelines
+# here: CMake's POST_BUILD COMMAND does not interpret shell metacharacters.
 # Install into rootfs
 install(TARGETS octavian-init
     RUNTIME DESTINATION /sbin
