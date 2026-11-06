@@ -434,11 +434,11 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
-      - name: Upload Live, Installer, and Recovery QEMU traces
+      - name: Upload production ISO and isolated ring-3 probe traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: octavianos-full-iso-qemu-trace
+          name: octavianos-ring3-init-probe-traces
           path: |
             vendor/chimera-ii-os/source/build/qemu-smoke/live-probe-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
@@ -480,7 +480,7 @@ jobs:
         with:
           name: octavianos-full-iso-qemu-trace
           path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+      - name: Require CPL3 syscall and target readiness markers for every probe
         run: |
           set -uo pipefail
           result=0
@@ -489,8 +489,19 @@ jobs:
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
+  production-runtime-acceptance:
+    name: Fail-closed production runtime release gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-koronos, verify-userspace-handoff, production-runtime-acceptance]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production evidence verifier
+        uses: actions/checkout@v4
+      - name: Require reviewed production runtime evidence
+        run: python3 tests/migration/verify-production-runtime-acceptance.py
+
   publish-native-iso:
-    name: Publish prerelease only after userspace acceptance
+    name: Publish prerelease only after production runtime acceptance
     needs: [build-koronos, verify-userspace-handoff]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -512,7 +523,7 @@ jobs:
           tag="native-iso-${GITHUB_SHA::12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --clobber
-            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
+            gh release edit "$tag" --draft=false --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after reviewed production runtime evidence, including the six-case BIOS/UEFI matrix, real installer persistence, recovery repair, desktop runtime, SMP, and architecture gates passes."
           else
             gh release create "$tag" output.iso output.iso.sha256 ISO-BOOT-REPORT-CI.txt --target "$GITHUB_SHA" --prerelease --title "OctavianOS native ISO candidate (${GITHUB_SHA::7})" --notes "Development prerelease. Published only after Live, Installer, and Recovery userspace handoff gates pass."
           fi
