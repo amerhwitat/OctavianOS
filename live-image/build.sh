@@ -178,7 +178,12 @@ if [ ! -s "$ICON_SOURCE" ]; then
   echo "ERROR: embedded Aurora SVG icon source is missing: $ICON_SOURCE" >&2
   exit 2
 fi
-python3 "$HERE/lib/export-aurora-icons.py" --source "$ICON_SOURCE" --output "$ICON_THEME"
+ICON_CATALOG="$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora/icons/icon_theme.json"
+if [ ! -s "$ICON_CATALOG" ]; then
+  echo "ERROR: Aurora icon catalogue is missing: $ICON_CATALOG" >&2
+  exit 2
+fi
+python3 "$HERE/lib/export-aurora-icons.py" --source "$ICON_SOURCE" --catalog "$ICON_CATALOG" --output "$ICON_THEME"
 test -s "$ICON_THEME/manifest.json"
 mkdir -p "$ICON_ASSETS"
 cp -a "$ICON_THEME/scalable/apps/." "$ICON_ASSETS/"
