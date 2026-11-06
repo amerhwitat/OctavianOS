@@ -332,6 +332,32 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      - name: QEMU Live ring-3 init handoff probe (text-console probe only)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke/live-tree/boot/grub" "$smoke/live-tree/boot/targets"
+          cp -a boot/iso/dist/iso/. "$smoke/live-tree/"
+          cp build/koronos/x86_64/target-init-live.elf "$smoke/live-tree/boot/targets/"
+          cat > "$smoke/live-tree/boot/grub/grub.cfg" <<'GRUB'
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Live ring-3 init probe" --id live {
+            multiboot2 /boot/koronos/koronos.elf target=live
+            module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live
+            boot
+          }
+          GRUB
+          grub-mkrescue -o "$smoke/live-probe.iso" "$smoke/live-tree"
+          set +e
+          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/live-probe.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/live-probe-debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/live-probe-debugcon.log" || { echo "::error::Live probe QEMU trace missing (exit $qemu_status)"; exit 1; }
+          grep -Fq 'USER INIT SYSCALL: target=live init_pid=' "$smoke/live-probe-debugcon.log" || { cat "$smoke/live-probe-debugcon.log"; echo "::error::Live CPL3 syscall acknowledgement missing"; exit 1; }
+          grep -Fq 'USERSPACE READY: target=live init_pid=' "$smoke/live-probe-debugcon.log" || { cat "$smoke/live-probe-debugcon.log"; echo "::error::Live user-init readiness missing"; exit 1; }
       - name: QEMU recovery ring-3 init handoff probe (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -339,6 +365,8 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke/recovery-tree/boot/grub"
           cp -a boot/iso/dist/iso/. "$smoke/recovery-tree/"
+          mkdir -p "$smoke/recovery-tree/boot/targets"
+          cp build/koronos/x86_64/target-init-recovery.elf "$smoke/recovery-tree/boot/targets/"
           cat > "$smoke/recovery-tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
@@ -367,6 +395,8 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke/installer-tree/boot/grub"
           cp -a boot/iso/dist/iso/. "$smoke/installer-tree/"
+          mkdir -p "$smoke/installer-tree/boot/targets"
+          cp build/koronos/x86_64/target-init-installer.elf "$smoke/installer-tree/boot/targets/"
           cat > "$smoke/installer-tree/boot/grub/grub.cfg" <<'GRUB'
           set timeout=0
           set default=0
@@ -410,6 +440,7 @@ jobs:
         with:
           name: octavianos-full-iso-qemu-trace
           path: |
+            vendor/chimera-ii-os/source/build/qemu-smoke/live-probe-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
@@ -453,7 +484,7 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py live trace/live-probe-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
