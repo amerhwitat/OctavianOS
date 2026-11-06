@@ -155,6 +155,38 @@ rm -rf "$WORK"; mkdir -p "$WORK"
 # cp -a keeps ownership/modes and is markedly faster than a tar pipe on this tree;
 # device nodes are rebuilt empty because CAP_MKNOD is unavailable in the builder.
 cp -a "$BASE/." "$WORK/" 2>/dev/null || true
+# Re-scan the copied target rootfs, rather than trusting a possibly cached
+# base-rootfs report. This makes the provider manifest describe the exact
+# filesystem that will be packed into the ISO.
+chroot "$WORK" /bin/bash -s <<'PROVIDER_SCAN'
+set -euo pipefail
+mkdir -p /usr/share/chimera/aurora
+: > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+for item in \
+  "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+  "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+  "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
+  "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
+  "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+  id="${item%%:*}"
+  binary="${item#*:}"
+  if path="$(command -v "$binary" 2>/dev/null)" && [ -n "$path" ]; then
+    if readelf -h "$path" >/dev/null 2>&1; then
+      machine="$(readelf -h "$path" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')"
+      printf '%s\tverified-elf\t%s\t%s\n' "$id" "$path" "$machine" \
+        >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+    else
+      printf '%s\tprovider-present-non-elf\t%s\n' "$id" "$path" \
+        >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+    fi
+  else
+    printf '%s\tunavailable\t%s\n' "$id" "$binary" \
+      >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+  fi
+done
+echo "Target-rootfs provider scan:"
+cat /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+PROVIDER_SCAN
 # Keep the same terminal/shell catalogue in both live editions, independently
 # of which optional provider packages are available on this build architecture.
 install -d "$WORK/usr/share/chimera/aurora/terminals" "$WORK/usr/share/chimera/aurora/shells"
