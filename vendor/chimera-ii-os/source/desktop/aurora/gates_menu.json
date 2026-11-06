@@ -86,7 +86,8 @@
     "diagnostics_entry": "/boot/jasper/diagnostics.cfg",
     "vmlinuz": false,
     "menu_policy": {
-      "timeout_seconds": 60,
+      "timeout_seconds": 300,
+      "submenu_timeout_seconds": 120,
       "timeout_style": "menu",
       "default_entry": "live",
       "on_timeout": "boot_default"
