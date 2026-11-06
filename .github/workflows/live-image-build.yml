@@ -60,6 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
+          bash -n live-image/lib/stage-command-isa-catalogs.sh live-image/build.sh
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -113,6 +114,22 @@ jobs:
           test -x "$root/usr/local/bin/aurora-session"
           test -s "$root/opt/aurora/application-bundle.json"
           test -d "$root/opt/aurora/app-catalogs"
+          test -s "$root/opt/aurora/catalog-provenance/command-isa-manifest.json"
+          test -s "$root/opt/aurora/catalog-provenance/command-isa.SHA256SUMS"
+          test -s "$root/opt/aurora/ISA.csv"
+          test -d "$root/opt/aurora/system/commands"
+          test -d "$root/opt/aurora/isa"
+          python3 - "$root/opt/aurora" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          manifest = json.loads((root / "catalog-provenance/command-isa-manifest.json").read_text())
+          assert manifest["schema"] == "octavian-command-isa-catalogues/v1"
+          assert manifest["binary_status"].startswith("catalogue-data-only")
+          assert manifest["json_catalogue_count"] > 0
+          for rel in manifest["catalogue_roots"]:
+              assert (root / rel).is_dir(), f"missing staged catalogue root: {rel}"
+          print("Verified staged command/ISA catalogues:", manifest["json_catalogue_count"])
+          PY
           test -d "$root/opt/aurora/apps/native/aurora"
           test -s "$root/usr/share/icons/chimera-aurora/manifest.json"
           test -d "$root/opt/aurora/desktop/aurora-shell/assets/icons/generated"
