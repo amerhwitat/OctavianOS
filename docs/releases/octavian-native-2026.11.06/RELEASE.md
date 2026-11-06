@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | File | `octavian-native-amd64.iso` |
-| Size | 41273344 bytes (39 MiB) |
-| SHA-256 | `d285f1a1feca373a01e6824a6432402e40e923c054ce79f10b1fa2abeae8d97c` |
+| Size | 41308160 bytes (39 MiB) |
+| SHA-256 | `e477c8dbfe0dfa6b70ea38cd5901ff19234fcd2e6ce3fc667938fcaced71b86a` |
 | Kernel | Koronos (Multiboot2 ELF64) + 373-entry embedded knowledge database |
 | Boot | GRUB 2.12 hybrid BIOS + UEFI, menu waits 300 s for input |
 | Targets | Live, Installer, Recovery (ring-3 init each) |
