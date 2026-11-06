@@ -241,6 +241,10 @@ mkdir -p "$PAY/repo"
 tar -C "$REPO_DIR" --exclude=./.git --exclude=./live-image/.build -cf - . 2>/dev/null \
   | tar -C "$PAY/repo" -xf - 2>/dev/null || true
 
+# Stage the same vendored command and ISA catalogue data in the hosted edition.
+bash "$REPO_DIR/live-image/lib/stage-command-isa-catalogs.sh" \
+  "$REPO_DIR/vendor/chimera-ii-os/source" "$PAY"
+
 # Stage every repository-owned application catalog for offline discovery.
 # Catalog-only upstream references remain distinct from installed executables.
 mkdir -p "$PAY/app-catalogs" "$PAY/apps/native/aurora"
