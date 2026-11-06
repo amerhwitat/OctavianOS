@@ -47,6 +47,7 @@ def main():
     native_iso_builder = read(ROOT / "boot/iso/build-iso.sh")
     require("CHIMERA_COMMAND_LINK_MODE=static" in native_iso_builder, "Koronos initramfs must contain a static native command runtime")
     require("system/catalogs/commands" in native_iso_builder and "system/catalogs/isa" in native_iso_builder, "native ISO must include offline command and ISA catalogues")
+    require("chimera-command-list.json" in native_iso_builder and "universal-instruction-catalog.json" in native_iso_builder, "native ISO must include the full command and universal ISA catalogue files")
     require("BusyBox ls applet" in native_iso_builder, "native applets must not replace BusyBox boot-critical utilities")
     live_builder = read(ROOT / "live-image/build.sh")
     require("set timeout=300" in live_builder and "set timeout_style=menu" in live_builder, "Linux-backed live ISO generator must retain the five-minute menu")
