@@ -5,6 +5,9 @@
     "imported_source": "vendor/chimera-ii-os/source/system/commands/native-command-candidates.json",
     "runtime_stager": "tools/runtime/stage_native_command_runtime.py",
     "source_native_multicall": "vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c",
+    "native_multicall_binary": "/usr/lib/chimera/chimera-cmd.native",
+    "native_multicall_entrypoints": "/usr/lib/chimera/native-bin",
+    "native_multicall_verification": "compiled ELF plus argv[0] symlinks and host smoke tests; never the /usr/bin/chimera-cmd compatibility script",
     "native_allowlist": [
       "pwd",
       "echo",
