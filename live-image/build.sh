@@ -133,12 +133,12 @@ if [ ! -f "$BASE/.packages-installed" ]; then
           path="$(command -v "$binary")"
           if readelf -h "$path" >/dev/null 2>&1; then
             machine="$(readelf -h "$path" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')"
-            printf '%s\\tverified-elf\\t%s\\t%s\\n' "$id" "$path" "$machine"
+            printf '%s\tverified-elf\t%s\t%s\n' "$id" "$path" "$machine"
           else
-            printf '%s\\tprovider-present-non-elf\\t%s\\n' "$id" "$path"
+            printf '%s\tprovider-present-non-elf\t%s\n' "$id" "$path"
           fi
         else
-          printf '%s\\tunavailable\\t%s\\n' "$id" "$binary"
+          printf '%s\tunavailable\t%s\n' "$id" "$binary"
         fi
       done
     } > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
