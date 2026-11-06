@@ -30,7 +30,7 @@ def main() -> int:
                          "source": str(args.source)})
     (args.output / "index.theme").write_text(
         "[Icon Theme]\nName=Chimera Aurora\nComment=Generated from the embedded Aurora SVG catalogue\n"
-        "Directories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\nMinSize=16\nMaxSize=256\n",
+        "Directories=scalable/apps\nInherits=Adwaita,hicolor\n\n[scalable/apps]\nSize=48\nType=Scalable\nMinSize=16\nMaxSize=256\n",
         encoding="utf-8")
     (args.output / "manifest.json").write_text(json.dumps({
         "schema": "CHIMERA-AURORA-ICON-EXPORT-1",
