@@ -133,6 +133,7 @@ jobs:
           root = pathlib.Path(sys.argv[1])
           manifest = json.loads((root / "catalog-provenance/command-isa-manifest.json").read_text())
           assert manifest["schema"] == "octavian-command-isa-catalogues/v1"
+          assert manifest["command_catalogue_revision"] == "9331eb2bc8722630e6a3d7f9c010bf01b95ed4fa"
           assert manifest["binary_status"].startswith("catalogue-data-only")
           assert manifest["json_catalogue_count"] > 0
           for rel in manifest["catalogue_roots"]:
