@@ -39,7 +39,7 @@ def main() -> int:
         raise SystemExit("Aurora icon catalogue contains duplicate identifiers")
 
     source = args.source.read_text(encoding="utf-8")
-    pattern = re.compile(r'\\{"([^"]+)","(<svg[\\s\\S]*?</svg>)"\\}')
+    pattern = re.compile(r'\{"([^"]+)","(<svg[\s\S]*?</svg>)"\}')
     matches = pattern.findall(source)
     names = [name for name, _ in matches]
     if not matches:
@@ -62,7 +62,7 @@ def main() -> int:
         if root.tag.rsplit("}", 1)[-1] != "svg":
             raise SystemExit(f"icon {name} does not have an SVG root element")
         target = apps / f"chimera-{name}.svg"
-        target.write_text(svg + "\\n", encoding="utf-8")
+        target.write_text(svg + "\n", encoding="utf-8")
         manifest.append({
             "name": name,
             "file": f"scalable/apps/{target.name}",
@@ -70,10 +70,10 @@ def main() -> int:
         })
 
     (args.output / "index.theme").write_text(
-        "[Icon Theme]\\nName=Chimera Aurora\\n"
-        "Comment=Generated from the complete embedded Aurora SVG catalogue\\n"
-        "Directories=scalable/apps\\nInherits=Adwaita,hicolor\\n\\n"
-        "[scalable/apps]\\nSize=48\\nType=Scalable\\nMinSize=16\\nMaxSize=256\\n",
+        "[Icon Theme]\nName=Chimera Aurora\n"
+        "Comment=Generated from the complete embedded Aurora SVG catalogue\n"
+        "Directories=scalable/apps\nInherits=Adwaita,hicolor\n\n"
+        "[scalable/apps]\nSize=48\nType=Scalable\nMinSize=16\nMaxSize=256\n",
         encoding="utf-8",
     )
     (args.output / "manifest.json").write_text(json.dumps({
@@ -82,7 +82,7 @@ def main() -> int:
         "catalog_sha256": sha256(args.catalog),
         "count": len(manifest),
         "icons": manifest,
-    }, indent=2) + "\\n", encoding="utf-8")
+    }, indent=2) + "\n", encoding="utf-8")
     print(f"Exported and validated all {len(manifest)} catalogued Aurora SVG icons")
     return 0
 
