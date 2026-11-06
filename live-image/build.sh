@@ -167,6 +167,92 @@ mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mn
 log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
+
+# Compile the supported missing providers from upstream source; do not let an
+# unavailable package silently become a catalogue-only success.
+PROVIDER_STATUS="$WORK/usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
+SOURCE_REQUIRED="$WORK/usr/share/chimera/aurora/terminal-shell-source-required.tsv"
+python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY'
+import pathlib, sys
+status, missing = map(pathlib.Path, sys.argv[1:])
+source_recipes = {"yash", "nushell", "wezterm", "ghostty", "contour"}
+rows = []
+if status.is_file():
+    for line in status.read_text().splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3 and fields[1] == "unavailable" and fields[0] in source_recipes:
+            rows.append("|".join((fields[0], fields[2], "distribution-provider-unavailable-source-build-required")))
+missing.parent.mkdir(parents=True, exist_ok=True)
+missing.write_text("\n".join(rows) + ("\n" if rows else ""))
+print("terminal/shell source builds required:", len(rows))
+PY
+if [ -s "$SOURCE_REQUIRED" ]; then
+  bash "$HERE/lib/build-terminal-shell-sources.sh" "$WORK" "$BUILD/terminal-shell-source-build"
+fi
+python3 - "$REPO_DIR" "$WORK" "$PAY" <<'PY'
+import json, pathlib, subprocess, sys
+repo, root, payload = map(pathlib.Path, sys.argv[1:])
+registries = [repo / "aurora/terminals/registry.json", repo / "aurora/shells/registry.json"]
+entries = [entry for path in registries for entry in json.loads(path.read_text())["entries"]]
+status_path = root / "usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
+statuses = {}
+if status_path.is_file():
+    for line in status_path.read_text().splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3:
+            statuses[fields[0]] = {"status": fields[1], "path": fields[2], "machine": fields[3] if len(fields) > 3 else ""}
+built_path = root / "usr/share/chimera/aurora/terminal-shell-installed.tsv"
+if built_path.is_file():
+    for line in built_path.read_text().splitlines():
+        fields = line.split("|")
+        if len(fields) >= 5 and fields[2] == "source-built":
+            statuses[fields[0]] = {"status": "source-built", "path": "/usr/local/bin/" + fields[1], "machine": ""}
+arch = subprocess.check_output(["chroot", str(root), "dpkg", "--print-architecture"], text=True).strip()
+expected = {"amd64": "Advanced Micro Devices X86-64", "arm64": "AArch64", "armhf": "ARM", "i386": "Intel 80386", "riscv64": "RISC-V", "ppc64el": "PowerPC64", "s390x": "IBM S/390"}.get(arch)
+if not expected:
+    raise SystemExit(f"unsupported target architecture for provider verification: {arch}")
+verified, failures = [], []
+for entry in entries:
+    ident, binary = entry["id"], entry["binary"]
+    item = statuses.get(ident)
+    if not item or item["status"] == "unavailable":
+        failures.append(f"{ident}: no installed or source-built provider")
+        continue
+    rel = item["path"]
+    path = root / rel.lstrip("/")
+    if not path.is_file():
+        failures.append(f"{ident}: provider path missing in target rootfs: {rel}")
+        continue
+    header = subprocess.run(["readelf", "-h", str(path)], text=True, capture_output=True)
+    if header.returncode == 0:
+        machine = next((line.split(":", 1)[1].strip() for line in header.stdout.splitlines() if "Machine:" in line), "")
+        if machine != expected:
+            failures.append(f"{ident}: ELF machine {machine!r} does not match {arch}/{expected}")
+            continue
+        kind = "verified-elf"
+    else:
+        first = path.open("rb").readline(256).decode("utf-8", "replace").strip()
+        if not first.startswith("#!"):
+            failures.append(f"{ident}: provider is neither a target ELF nor an executable script")
+            continue
+        interpreter = first[2:].split()[0]
+        if not (root / interpreter.lstrip("/")).exists():
+            failures.append(f"{ident}: script interpreter missing: {interpreter}")
+            continue
+        kind = "verified-script"
+    verified.append({"id": ident, "binary": binary, "path": rel, "status": kind, "elf_machine": expected if kind == "verified-elf" else None})
+if failures:
+    raise SystemExit("terminal/shell provider gate failed:\n" + "\n".join(failures))
+manifest = {"schema": "octavian-terminal-shell-provider-verification/v1", "target_architecture": arch,
+            "required": len(entries), "verified": len(verified), "providers": verified,
+            "runtime_launch_smoke": "not-performed; ELF/script and interpreter checks only"}
+out = root / "usr/share/chimera/aurora/terminal-shell-provider-verification.json"
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+import shutil
+shutil.copy2(out, payload / "terminal-shell-provider-verification.json")
+print(f"verified all {len(verified)} terminal/shell providers for {arch}")
+PY
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
 
 # Export every real SVG icon embedded in the vendored Aurora source into an
