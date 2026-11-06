@@ -4,3 +4,6 @@ kernel/.config
 kernel/.config.json
 vendor/chimera-ii-os/source/kernel/.config
 vendor/chimera-ii-os/source/kernel/.config.json
+
+# sdk build workspace
+build/sdk/
