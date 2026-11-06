@@ -155,6 +155,11 @@ rm -rf "$WORK"; mkdir -p "$WORK"
 # cp -a keeps ownership/modes and is markedly faster than a tar pipe on this tree;
 # device nodes are rebuilt empty because CAP_MKNOD is unavailable in the builder.
 cp -a "$BASE/." "$WORK/" 2>/dev/null || true
+# Keep the same terminal/shell catalogue in both live editions, independently
+# of which optional provider packages are available on this build architecture.
+install -d "$WORK/usr/share/chimera/aurora/terminals" "$WORK/usr/share/chimera/aurora/shells"
+install -m 0644 "$REPO_DIR/aurora/terminals/registry.json" "$WORK/usr/share/chimera/aurora/terminals/registry.json"
+install -m 0644 "$REPO_DIR/aurora/shells/registry.json" "$WORK/usr/share/chimera/aurora/shells/registry.json"
 rm -rf "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run
 mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mnt "$WORK"/media
 
