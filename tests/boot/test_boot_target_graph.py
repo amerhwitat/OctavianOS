@@ -99,8 +99,8 @@ def main():
     )
     for relative in menu_paths:
         menu_text = read(ROOT / relative)
-        require(re.search(r"(?m)^set timeout_style=menu\\s*$", menu_text), f"menu must stay visible during countdown: {relative}")
-        require(re.search(r"(?m)^set timeout=60\\s*$", menu_text), f"menu must wait 60 seconds: {relative}")
+        require(re.search(r"(?m)^set timeout_style=menu\s*$", menu_text), f"menu must stay visible during countdown: {relative}")
+        require(re.search(r"(?m)^set timeout=60\s*$", menu_text), f"menu must wait 60 seconds: {relative}")
 
     print(f"boot target graph static contract: PASS ({len(configs)} configs, {len(set(targets))} configfile edges)")
     print("This is source-level validation only; ISO payload existence, GRUB runtime, Koronos handoff, and desktop readiness require build/QEMU tests.")
