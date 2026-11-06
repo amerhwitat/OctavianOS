@@ -58,7 +58,7 @@ jobs:
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
-          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py
+          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -113,6 +113,20 @@ jobs:
           test -s "$root/opt/aurora/application-bundle.json"
           test -d "$root/opt/aurora/app-catalogs"
           test -d "$root/opt/aurora/apps/native/aurora"
+          test -s "$root/usr/share/icons/chimera-aurora/manifest.json"
+          test -d "$root/opt/aurora/desktop/aurora-shell/assets/icons/generated"
+          python3 - "$root/usr/share/icons/chimera-aurora" "$root/opt/aurora/desktop/aurora-shell/assets/icons/generated" <<'PY'
+          import json, pathlib, sys
+          theme, desktop = map(pathlib.Path, sys.argv[1:])
+          manifest = json.loads((theme / "manifest.json").read_text())
+          assert manifest["schema"] == "CHIMERA-AURORA-ICON-EXPORT-1"
+          assert manifest["count"] > 0, "empty Aurora icon theme"
+          for icon in manifest["icons"]:
+              path = theme / icon["file"]
+              assert path.is_file(), f"missing theme icon: {path}"
+              assert (desktop / path.name).is_file(), f"missing desktop icon asset: {path.name}"
+          print(f"Verified {manifest['count']} generated Aurora SVG icons in GTK and desktop assets.")
+          PY
           grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
           python3 - "$root/opt/aurora" <<'PY'
           import json, pathlib, sys
