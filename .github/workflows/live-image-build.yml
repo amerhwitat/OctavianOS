@@ -8,6 +8,7 @@ on:
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
       - 'apps/**'
       - 'applications/**'
       - 'appcenter/**'
@@ -58,7 +59,7 @@ jobs:
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
-          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py
+          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -126,6 +127,21 @@ jobs:
               assert path.is_file(), f"missing theme icon: {path}"
               assert (desktop / path.name).is_file(), f"missing desktop icon asset: {path.name}"
           print(f"Verified {manifest['count']} generated Aurora SVG icons in GTK and desktop assets.")
+          PY
+          test -s "$root/opt/aurora/desktop/app-icons/catalog.svg"
+          test -s "$root/opt/aurora/desktop/app-icons/manifest.json"
+          python3 - "$root/usr/share/icons/hicolor/scalable/apps" "$root/opt/aurora/desktop/app-icons" <<'PY'
+          import json, pathlib, sys
+          theme, desktop = map(pathlib.Path, sys.argv[1:])
+          source = json.loads((desktop / "manifest.json").read_text())
+          exported = json.loads((desktop / "export-manifest.json").read_text())
+          assert source["count"] == 133 == len(source["apps"]), "source app-icon manifest count mismatch"
+          assert exported["count"] == source["count"], "not all original app icons were exported"
+          assert len(exported["icons"]) == len(source["apps"])
+          for icon in exported["icons"]:
+              assert (theme / icon["file"]).is_file(), f"missing hicolor icon: {icon['file']}"
+              assert (desktop / "icons" / icon["file"]).is_file(), f"missing desktop icon: {icon['file']}"
+          print(f"Verified all {exported['count']} original Aurora app artwork symbols.")
           PY
           grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
           python3 - "$root/opt/aurora" <<'PY'
