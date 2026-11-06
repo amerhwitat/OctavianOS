@@ -15,7 +15,8 @@ def main():
     require(all(k in chain for k in expected),"boot chain is missing a required stage")
     require(menu.get("kernel")=="Koronos" and menu.get("primary_loader")=="Spit Fire","boot menu identity mismatch")
     policy=menu.get("menu_policy",{})
-    require(policy.get("timeout_seconds")==60,"boot menu timeout must be 60 seconds")
+    require(policy.get("timeout_seconds")==300,"primary boot menu timeout must be 300 seconds")
+    require(policy.get("submenu_timeout_seconds")==120,"boot submenu timeout must be 120 seconds")
     require(policy.get("timeout_style")=="menu","boot menu must remain visible while waiting")
     gates=json.loads((ROOT/"desktop/aurora/gates_menu.json").read_text())
     require(gates.get("boot_contract",{}).get("menu_policy")==policy,"Gates and boot menu timeout policies diverge")
@@ -54,14 +55,29 @@ def main():
             # This raster is intentionally materialized from the tracked .b64 source during ISO staging.
             continue
         require(p.is_file(),f"declared artwork source missing: {rel}")
-    for rel in ["boot/loader-menu.cfg","boot/spitfire/spitfire-menu.cfg","boot/jasper/jasper.cfg","boot/iso/grub.cfg","boot/jasper/live.cfg","boot/jasper/install.cfg","boot/jasper/recovery.cfg","boot/jasper/diagnostics.cfg","boot/jasper/retro.cfg","boot/jasper/safe-mode.cfg","boot/jasper/last-known-good.cfg","boot/installation/menu.cfg"]:
+    menu_timeouts = {
+        "boot/loader-menu.cfg": 300,
+        "boot/jasper/jasper.cfg": 300,
+        "boot/iso/grub.cfg": 300,
+        "boot/spitfire/spitfire-menu.cfg": 120,
+        "boot/jasper/live.cfg": 120,
+        "boot/jasper/install.cfg": 120,
+        "boot/jasper/recovery.cfg": 120,
+        "boot/jasper/diagnostics.cfg": 120,
+        "boot/jasper/retro.cfg": 120,
+        "boot/jasper/safe-mode.cfg": 120,
+        "boot/jasper/last-known-good.cfg": 120,
+        "boot/installation/menu.cfg": 120,
+    }
+    for rel, seconds in menu_timeouts.items():
         p=ROOT/rel
         require(p.is_file(),f"boot menu source missing: {rel}")
         text=p.read_text(errors="replace")
         require("menuentry" in text,f"boot menu has no selectable entries: {rel}")
         settings=[line.strip() for line in text.splitlines()]
-        require("set timeout=60" in settings,f"boot menu timeout is too short or missing: {rel}")
+        require(f"set timeout={seconds}" in settings,f"{rel} must wait {seconds} seconds")
         require("set timeout_style=menu" in settings,f"boot menu must remain visible: {rel}")
+        require("set default=0" in settings,f"boot menu default must be explicit: {rel}")
     # Each stage's static progress contract must be monotonic; progress strings
     # may have textual substeps but cannot go backwards in the canonical map.
     values=[]
