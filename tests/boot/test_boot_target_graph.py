@@ -22,6 +22,29 @@ def main():
     require(configs, "no boot configuration files found")
     all_text = "\n".join(read(p) for p in configs)
 
+    # Human-facing menus must remain visible long enough for deliberate selection.
+    primary_menus = (ROOT / "boot/iso/grub.cfg", ROOT / "boot/jasper/jasper.cfg")
+    submenu_menus = (
+        ROOT / "boot/jasper/live.cfg", ROOT / "boot/jasper/install.cfg",
+        ROOT / "boot/jasper/recovery.cfg", ROOT / "boot/jasper/diagnostics.cfg",
+        ROOT / "boot/jasper/safe.cfg", ROOT / "boot/jasper/retro.cfg",
+        ROOT / "boot/spitfire/spitfire-menu.cfg", ROOT / "boot/installation/menu.cfg",
+    )
+    for path in primary_menus:
+        text = read(path)
+        require(re.search(r"(?m)^set timeout=300\\s*$", text), f"{path.relative_to(ROOT)} must wait 300 seconds")
+        require(re.search(r"(?m)^set timeout_style=menu\\s*$", text), f"{path.relative_to(ROOT)} must use visible menu timeout")
+        require(re.search(r"(?m)^set default=0\\s*$", text), f"{path.relative_to(ROOT)} must declare default entry 0")
+    for path in submenu_menus:
+        text = read(path)
+        require(re.search(r"(?m)^set timeout=120\\s*$", text), f"{path.relative_to(ROOT)} must wait 120 seconds")
+        require(re.search(r"(?m)^set timeout_style=menu\\s*$", text), f"{path.relative_to(ROOT)} must use visible menu timeout")
+        require(re.search(r"(?m)^set default=0\\s*$", text), f"{path.relative_to(ROOT)} must declare default entry 0")
+    live_builder = read(ROOT / "live-image/build.sh")
+    require("set timeout=300" in live_builder and "set timeout_style=menu" in live_builder, "Linux-backed live ISO generator must retain the five-minute menu")
+    native_builder = read(ROOT / "build-octavian-iso.sh")
+    require("set timeout=300" in native_builder and "set timeout_style=menu" in native_builder, "native ISO generator must retain the five-minute menu")
+
     # Every absolute configfile edge must resolve to a tracked source config.
     targets = re.findall(r"\bconfigfile\s+(/boot/[^\s;]+)", all_text)
     require(targets, "no configfile edges discovered")
