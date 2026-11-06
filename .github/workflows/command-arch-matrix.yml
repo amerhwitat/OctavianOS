@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
+      - 'tests/commands/**'
       - 'tools/build-command-arch-matrix.sh'
       - '.github/workflows/command-arch-matrix.yml'
   pull_request:
