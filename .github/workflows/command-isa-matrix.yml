@@ -2,13 +2,13 @@ name: Native command cross-build matrix
 on:
   push:
     paths:
-      - 'vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c'
+      - 'runtime/commands/src/chimera-cmd.c'
       - 'runtime/catalogues/commands/compatibility-binary-policy.json'
       - 'tools/commands/build_native_command_matrix.py'
       - '.github/workflows/command-isa-matrix.yml'
   pull_request:
     paths:
-      - 'vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c'
+      - 'runtime/commands/src/chimera-cmd.c'
       - 'runtime/catalogues/commands/compatibility-binary-policy.json'
       - 'tools/commands/build_native_command_matrix.py'
       - '.github/workflows/command-isa-matrix.yml'
@@ -30,7 +30,7 @@ jobs:
       - name: Build native multicall commands for target ISAs
         run: |
           python3 tools/commands/build_native_command_matrix.py \
-            --source 'vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c' \
+            --source 'runtime/commands/src/chimera-cmd.c' \
             --policy 'runtime/catalogues/commands/compatibility-binary-policy.json' \
             --output build/native-command-isa \
             --require-all
