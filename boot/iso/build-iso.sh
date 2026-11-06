@@ -43,17 +43,9 @@ bash "$VENDOR/tools/build-live-boot-binaries.sh" >"$WORK/live-boot-build.log" 2>
 LB="$VENDOR/build/live-boot"
 
 log "2b/6 adding native command applets to Koronos early userspace"
-COMMAND_SRC="$VENDOR/src/chimera-command-compat/chimera-cmd.c"
-test -s "$COMMAND_SRC" || { echo "ERROR: native command source missing: $COMMAND_SRC" >&2; exit 2; }
 for initroot in "$LB/initramfs/root" "$LB/initramfs/recovery"; do
-  mkdir -p "$initroot/bin"
-  gcc -std=c11 -O2 -Wall -Wextra -Werror -static "$COMMAND_SRC" -o "$initroot/bin/chimera-cmd" || {
-    echo "ERROR: failed to build static native command runtime" >&2; exit 2; }
-  chmod 0755 "$initroot/bin/chimera-cmd"
-  for command in pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false; do
-    ln -sfn chimera-cmd "$initroot/bin/$command"
-  done
-  "$initroot/bin/echo" "Koronos native command runtime ready" >/dev/null
+  CHIMERA_COMMAND_LINK_MODE=static CHIMERA_INSTALL_DISPATCHER=0 CHIMERA_STAGE_CATALOGS=0 \
+    bash "$ROOT/tools/stage-native-command-runtime.sh" "$VENDOR" "$initroot"
 done
 (cd "$LB/initramfs/root" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$LB/boot/live/chimera-live-initramfs.img"
 sha256sum "$LB/boot/live/chimera-live-initramfs.img" > "$LB/boot/live/chimera-live-initramfs.img.sha256"
@@ -138,8 +130,9 @@ log "5/6 validating menu and offline command/ISA contracts"
 test -s "$ISO_ROOT/system/catalogs/commands/chimera-command-list.json" || { echo "ERROR: command catalogue missing from ISO" >&2; exit 2; }
 test -s "$ISO_ROOT/system/catalogs/isa/generated/universal-instruction-catalog.json" || { echo "ERROR: universal ISA catalogue missing from ISO" >&2; exit 2; }
 test -s "$ISO_ROOT/system/source/commands/chimera-cmd.c" || { echo "ERROR: native command implementation source missing from ISO" >&2; exit 2; }
-test -x "$LB/initramfs/root/bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Live initramfs" >&2; exit 2; }
-test -x "$LB/initramfs/recovery/bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Recovery initramfs" >&2; exit 2; }
+test -x "$LB/initramfs/root/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Live initramfs" >&2; exit 2; }
+test -x "$LB/initramfs/recovery/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Recovery initramfs" >&2; exit 2; }
+test -x "$LB/initramfs/root/bin/chimera-native" || { echo "ERROR: native command launcher missing from Live initramfs" >&2; exit 2; }
 grep -q "ai-knowledge-db" "$ISO_ROOT/boot/grub/grub.cfg" || { echo "ERROR: no knowledge-db module in menu" >&2; exit 2; }
 for t in live installer recovery; do
   grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \
