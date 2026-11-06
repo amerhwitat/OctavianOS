@@ -132,7 +132,34 @@ if [ ! -f "$BASE/.packages-installed-v2" ]; then
   bash "$REPO_DIR/live-image/verify-terminal-shell-suite.sh" "$BASE" x86_64
   install -D -m 0644 "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" "$BASE/usr/share/chimera/commands/command-runtime-capabilities.json"
   install -D -m 0644 "$COMMAND_SOURCE/tools/commands/os-command-runtime.json" "$BASE/usr/share/chimera/commands/os-command-runtime.json"
+  # Build the actual C multicall ELF for this amd64 rootfs. The /usr/bin
+  # chimera-cmd script is only an alias dispatcher and is never counted as
+  # native implementation evidence.
+  native_cmd="$BASE/usr/lib/chimera/chimera-cmd.native"
+  native_bin_dir="$BASE/usr/lib/chimera/native-bin"
+  mkdir -p "$(dirname "$native_cmd")" "$native_bin_dir" "$BASE/etc/profile.d"
+  native_cc="${CHIMERA_NATIVE_CC:-${CC:-cc}}"
+  command -v "$native_cc" >/dev/null 2>&1 || { echo "missing native command compiler: $native_cc" >&2; exit 2; }
+  "$native_cc" -std=c11 -O2 -Wall -Wextra -Werror \
+    "$COMMAND_SOURCE/src/chimera-command-compat/chimera-cmd.c" -o "$native_cmd"
+  chmod 0755 "$native_cmd"
+  for name in pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false; do
+    ln -sfn ../chimera-cmd.native "$native_bin_dir/$name"
+  done
+  cat > "$BASE/etc/profile.d/chimera-native-commands.sh" <<'EOF_NATIVE_PATH'
+# Prefer the explicitly tested Chimera C multicall entrypoints in user shells.
+export PATH="/usr/lib/chimera/native-bin:$PATH"
+EOF_NATIVE_PATH
   python3 "$COMMAND_SOURCE/tools/commands/verify-command-provider-coverage.py" "$BASE" "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" x86_64
+  python3 - "$BASE/usr/share/chimera/commands/command-provider-coverage.json" <<'PY_NATIVE_GATE'
+import json, pathlib, sys
+report=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+native=[row for row in report["commands"] if row.get("mode")=="native"]
+bad=[row["name"] for row in native if row.get("status")!="native-multicall-elf-and-entrypoint-present"]
+if len(native)!=15 or bad:
+    raise SystemExit(f"native command implementation gate failed: expected 15, found {len(native)}, missing={bad}")
+print(f"Verified {len(native)} compiled native command entrypoints; external providers remain separately classified.")
+PY_NATIVE_GATE
   touch "$BASE/.packages-installed-v2"
 fi
 
