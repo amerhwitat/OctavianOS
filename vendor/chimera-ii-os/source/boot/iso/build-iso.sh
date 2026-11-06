@@ -75,6 +75,24 @@ cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/rec
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
 
+# Stage the target-specific ring-3 handoff probes built by kernel/build-koronos.sh.
+# These prove the CPL3 init/ABI handshake only; they are not production desktop,
+# installer-write, or recovery-repair implementations.
+printf '%s\\n' '[3b/7] Stage target-specific ring-3 init probes'
+TARGETS_OUT="$DIST/iso/boot/targets"
+mkdir -p "$TARGETS_OUT"
+for target in live installer recovery; do
+  target_elf="$ROOT/build/koronos/x86_64/target-init-$target.elf"
+  test -s "$target_elf" || { echo "ERROR: target init probe missing: $target_elf (run kernel/build-koronos.sh)" >&2; exit 2; }
+  readelf -h "$target_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $target_elf is not ET_EXEC" >&2; exit 2; }
+  readelf -lW "$target_elf" | grep -Eq 'LOAD.*R E' || { echo "ERROR: $target_elf has no executable PT_LOAD" >&2; exit 2; }
+  cp -f "$target_elf" "$TARGETS_OUT/"
+done
+for target in live installer recovery; do
+  grep -q "target-init-$target.elf chimera-user-init-elf target=$target" "$ISO_ROOT/grub.cfg" || {
+    echo "ERROR: GRUB menu does not reference the $target target-init probe" >&2; exit 2; }
+done
+
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
 mkdir -p "$VISUAL_OUT"
