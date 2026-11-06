@@ -5,6 +5,8 @@ on:
     branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
     paths:
       - 'live-image/**'
+      - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -16,6 +18,8 @@ on:
   pull_request:
     paths:
       - 'live-image/**'
+      - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
