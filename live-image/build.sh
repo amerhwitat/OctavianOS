@@ -108,7 +108,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
       # Optional open-source shells and terminal emulators from signed Debian repositories.
       # Missing providers remain explicit in the generated manifest; no fake launchers.
-      for pkg in zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
+      for pkg in bash zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
         if apt-cache show "$pkg" >/dev/null 2>&1; then
           apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] package install failed: $pkg"
         else
