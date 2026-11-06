@@ -5,6 +5,9 @@ on:
     branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
     paths:
       - 'live-image/**'
+      - 'boot/**'
+      - 'build-octavian-iso.sh'
+      - 'tests/boot/**'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -46,6 +49,9 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+
+      - name: Run boot menu and target graph contracts
+        run: python3 tests/boot/test_boot_target_graph.py
 
       - name: Install host ISO and graphical smoke-test dependencies
         run: |
