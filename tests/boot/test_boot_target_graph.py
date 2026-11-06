@@ -43,6 +43,7 @@ def main():
     live_builder = read(ROOT / "live-image/build.sh")
     require("set timeout=300" in live_builder and "set timeout_style=menu" in live_builder, "Linux-backed live ISO generator must retain the five-minute menu")
     native_builder = read(ROOT / "build-octavian-iso.sh")
+    require('REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' in native_builder, "top-level native ISO script must resolve the repository root correctly")
     require("set timeout=300" in native_builder and "set timeout_style=menu" in native_builder, "native ISO generator must retain the five-minute menu")
 
     # Every absolute configfile edge must resolve to a tracked source config.
