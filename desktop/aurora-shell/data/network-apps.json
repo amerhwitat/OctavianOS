@@ -1,7 +1,7 @@
 {
  "schema": "aurora-network-apps-1",
  "generated_by": "tools/build_network_catalog.py",
- "count": 167,
+ "count": 173,
  "categories": [
   "cloud",
   "communication",
@@ -374,6 +374,16 @@
    "description": "Connectivity surface found in OctavianOS (userspace/systemd/aurora-network.service)."
   },
   {
+   "id": "services-network-avahi-smb-service",
+   "name": "Avahi Smb",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "services/network/avahi-smb.service",
+   "entry": "services/network/avahi-smb.service",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (services/network/avahi-smb.service)."
+  },
+  {
    "id": "tools-thamudic-nlp-bridge-py",
    "name": "Bridge",
    "category": "connectivity",
@@ -454,6 +464,16 @@
    "description": "Connectivity surface found in ChimeraIIOS (tools/runtime/chimera-local-bridge.py)."
   },
   {
+   "id": "tools-network-chimera-network-browser-sh",
+   "name": "Chimera Network Browser",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "tools/network/chimera-network-browser.sh",
+   "entry": "tools/network/chimera-network-browser.sh",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (tools/network/chimera-network-browser.sh)."
+  },
+  {
    "id": "data-network-chimera-nodes-json",
    "name": "Chimera Nodes",
    "category": "connectivity",
@@ -462,6 +482,26 @@
    "entry": "data/network/chimera_nodes.json",
    "repo": "ChimeraIIOS",
    "description": "Connectivity surface found in ChimeraIIOS (data/network/chimera_nodes.json)."
+  },
+  {
+   "id": "tools-network-chimera-router-cli-py",
+   "name": "Chimera Router Cli",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "tools/network/chimera_router_cli.py",
+   "entry": "tools/network/chimera_router_cli.py",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (tools/network/chimera_router_cli.py)."
+  },
+  {
+   "id": "services-network-chimera-wsdd-service",
+   "name": "Chimera Wsdd",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "services/network/chimera-wsdd.service",
+   "entry": "services/network/chimera-wsdd.service",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (services/network/chimera-wsdd.service)."
   },
   {
    "id": "data-network-discovered-hosts-json",
@@ -614,6 +654,16 @@
    "description": "Connectivity surface found in ChimeraIIOS (tools/network/package.json)."
   },
   {
+   "id": "tools-network-package-lock-json",
+   "name": "Package Lock",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "tools/network/package-lock.json",
+   "entry": "tools/network/package-lock.json",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (tools/network/package-lock.json)."
+  },
+  {
    "id": "network-route-gui-json",
    "name": "Route Gui",
    "category": "connectivity",
@@ -672,6 +722,16 @@
    "entry": "execution/universal_execution_api.json",
    "repo": "ChimeraIIOS",
    "description": "Connectivity surface found in ChimeraIIOS (execution/universal_execution_api.json)."
+  },
+  {
+   "id": "network-vendor-cli-compatibility-json",
+   "name": "Vendor Cli Compatibility",
+   "category": "connectivity",
+   "glyph": "\ud83c\udf10",
+   "path": "network/vendor-cli-compatibility.json",
+   "entry": "network/vendor-cli-compatibility.json",
+   "repo": "ChimeraIIOS",
+   "description": "Connectivity surface found in ChimeraIIOS (network/vendor-cli-compatibility.json)."
   },
   {
    "id": "tools-media-vision-mediapipe-py",

@@ -23,7 +23,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
 BASE="$BUILD/rootfs-base"
-WORK="$BUILD/rootfs-$ED"
+WORK="${WORK_DIR:-$BUILD/rootfs-$ED}"
 ISODIR="$BUILD/iso-$ED"
 OUT="${OUT_DIR:-$BUILD/out}"
 ART="$HERE/artwork"
@@ -116,8 +116,10 @@ fi
 # ------------------------------------------------------------- rootfs copy
 log "staging rootfs"
 rm -rf "$WORK"; mkdir -p "$WORK"
-tar -C "$BASE" -cf - --exclude=./proc --exclude=./sys --exclude=./dev --exclude=./run . \
-  2>/dev/null | tar -C "$WORK" -xf - 2>/dev/null
+# cp -a keeps ownership/modes and is markedly faster than a tar pipe on this tree;
+# device nodes are rebuilt empty because CAP_MKNOD is unavailable in the builder.
+cp -a "$BASE/." "$WORK/" 2>/dev/null || true
+rm -rf "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run
 mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mnt "$WORK"/media
 
 # ------------------------------------------------------------- payload
@@ -209,7 +211,9 @@ print("application catalogs:", len(files), "first-party source:", manifest["nati
 PY
 
 if [ "${ENTRY#desktop/aurora-shell/}" = "$ENTRY" ]; then
-  python3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
+  if [ "${ENTRY#desktop/aurora-shell/}" = "$ENTRY" ]; then
+    python3 "$HERE/lib/patch_html.py" "$PAY/$ENTRY" "$PAY" wp01.jpg
+  fi
 fi
 
 cat > "$PAY/PROJECT.md" <<EOF
@@ -392,8 +396,34 @@ menuentry "Reboot" { reboot }
 menuentry "Power off" { halt }
 EOF
 
+# Native Koronos kernel (vendored Chimera II tree) built with the Linux-style kbuild
+# workflow and staged as a multiboot2 diagnostic payload. It never replaces the
+# Linux live entries: the microkernel has no verified userspace handoff.
+log "koronos kernel"
+if [ -f "$REPO_DIR/kernel/Makefile" ] && command -v nasm >/dev/null 2>&1; then
+  ( cd "$REPO_DIR" && make -C kernel defconfig all >/tmp/octavian-koronos.log 2>&1 ) || \
+    echo "  [warn] Koronos build failed, see /tmp/octavian-koronos.log"
+  koronos_elf="$(ls "$REPO_DIR"/vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf 2>/dev/null | head -1)"
+  if [ -n "$koronos_elf" ] && [ -s "$koronos_elf" ]; then
+    install -Dm644 "$koronos_elf" "$ISODIR/boot/koronos/koronos.elf"
+    install -Dm644 "$(dirname "$koronos_elf")/System.map" "$ISODIR/boot/koronos/System.map" 2>/dev/null || true
+    echo "  staged $(du -h "$koronos_elf" | cut -f1) koronos.elf"
+  fi
+fi
+
 log "iso"
 rm -f "$OUT/$ISO_NAME"
+if [ -f "$ISODIR/boot/koronos/koronos.elf" ]; then
+  cat >> "$ISODIR/boot/grub/grub.cfg" <<'KORONOS'
+
+menuentry "Koronos native microkernel (diagnostic console — no graphical userspace)" {
+  echo "Loading Koronos microkernel (multiboot2)…"
+  multiboot2 /boot/koronos/koronos.elf
+  boot
+}
+KORONOS
+fi
+
 grub-mkrescue --compress=xz -o "$OUT/$ISO_NAME" "$ISODIR" -- -volid "$VOLID"
 ( cd "$OUT" && sha256sum "$ISO_NAME" > "$ISO_NAME.sha256" )
 ls -lh "$OUT/$ISO_NAME"
