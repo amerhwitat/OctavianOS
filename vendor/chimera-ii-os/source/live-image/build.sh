@@ -105,7 +105,17 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
-      e2fsprogs dosfstools parted gdisk alsa-utils kmod \
+      e2fsprogs dosfstools parted gdisk alsa-utils kmod
+    # Optional open-source shells and terminal emulators: install only packages
+    # available from the signed Debian repositories. Missing packages remain
+    # visible in the staging manifest instead of producing placeholder launchers.
+    for pkg in zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
+      if apt-cache show "$pkg" >/dev/null 2>&1; then
+        apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] package install failed: $pkg"
+      else
+        echo "[AURORA-TERMINALS] no Debian package candidate: $pkg"
+      fi
+    done \
       samba smbclient cifs-utils wsdd avahi-daemon \
       realmd adcli sssd-ad sssd-ldap sssd-tools libnss-sss libpam-sss \
       krb5-user ldap-utils libsasl2-modules-gssapi-mit udisks2 oddjob oddjob-mkhomedir
@@ -113,6 +123,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
+  bash "$ROOT/live-image/verify-terminal-shell-suite.sh" "$BASE" x86_64
   touch "$BASE/.packages-installed"
 fi
 
