@@ -103,9 +103,45 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
-      sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
+      sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils binutils \
       iproute2 iputils-ping netbase procps psmisc rsync \
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
+    # Resolve optional open-source terminals and shells against the actual
+    # Debian repository for this rootfs architecture; absent packages remain
+    # explicitly unavailable rather than receiving placeholder executables.
+    terminal_shell_packages=()
+    for package in gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour zsh fish dash mksh yash elvish nushell; do
+      if apt-cache show "$package" >/dev/null 2>&1; then
+        terminal_shell_packages+=("$package")
+      else
+        echo "[TERMINAL-SHELL][UNAVAILABLE] package=$package arch=$(dpkg --print-architecture)"
+      fi
+    done
+    if (("\${#terminal_shell_packages[@]}" > 0)); then
+      apt-get install -y -qq --no-install-recommends "\${terminal_shell_packages[@]}"
+    fi
+    mkdir -p /usr/share/chimera/aurora
+    {
+      for item in \
+        "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+        "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+        "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
+        "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
+        "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+        id="\${item%%:*}"; binary="\${item#*:}"
+        if command -v "$binary" >/dev/null 2>&1; then
+          path="$(command -v "$binary")"
+          if readelf -h "$path" >/dev/null 2>&1; then
+            machine="$(readelf -h "$path" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')"
+            printf '%s\\tverified-elf\\t%s\\t%s\\n' "$id" "$path" "$machine"
+          else
+            printf '%s\\tprovider-present-non-elf\\t%s\\n' "$id" "$path"
+          fi
+        else
+          printf '%s\\tunavailable\\t%s\\n' "$id" "$binary"
+        fi
+      done
+    } > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
