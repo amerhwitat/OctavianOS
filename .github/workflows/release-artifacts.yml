@@ -61,6 +61,34 @@ jobs:
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
           python3 tools/release/validate_release_inputs.py --root build/iso-root
+      - name: Stage accessible installer wizard and policy into ISO
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST=build/iso-root/install/installer
+          mkdir -p "$DEST/gui"
+          install -m 0644 installer/cross-distro-workflow.json "$DEST/cross-distro-workflow.json"
+          install -m 0644 installer/gui/aurora-installer.html "$DEST/gui/aurora-installer.html"
+          install -m 0644 installer/gui/aurora-installer.css "$DEST/gui/aurora-installer.css"
+          install -m 0644 installer/gui/aurora-installer.js "$DEST/gui/aurora-installer.js"
+          install -m 0644 installer/gui/installer-i18n.js "$DEST/gui/installer-i18n.js"
+          install -m 0644 installer/gui/aurora-installer-ui.json "$DEST/gui/aurora-installer-ui.json"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("build/iso-root/install/installer/gui/installer-ui-manifest.json")
+          p.write_text(json.dumps({
+              "schema": "OCTAVIANOS-INSTALLER-UI-1",
+              "entrypoint": "aurora-installer.html",
+              "assets": ["aurora-installer.css", "aurora-installer.js", "installer-i18n.js", "aurora-installer-ui.json"],
+              "execution": "review-only",
+              "native_transaction_backend": "not-integrated",
+              "installation_success_claimed": False
+          }, indent=2) + "\n", encoding="utf-8")
+          PY
+          test -s "$DEST/gui/aurora-installer.html"
+          test -s "$DEST/gui/aurora-installer.js"
+          sha256sum "$DEST/cross-distro-workflow.json" "$DEST/gui/aurora-installer.html" "$DEST/gui/aurora-installer.css" "$DEST/gui/aurora-installer.js" "$DEST/gui/installer-i18n.js" "$DEST/gui/aurora-installer-ui.json" > "$DEST/gui/SHA256SUMS"
       - name: Build bootable ISO
         run: |
           set -euo pipefail
@@ -80,9 +108,26 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  production-acceptance:
+    name: Require exact-ISO DAPS production evidence
+    needs: [iso]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: octavianos-release-iso
+          path: release-assets
+      - name: Fail closed unless all six production traces and genuine SMP evidence match the release ISO
+        run: |
+          set -euo pipefail
+          python3 scripts/daps/production_acceptance_gate.py \
+            --iso release-assets/octavianos-release.iso \
+            --evidence-dir production-evidence
+
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
-    needs: [container, iso]
+    needs: [container, iso, production-acceptance]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
