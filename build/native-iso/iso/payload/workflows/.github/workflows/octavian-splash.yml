@@ -1,0 +1,77 @@
+name: OctavianOS splash artwork and progress contracts
+
+on:
+  push:
+    paths:
+      - 'boot/splash/**'
+      - 'boot/iso/grub.cfg'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
+      - 'tools/boot/octavian-progress*'
+      - 'tools/artwork/**'
+      - 'tests/boot/test_octavian_splash_progress.py'
+      - '.github/workflows/octavian-splash.yml'
+  pull_request:
+    paths:
+      - 'boot/splash/**'
+      - 'boot/iso/grub.cfg'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
+      - 'tools/boot/octavian-progress*'
+      - 'tools/artwork/**'
+      - 'tests/boot/test_octavian_splash_progress.py'
+      - '.github/workflows/octavian-splash.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  progress-and-artwork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install artwork tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes imagemagick ffmpeg fonts-dejavu-core
+      - name: Validate shell and Python contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/boot/octavian-progress.sh tools/artwork/rebrand-init-video.sh
+          python3 tests/boot/test_octavian_splash_progress.py
+      - name: Rasterize offline GRUB octopus artwork
+        run: |
+          set -euo pipefail
+          mkdir -p build/boot/grub build/boot/splash
+          convert -background '#07152c' boot/splash/octavian-octopus-background.svg -resize 1920x1080! build/boot/grub/octavian-octopus-background.png
+          test -s build/boot/grub/octavian-octopus-background.png
+          cp boot/splash/octavian-octopus-background.svg build/boot/splash/
+          cp tools/boot/octavian-progress-osd.lua build/boot/splash/
+          sha256sum build/boot/grub/octavian-octopus-background.png > build/boot/splash/artwork.sha256
+      - name: Import and rebrand original Init.mp4 frames
+        uses: actions/checkout@v4
+        with:
+          repository: amerhwitat/ChimeraIIOS
+          ref: main
+          path: source-chimera
+          fetch-depth: 1
+      - name: Create OctavianOS splash video with original audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/boot/splash
+          bash tools/artwork/rebrand-init-video.sh source-chimera/Init.mp4 build/boot/splash/Init-OctavianOS.mp4
+          test -s build/boot/splash/Init-OctavianOS.mp4
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height -of json build/boot/splash/Init-OctavianOS.mp4 > build/boot/splash/video-metadata.json
+          sha256sum build/boot/splash/Init-OctavianOS.mp4 >> build/boot/splash/artwork.sha256
+      - name: Upload generated offline splash assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-splash-assets
+          path: build/boot/
+          if-no-files-found: error
+          retention-days: 30

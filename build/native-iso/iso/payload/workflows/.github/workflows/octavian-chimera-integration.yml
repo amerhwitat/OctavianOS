@@ -1,0 +1,116 @@
+name: OctavianOS Chimera source integration
+
+on:
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/**"
+      - "tools/chimera/**"
+      - "tools/migration/**"
+      - "docs/CHIMERA_SOURCE_INTEGRATION.md"
+      - "tests/migration/**"
+      - ".github/workflows/octavian-chimera-integration.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/**"
+      - "tests/migration/**"
+      - "tools/migration/**"
+      - ".github/workflows/octavian-chimera-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: octavian-chimera-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hosted-bridge:
+    name: Hosted runtime smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax-check hosted bridge and test
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/tools/runtime/chimera-hosted.py
+          python -m py_compile tests/migration/test_chimera_hosted_bridge.py
+          python -m py_compile tests/migration/test_chimera_entrypoint.py
+          python -m py_compile tools/chimera/chimera-hosted
+      - name: Run hosted bridge acceptance tests
+        run: python tests/migration/test_chimera_hosted_bridge.py
+      - name: Test OctavianOS first-class hosted entry point
+        run: python tests/migration/test_chimera_entrypoint.py
+      - name: Syntax-check imported Python build tools and tests
+        run: |
+          python -m py_compile vendor/chimera-ii-os/source/mobile/build/validate-profile.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_build_manifest.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_capability_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_orchestrator.py
+          python -m py_compile vendor/chimera-ii-os/source/tests/build/test_portfolio_build_status.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/build_all_editions.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/main.py
+          python -m py_compile vendor/chimera-ii-os/source/tools/build/orchestrator.py
+      - name: Syntax-check imported shell build tools
+        run: |
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/aurora-emulator-window.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-retro.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax170.sh
+          bash -n vendor/chimera-ii-os/source/aurora/emulators/bin/launch-sakhr-ax230.sh
+          bash -n vendor/chimera-ii-os/source/mobile/build/build-mobile-image.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-all.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-baremetal.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-hosted.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-mobile.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-native-toolchain.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
+          bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
+      - name: Configure the vendored native toolchain
+        run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
+      - name: Record scope boundary
+        run: |
+          echo "Hosted bridge and toolchain configuration passed."
+          echo "This job does not claim Koronos boot, native GUI startup, or guest ISA conformance."
+
+  source-inventory:
+    name: Compare vendored source inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out OctavianOS
+        uses: actions/checkout@v4
+      - name: Check out current ChimeraIIOS source
+        uses: actions/checkout@v4
+        with:
+          repository: amerhwitat/ChimeraIIOS
+          ref: main
+          path: upstream-chimera
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test the inventory audit
+        run: python tests/migration/test_chimera_source_inventory.py
+      - name: Record upstream source revision
+        run: echo "UPSTREAM_REVISION=$(git -C upstream-chimera rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Compare upstream paths and file content hashes
+        run: |
+          python tools/migration/chimera-source-inventory.py \
+            --upstream upstream-chimera \
+            --vendored vendor/chimera-ii-os/source \
+            --upstream-revision "$UPSTREAM_REVISION" \
+            --output reports/chimera-source-inventory.json
+      - name: Publish inventory report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-source-inventory
+          path: reports/chimera-source-inventory.json
+          if-no-files-found: warn

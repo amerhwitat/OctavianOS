@@ -68,6 +68,10 @@ cp -f "$KB" "$ISO_ROOT/boot/ai/knowledge-db.json"
 python3 "$ROOT/tools/ai/knowledge_db.py" validate --db "$ISO_ROOT/boot/ai/knowledge-db.json" >/dev/null || {
   echo "ERROR: staged knowledge database failed validation" >&2; exit 2; }
 
+log "3d/6 staging media, apps, docs and workflow payload"
+python3 "$ROOT/tools/iso/stage_payload.py" --root "$ROOT" --iso "$ISO_ROOT" --limit-mb 200
+test -s "$ISO_ROOT/payload/MANIFEST.json" || { echo "ERROR: payload manifest missing" >&2; exit 2; }
+
 log "4/6 staging boot artwork"
 python3 - "$ROOT" "$ISO_ROOT" <<'PY' || true
 import os, subprocess, sys

@@ -1,0 +1,30 @@
+name: OctavianOS N-bit substrate tests
+
+on:
+  push:
+    branches: [octavianos/nbit-foundation]
+  pull_request:
+    paths:
+      - include/octavian/nbit.h
+      - tests/nbit/**
+      - .github/workflows/nbit-substrate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        width: [1, 63, 64, 65, 128, 257, 8192]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run fixed-width register tests
+        run: |
+          set -euo pipefail
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            -DOCTAVIAN_NBIT_WIDTH=${{ matrix.width }} \
+            -Iinclude tests/nbit/test_nbit.c -o /tmp/octavian-nbit-test
+          /tmp/octavian-nbit-test

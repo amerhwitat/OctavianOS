@@ -1,0 +1,43 @@
+name: OctavianOS QEMU target acceptance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-targets:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [live-aurora, live-marine, installer, recovery, diagnostics, safe-mode]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require real ISO and QEMU
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes qemu-system-x86 grub-pc-bin grub-efi-amd64-bin grub-common xorriso
+          test -s build/iso-root/boot/grub/grub.cfg || { echo 'Stage a validated ISO root before running QEMU acceptance.'; exit 2; }
+      - name: Boot target and collect serial logs
+        run: |
+          set -euo pipefail
+          mkdir -p build/qemu-logs
+          mkdir -p build/target-roots/${{ matrix.target }}
+          cp -a build/iso-root/. build/target-roots/${{ matrix.target }}/
+          case '${{ matrix.target }}' in live-aurora) entry=aurora-live; marker=OCTAVIANOS_USERSPACE_READY;; live-marine) entry=marine-live; marker=OCTAVIANOS_USERSPACE_READY;; installer) entry=install; marker=OCTAVIANOS_INSTALLER_READY;; recovery) entry=recovery; marker=OCTAVIANOS_RECOVERY_READY;; diagnostics) entry=diagnostics; marker=OCTAVIANOS_DIAGNOSTICS_READY;; safe-mode) entry=safe-mode; marker=OCTAVIANOS_USERSPACE_READY;; esac
+          sed -i "s/^set default=.*/set default=$entry/" build/target-roots/${{ matrix.target }}/boot/grub/grub.cfg
+          grub-mkrescue -o build/octavianos-${{ matrix.target }}.iso build/target-roots/${{ matrix.target }}
+          timeout 90s qemu-system-x86_64 -machine q35,accel=tcg -cpu max -m 2048 -smp 2 -cdrom build/octavianos-${{ matrix.target }}.iso -boot d -display none -serial file:build/qemu-logs/${{ matrix.target }}.serial.log -no-reboot -no-shutdown || rc=$?
+          cat build/qemu-logs/${{ matrix.target }}.serial.log
+          test -s build/qemu-logs/${{ matrix.target }}.serial.log
+          grep -Fq "$marker" build/qemu-logs/${{ matrix.target }}.serial.log || { echo "Expected readiness marker $marker not observed for ${{ matrix.target }}"; exit 3; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qemu-serial-${{ matrix.target }}
+          path: build/qemu-logs/
+          if-no-files-found: ignore
+          retention-days: 30

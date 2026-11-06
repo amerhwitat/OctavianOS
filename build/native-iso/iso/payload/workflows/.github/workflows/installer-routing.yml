@@ -1,0 +1,74 @@
+name: OctavianOS boot target routing contracts
+
+on:
+  push:
+    paths:
+      - 'boot/**/*.cfg'
+      - 'boot/iso/grub.cfg'
+      - 'tests/boot/**'
+      - 'docs/BOOT_SEQUENCE_TRACE.md'
+      - 'kernel/**'
+      - 'editions/mobile/**'
+      - 'tools/release/**'
+      - 'tests/qemu/**'
+      - 'Dockerfile'
+      - 'web/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'boot/**/*.cfg'
+      - 'boot/iso/grub.cfg'
+      - 'tests/boot/**'
+      - 'docs/BOOT_SEQUENCE_TRACE.md'
+      - 'kernel/**'
+      - 'editions/mobile/**'
+      - 'tools/release/**'
+      - 'tests/qemu/**'
+      - 'Dockerfile'
+      - 'web/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test fail-closed userspace handoff evidence verifier
+        run: python3 -m unittest discover -s tests/migration -p "test_userspace_handoff_verifier.py" -v
+      - name: Install GRUB parser
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes grub-common
+      - name: Parse all tracked GRUB scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "Checking $file"
+            grub-script-check "$file"
+          done < <(find boot -type f -name '*.cfg' -print | sort)
+      - name: Validate complete configfile target graph
+        run: python3 tests/boot/test_boot_target_graph.py
+      - name: Validate native installer payload routing
+        run: python3 tests/boot/test_installer_payload_routing.py
+      - name: Test ISO payload validator
+        run: python3 tests/boot/test_iso_payload_validator.py
+      - name: Test OctavianOS splash and progress contracts
+        run: python3 tests/boot/test_octavian_splash_progress.py
+      - name: Validate splash helper shell syntax
+        run: bash -n tools/boot/octavian-progress.sh tools/artwork/rebrand-init-video.sh
+      - name: Smoke-test desktop companion container
+        run: |
+          set -euo pipefail
+          docker build --pull -t octavianos-desktop-preview:ci .
+          cid="$(docker run -d -p 127.0.0.1:8080:80 octavianos-desktop-preview:ci)"
+          trap 'docker logs "$cid" || true; docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8080/ -o /tmp/octavianos-index.html; then break; fi
+            sleep 1
+          done
+          grep -q 'OctavianOS' /tmp/octavianos-index.html

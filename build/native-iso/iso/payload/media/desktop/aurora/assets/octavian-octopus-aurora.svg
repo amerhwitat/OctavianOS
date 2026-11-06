@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+<title id="title">OctavianOS — Octopus Aurora</title><desc id="desc">Original deep-ocean science-fiction wallpaper with a luminous octopus, aurora ribbons, stars and a glass horizon.</desc>
+<defs>
+ <linearGradient id="bg" x2="0.9" y2="1"><stop stop-color="#06132b"/><stop offset=".48" stop-color="#101a43"/><stop offset="1" stop-color="#020913"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#50f5dc" stop-opacity=".48"/><stop offset=".55" stop-color="#7d5cff" stop-opacity=".2"/><stop offset="1" stop-color="#08122c" stop-opacity="0"/></radialGradient>
+ <linearGradient id="aurora" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#58ffe1" stop-opacity="0"/><stop offset=".35" stop-color="#58ffe1" stop-opacity=".6"/><stop offset=".68" stop-color="#8c77ff" stop-opacity=".52"/><stop offset="1" stop-color="#ff78d5" stop-opacity="0"/></linearGradient>
+ <linearGradient id="tentacle" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b9fff4"/><stop offset=".42" stop-color="#49b8c8"/><stop offset="1" stop-color="#594d9c"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="soft"><feGaussianBlur stdDeviation="5"/></filter>
+ <pattern id="stars" width="173" height="137" patternUnits="userSpaceOnUse"><circle cx="17" cy="23" r="1.6" fill="#d9fff9" opacity=".8"/><circle cx="104" cy="78" r="1" fill="#fff" opacity=".6"/><circle cx="149" cy="34" r="1.2" fill="#a9baff" opacity=".8"/><circle cx="61" cy="119" r=".8" fill="#fff" opacity=".6"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="url(#bg)"/><rect width="1920" height="1080" fill="url(#stars)"/>
+<ellipse cx="1040" cy="445" rx="590" ry="410" fill="url(#halo)"/>
+<g fill="none" stroke="url(#aurora)" stroke-width="105" opacity=".62" filter="url(#soft)">
+ <path d="M-80 260 C300 10 550 500 880 210 S1510 20 2000 230"/><path d="M-40 420 C350 130 640 600 1000 350 S1580 150 1970 400" stroke-width="55"/>
+</g>
+<g opacity=".65" fill="none" stroke="#73f6e4" stroke-width="2">
+ <path d="M0 760 L280 660 540 735 780 650 1040 730 1280 645 1540 720 1920 600"/><path d="M0 790 L330 700 600 775 850 690 1110 775 1370 680 1660 755 1920 690" opacity=".35"/>
+</g>
+<g transform="translate(1000 435)">
+ <ellipse cx="0" cy="50" rx="190" ry="220" fill="#53eadb" opacity=".18" filter="url(#glow)"/>
+ <path d="M-126 14 C-185 -55 -124 -164 -30 -170 C58 -184 141 -117 133 -29 C129 38 80 91 5 97 C-53 103 -104 73 -126 14Z" fill="#152d57" stroke="#a2fff2" stroke-width="5"/>
+ <path d="M-100 -14 C-90 -94 -28 -134 36 -119 C85 -106 108 -61 96 -19 C75 25 20 47 -28 28 C-61 17 -82 5 -100 -14Z" fill="#5ac9d0" opacity=".52"/>
+ <ellipse cx="-44" cy="-29" rx="15" ry="22" fill="#e8fffa"/><ellipse cx="47" cy="-29" rx="15" ry="22" fill="#e8fffa"/><circle cx="-42" cy="-29" r="7" fill="#08142b"/><circle cx="49" cy="-29" r="7" fill="#08142b"/>
+ <path d="M-120 39 C-205 80 -230 190 -345 170 C-425 153 -390 65 -450 55 C-505 46 -520 115 -553 102" fill="none" stroke="url(#tentacle)" stroke-width="34" stroke-linecap="round"/>
+ <path d="M-92 77 C-150 166 -112 237 -196 280 C-257 310 -308 270 -294 225" fill="none" stroke="url(#tentacle)" stroke-width="31" stroke-linecap="round"/>
+ <path d="M-43 92 C-71 181 -30 226 15 267 C61 310 28 354 -20 343" fill="none" stroke="url(#tentacle)" stroke-width="30" stroke-linecap="round"/>
+ <path d="M18 88 C74 160 124 194 186 183 C251 171 260 112 311 122" fill="none" stroke="url(#tentacle)" stroke-width="32" stroke-linecap="round"/>
+ <path d="M77 66 C170 90 217 48 239 -10 C260 -66 306 -68 333 -37" fill="none" stroke="url(#tentacle)" stroke-width="29" stroke-linecap="round"/>
+ <path d="M111 25 C208 5 226 -58 204 -109 C184 -159 224 -190 261 -170" fill="none" stroke="url(#tentacle)" stroke-width="27" stroke-linecap="round"/>
+ <path d="M-118 8 C-176 -50 -152 -108 -197 -130" fill="none" stroke="url(#tentacle)" stroke-width="25" stroke-linecap="round"/>
+ <g fill="#d8fff8" opacity=".85"><circle cx="-192" cy="129" r="6"/><circle cx="-203" cy="147" r="5"/><circle cx="-209" cy="165" r="4"/><circle cx="187" cy="157" r="6"/><circle cx="204" cy="151" r="5"/><circle cx="220" cy="145" r="4"/></g>
+</g>
+<g transform="translate(0 820)"><path d="M0 70 Q280 10 520 80 T1030 60 T1530 70 T1920 25 V260 H0Z" fill="#071a2b" opacity=".94"/><path d="M0 78 Q280 18 520 88 T1030 68 T1530 78 T1920 33" fill="none" stroke="#7cfff0" stroke-width="3" opacity=".75"/></g>
+<g font-family="Inter,Segoe UI,sans-serif" fill="#e9fffc"><text x="100" y="130" font-size="28" letter-spacing="8" opacity=".75">O C T A V I A N O S</text><text x="100" y="190" font-size="18" letter-spacing="4" opacity=".62">AURORA • MARINE • MULTI-ARCH RESEARCH</text></g>
+</svg>

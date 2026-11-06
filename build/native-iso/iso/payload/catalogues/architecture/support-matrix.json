@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "policy": "evidence-gated",
+  "execution_modes": [
+    "native",
+    "virtual-machine",
+    "instruction-emulation",
+    "compatibility-layer"
+  ],
+  "targets": [
+    {
+      "id": "x86_64",
+      "family": "CISC",
+      "class": "primary-ISO-target",
+      "native_kernel": "staging-contract-and-kernel-entry-validation",
+      "qemu": "target-acceptance-workflow-exists-but-requires-a-staged-ISO-root",
+      "userspace": "not-accepted-until-real-target-logs",
+      "release_supported": false,
+      "evidence_required": [
+        "canonical-ISO-build",
+        "embedded-payload-validation",
+        "Aurora-ready-from-desktop",
+        "installer-install-reboot",
+        "recovery-diagnostics",
+        "SMP-concurrency",
+        "BIOS-UEFI"
+      ]
+    },
+    {
+      "id": "x86",
+      "family": "CISC",
+      "class": "compatibility-target",
+      "native_kernel": "not-accepted",
+      "qemu": "emulator-backend-validation-only",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "32-bit-toolchain",
+        "architecture-specific-kernel",
+        "QEMU-userspace-boot"
+      ]
+    },
+    {
+      "id": "aarch64",
+      "family": "RISC",
+      "class": "mobile-server-target",
+      "native_kernel": "mobile-platform-contract-only",
+      "qemu": "cross-build-and-QEMU-virt-tests-required",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "cross-build",
+        "QEMU-virt-kernel-boot",
+        "device-tree",
+        "drivers",
+        "mobile-shell-ready",
+        "input-display-network-storage",
+        "recovery"
+      ]
+    },
+    {
+      "id": "riscv64",
+      "family": "RISC",
+      "class": "research-target",
+      "native_kernel": "not-accepted",
+      "qemu": "cross-build-and-QEMU-virt-tests-required",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "cross-build",
+        "QEMU-virt-kernel-boot",
+        "interrupt-controller",
+        "device-tree",
+        "drivers",
+        "userspace-ready"
+      ]
+    },
+    {
+      "id": "aarch64-mobile-device",
+      "family": "RISC",
+      "class": "physical-mobile-device",
+      "native_kernel": "device-specific-port-required",
+      "qemu": "generic-QEMU-does-not-prove-device-support",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "boot-chain",
+        "firmware-device-tree",
+        "display-touch",
+        "wifi-cellular",
+        "storage",
+        "power-management",
+        "verified-update",
+        "recovery"
+      ]
+    },
+    {
+      "id": "mips64",
+      "family": "RISC",
+      "class": "research-target",
+      "native_kernel": "not-accepted",
+      "qemu": "emulator-catalog-only",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "architecture-port",
+        "cross-build",
+        "QEMU-boot",
+        "drivers",
+        "userspace"
+      ]
+    },
+    {
+      "id": "powerpc64",
+      "family": "RISC",
+      "class": "research-target",
+      "native_kernel": "not-accepted",
+      "qemu": "emulator-catalog-only",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "architecture-port",
+        "cross-build",
+        "QEMU-boot",
+        "drivers",
+        "userspace"
+      ]
+    },
+    {
+      "id": "loongarch64",
+      "family": "RISC",
+      "class": "research-target",
+      "native_kernel": "not-accepted",
+      "qemu": "emulator-catalog-only",
+      "userspace": "not-accepted",
+      "release_supported": false,
+      "evidence_required": [
+        "architecture-port",
+        "cross-build",
+        "QEMU-boot",
+        "drivers",
+        "userspace"
+      ]
+    }
+  ],
+  "rules": [
+    "CPU instruction emulation is not native OS support.",
+    "QEMU machine availability is not proof that this OS boots on that machine.",
+    "No target is release-supported without reproducible acceptance evidence.",
+    "Never load x86_64 kernel or userspace payloads on a non-x86_64 target.",
+    "Mobile support requires device-specific drivers, firmware interfaces, power management, secure update and recovery."
+  ]
+}

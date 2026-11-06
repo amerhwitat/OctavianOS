@@ -1,0 +1,32 @@
+name: Vendored Service Bootstrap Contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/kernel/core/service.cpp"
+      - "vendor/chimera-ii-os/source/kernel/include/chimera/service.h"
+      - "vendor/chimera-ii-os/source/kernel/tests/service_bootstrap_test.cpp"
+      - ".github/workflows/service-bootstrap-contract.yml"
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/kernel/core/service.cpp"
+      - "vendor/chimera-ii-os/source/kernel/include/chimera/service.h"
+      - "vendor/chimera-ii-os/source/kernel/tests/service_bootstrap_test.cpp"
+      - ".github/workflows/service-bootstrap-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  service-bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile vendored service bootstrap contract with warnings as errors
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include \
+            kernel/core/service.cpp kernel/tests/service_bootstrap_test.cpp \
+            -o /tmp/service-bootstrap-contract
+          /tmp/service-bootstrap-contract

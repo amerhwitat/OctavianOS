@@ -1,0 +1,36 @@
+name: OctavianOS Boot Artwork
+on:
+  pull_request:
+    paths:
+      - "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      - "desktop/aurora/assets/octavian-artwork-manifest.json"
+      - "tools/boot/render_boot_artwork.py"
+      - "tests/boot/test_boot_artwork_renderer.py"
+      - ".github/workflows/boot-artwork.yml"
+  push:
+    branches: [main]
+    paths:
+      - "desktop/aurora/assets/octavian-octopus-aurora.svg"
+      - "desktop/aurora/assets/octavian-artwork-manifest.json"
+      - "tools/boot/render_boot_artwork.py"
+      - "tests/boot/test_boot_artwork_renderer.py"
+      - ".github/workflows/boot-artwork.yml"
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SVG renderer
+        run: sudo apt-get update && sudo apt-get install -y python3-cairosvg
+      - name: Render firmware-stage PNG
+        run: python3 tools/boot/render_boot_artwork.py --output build/boot-artwork/octavian-octopus-aurora.png
+      - name: Test renderer and PNG dimensions
+        run: python3 -m unittest tests/boot/test_boot_artwork_renderer.py -v
+      - name: Upload rendered artwork for ISO-builder integration
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavianos-boot-artwork
+          path: build/boot-artwork/octavian-octopus-aurora.png
+          if-no-files-found: error

@@ -1,0 +1,31 @@
+name: Vendored Koronos frame allocator tests
+
+on:
+  pull_request:
+    paths:
+      - "vendor/chimera-ii-os/source/kernel/core/frame_allocator.cpp"
+      - "vendor/chimera-ii-os/source/kernel/include/chimera/frame_allocator.h"
+      - "vendor/chimera-ii-os/source/tests/kernel/**"
+      - "vendor/chimera-ii-os/source/kernel/build-koronos.sh"
+      - ".github/workflows/koronos-frame-allocator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vendor/chimera-ii-os/source/kernel/core/frame_allocator.cpp"
+      - "vendor/chimera-ii-os/source/kernel/include/chimera/frame_allocator.h"
+      - "vendor/chimera-ii-os/source/tests/kernel/**"
+      - "vendor/chimera-ii-os/source/kernel/build-koronos.sh"
+      - ".github/workflows/koronos-frame-allocator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run vendored allocator tests
+        run: bash vendor/chimera-ii-os/source/tests/kernel/run-frame-allocator-host-tests.sh
+      - name: Validate canonical Koronos build script syntax
+        run: bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
