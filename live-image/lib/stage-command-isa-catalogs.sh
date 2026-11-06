@@ -34,6 +34,6 @@ manifest = {
     "binary_status": "catalogue-data-only; entries are not claimed as implemented executables or tested ISA backends",
 }
 (root / "catalog-provenance/command-isa-manifest.json").write_text(
-    json.dumps(manifest, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 print("staged and JSON-validated command/ISA catalogue files:", len(files))
 PY
