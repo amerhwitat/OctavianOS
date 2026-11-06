@@ -117,8 +117,8 @@ if [ ! -f "$BASE/.packages-installed" ]; then
         echo "[TERMINAL-SHELL][UNAVAILABLE] package=$package arch=$(dpkg --print-architecture)"
       fi
     done
-    if (("\${#terminal_shell_packages[@]}" > 0)); then
-      apt-get install -y -qq --no-install-recommends "\${terminal_shell_packages[@]}"
+    if ((${#terminal_shell_packages[@]} > 0)); then
+      apt-get install -y -qq --no-install-recommends "${terminal_shell_packages[@]}"
     fi
     mkdir -p /usr/share/chimera/aurora
     {
@@ -128,7 +128,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
         "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
         "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
         "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
-        id="\${item%%:*}"; binary="\${item#*:}"
+        id="${item%%:*}"; binary="${item#*:}"
         if command -v "$binary" >/dev/null 2>&1; then
           path="$(command -v "$binary")"
           if readelf -h "$path" >/dev/null 2>&1; then
