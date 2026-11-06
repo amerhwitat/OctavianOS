@@ -207,7 +207,7 @@ SOURCE_REQUIRED="$WORK/usr/share/chimera/aurora/terminal-shell-source-required.t
 python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY'
 import pathlib, sys
 status, missing = map(pathlib.Path, sys.argv[1:])
-source_recipes = {"yash", "nushell", "wezterm", "ghostty", "contour"}
+source_recipes = {"yash", "elvish", "nushell", "wezterm", "ghostty", "contour"}
 rows = []
 if status.is_file():
     for line in status.read_text().splitlines():
