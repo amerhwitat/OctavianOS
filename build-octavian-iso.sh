@@ -261,6 +261,9 @@ build_iso() {
     
     # Create GRUB configuration
     cat > "${iso_stage}/boot/grub/grub.cfg" <<EOF
+set default=0
+set timeout=300
+set timeout_style=menu
 menuentry "OctavianOS ${target} (${arch})" {
     insmod gzio
     insmod squash4
