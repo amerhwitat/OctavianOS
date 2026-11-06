@@ -194,6 +194,25 @@ gtk-icon-theme-name=chimera-aurora
 GTK
 echo "  Aurora SVG icons exported and staged: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$ICON_THEME/manifest.json")"
 
+# Export the complete 133-symbol original app artwork sprite as real SVG files.
+APP_ICON_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source/desktop/app-icons"
+APP_ICON_THEME="$WORK/usr/share/icons/hicolor/scalable/apps"
+APP_ICON_ASSETS="$PAY/desktop/app-icons"
+if [ ! -s "$APP_ICON_SOURCE/catalog.svg" ] || [ ! -s "$APP_ICON_SOURCE/manifest.json" ]; then
+  echo "ERROR: complete Aurora app-icon sprite/manifest is missing" >&2
+  exit 2
+fi
+mkdir -p "$APP_ICON_THEME" "$APP_ICON_ASSETS/icons"
+cp -f "$APP_ICON_SOURCE/catalog.svg" "$APP_ICON_ASSETS/catalog.svg"
+cp -f "$APP_ICON_SOURCE/manifest.json" "$APP_ICON_ASSETS/manifest.json"
+python3 "$HERE/lib/export-app-icon-theme.py" \
+  --sprite "$APP_ICON_SOURCE/catalog.svg" \
+  --manifest "$APP_ICON_SOURCE/manifest.json" \
+  --output "$APP_ICON_THEME"
+cp -f "$APP_ICON_THEME"/chimera-*.svg "$APP_ICON_ASSETS/icons/"
+cp -f "$APP_ICON_THEME/manifest.json" "$APP_ICON_ASSETS/export-manifest.json"
+echo "  Original Aurora app artwork exported: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$APP_ICON_THEME/manifest.json")"
+
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
 # Aurora desktop shell (multi-profile window manager) is staged for every edition.
