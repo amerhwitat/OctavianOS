@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
-          bash -n live-image/lib/stage-command-isa-catalogs.sh live-image/build.sh
+          bash -n live-image/lib/stage-command-isa-catalogs.sh live-image/build.sh live-image/lib/build-terminal-shell-sources.sh
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -114,6 +114,15 @@ jobs:
           test -x "$root/usr/local/bin/aurora-session"
           test -s "$root/opt/aurora/application-bundle.json"
           test -d "$root/opt/aurora/app-catalogs"
+          test -s "$root/opt/aurora/terminal-shell-provider-verification.json"
+          python3 - "$root/opt/aurora/terminal-shell-provider-verification.json" <<'PY'
+          import json, pathlib, sys
+          manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert manifest["schema"] == "octavian-terminal-shell-provider-verification/v1"
+          assert manifest["required"] == 18 == manifest["verified"], manifest
+          assert len(manifest["providers"]) == 18
+          print("Verified all 18 terminal/shell provider files and target ELF/script architecture contracts.")
+          PY
           test -s "$root/opt/aurora/catalog-provenance/command-isa-manifest.json"
           test -s "$root/opt/aurora/catalog-provenance/command-isa.SHA256SUMS"
           test -s "$root/opt/aurora/ISA.csv"
