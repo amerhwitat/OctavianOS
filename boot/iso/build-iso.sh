@@ -71,6 +71,7 @@ cp -a "$VENDOR/src/isa/." "$ISO_ROOT/system/source/isa/"
 cp -a "$VENDOR/tools/isa/." "$ISO_ROOT/system/source/isa-tools/"
 cp -a "$VENDOR/tools/commands/." "$ISO_ROOT/system/source/command-tools/"
 cp -f "$VENDOR/tools/build-chimera-command-compat.sh" "$ISO_ROOT/system/source/commands/build-chimera-command-compat.sh"
+cp -f "$ROOT/tools/stage-native-command-runtime.sh" "$ISO_ROOT/system/source/commands/stage-native-command-runtime.sh"
 cp -a "$VENDOR/include/chimera/." "$ISO_ROOT/system/source/include/chimera/"
 [ ! -f "$VENDOR/kernel/core/isa_registry.cpp" ] || cp -f "$VENDOR/kernel/core/isa_registry.cpp" "$ISO_ROOT/system/source/kernel-isa/"
 [ ! -f "$VENDOR/kernel/include/chimera/isa_registry.h" ] || cp -f "$VENDOR/kernel/include/chimera/isa_registry.h" "$ISO_ROOT/system/source/kernel-isa/"
@@ -134,6 +135,7 @@ log "5/6 validating menu and offline command/ISA contracts"
 test -s "$ISO_ROOT/system/catalogs/commands/chimera-command-list.json" || { echo "ERROR: command catalogue missing from ISO" >&2; exit 2; }
 test -s "$ISO_ROOT/system/catalogs/isa/generated/universal-instruction-catalog.json" || { echo "ERROR: universal ISA catalogue missing from ISO" >&2; exit 2; }
 test -s "$ISO_ROOT/system/source/commands/chimera-cmd.c" || { echo "ERROR: native command implementation source missing from ISO" >&2; exit 2; }
+test -s "$ISO_ROOT/system/source/commands/stage-native-command-runtime.sh" || { echo "ERROR: native command staging implementation missing from ISO" >&2; exit 2; }
 test -s "$ISO_ROOT/system/source/kernel-isa/isa_registry.cpp" || { echo "ERROR: kernel ISA registry implementation source missing from ISO" >&2; exit 2; }
 test -x "$LB/initramfs/root/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Live initramfs" >&2; exit 2; }
 test -x "$LB/initramfs/recovery/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Recovery initramfs" >&2; exit 2; }
