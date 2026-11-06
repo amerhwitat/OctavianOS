@@ -78,6 +78,40 @@ def main():
     require(session_ids == {"aurora", "marine"}, "desktop selection contract must define exactly Aurora and Marine")
     require(sessions["status"] == "selection-contract-only", "desktop manifest must not claim native launch readiness")
 
+    menu_paths = (
+        "boot/iso/grub.cfg",
+        "boot/jasper/jasper.cfg",
+        "boot/spitfire/spitfire-menu.cfg",
+        "boot/jasper/diagnostics.cfg",
+        "boot/jasper/install.cfg",
+        "boot/jasper/live.cfg",
+        "boot/jasper/recovery.cfg",
+        "boot/jasper/safe.cfg",
+        "boot/installation/menu.cfg",
+        "vendor/chimera-ii-os/source/boot/iso/grub.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/jasper.cfg",
+        "vendor/chimera-ii-os/source/boot/spitfire/spitfire-menu.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/diagnostics.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/install.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/live.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/recovery.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/safe-mode.cfg",
+        "vendor/chimera-ii-os/source/boot/jasper/retro.cfg",
+        "vendor/chimera-ii-os/source/boot/installation/menu.cfg",
+        "vendor/chimera-ii-os/source/boot/installation/services.cfg",
+        "vendor/chimera-ii-os/source/boot/loader-menu.cfg",
+    )
+    for relative in menu_paths:
+        menu_text = read(ROOT / relative)
+        require(re.search(r"(?m)^set timeout_style=menu\s*$", menu_text), f"menu must stay visible during countdown: {relative}")
+        require(re.search(r"(?m)^set timeout=60\s*$", menu_text), f"menu must wait 60 seconds: {relative}")
+
+    boot_contract = json.loads(read(ROOT / "vendor/chimera-ii-os/source/boot/boot-menu-contract.json"))
+    gates_menu = json.loads(read(ROOT / "vendor/chimera-ii-os/source/desktop/aurora/gates_menu.json"))
+    menu_policy = {"timeout_seconds": 60, "timeout_style": "menu", "default_entry": "live", "on_timeout": "boot_default"}
+    require(boot_contract.get("menu_policy") == menu_policy, "vendor boot contract must define the shared 60-second menu policy")
+    require(gates_menu.get("boot_contract", {}).get("menu_policy") == menu_policy, "Gates menu policy must match Jasper/GRUB")
+
     print(f"boot target graph static contract: PASS ({len(configs)} configs, {len(set(targets))} configfile edges)")
     print("This is source-level validation only; ISO payload existence, GRUB runtime, Koronos handoff, and desktop readiness require build/QEMU tests.")
 
