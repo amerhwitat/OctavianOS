@@ -46,6 +46,7 @@ log "2b/6 adding native command applets to Koronos early userspace"
 for initroot in "$LB/initramfs/root" "$LB/initramfs/recovery"; do
   CHIMERA_COMMAND_LINK_MODE=static CHIMERA_INSTALL_DISPATCHER=0 CHIMERA_STAGE_CATALOGS=0 \
     bash "$ROOT/tools/stage-native-command-runtime.sh" "$VENDOR" "$initroot"
+  CHIMERA_ROOT_PREFIX="$initroot" "$initroot/usr/bin/chimera-native" echo "Koronos native command smoke test" >/dev/null
 done
 (cd "$LB/initramfs/root" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$LB/boot/live/chimera-live-initramfs.img"
 sha256sum "$LB/boot/live/chimera-live-initramfs.img" > "$LB/boot/live/chimera-live-initramfs.img.sha256"
