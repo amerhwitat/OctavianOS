@@ -53,9 +53,10 @@ extern "C" int chimera_syscall_dispatch(uint32_t entry, uint32_t bitness, uint32
             *return_value = error_value();
             return -1;
         case CHM_SYS_YIELD:
-            chimera_sched_yield();
-            *return_value = 0;
-            return 0;
+            /* Callback scheduling does not switch execution context. */
+            ++g_rejected;
+            *return_value = error_value();
+            return -1;
         case CHM_SYS_TIME_TICKS:
             *return_value = chimera_timer_now();
             return 0;
