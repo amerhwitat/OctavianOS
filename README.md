@@ -4,9 +4,9 @@
 
 A bootable amd64 live image is published from this repository:
 
-- **Latest: OctavianOS 2026.11.03 — 26-wallpaper build** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-live-2026.11.03-desktop-21c3caa/octavian-os-live-amd64.iso) · 466 MiB · SHA-256 `bce639295832bbe84152b7c1b0a1ce667ba3607ef1f0fa77abea64a1ba823531`
-- Release notes, checksum and BIOS/UEFI boot report: [2026.11.03 26-wallpaper release](https://github.com/amerhwitat/OctavianOS/releases/tag/octavian-os-live-2026.11.03-desktop-21c3caa)
-- Local copy of the release note, checksum and boot report: [`docs/releases/octavian-os-live-2026.11.03-desktop-21c3caa/RELEASE.md`](docs/releases/octavian-os-live-2026.11.03-desktop-21c3caa/RELEASE.md)
+- **Latest: OctavianOS 2026.11.06 — 28-wallpaper desktop build** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-live-2026.11.06-desktop-61649d9/octavian-os-live-amd64.iso) · 491 MiB · SHA-256 `eb8b201116763702ca58e203a3493f52a5e9e56ba9f7bb5f312db4d00e2b41f1`
+- Release notes, checksum and BIOS/UEFI boot report: [2026.11.06 28-wallpaper release](https://github.com/amerhwitat/OctavianOS/releases/tag/octavian-os-live-2026.11.06-desktop-61649d9)
+- Local copy of the release note, checksum and boot report: [`docs/releases/octavian-os-live-2026.11.06-desktop-61649d9/RELEASE.md`](docs/releases/octavian-os-live-2026.11.06-desktop-61649d9/RELEASE.md)
 - Previous: **OctavianOS 2026.11.02** — [`octavian-os-live-amd64.iso`](https://github.com/amerhwitat/OctavianOS/releases/download/octavian-os-2026.11.02/octavian-os-live-amd64.iso) · 466 MiB · SHA-256 `41bba4d3b3b4a6cb46e025792b36458ec82ea78936fb52157fcc32d3050785ea`
 - Release notes, checksums and build evidence: [`docs/releases/octavian-os-2026.11.02/RELEASE.md`](docs/releases/octavian-os-2026.11.02/RELEASE.md)
 - Mirror / download index: https://amerhwitat.github.io/downloads/
