@@ -32,7 +32,8 @@
   "handoff": "Spit Fire -> Jasper/Gates -> Multiboot2/CHMBOOT1 -> Koronos -> hardware/driver discovery -> Aurora session",
   "linux_vmlinuz": false,
   "menu_policy": {
-    "timeout_seconds": 60,
+    "timeout_seconds": 300,
+    "submenu_timeout_seconds": 120,
     "timeout_style": "menu",
     "default_entry": "live",
     "on_timeout": "boot_default"
