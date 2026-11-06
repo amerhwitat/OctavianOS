@@ -27,6 +27,13 @@ verify_target_elf() {
   }
 }
 require git
+build_elvish() {
+  require go
+  local src="$OUT/src/elvish"
+  git clone --depth 1 https://github.com/elves/elvish.git "$src"
+  (cd "$src" && go build -trimpath -ldflags "-s -w" -o "$OUT/stage/usr/local/bin/elvish" ./cmd/elvish)
+  install -D -m 0755 "$OUT/stage/usr/local/bin/elvish" "$ROOTFS/usr/local/bin/elvish"
+}
 build_yash() {
   require make
   local src="$OUT/src/yash"
@@ -78,6 +85,7 @@ while IFS='|' read -r package binary status; do
   [[ -n "$binary" ]] || continue
   case "$binary" in
     yash) build_yash ;;
+    elvish) build_elvish ;;
     nu) build_nushell ;;
     wezterm) build_wezterm ;;
     ghostty) build_ghostty ;;
@@ -88,6 +96,7 @@ while IFS='|' read -r package binary status; do
   verify_target_elf "$ROOTFS/usr/local/bin/$binary"
   case "$binary" in
     yash) commit="$(git -C "$OUT/src/yash" rev-parse HEAD)" ;;
+    elvish) commit="$(git -C "$OUT/src/elvish" rev-parse HEAD)" ;;
     nu) commit="$(git -C "$OUT/src/nushell" rev-parse HEAD)" ;;
     wezterm) commit="$(git -C "$OUT/src/wezterm" rev-parse HEAD)" ;;
     ghostty) commit="$(git -C "$OUT/src/ghostty" rev-parse HEAD)" ;;
@@ -95,6 +104,7 @@ while IFS='|' read -r package binary status; do
   esac
   case "$binary" in
     yash) srcdir="$OUT/src/yash" ;;
+    elvish) srcdir="$OUT/src/elvish" ;;
     nu) srcdir="$OUT/src/nushell" ;;
     wezterm) srcdir="$OUT/src/wezterm" ;;
     ghostty) srcdir="$OUT/src/ghostty" ;;
