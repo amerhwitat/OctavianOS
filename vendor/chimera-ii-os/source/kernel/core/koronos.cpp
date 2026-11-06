@@ -15,6 +15,7 @@
 #include "chimera/service.h"
 #include "chimera/platform_features.h"
 #include "chimera/process.h"
+#include "chimera/x86_64_context.h"
 
 extern "C" void koronos_outb(uint16_t port, uint8_t value);
 
@@ -310,12 +311,12 @@ static void task_installer(void *) {
             else console_write("[INST] WARNING: installer contract module missing");
             break;
         case 1:
-            console_write("[INST] Installer runtime initialization");
-            console_write("[INST] Initializing installer services in parallel");
+            console_write("[INST] Installer metadata phase entered; no installer userspace runtime is initialized");
+            console_write("[INST] Service start withheld: no process-backed installer workers are connected");
             break;
         case 2:
-            console_write("[INST] Hardware discovery service started");
-            console_write("[INST] Storage discovery service started");
+            console_write("[INST] Kernel hardware inventory is diagnostic only; no installer worker is running");
+            console_write("[INST] Storage backend is not mounted; installer worker is not running");
             break;
         case 3:
             if (phases) console_write("[INST] Installation phases loaded");
@@ -380,8 +381,8 @@ static void task_kore(void *) {
     if (!started) {
         started = true;
         chimera_kore_bootstrap();
-        console_write("[KORE] Service orchestration online");
-        console_write("[KORE] Core storage/security/logging services active");
+        console_write("[KORE] Core service identities registered; no service start callbacks are installed");
+        console_write("[KORE] Storage/security/logging backends remain DECLARED, not RUNNING");
     }
     // Bootstrap orchestration is complete; a service worker must block until
     // an event source wakes it rather than consume every scheduler dispatch.
@@ -425,6 +426,35 @@ extern "C" void koronos_target_log(const char *message) {
     if (!message) return;
     debugcon_write(message);
     console_write(message);
+    }
+
+alignas(16) static uint8_t context_test_stack[16384];
+static koronos_x86_64_context context_test_main{};
+static koronos_x86_64_context context_test_child{};
+static volatile uint32_t context_test_result = 0;
+
+static void context_test_entry(void *) {
+    context_test_result = 1;
+    if (koronos_x86_64_context_switch(&context_test_child, &context_test_main) != 0)
+        context_test_result = 2;
+    for (;;) __asm__ volatile("cli; hlt" ::: "memory");
+}
+
+static int context_switch_self_test() {
+    uint64_t root = 0;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(root));
+    root &= 0x000FFFFFFFFFF000ull;
+    if (!root) return -1;
+    context_test_main = {};
+    context_test_child = {};
+    context_test_result = 0;
+    if (koronos_x86_64_context_prepare(
+            &context_test_child, reinterpret_cast<uint64_t>(context_test_stack),
+            sizeof(context_test_stack), root, context_test_entry, nullptr) != 0)
+        return -2;
+    if (koronos_x86_64_context_switch(&context_test_main, &context_test_child) != 0)
+        return -3;
+    return context_test_result == 1 ? 0 : -4;
 }
 
 extern "C" void koronos_boot(const koronos_boot_context *ctx) {
@@ -485,9 +515,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     const int address_space_init = (frame_init == 0) ? koronos_address_space_init() : -1;
     const int address_space_test = (address_space_init == 0) ? koronos_address_space_self_test() : -1;
     const int user_entry_init = (address_space_test == 0) ? koronos_user_entry_init() : -1;
+    const int context_switch_test = (address_space_test == 0 && user_entry_init == 0)
+        ? context_switch_self_test() : -1;
     if (address_space_test == 0 && user_entry_init == 0) {
         console_write("[MM  ] Process page-table self-test passed: kernel identity mappings preserved; user U/RW/NX permissions verified; frames reclaimed");
         console_write("[ARCH] GDT/TSS RSP0 and native SYSCALL entry initialized; user-image launch remains gated on target payload acceptance");
+        if (context_switch_test == 0)
+            console_write("[SCH ] BSP same-CR3 saved-context switch self-test passed; process scheduling remains disabled");
+        else
+            console_write("[SCH ] ERROR: saved-context switch self-test failed; process scheduling remains disabled");
         console_write("[MM  ] User virtual addresses must begin at or above 4 GiB to avoid the bootstrap identity map");
     } else {
         console_write("[MM  ] ERROR: process address-space or ring-3 entry setup failed; user-image launch remains disabled");
@@ -497,14 +533,15 @@ extern "C" void koronos_boot(const koronos_boot_context *ctx) {
     const struct koronos_cpu_features *f = koronos_get_cpu_features();
     console_write("[CPU ] ");
     console_write(f->vendor);
-    console_write("[CPU ] Logical CPUs: ");
+    console_write("[CPU ] Detected logical CPUs: ");
     console_hex32(f->logical_cpus);
+    console_write("[CPU ] Online scheduler CPUs: 1 (AP startup not implemented)");
     console_write("[VM  ] Hypervisor detected: ");
     console_hex32(f->hypervisor);
 
     console_write("[SCH ] Initializing scheduler...");
-    chimera_sched_init(f->logical_cpus);
-    chimera_learning_init(f->logical_cpus);
+    chimera_sched_init(1); // CPU0 is the only online scheduler CPU until AP startup exists.
+    chimera_learning_init(1); // Do not schedule work on detected-but-offline CPUs.
     console_progress(35, "Scheduler and learning runtime initialized");
 
     console_write("[IO  ] Initializing virtual I/O drivers...");
