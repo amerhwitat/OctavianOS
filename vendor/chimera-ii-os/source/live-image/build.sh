@@ -23,7 +23,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
 BASE="$BUILD/rootfs-base"
-WORK="$BUILD/rootfs-$ED"
+WORK="${WORK_DIR:-$BUILD/rootfs-$ED}"
 ISODIR="$BUILD/iso-$ED"
 OUT="${OUT_DIR:-$BUILD/out}"
 ART="$HERE/artwork"
@@ -46,7 +46,7 @@ case "$ED" in
     TITLE="OctavianOS"
     SHORT="octavian"
     VOLID="OCTAVIAN_OS"
-    ENTRY="desktop/aurora-wayland-glass/index.html"
+    ENTRY="desktop/aurora-shell/index.html"
     DESKTOP_COPY="desktop"
     ISO_NAME="octavian-os-live-amd64.iso"
     ;;
@@ -105,10 +105,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
-      e2fsprogs dosfstools parted gdisk alsa-utils kmod \
-      samba smbclient cifs-utils wsdd avahi-daemon \
-      realmd adcli sssd-ad sssd-ldap sssd-tools libnss-sss libpam-sss \
-      krb5-user ldap-utils libsasl2-modules-gssapi-mit udisks2 oddjob oddjob-mkhomedir
+      e2fsprogs dosfstools parted gdisk alsa-utils kmod
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
@@ -119,8 +116,11 @@ fi
 # ------------------------------------------------------------- rootfs copy
 log "staging rootfs"
 rm -rf "$WORK"; mkdir -p "$WORK"
-tar -C "$BASE" -cf - --exclude=./proc --exclude=./sys --exclude=./dev --exclude=./run . \
-  2>/dev/null | tar -C "$WORK" -xf - 2>/dev/null
+# cp -a keeps ownership/modes and is markedly faster than a tar pipe on this
+# tree; device nodes cannot be recreated without CAP_MKNOD, so /dev, /proc and
+# /sys are rebuilt empty (the initramfs mounts their filesystems).
+cp -a "$BASE/." "$WORK/" 2>/dev/null || true
+rm -rf "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run
 mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mnt "$WORK"/media
 
 # ------------------------------------------------------------- payload
@@ -128,83 +128,13 @@ log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
-[ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
-# Aurora desktop shell (multi-profile window manager) is staged for every edition.
+# Aurora desktop shell (multi-profile window manager + apps) for every edition.
 if [ -d "$REPO_DIR/desktop/aurora-shell" ]; then
   mkdir -p "$PAY/desktop"
   cp -a "$REPO_DIR/desktop/aurora-shell" "$PAY/desktop/aurora-shell"
 fi
-
-# Install registry, SMB/AD/LDAP and optical-media user-space integrations.
-install -D -m 0755 "$REPO_DIR/services/registry/registryd.py" "$WORK/usr/lib/chimera/registry/registryd.py"
-install -D -m 0755 "$REPO_DIR/services/registry/sync-admin-group.py" "$WORK/usr/lib/chimera/registry/sync-admin-group.py"
-install -D -m 0644 "$REPO_DIR/tools/registry/registry_hive.py" "$WORK/usr/lib/chimera/registry/registry_hive.py"
-install -D -m 0755 "$REPO_DIR/services/network/smb-browse.py" "$WORK/usr/lib/chimera/network/smb-browse.py"
-install -D -m 0755 "$REPO_DIR/services/network/directoryctl.py" "$WORK/usr/lib/chimera/network/directoryctl.py"
-install -D -m 0755 "$REPO_DIR/services/storage/mount-image.py" "$WORK/usr/lib/chimera/storage/mount-image.py"
-install -d "$WORK/etc/chimera/registry" "$WORK/usr/share/chimera/integrations"
-for hive in machine environment kernel; do
-  install -m 0644 "$REPO_DIR/system/registry/$hive.defaults.json" "$WORK/etc/chimera/registry/$hive.json"
-  python3 "$WORK/usr/lib/chimera/registry/registry_hive.py" build --input "$WORK/etc/chimera/registry/$hive.json" --output "$WORK/etc/chimera/registry/$hive.hive"
-  python3 "$WORK/usr/lib/chimera/registry/registry_hive.py" verify "$WORK/etc/chimera/registry/$hive.hive"
-done
-cp -a "$REPO_DIR/system/integrations/." "$WORK/usr/share/chimera/integrations/"
-groupadd --force chimera-admin
-if getent passwd user >/dev/null 2>&1; then usermod -aG chimera-admin user; fi
-install -d "$WORK/etc/systemd/system/multi-user.target.wants"
-cat > "$WORK/etc/systemd/system/chimera-admin-group-sync.service" <<'UNIT'
-[Unit]
-Description=Synchronize Chimera registry administrators from sudo group
-After=local-fs.target
-Before=display-manager.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/python3 /usr/lib/chimera/registry/sync-admin-group.py
-RemainAfterExit=yes
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=/etc
-RestrictAddressFamilies=AF_UNIX
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-ln -sfn ../chimera-admin-group-sync.service "$WORK/etc/systemd/system/multi-user.target.wants/chimera-admin-group-sync.service"
-cat > "$WORK/etc/systemd/system/chimera-registryd.service" <<'UNIT'
-[Unit]
-Description=Chimera CHMRG01 Registry Service
-After=local-fs.target chimera-admin-group-sync.service
-Before=display-manager.service
-
-[Service]
-Type=simple
-User=root
-Group=chimera-admin
-UMask=0007
-RuntimeDirectory=chimera
-RuntimeDirectoryMode=0750
-Environment=CHIMERA_REGISTRY_TOOL=/usr/lib/chimera/registry/registry_hive.py
-ExecStart=/usr/bin/python3 /usr/lib/chimera/registry/registryd.py
-Restart=on-failure
-RestartSec=2
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=/etc/chimera/registry /run/chimera
-RestrictAddressFamilies=AF_UNIX
-LockPersonality=yes
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-ln -sfn ../chimera-registryd.service "$WORK/etc/systemd/system/multi-user.target.wants/chimera-registryd.service"
-systemctl --root="$WORK" enable avahi-daemon.service >/dev/null 2>&1 || true
-for unit in smbd.service nmbd.service wsdd.service sssd.service; do systemctl --root="$WORK" disable "$unit" >/dev/null 2>&1 || true; done
-install -D -m 0644 "$REPO_DIR/system/integrations/smb.conf" "$WORK/etc/samba/smb.conf"
+[ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
 python3 - "$ART" "$PAY" <<'PY'
 import json, os, subprocess, sys
@@ -321,8 +251,8 @@ EOF
 log "system configuration"
 install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 
-# Linux-style userspace: systemd units, sysusers/tmpfiles, D-Bus policy, helpers.
-if [ -d "$REPO_DIR/userspace" ]; then
+# Linux-style userspace: systemd units, sysusers/tmpfiles, D-Bus policy and helpers.
+if [ -d "$REPO_DIR/userspace" ] && [ -f "$REPO_DIR/userspace/Makefile" ]; then
   make -C "$REPO_DIR/userspace" install DESTDIR="$WORK" >/dev/null
   echo "  userspace units installed (aurora-shell.target, jasper/gates/aurora targets)"
 fi
@@ -391,12 +321,12 @@ chroot "$WORK" /bin/bash -c "update-initramfs -u -k all" >/dev/null
 umount_chroot "$WORK"
 
 # ------------------------------------------------------------- shrink
-# Compile every SDK/toolchain project we can and ship the honest report.
+# Compile every SDK/toolchain project the host supports; ship the honest report.
 if [ -x "$REPO_DIR/tools/build-sdks.sh" ]; then
   log "sdk build"
   mkdir -p "$PAY/reports"
   bash "$REPO_DIR/tools/build-sdks.sh" --out "$PAY/reports/sdk-build-report.json" \
-    --max 12 --timeout 180 || true
+    --max 6 --timeout 120 || true
 fi
 
 log "trimming"
@@ -465,8 +395,34 @@ menuentry "Reboot" { reboot }
 menuentry "Power off" { halt }
 EOF
 
+# Native Koronos kernel: built with the Linux-style kbuild workflow and staged as a
+# multiboot2 payload. It is a diagnostic target: the microkernel does not reach a
+# verified userspace handoff, so the Linux live entries remain the default.
+log "koronos kernel"
+if [ -f "$REPO_DIR/kernel/Makefile" ] && command -v nasm >/dev/null 2>&1; then
+  ( cd "$REPO_DIR" && make -C kernel defconfig all >/tmp/koronos-build.log 2>&1 ) || \
+    echo "  [warn] Koronos build failed, see /tmp/koronos-build.log"
+  koronos_elf="$REPO_DIR/build/koronos/x86_64/koronos.elf"
+  if [ -s "$koronos_elf" ]; then
+    install -Dm644 "$koronos_elf" "$ISODIR/boot/koronos/koronos.elf"
+    install -Dm644 "$REPO_DIR/build/koronos/x86_64/System.map" "$ISODIR/boot/koronos/System.map" 2>/dev/null || true
+    echo "  staged $(du -h "$koronos_elf" | cut -f1) koronos.elf"
+  fi
+fi
+
 log "iso"
 rm -f "$OUT/$ISO_NAME"
+if [ -f "$ISODIR/boot/koronos/koronos.elf" ]; then
+  cat >> "$ISODIR/boot/grub/grub.cfg" <<'KORONOS'
+
+menuentry "Koronos native microkernel (diagnostic console — no graphical userspace)" {
+  echo "Loading Koronos microkernel (multiboot2)…"
+  multiboot2 /boot/koronos/koronos.elf
+  boot
+}
+KORONOS
+fi
+
 grub-mkrescue --compress=xz -o "$OUT/$ISO_NAME" "$ISODIR" -- -volid "$VOLID"
 ( cd "$OUT" && sha256sum "$ISO_NAME" > "$ISO_NAME.sha256" )
 ls -lh "$OUT/$ISO_NAME"

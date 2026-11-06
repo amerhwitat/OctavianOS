@@ -22,6 +22,39 @@ def main():
     require(configs, "no boot configuration files found")
     all_text = "\n".join(read(p) for p in configs)
 
+    # Human-facing menus must remain visible long enough for deliberate selection.
+    primary_menus = (ROOT / "boot/iso/grub.cfg", ROOT / "boot/jasper/jasper.cfg")
+    submenu_menus = (
+        ROOT / "boot/jasper/live.cfg", ROOT / "boot/jasper/install.cfg",
+        ROOT / "boot/jasper/recovery.cfg", ROOT / "boot/jasper/diagnostics.cfg",
+        ROOT / "boot/jasper/safe.cfg", ROOT / "boot/jasper/retro.cfg",
+        ROOT / "boot/spitfire/spitfire-menu.cfg", ROOT / "boot/installation/menu.cfg",
+    )
+    for path in primary_menus:
+        text = read(path)
+        require(re.search(r"(?m)^set timeout=300\s*$", text), f"{path.relative_to(ROOT)} must wait 300 seconds")
+        require(re.search(r"(?m)^set timeout_style=menu\s*$", text), f"{path.relative_to(ROOT)} must use visible menu timeout")
+        require(re.search(r"(?m)^set default=0\s*$", text), f"{path.relative_to(ROOT)} must declare default entry 0")
+    for path in submenu_menus:
+        text = read(path)
+        require(re.search(r"(?m)^set timeout=120\s*$", text), f"{path.relative_to(ROOT)} must wait 120 seconds")
+        require(re.search(r"(?m)^set timeout_style=menu\s*$", text), f"{path.relative_to(ROOT)} must use visible menu timeout")
+        require(re.search(r"(?m)^set default=0\s*$", text), f"{path.relative_to(ROOT)} must declare default entry 0")
+    stager = read(ROOT / "tools/stage-native-command-runtime.sh")
+    require("usr/lib/chimera/native-bin" in stager, "native command applets must be isolated from system coreutils")
+    require("usr/share/chimera/commands/catalogs" in stager and "usr/share/chimera/isa" in stager, "command and ISA catalogues must be staged offline")
+    require("chimera-run" in stager and "os-command-runtime.json" in stager, "cross-platform command dispatcher and provider manifest must be staged")
+    native_iso_builder = read(ROOT / "boot/iso/build-iso.sh")
+    require("CHIMERA_COMMAND_LINK_MODE=static" in native_iso_builder, "Koronos initramfs must contain a static native command runtime")
+    require("system/catalogs/commands" in native_iso_builder and "system/catalogs/isa" in native_iso_builder, "native ISO must include offline command and ISA catalogues")
+    require("chimera-command-list.json" in native_iso_builder and "universal-instruction-catalog.json" in native_iso_builder, "native ISO must include the full command and universal ISA catalogue files")
+    require("BusyBox ls applet" in native_iso_builder, "native applets must not replace BusyBox boot-critical utilities")
+    live_builder = read(ROOT / "live-image/build.sh")
+    require("set timeout=300" in live_builder and "set timeout_style=menu" in live_builder, "Linux-backed live ISO generator must retain the five-minute menu")
+    native_builder = read(ROOT / "build-octavian-iso.sh")
+    require('REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' in native_builder, "top-level native ISO script must resolve the repository root correctly")
+    require("set timeout=300" in native_builder and "set timeout_style=menu" in native_builder, "native ISO generator must retain the five-minute menu")
+
     # Every absolute configfile edge must resolve to a tracked source config.
     targets = re.findall(r"\bconfigfile\s+(/boot/[^\s;]+)", all_text)
     require(targets, "no configfile edges discovered")

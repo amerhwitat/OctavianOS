@@ -22,7 +22,7 @@ log() { printf '[native-iso] %s\n' "$*"; }
 
 mkdir -p "$WORK"
 
-for tool in grub-mkrescue xorriso nasm gcc ld cpio; do
+for tool in grub-mkrescue xorriso nasm gcc ld cpio gzip; do
   command -v "$tool" >/dev/null || { echo "ERROR: missing build tool: $tool" >&2; exit 2; }
 done
 
@@ -42,12 +42,39 @@ bash "$VENDOR/tools/build-live-boot-binaries.sh" >"$WORK/live-boot-build.log" 2>
   echo "ERROR: initramfs build failed; see $WORK/live-boot-build.log" >&2; exit 2; }
 LB="$VENDOR/build/live-boot"
 
+log "2b/6 adding native command applets to Koronos early userspace"
+for initroot in "$LB/initramfs/root" "$LB/initramfs/recovery"; do
+  CHIMERA_COMMAND_LINK_MODE=static CHIMERA_INSTALL_DISPATCHER=0 CHIMERA_STAGE_CATALOGS=0 \
+    bash "$ROOT/tools/stage-native-command-runtime.sh" "$VENDOR" "$initroot"
+  CHIMERA_ROOT_PREFIX="$initroot" "$initroot/usr/bin/chimera-native" echo "Koronos native command smoke test" >/dev/null
+done
+(cd "$LB/initramfs/root" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$LB/boot/live/chimera-live-initramfs.img"
+sha256sum "$LB/boot/live/chimera-live-initramfs.img" > "$LB/boot/live/chimera-live-initramfs.img.sha256"
+(cd "$LB/initramfs/recovery" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$LB/boot/recovery/chimera-recovery-initramfs.img"
+sha256sum "$LB/boot/recovery/chimera-recovery-initramfs.img" > "$LB/boot/recovery/chimera-recovery-initramfs.img.sha256"
+
 log "3/6 assembling ISO tree"
 rm -rf "$ISO_ROOT"
 mkdir -p "$ISO_ROOT/boot/grub" "$ISO_ROOT/boot/koronos" "$ISO_ROOT/boot/targets" \
          "$ISO_ROOT/boot/live" "$ISO_ROOT/boot/recovery" "$ISO_ROOT/boot/visual" \
-         "$ISO_ROOT/install/installer"
+         "$ISO_ROOT/install/installer" "$ISO_ROOT/system/catalogs/commands" \
+         "$ISO_ROOT/system/catalogs/isa" "$ISO_ROOT/system/source/commands" \
+         "$ISO_ROOT/system/source/isa" "$ISO_ROOT/system/source/isa-tools" \
+         "$ISO_ROOT/system/source/command-tools" "$ISO_ROOT/system/source/include/chimera" \
+         "$ISO_ROOT/system/source/kernel-isa"
 cp -f "$KELF" "$ISO_ROOT/boot/koronos/koronos.elf"
+# Ship the complete source-backed command and ISA inventories for offline use.
+cp -a "$VENDOR/system/commands/." "$ISO_ROOT/system/catalogs/commands/"
+cp -a "$VENDOR/isa/." "$ISO_ROOT/system/catalogs/isa/"
+cp -a "$VENDOR/src/chimera-command-compat/." "$ISO_ROOT/system/source/commands/"
+cp -a "$VENDOR/src/isa/." "$ISO_ROOT/system/source/isa/"
+cp -a "$VENDOR/tools/isa/." "$ISO_ROOT/system/source/isa-tools/"
+cp -a "$VENDOR/tools/commands/." "$ISO_ROOT/system/source/command-tools/"
+cp -f "$VENDOR/tools/build-chimera-command-compat.sh" "$ISO_ROOT/system/source/commands/build-chimera-command-compat.sh"
+cp -f "$ROOT/tools/stage-native-command-runtime.sh" "$ISO_ROOT/system/source/commands/stage-native-command-runtime.sh"
+cp -a "$VENDOR/include/chimera/." "$ISO_ROOT/system/source/include/chimera/"
+[ ! -f "$VENDOR/kernel/core/isa_registry.cpp" ] || cp -f "$VENDOR/kernel/core/isa_registry.cpp" "$ISO_ROOT/system/source/kernel-isa/"
+[ ! -f "$VENDOR/kernel/include/chimera/isa_registry.h" ] || cp -f "$VENDOR/kernel/include/chimera/isa_registry.h" "$ISO_ROOT/system/source/kernel-isa/"
 for t in live installer recovery; do
   cp -f "$VENDOR/build/koronos/x86_64/target-init-$t.elf" "$ISO_ROOT/boot/targets/target-init-$t.elf"
 done
@@ -108,7 +135,17 @@ for cfg in boot/jasper/live.cfg boot/jasper/install.cfg boot/jasper/recovery.cfg
   cp -f "$ROOT/$cfg" "$ISO_ROOT/$cfg"
 done
 
-log "5/6 validating menu contract"
+log "5/6 validating menu and offline command/ISA contracts"
+test -s "$ISO_ROOT/system/catalogs/commands/chimera-command-list.json" || { echo "ERROR: command catalogue missing from ISO" >&2; exit 2; }
+test -s "$ISO_ROOT/system/catalogs/isa/generated/universal-instruction-catalog.json" || { echo "ERROR: universal ISA catalogue missing from ISO" >&2; exit 2; }
+test -s "$ISO_ROOT/system/source/commands/chimera-cmd.c" || { echo "ERROR: native command implementation source missing from ISO" >&2; exit 2; }
+test -s "$ISO_ROOT/system/source/commands/stage-native-command-runtime.sh" || { echo "ERROR: native command staging implementation missing from ISO" >&2; exit 2; }
+test -s "$ISO_ROOT/system/source/kernel-isa/isa_registry.cpp" || { echo "ERROR: kernel ISA registry implementation source missing from ISO" >&2; exit 2; }
+test -x "$LB/initramfs/root/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Live initramfs" >&2; exit 2; }
+test -x "$LB/initramfs/recovery/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Recovery initramfs" >&2; exit 2; }
+test -x "$LB/initramfs/root/bin/chimera-native" || { echo "ERROR: native command launcher missing from Live initramfs" >&2; exit 2; }
+test -L "$LB/initramfs/root/bin/ls" && [ "$(readlink "$LB/initramfs/root/bin/ls")" = "busybox" ] || { echo "ERROR: native staging replaced the BusyBox ls applet" >&2; exit 2; }
+test -L "$LB/initramfs/root/bin/mkdir" && [ "$(readlink "$LB/initramfs/root/bin/mkdir")" = "busybox" ] || { echo "ERROR: native staging replaced the BusyBox mkdir applet" >&2; exit 2; }
 grep -q "ai-knowledge-db" "$ISO_ROOT/boot/grub/grub.cfg" || { echo "ERROR: no knowledge-db module in menu" >&2; exit 2; }
 for t in live installer recovery; do
   grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \

@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # Configuration
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${REPO_ROOT}/build/iso"
 CACHE_DIR="${REPO_ROOT}/.iso-build-cache"
 ISO_OUT="${BUILD_DIR}/out"
@@ -261,6 +261,9 @@ build_iso() {
     
     # Create GRUB configuration
     cat > "${iso_stage}/boot/grub/grub.cfg" <<EOF
+set default=0
+set timeout=300
+set timeout_style=menu
 menuentry "OctavianOS ${target} (${arch})" {
     insmod gzio
     insmod squash4
