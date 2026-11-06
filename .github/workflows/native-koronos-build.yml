@@ -94,6 +94,8 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
+      - name: Validate long boot menu timeouts
+        run: python3 tests/boot/test_boot_menu_timeouts.py
       - name: Install native kernel build dependencies
         run: |
           set -euo pipefail
