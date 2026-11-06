@@ -168,6 +168,27 @@ log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
+
+# Export every real SVG icon embedded in the vendored Aurora source into an
+# installable icon theme and the desktop's offline asset bundle.
+ICON_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora/icons/chimera_icons.cpp"
+ICON_THEME="$WORK/usr/share/icons/chimera-aurora"
+ICON_ASSETS="$PAY/desktop/aurora-shell/assets/icons/generated"
+if [ ! -s "$ICON_SOURCE" ]; then
+  echo "ERROR: embedded Aurora SVG icon source is missing: $ICON_SOURCE" >&2
+  exit 2
+fi
+python3 "$HERE/lib/export-aurora-icons.py" --source "$ICON_SOURCE" --output "$ICON_THEME"
+test -s "$ICON_THEME/manifest.json"
+mkdir -p "$ICON_ASSETS"
+cp -a "$ICON_THEME/scalable/apps/." "$ICON_ASSETS/"
+install -d "$WORK/etc/gtk-3.0"
+cat > "$WORK/etc/gtk-3.0/settings.ini" <<'GTK'
+[Settings]
+gtk-icon-theme-name=chimera-aurora
+GTK
+echo "  Aurora SVG icons exported and staged: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$ICON_THEME/manifest.json")"
+
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
 # Aurora desktop shell (multi-profile window manager) is staged for every edition.
