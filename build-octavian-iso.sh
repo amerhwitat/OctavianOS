@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # Configuration
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${REPO_ROOT}/build/iso"
 CACHE_DIR="${REPO_ROOT}/.iso-build-cache"
 ISO_OUT="${BUILD_DIR}/out"
