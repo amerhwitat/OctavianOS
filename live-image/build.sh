@@ -250,6 +250,63 @@ EOF
 
 # ------------------------------------------------------------- system config
 log "system configuration"
+# Package the local-first AI workspace and the shared source-attributed hardware knowledge engine.
+AI_SHARE="$WORK/usr/share/chimera/ai"
+install -d "$AI_SHARE" "$WORK/usr/bin" "$WORK/usr/local/bin" "$WORK/usr/share/applications" "$PAY/ai"
+install -m 0755 "$REPO_DIR/tools/chimera-ai-workspace.py" "$WORK/usr/bin/chimera-ai-workspace"
+install -m 0755 "$REPO_DIR/tools/cognition/knowledge_database.py" "$WORK/usr/bin/chimera-ai-knowledge"
+install -m 0644 "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$AI_SHARE/chimera-ai-workspace.json"
+install -m 0644 "$REPO_DIR/system/ai/README.md" "$AI_SHARE/README.md"
+install -m 0644 "$REPO_DIR/data/ai/hardware_systems_knowledge.json" "$AI_SHARE/hardware-systems-knowledge.json"
+install -m 0644 "$REPO_DIR/data/ai/hardware_systems_knowledge.schema.json" "$AI_SHARE/hardware-systems-knowledge.schema.json"
+install -m 0644 "$REPO_DIR/tools/cognition/knowledge_database.py" "$AI_SHARE/knowledge_database.py"
+install -m 0644 "$REPO_DIR/tools/cognition/train_knowledge_rnn.py" "$AI_SHARE/train_knowledge_rnn.py"
+install -m 0644 "$REPO_DIR/tools/cognition/trainable_rnn_lm.py" "$AI_SHARE/trainable_rnn_lm.py"
+python3 "$REPO_DIR/tools/cognition/knowledge_database.py" validate --database "$AI_SHARE/hardware-systems-knowledge.json"
+python3 "$REPO_DIR/tools/cognition/train_knowledge_rnn.py" --database "$AI_SHARE/hardware-systems-knowledge.json" --output "$AI_SHARE/trained-hardware-systems-rnn.json" --epochs "${CHIMERA_AI_RNN_EPOCHS:-2}" --hidden 8
+install -m 0755 "$REPO_DIR/desktop/shared/chimera-ai-workspace-launcher.sh" "$WORK/usr/local/bin/chimera-ai-workspace-launcher"
+install -m 0644 "$REPO_DIR/desktop/aurora/chimera-ai-workspace.desktop" "$WORK/usr/share/applications/chimera-ai-workspace.desktop"
+install -m 0644 "$REPO_DIR/desktop/marine/chimera-ai-workspace.desktop" "$WORK/usr/share/applications/chimera-ai-workspace-marine.desktop"
+cp -f "$REPO_DIR/system/ai/chimera-ai-workspace.json" "$PAY/ai/"
+cp -f "$REPO_DIR/system/ai/README.md" "$PAY/ai/"
+cp -f "$REPO_DIR/tools/chimera-ai-workspace.py" "$PAY/ai/"
+cp -f "$AI_SHARE/hardware-systems-knowledge.json" "$PAY/ai/"
+cp -f "$AI_SHARE/hardware-systems-knowledge.schema.json" "$PAY/ai/"
+cp -f "$AI_SHARE/trained-hardware-systems-rnn.json" "$PAY/ai/"
+cp -f "$AI_SHARE/knowledge_database.py" "$PAY/ai/"
+cp -f "$AI_SHARE/train_knowledge_rnn.py" "$PAY/ai/"
+cp -f "$AI_SHARE/trainable_rnn_lm.py" "$PAY/ai/"
+python3 - "$AI_SHARE" <<'PYAI'
+import hashlib, json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+db_path = root / "hardware-systems-knowledge.json"
+model_path = root / "trained-hardware-systems-rnn.json"
+db = json.loads(db_path.read_text(encoding="utf-8"))
+model = json.loads(model_path.read_text(encoding="utf-8"))
+meta = model.get("metadata", {})
+manifest = {
+    "schema": "CHIMERA-AI-PAYLOAD-1",
+    "knowledge_entries": db.get("entry_count"),
+    "knowledge_sources": db.get("source_count"),
+    "knowledge_sha256": hashlib.sha256(db_path.read_bytes()).hexdigest(),
+    "rnn_checkpoint": model_path.name,
+    "rnn_corpus_sha256": meta.get("corpus_sha256"),
+    "rnn_train_sequences": meta.get("train_sequences"),
+    "rnn_heldout_sequences": meta.get("heldout_sequences"),
+    "rnn_loss_history": meta.get("loss_history"),
+    "rnn_scope": "small advisory character-level RNN; not an LLM",
+    "cnn_status": "not trained: no separately labelled and licensed CNN task dataset supplied",
+    "llm_status": "local inference only; RAG does not fine-tune model weights"
+}
+(root / "ai-payload-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+PYAI
+cp -f "$AI_SHARE/ai-payload-manifest.json" "$PAY/ai/"
+python3 -m json.tool "$AI_SHARE/ai-payload-manifest.json" >/dev/null
+python3 -m py_compile "$WORK/usr/bin/chimera-ai-workspace" "$WORK/usr/bin/chimera-ai-knowledge" "$AI_SHARE/train_knowledge_rnn.py" "$AI_SHARE/trainable_rnn_lm.py"
+python3 -m json.tool "$AI_SHARE/chimera-ai-workspace.json" >/dev/null
+python3 "$REPO_DIR/tests/cognition/test_knowledge_database.py"
+python3 "$REPO_DIR/tests/test_chimera_ai_workspace.py"
+
 install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 
 # Linux-style userspace: systemd units, sysusers/tmpfiles, D-Bus policy, helpers.
