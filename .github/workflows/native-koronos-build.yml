@@ -276,6 +276,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tests/boot -p test_boot_artwork_renderer.py -v
+          python3 tests/boot/test_boot_target_graph.py
           python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-octopus-aurora.svg --output /tmp/octavian-octopus-aurora.png
           test -s /tmp/octavian-octopus-aurora.png
           python3 - <<'PY'
