@@ -10,7 +10,8 @@ for rel in system/commands isa userland/commands tools/commands; do
 done
 [[ -s "$VENDOR/ISA.csv" ]] || { echo "missing ISA.csv" >&2; exit 2; }
 install -D -m 0644 "$VENDOR/ISA.csv" "$PAYLOAD/ISA.csv"
-[[ -s "$VENDOR/UPSTREAM_REVISION" ]] || { echo "missing upstream revision provenance" >&2; exit 2; }
+[[ -s "$VENDOR/UPSTREAM_REVISION" ]] || { echo "missing vendor snapshot provenance" >&2; exit 2; }
+[[ -s "$VENDOR/system/commands/UPSTREAM_CATALOGUE_REVISION" ]] || { echo "missing synchronized catalogue revision provenance" >&2; exit 2; }
 mkdir -p "$PAYLOAD/catalog-provenance"
 install -m 0644 "$VENDOR/UPSTREAM_REVISION" "$PAYLOAD/catalog-provenance/UPSTREAM_REVISION"
 (
@@ -27,7 +28,8 @@ for path in files:
     json.loads(path.read_text(encoding="utf-8"))
 manifest = {
     "schema": "octavian-command-isa-catalogues/v1",
-    "source_revision": (root / "catalog-provenance/UPSTREAM_REVISION").read_text().strip(),
+    "vendor_snapshot_revision": (root / "catalog-provenance/UPSTREAM_REVISION").read_text().strip(),
+    "command_catalogue_revision": (root / "system/commands/UPSTREAM_CATALOGUE_REVISION").read_text().strip(),
     "json_catalogue_count": len(files),
     "catalogue_roots": ["system/commands", "isa", "userland/commands", "tools/commands"],
     "isa_csv": "ISA.csv",
