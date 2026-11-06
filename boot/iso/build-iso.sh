@@ -22,7 +22,7 @@ log() { printf '[native-iso] %s\n' "$*"; }
 
 mkdir -p "$WORK"
 
-for tool in grub-mkrescue xorriso nasm gcc ld cpio; do
+for tool in grub-mkrescue xorriso nasm gcc ld cpio gzip; do
   command -v "$tool" >/dev/null || { echo "ERROR: missing build tool: $tool" >&2; exit 2; }
 done
 
