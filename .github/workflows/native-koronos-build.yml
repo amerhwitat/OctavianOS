@@ -121,6 +121,14 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/octavian-multiboot-modules-test
           /tmp/octavian-multiboot-modules-test
+      - name: Compile and run protected-process ELF admission regressions
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -I kernel/include \
+            kernel/tests/process_admission.cpp kernel/core/process.cpp \
+            -o /tmp/octavian-process-admission-test
+          /tmp/octavian-process-admission-test
       - name: Boot kernel in QEMU and require Koronos readiness marker
         working-directory: vendor/chimera-ii-os/source
         run: |

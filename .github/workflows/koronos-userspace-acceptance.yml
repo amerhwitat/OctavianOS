@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Ring-3 Probe Matrix (not production acceptance)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: Candidate ring-3 probe / ${{ matrix.target }} / ${{ matrix.firmware }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -34,6 +34,10 @@ jobs:
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
+      - name: Declare evidence scope
+        run: |
+          echo "This matrix boots standalone high-address ring-3 probes, not the production initramfs /init." >> "$GITHUB_STEP_SUMMARY"
+          echo "Passing this matrix does not satisfy production PID 1, service supervision, installer, recovery, desktop, SMP, or release gates." >> "$GITHUB_STEP_SUMMARY"
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -42,7 +46,7 @@ jobs:
             kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
             -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
+      - name: Build candidate probe ISO (not production payload)
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -66,7 +70,7 @@ jobs:
           EOF
           grub-mkrescue -o "$OUT/koronos-$TARGET.iso" "$ISO_ROOT"
           test -s "$OUT/koronos-$TARGET.iso"
-      - name: Boot and require userspace-originated readiness
+      - name: Boot candidate probe; not production handoff evidence
         env:
           TARGET: ${{ matrix.target }}
           FIRMWARE: ${{ matrix.firmware }}
