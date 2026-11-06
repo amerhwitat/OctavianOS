@@ -20,6 +20,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tools/boot/**'
@@ -64,6 +65,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'boot/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
@@ -94,6 +96,8 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
+      - name: Verify both OS boot menu timeout contracts
+        run: python3 -m unittest discover -s tests/boot -p 'test_boot_menu_timeout.py' -v
       - name: Install native kernel build dependencies
         run: |
           set -euo pipefail
