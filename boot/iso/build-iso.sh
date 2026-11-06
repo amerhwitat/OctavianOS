@@ -133,6 +133,8 @@ test -s "$ISO_ROOT/system/source/commands/chimera-cmd.c" || { echo "ERROR: nativ
 test -x "$LB/initramfs/root/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Live initramfs" >&2; exit 2; }
 test -x "$LB/initramfs/recovery/usr/lib/chimera/native-bin/chimera-cmd" || { echo "ERROR: native command runtime missing from Recovery initramfs" >&2; exit 2; }
 test -x "$LB/initramfs/root/bin/chimera-native" || { echo "ERROR: native command launcher missing from Live initramfs" >&2; exit 2; }
+test -L "$LB/initramfs/root/bin/ls" && [ "$(readlink "$LB/initramfs/root/bin/ls")" = "busybox" ] || { echo "ERROR: native staging replaced the BusyBox ls applet" >&2; exit 2; }
+test -L "$LB/initramfs/root/bin/mkdir" && [ "$(readlink "$LB/initramfs/root/bin/mkdir")" = "busybox" ] || { echo "ERROR: native staging replaced the BusyBox mkdir applet" >&2; exit 2; }
 grep -q "ai-knowledge-db" "$ISO_ROOT/boot/grub/grub.cfg" || { echo "ERROR: no knowledge-db module in menu" >&2; exit 2; }
 for t in live installer recovery; do
   grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \
