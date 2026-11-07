@@ -194,10 +194,23 @@ fi
 if [[ -s "$REPO_DIR/catalogues/runtime-command-isa-contract.json" ]]; then
   install -D -m 0644 "$REPO_DIR/catalogues/runtime-command-isa-contract.json" "$CATALOG_DEST/runtime-command-isa-contract.json"
 fi
+for pair in \
+  "runtime/commands/native-command-candidates.json:native-command-candidates.json" \
+  "runtime/isa/universal-instruction-catalog.json:universal-instruction-catalog.json" \
+  "runtime/isa/riscv-opcodes.json:riscv-opcodes.json"; do
+  src="${pair%%:*}"
+  dst="${pair#*:}"
+  if [[ -s "$REPO_DIR/$src" ]]; then
+    install -D -m 0644 "$REPO_DIR/$src" "$CATALOG_DEST/$dst"
+  else
+    echo "ERROR: generated command/ISA catalogue is missing: $REPO_DIR/$src" >&2
+    exit 2
+  fi
+done
 python3 - "$CATALOG_DEST" <<'PY_CATALOG_GATE'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
-required = ("octavian-command-list.json", "catalog.json", "isa-encoding-registry.json")
+required = ("octavian-command-list.json", "catalog.json", "isa-encoding-registry.json", "native-command-candidates.json", "universal-instruction-catalog.json", "riscv-opcodes.json", "runtime-command-isa-contract.json")
 missing = [name for name in required if not (root / name).is_file() or (root / name).stat().st_size == 0]
 if missing:
     raise SystemExit("required command/ISA catalogue files missing: " + ", ".join(missing))
