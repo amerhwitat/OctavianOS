@@ -180,11 +180,14 @@ set -euo pipefail
 mkdir -p /usr/share/chimera/aurora
 : > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
 for item in \
-  "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+  "xterm:xterm" "gnome-console:kgx" "gnome-terminal:gnome-terminal" \
+  "blackbox-terminal:blackbox" "konsole:konsole" "ptyxis:ptyxis" \
   "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
-  "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
-  "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
-  "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+  "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" "contour:contour" \
+  "terminator:terminator" "tilix:tilix" "mate-terminal:mate-terminal" \
+  "qterminal:qterminal" "sakura:sakura" "terminology:terminology" "lxterminal:lxterminal" \
+  "bash:bash" "zsh:zsh" "fish:fish" "dash:dash" "mksh:mksh" \
+  "yash:yash" "elvish:elvish" "nushell:nu"; do
   id="${item%%:*}"
   binary="${item#*:}"
   if path="$(command -v "$binary" 2>/dev/null)" && [ -n "$path" ]; then
