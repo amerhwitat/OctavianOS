@@ -66,9 +66,9 @@
       "ppc64le",
       "s390x"
     ],
-    "output": "build/command-arch-matrix/<arch>/chimera-cmd",
+    "output": "build/command-arch-matrix/<arch>/usr/lib/chimera/chimera-cmd.native",
     "artifact_abi": "Linux ELF cross-build artifact; not automatically a Koronos-native executable",
-    "runtime_gate": "Validate loader/syscall ABI and actual Koronos runtime behavior before inclusion in an ISO."
+    "runtime_gate": "Each ABI build is ELF-machine validated and executes all 37 multicall command semantics under native x86_64 or QEMU-user emulation; this validates Linux ABI behavior only, not Koronos kernel compatibility."
   },
   "current_kernel_runtime": "The current published native Koronos release is AMD64. Cross-built command artifacts do not establish non-AMD64 kernel support."
 }
