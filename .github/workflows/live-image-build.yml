@@ -48,13 +48,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install current stable Rust toolchain for source-built terminals
+        uses: dtolnay/rust-toolchain@stable
+
+
       - name: Install host ISO and graphical smoke-test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
             debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11
+            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 \
+            build-essential pkg-config libssl-dev cmake ninja-build clang lld
 
       - name: Validate desktop source and application catalogs
         run: |
