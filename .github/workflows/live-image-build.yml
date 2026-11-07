@@ -89,6 +89,12 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py
+          bash -n live-image/build.sh
+          bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
+          bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
+          bash -n vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh
+          python3 tests/boot/test_boot_menu_timeouts.py
+          python3 -m json.tool catalogues/runtime-command-isa-contract.json >/dev/null
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
