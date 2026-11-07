@@ -13,7 +13,7 @@
     ]
   },
   "native_resolution_order": [
-    "Octavian native implementation when a target-native runtime exists",
+    "Chimera native implementation",
     "binary already present in the target rootfs",
     "official distribution/package provider staged by the build or installer",
     "compatibility shim with explicit provider-missing status"
@@ -43,10 +43,10 @@
     ]
   },
   "native_build": {
-    "entrypoint": "tools/commands/build_linux_abi_command_matrix.py",
-    "source": "runtime/commands/src/chimera-cmd.c",
-    "compiler": "target-specific Linux cross compiler from the eight-ABI matrix",
-    "output": "build/native-command-isa/<target>/chimera-cmd",
+    "entrypoint": "tools/build-chimera-command-compat.sh",
+    "source": "src/chimera-command-compat/chimera-cmd.c",
+    "compiler": "CC environment override, otherwise cc/gcc/clang",
+    "output": "rootfs/usr/bin/chimera-cmd",
     "target_linux_abis": [
       "x86_64",
       "i686",
@@ -61,40 +61,55 @@
       "basename",
       "cat",
       "clear",
+      "cmp",
       "cp",
       "date",
       "dirname",
       "echo",
+      "env",
       "false",
+      "fold",
       "head",
       "hostname",
+      "id",
       "ln",
       "ls",
       "mkdir",
       "mv",
+      "nl",
+      "printenv",
       "pwd",
       "readlink",
       "rm",
       "rmdir",
+      "seq",
       "sleep",
       "tail",
+      "tee",
       "touch",
+      "tr",
       "true",
+      "tty",
       "uname",
       "wc",
-      "whoami"
+      "which",
+      "whoami",
+      "yes"
     ],
-    "policy": "The shared POSIX multicall source provides hosted Linux user-space command binaries only. It is not a Koronos-native implementation. Other catalogued commands must resolve to a staged provider or remain explicitly unavailable; catalog membership never implies an executable exists.",
+    "policy": "Only commands implemented in the native source are marked native. Other catalogued commands must resolve to a staged provider or remain explicitly unavailable; catalog membership never implies an executable exists.",
     "artifact_abi": "Linux userspace ELF; not executable by Koronos until a compatible Linux syscall layer is implemented.",
     "target_scope": "Seven Linux userspace ABI cross-build candidates with native/QEMU-user smoke tests; not seven Koronos kernel ports."
   },
   "isa_execution": {
-    "catalog_source": "runtime/catalogues/isa/isa_database.json",
-    "kernel_registry": null,
-    "sample_encodings_json": null,
-    "sample_encodings_header": null,
-    "lookup_api": [],
-    "scope": "OctavianOS currently mirrors the ISA reference catalogue only. It does not claim a complete encoder, decoder, emulator, JIT, or native kernel execution backend for the 104 architecture rows.",
-    "foreign_execution": "Requires a validated architecture-specific decoder/lowering backend or compatible emulation runtime; unsupported instructions must fail closed."
+    "catalog_source": "isa/catalog.json",
+    "kernel_registry": "kernel/generated/chimera_isa_registry.generated.h",
+    "sample_encodings_json": "isa/generated/isa-encoding-samples.json",
+    "sample_encodings_header": "kernel/generated/chimera_isa_encoding_samples.generated.h",
+    "lookup_api": [
+      "chimera_isa_sample_count",
+      "chimera_isa_find_sample"
+    ],
+    "scope": "The sample lookup API exposes worked binary/hex encodings. It is not a complete ISA decoder, encoder, emulator, JIT, or hardware execution backend.",
+    "foreign_execution": "Requires a validated architecture-specific decoder/lowering backend or a compatible emulation runtime; unsupported instructions must fail closed."
   }
 }
