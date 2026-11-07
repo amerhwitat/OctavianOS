@@ -521,8 +521,6 @@ for required in \
   "$ISODIR/install/installer/installation.img"; do
   test -s "$required" || { echo "missing native Koronos ISO payload: $required" >&2; exit 2; }
 done
-install -D -m 0644 "$ISODIR/boot/live/live-manifest.json" "$ISODIR/boot/live/live-manifest.json"
-install -D -m 0644 "$ISODIR/boot/recovery/recovery-manifest.json" "$ISODIR/boot/recovery/recovery-manifest.json"
 
 # Keep the Linux-hosted Aurora desktop as the default until the Koronos-native
 # graphical session passes its own runtime/interaction gates. Offer the three
