@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'boot/iso/**'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/unit/**'
@@ -63,6 +67,10 @@ on:
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
+      - 'boot/iso/**'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/unit/**'
