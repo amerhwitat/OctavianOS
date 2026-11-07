@@ -2,7 +2,7 @@
   "schema": "OCTAVIAN-RUNTIME-CATALOGUE-CONTRACT-1",
   "commands": {
     "discovery_catalog": "runtime/commands/native-command-candidates.json",
-    "imported_source": "vendor/chimera-ii-os/source/system/commands/native-command-candidates.json",
+    "imported_source": "vendor/chimera-ii-os/source/system/commands/chimera-command-list.json plus imported SS64 platform records",
     "runtime_stager": "tools/runtime/stage_native_command_runtime.py",
     "source_native_multicall": "vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c",
     "native_multicall_binary": "/usr/lib/chimera/chimera-cmd.native",
@@ -51,8 +51,11 @@
   },
   "isa": {
     "catalogue": "runtime/isa/universal-instruction-catalog.json",
-    "imported_source": "vendor/chimera-ii-os/source/isa/generated/universal-instruction-catalog.json",
-    "rule": "ISA instructions/encodings are not command binaries. Execution requires a target-specific backend and architecture conformance tests."
+    "imported_source": "vendor/chimera-ii-os/source/isa/isa_database.json plus runtime/isa/riscv-opcodes.json",
+    "rule": "All 1,613 imported instruction records are catalogued with source/provenance and encoding forms. Execution remains disabled until architecture-specific semantics and conformance tests pass.",
+    "riscv_opcodes_catalogue": "runtime/isa/riscv-opcodes.json",
+    "expected_instruction_records": 1613,
+    "expected_architecture_labels": 15
   },
   "architecture_builds": {
     "workflow": ".github/workflows/command-arch-matrix.yml",
