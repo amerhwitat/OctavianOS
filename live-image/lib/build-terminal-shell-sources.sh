@@ -97,9 +97,17 @@ build_foot() {
   install -D -m 0755 "$OUT/stage/usr/local/bin/foot" "$ROOTFS/usr/local/bin/foot"
 }
 build_blackbox() {
-  require meson; require ninja
-  local src="$OUT/src/blackbox"
-  git clone --depth 1 https://gitlab.gnome.org/raggesilver/blackbox.git "$src"
+  require meson; require ninja; require curl; require tar
+  local src="$OUT/src/blackbox" archive
+  # GitLab clone prompts for credentials in non-interactive CI. Use the
+  # upstream Flathub-pinned release archive and verify its SHA-256 first.
+  archive="$OUT/blackbox-v0.14.0.tar.gz"
+  curl --fail --location --retry 3 --retry-delay 2 \
+    "https://gitlab.gnome.org/raggesilver/blackbox/-/archive/v0.14.0/blackbox-v0.14.0.tar.gz" \
+    --output "$archive"
+  echo "0a8b76666ac71a6dc9e05b8084e1c6c53cda880ad1f8f778d9d5de9a6644ad0d  $archive" | sha256sum --check -
+  mkdir -p "$src"
+  tar -xzf "$archive" -C "$src" --strip-components=1
   meson setup "$src/build" --buildtype=release --prefix=/usr/local
   ninja -C "$src/build" -j"${JOBS:-2}"
   DESTDIR="$OUT/stage" ninja -C "$src/build" install
@@ -219,7 +227,7 @@ while IFS='|' read -r package binary status; do
     mksh) commit="$(git -C "$OUT/src/mksh" rev-parse HEAD)" ;;
     alacritty) commit="$(git -C "$OUT/src/alacritty" rev-parse HEAD)" ;;
     foot) commit="$(git -C "$OUT/src/foot" rev-parse HEAD)" ;;
-    blackbox) commit="$(git -C "$OUT/src/blackbox" rev-parse HEAD)" ;;
+    blackbox) commit="release-v0.14.0+sha256:$(sha256sum "$OUT/blackbox-v0.14.0.tar.gz" | awk '{print $1}')" ;;
     yash) commit="$(git -C "$OUT/src/yash" rev-parse HEAD)" ;;
     nu) commit="$(git -C "$OUT/src/nushell" rev-parse HEAD)" ;;
     elvish) commit="$(git -C "$OUT/src/elvish" rev-parse HEAD)" ;;
