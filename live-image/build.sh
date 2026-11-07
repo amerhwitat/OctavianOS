@@ -219,7 +219,7 @@ done
 python3 - "$CATALOG_DEST" <<'PY_CATALOG_GATE'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
-required = ("octavian-command-list.json", "catalog.json", "isa-encoding-registry.json", "native-command-candidates.json", "universal-instruction-catalog.json", "riscv-opcodes.json", "runtime-command-isa-contract.json")
+required = ("octavian-command-list.json", "catalog.json", "isa-encoding-registry.json", "native-command-candidates.json", "universal-instruction-catalog.json", "riscv-opcodes.json", "runtime-command-isa-contract.json", "command-isa-coverage.json")
 missing = [name for name in required if not (root / name).is_file() or (root / name).stat().st_size == 0]
 if missing:
     raise SystemExit("required command/ISA catalogue files missing: " + ", ".join(missing))
