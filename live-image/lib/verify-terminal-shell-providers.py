@@ -2,6 +2,7 @@
 """Verify every registered terminal/shell provider in the final target rootfs."""
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import subprocess
@@ -10,6 +11,9 @@ import sys
 repo, root, payload = map(pathlib.Path, sys.argv[1:4])
 registries = [repo / "aurora/terminals/registry.json", repo / "aurora/shells/registry.json"]
 entries = [entry for path in registries for entry in json.loads(path.read_text(encoding="utf-8"))["entries"]]
+ids = [entry["id"] for entry in entries]
+if len(entries) != 28 or len(ids) != len(set(ids)):
+    raise SystemExit(f"expected 28 unique terminal/shell providers, found {len(ids)}")
 status_path = root / "usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
 statuses = {}
 if status_path.is_file():
@@ -65,6 +69,11 @@ for entry in entries:
     if not path.is_file():
         failures.append(f"{ident}: provider path missing in target rootfs: {rel}")
         continue
+    if item.get("sha256"):
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != item["sha256"]:
+            failures.append(f"{ident}: source-built binary SHA-256 mismatch")
+            continue
     header = subprocess.run(["readelf", "-h", str(path)], text=True, capture_output=True)
     if header.returncode == 0:
         machine = next((line.split(":", 1)[1].strip() for line in header.stdout.splitlines() if "Machine:" in line), "")
