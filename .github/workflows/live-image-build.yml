@@ -222,17 +222,21 @@ jobs:
           # the target. Timeout is expected after the target reports readiness.
           for target in live installer recovery; do
             log="$OUT_DIR/koronos-$target-iso-qemu.log"
-            case "$target" in
-              live) keys="sendkey end; sleep 1; sendkey up; sleep 1; sendkey up; sleep 1; sendkey ret" ;;
-              installer) keys="sendkey end; sleep 1; sendkey up; sleep 1; sendkey ret" ;;
-              recovery) keys="sendkey end; sleep 1; sendkey ret" ;;
-            esac
+            qemu=(qemu-system-x86_64 -machine q35 -accel tcg -cpu qemu64 -m 1536 \
+              -cdrom "$iso" -boot d -display none -serial none -monitor stdio \
+              -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
             set +e
-            ( sleep 5; IFS=';' read -ra commands <<< "$keys"; for command in "${commands[@]}"; do eval "$command"; done ) | \
-              timeout 25s qemu-system-x86_64 -machine q35 -accel tcg -cpu qemu64 -m 1536 \
-                -cdrom "$iso" -boot d -display none -serial none -monitor stdio \
-                -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9 \
-                >/dev/null 2>&1
+            case "$target" in
+              live)
+                ( sleep 5; printf 'sendkey end\\n'; sleep 1; printf 'sendkey up\\n'; sleep 1; printf 'sendkey up\\n'; sleep 1; printf 'sendkey ret\\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+              installer)
+                ( sleep 5; printf 'sendkey end\\n'; sleep 1; printf 'sendkey up\\n'; sleep 1; printf 'sendkey ret\\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+              recovery)
+                ( sleep 5; printf 'sendkey end\\n'; sleep 1; printf 'sendkey ret\\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+            esac
             qemu_rc=$?
             set -e
             [[ "$qemu_rc" -eq 124 || "$qemu_rc" -eq 137 || "$qemu_rc" -eq 0 ]] || {
