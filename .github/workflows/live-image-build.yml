@@ -95,7 +95,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file qemu-system-x86 xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
+            debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file qemu-system-x86 ovmf xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
             openbox x11-utils xdotool xvfb dbus-x11 git cargo rustc cmake ninja-build pkg-config \
             python3-venv python3-pip nodejs autoconf automake libtool gettext meson golang-go \
