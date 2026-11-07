@@ -119,6 +119,47 @@ jobs:
           xorriso -osirrox on -indev "$iso" -extract /live/filesystem.squashfs "$tmp/filesystem.squashfs" >/dev/null
           unsquashfs -no-xattrs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
           root="$tmp/root"
+          # Inspect the actual ISO boot tree, not only its Linux squashfs.
+          bootcheck="$tmp/bootcheck"
+          mkdir -p "$bootcheck"
+          for rel in \
+            boot/grub/grub.cfg \
+            boot/koronos/koronos.elf \
+            boot/targets/target-init-live.elf \
+            boot/targets/target-init-installer.elf \
+            boot/targets/target-init-recovery.elf \
+            boot/live/chimera-live-initramfs.img \
+            boot/live/live-manifest.json \
+            boot/recovery/chimera-recovery-initramfs.img \
+            boot/recovery/recovery-manifest.json \
+            install/installer/installation.img \
+            install/installer/installation-manifest.json \
+            install/installer/installer-contract.json \
+            install/installer/installation_phases.json \
+            install/installer/installer_profiles.json; do
+            mkdir -p "$bootcheck/$(dirname "$rel")"
+            xorriso -osirrox on -indev "$iso" -extract "/$rel" "$bootcheck/$rel" >/dev/null
+            test -s "$bootcheck/$rel" || { echo "::error::Missing native Koronos ISO payload: $rel"; exit 1; }
+          done
+          for target in live installer recovery; do
+            readelf -h "$bootcheck/boot/targets/target-init-$target.elf" | grep -Eq 'Class:[[:space:]]+ELF64'
+            readelf -h "$bootcheck/boot/targets/target-init-$target.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
+            (cd "$bootcheck/boot/targets" && sha256sum --check "target-init-$target.elf.sha256") || true
+          done
+          readelf -h "$bootcheck/boot/koronos/koronos.elf" | grep -Eq 'Class:[[:space:]]+ELF64'
+          grep -Fq 'set timeout=300' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-live.elf chimera-user-init-elf target=live' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-installer.elf chimera-user-init-elf target=installer' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-recovery.elf chimera-user-init-elf target=recovery' "$bootcheck/boot/grub/grub.cfg"
+          python3 - "$bootcheck" <<'PY_KORONOS_ISO'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for rel in ("boot/live/live-manifest.json", "boot/recovery/recovery-manifest.json",
+                      "install/installer/installation-manifest.json", "install/installer/installer-contract.json",
+                      "install/installer/installation_phases.json", "install/installer/installer_profiles.json"):
+              json.loads((root / rel).read_text(encoding="utf-8"))
+          print("Validated actual ISO contains Koronos kernel, three target ELFs, Live/Recovery initramfs and Installer media.")
+          PY_KORONOS_ISO
           require_path() {
             local kind="$1" path="$2"
             if [[ "$kind" == "executable" && ! -x "$path" ]] ||
