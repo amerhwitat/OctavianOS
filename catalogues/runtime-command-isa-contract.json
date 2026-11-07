@@ -52,7 +52,13 @@
     "coverage_counts": {
       "unique_commands": 855,
       "native_source_implemented": 37,
-      "provider_or_native_implementation_remaining": 818
+      "non_native_commands": 818
+    },
+    "coverage_note": "The 818 non-native entries are not all necessarily missing: inspect each row's provider status. Candidate-only syntax/operators are not executable commands and must not receive fake binaries.",
+    "candidate_registry_counts": {
+      "records": 4081,
+      "native_implemented": 37,
+      "candidate_only": 4044
     }
   },
   "isa": {
