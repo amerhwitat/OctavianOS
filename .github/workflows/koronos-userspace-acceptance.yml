@@ -56,7 +56,8 @@ jobs:
           cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
           readelf -h "$ISO_ROOT/boot/target-init-$TARGET.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
-          set timeout=0
+          set timeout=300
+          set timeout_style=menu
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
@@ -76,7 +77,7 @@ jobs:
           set -uo pipefail
           OUT="$PWD/build/userspace-acceptance/$TARGET"
           LOG="$OUT/qemu-$FIRMWARE.log"
-          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
+          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
           if [ "$FIRMWARE" = uefi ]; then
             OVMF_CODE=""
             OVMF_VARS=""
@@ -96,7 +97,7 @@ jobs:
                    -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_VARS.fd")
           fi
           set +e
-          timeout 18s "${QEMU[@]}"
+          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 25s "${QEMU[@]}"
           qemu_rc=$?
           set -e
           # A healthy test init exits to the kernel, which then idles. Timeout
@@ -134,7 +135,8 @@ jobs:
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
-          set timeout=0
+          set timeout=300
+          set timeout_style=menu
           set default=0
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
@@ -146,8 +148,8 @@ jobs:
           grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
           LOG="$OUT/qemu-timeout.log"
           set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
-            -display none -serial none -monitor none -no-reboot -no-shutdown \
+          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
+            -display none -serial none -monitor stdio -no-reboot -no-shutdown \
             -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
           qemu_rc=$?
           set -e
