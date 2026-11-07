@@ -94,7 +94,7 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-if [ ! -f "$BASE/.packages-installed-v3" ]; then
+if [ ! -f "$BASE/.packages-installed-v4" ]; then
   log "installing shared package set (one-off)"
   mount_chroot "$BASE"
   cp "$COMMAND_SOURCE/tools/commands/install-command-providers.sh" "$BASE/tmp/chimera-install-command-providers.sh"
@@ -169,7 +169,7 @@ if len(native)!=37 or bad:
     raise SystemExit(f"native command implementation gate failed: expected 37, found {len(native)}, missing={bad}")
 print(f"Verified {len(native)} compiled native command entrypoints; external providers remain separately classified.")
 PY_NATIVE_GATE
-  touch "$BASE/.packages-installed-v3"
+  touch "$BASE/.packages-installed-v4"
 fi
 
 # --------------------------------------------------------- command + ISA catalogues
@@ -239,6 +239,53 @@ mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mn
 log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
+# Rescan the exact target rootfs, then build only missing providers from
+# upstream source recipes. Missing providers without real recipes fail closed.
+chroot "$WORK" /bin/bash -s <<'PROVIDER_SCAN'
+set -euo pipefail
+mkdir -p /usr/share/chimera/aurora
+: > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+for item in \
+  "xterm:xterm" "gnome-console:kgx" "gnome-terminal:gnome-terminal" \
+  "blackbox-terminal:blackbox" "konsole:konsole" "ptyxis:ptyxis" \
+  "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+  "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" "contour:contour" \
+  "terminator:terminator" "tilix:tilix" "mate-terminal:mate-terminal" \
+  "qterminal:qterminal" "sakura:sakura" "terminology:terminology" "lxterminal:lxterminal" \
+  "bash:bash" "zsh:zsh" "fish:fish" "dash:dash" "mksh:mksh" \
+  "yash:yash" "elvish:elvish" "nushell:nu"; do
+  id="${item%%:*}"
+  binary="${item#*:}"
+  if path="$(command -v "$binary" 2>/dev/null)" && [ -n "$path" ]; then
+    printf '%s\tprovider-present\t%s\n' "$id" "$path" >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+  else
+    printf '%s\tunavailable\t%s\n' "$id" "$binary" >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+  fi
+done
+PROVIDER_SCAN
+install -d "$WORK/usr/share/chimera/aurora/terminals" "$WORK/usr/share/chimera/aurora/shells"
+install -m 0644 "$REPO_DIR/aurora/terminals/registry.json" "$WORK/usr/share/chimera/aurora/terminals/registry.json"
+install -m 0644 "$REPO_DIR/aurora/shells/registry.json" "$WORK/usr/share/chimera/aurora/shells/registry.json"
+PROVIDER_STATUS="$WORK/usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
+SOURCE_REQUIRED="$WORK/usr/share/chimera/aurora/terminal-shell-source-required.tsv"
+python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY_SOURCE_REQUIRED'
+import pathlib, sys
+status, missing = map(pathlib.Path, sys.argv[1:])
+source_recipes = {"bash", "zsh", "fish", "dash", "mksh", "yash", "elvish", "nushell",
+                  "alacritty", "foot", "blackbox-terminal", "wezterm", "ghostty", "contour"}
+rows = []
+for line in status.read_text(encoding="utf-8").splitlines():
+    fields = line.split("\t")
+    if len(fields) >= 3 and fields[1] == "unavailable" and fields[0] in source_recipes:
+        rows.append("|".join((fields[0], fields[2], "distribution-provider-unavailable-source-build-required")))
+missing.write_text("\n".join(rows) + ("\n" if rows else ""), encoding="utf-8")
+print("terminal/shell source builds required:", len(rows))
+PY_SOURCE_REQUIRED
+if [[ -s "$SOURCE_REQUIRED" ]]; then
+  bash "$HERE/lib/build-terminal-shell-sources.sh" "$WORK" "$BUILD/terminal-shell-source-build"
+fi
+python3 "$HERE/lib/verify-terminal-shell-providers.py" "$REPO_DIR" "$WORK" "$PAY"
+
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
