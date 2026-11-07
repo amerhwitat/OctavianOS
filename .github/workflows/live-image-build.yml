@@ -250,6 +250,11 @@ jobs:
           require_path nonempty "$root/opt/aurora/desktop/app-icons/manifest.json"
           require_path nonempty "$root/opt/aurora/desktop/app-icons/export-manifest.json"
           require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-staging.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-provider-verification.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/terminals/registry.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/shells/registry.json"
+          require_path nonempty "$root/opt/aurora/terminal-shell-provider-verification.json"
+          require_path nonempty "$root/opt/aurora/terminal-shell-staging.json"
           require_path executable "$root/usr/local/bin/aurora-session"
           require_path nonempty "$root/opt/aurora/application-bundle.json"
           require_path directory "$root/opt/aurora/app-catalogs"
@@ -304,9 +309,13 @@ jobs:
           print("Verified all", aurora_icons["count"], "Aurora UI icons and", app_icons["count"], "app artwork icons.")
           terminals = json.loads((root.parent.parent / "usr/share/chimera/aurora/terminal-shell-staging.json").read_text())
           assert terminals["schema"] == "AURORA-TERMINAL-SHELL-STAGING-2"
-          assert len(terminals["entries"]) == 18
+          assert len(terminals["entries"]) == 28
           print("Command provider coverage:", commands["catalog_count"], commands["counts"])
-          print("Open-source shell/terminal providers:", len(terminals["entries"]), "catalogued; missing providers remain explicit.")
+          provider_verification = json.loads((root.parent.parent / "usr/share/chimera/aurora/terminal-shell-provider-verification.json").read_text())
+          assert provider_verification["required"] == provider_verification["verified"] == 28
+          assert all(item["status"] in ("verified-elf", "verified-script") for item in provider_verification["providers"])
+          assert "GUI launch/input not tested" in provider_verification["runtime_launch_smoke"]
+          print("Open-source shell/terminal providers:", len(terminals["entries"]), "verified; GUI input remains untested.")
           PY
           cp "$iso" "$OUT_DIR/octavian-os-live-desktop-fixed.iso"
           cp "$iso.sha256" "$OUT_DIR/octavian-os-live-desktop-fixed.iso.sha256"
