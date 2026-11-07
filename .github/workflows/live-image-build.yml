@@ -2,7 +2,7 @@ name: OctavianOS live ISO and fullscreen desktop validation
 
 on:
   push:
-    branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
+    branches: [main, 'fix/live-image-fullscreen-app-bundle-*', 'build/terminal-shell-providers-*']
     paths:
       - 'live-image/**'
       - 'tests/live-image/**'
