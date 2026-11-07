@@ -272,12 +272,43 @@ for entry in entries:
             failures.append(f"{ident}: script interpreter missing: {interpreter}")
             continue
         kind = "verified-script"
-    verified.append({"id": ident, "binary": binary, "path": rel, "status": kind, "elf_machine": expected if kind == "verified-elf" else None})
+    # Execute each provider inside the target rootfs. Shells must execute a
+    # command; terminal emulators must successfully report their version.
+    # This does not claim that GUI windows were interactively exercised.
+    if entry["kind"] == "shell":
+        shell_commands = {
+            "bash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "zsh": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "fish": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "dash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "mksh": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "yash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "elvish": ["-c", "echo CHIMERA_SHELL_SMOKE"],
+            "nu": ["-c", "print CHIMERA_SHELL_SMOKE"],
+        }
+        args = shell_commands.get(binary, ["--version"])
+        expected_output = b"CHIMERA_SHELL_SMOKE"
+    else:
+        args = ["-version"] if binary == "xterm" else ["--version"]
+        expected_output = None
+    try:
+        probe = subprocess.run(["chroot", str(root), rel, *args],
+                                capture_output=True, timeout=15)
+        output = probe.stdout + probe.stderr
+        if probe.returncode != 0 or (expected_output and expected_output not in output):
+            failures.append(f"{ident}: provider execution smoke failed (exit={probe.returncode})")
+            continue
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        failures.append(f"{ident}: provider execution smoke failed: {exc}")
+        continue
+    verified.append({"id": ident, "binary": binary, "path": rel, "status": kind,
+                     "elf_machine": expected if kind == "verified-elf" else None,
+                     "runtime_status": "shell-command-smoke-pass" if entry["kind"] == "shell" else "version-smoke-pass"})
 if failures:
     raise SystemExit("terminal/shell provider gate failed:\n" + "\n".join(failures))
 manifest = {"schema": "octavian-terminal-shell-provider-verification/v1", "target_architecture": arch,
             "required": len(entries), "verified": len(verified), "providers": verified,
-            "runtime_launch_smoke": "not-performed; ELF/script and interpreter checks only"}
+            "runtime_launch_smoke": "shell command and terminal --version smoke tests passed; GUI launch/input not tested"}
 out = root / "usr/share/chimera/aurora/terminal-shell-provider-verification.json"
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
