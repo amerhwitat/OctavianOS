@@ -172,6 +172,22 @@ test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initram
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
+
+# The native ring-3 init is a separate Multiboot module, not the shell /init
+# inside the BusyBox initramfs. Reject images that omit or misroute any target.
+for target in live installer recovery; do
+  init_elf="$DIST/iso/boot/targets/target-init-$target.elf"
+  [[ -s "$init_elf" ]] || { echo "Native $target init ELF missing from ISO: $init_elf" >&2; exit 1; }
+  readelf -h "$init_elf" | grep -Eq 'Class:[[:space:]]+ELF64' || {
+    echo "Native $target init ELF is not ELF64: $init_elf" >&2; exit 1;
+  }
+  grep -Fq "module2 /boot/targets/target-init-$target.elf chimera-user-init-elf target=$target" "$DIST/iso/boot/grub/grub.cfg" || {
+    echo "GRUB has no target-matching USER_INIT_ELF module for $target" >&2; exit 1;
+  }
+done
+grep -Fq "module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery" "$DIST/iso/boot/jasper/recovery.cfg" || {
+  echo "Jasper recovery menu does not load the native recovery init ELF" >&2; exit 1;
+}
 grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/live/live-manifest.json' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/recovery/chimera-recovery-initramfs.img' "$ROOT/boot/jasper/recovery.cfg"
