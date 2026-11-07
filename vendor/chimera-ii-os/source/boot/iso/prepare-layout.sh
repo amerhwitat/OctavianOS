@@ -213,7 +213,7 @@ cp "$ROOT/boot/livecd/live-manifest.json" "$DIST/boot/live-manifest.json"
 if [[ -d "$ROOT/build/live-boot/boot/live" ]]; then cp -a "$ROOT/build/live-boot/boot/live" "$DIST/boot/"; fi
 
 cat > "$DIST/boot/jasper/recovery.cfg" <<'EOF'
-set timeout=5
+set timeout=300
 set default=0
 insmod normal
 insmod gfxterm
@@ -221,6 +221,7 @@ insmod png
 insmod search
 if [ -f /boot/jasper/background.png ]; then background_image /boot/jasper/background.png; fi
 menuentry "Jasper Recovery — Koronos Rescue" { multiboot2 /boot/koronos/koronos.elf
+  module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
   module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest }
 menuentry "Jasper Recovery — Safe Graphics" { multiboot2 /boot/koronos/koronos.elf }
 menuentry "Jasper Recovery — GRUB Command Line" { commandline }
