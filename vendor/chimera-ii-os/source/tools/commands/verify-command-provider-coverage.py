@@ -30,6 +30,7 @@ def runtime_present(provider):
     elif "darwin" in key or "macos" in key: names=["darling"]
     elif "wasm" in key or "webassembly" in key: names=["wasmtime","wasmer"]
     elif "qemu" in key: names=["qemu-aarch64","qemu-arm","qemu-i386","qemu-riscv64","qemu-ppc64le"]
+    elif "busybox" in key: names=["busybox"]
     return next((executable(n) for n in names if executable(n)),None)
 caps=json.loads(CAPS.read_text(encoding="utf-8"))
 rows=[]
@@ -38,9 +39,12 @@ for item in caps.get("commands",[]):
     mode=item.get("mode","")
     provider=item.get("provider","")
     binary=None
-    if mode=="native":
-        # The /usr/bin/chimera-cmd compatibility shim is a script, not the
-        # compiled C multicall. Require the target ELF and its command symlink.
+    if mode=="language-feature":
+        status="not-a-standalone-executable"
+    elif mode=="native":
+        # The /usr/bin/chimera-cmd compatibility shim is a script and is NOT
+        # evidence that the C multicall implementation was built. Require the
+        # target ELF plus the per-command symlink used to select argv[0].
         native_binary=ROOTFS/"usr/lib/chimera/chimera-cmd.native"
         entry=ROOTFS/"usr/lib/chimera/native-bin"/name
         if (native_binary.is_file() and os.access(native_binary,os.X_OK)
@@ -57,9 +61,13 @@ for item in caps.get("commands",[]):
         if binary: status="provider-binary-present-runtime-unverified"
         else:
             rt=runtime_present(provider)
-            if rt: binary=rt; status="compatibility-runtime-present-command-unverified"
+            if rt and "busybox" in str(provider).casefold():
+                probe=subprocess.run([str(rt),"--list"],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+                if name in set(probe.stdout.split()): binary=rt; status="provider-multicall-applet-present"
+                else: status="provider-multicall-applet-missing"
+            elif rt: binary=rt; status="compatibility-runtime-present-command-unverified"
             else: status="provider-binary-and-runtime-missing"
-    row={"name":name,"mode":mode,"provider":provider,"platforms":item.get("platforms",[]),"status":status}
+    row={"name":name,"mode":mode,"entry_kind":item.get("entry_kind","executable-command"),"provider":provider,"platforms":item.get("platforms",[]),"status":status}
     if binary:
         rel="/"+str(binary.relative_to(ROOTFS))
         data=binary.read_bytes()
