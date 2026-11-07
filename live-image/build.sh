@@ -603,7 +603,7 @@ insmod gfxterm
 insmod png
 insmod jpeg
 insmod font
-set gfxmode=1920x1080,1280x1024,1024x768,auto
+set gfxmode=5120x2880,1920x1080,1280x1024,1024x768,640x480,auto
 set gfxpayload=keep
 terminal_output gfxterm
 if [ -f /boot/grub/background.jpg ]; then background_image /boot/grub/background.jpg; fi
