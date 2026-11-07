@@ -64,7 +64,7 @@ build_ghostty() {
   if [[ -s "$src/.zig-version" ]]; then
     zigver="$(tr -d '[:space:]' < "$src/.zig-version")"
   elif [[ -s "$src/build.zig.zon" ]]; then
-    zigver="$(sed -nE 's/^[[:space:]]*\\.minimum_zig_version[[:space:]]*=[[:space:]]*"([0-9]+\\.[0-9]+\\.[0-9]+)".*/\\1/p' "$src/build.zig.zon" | head -n 1)"
+    zigver="$(grep -E 'minimum_zig_version' "$src/build.zig.zon" | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' | head -n 1)"
   else
     zigver=""
   fi
