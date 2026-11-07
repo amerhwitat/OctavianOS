@@ -172,6 +172,13 @@ test -s "$DIST/iso/boot/live/chimera-live-initramfs.img" || { echo "Live initram
 test -s "$DIST/iso/boot/live/live-manifest.json" || { echo "Live manifest missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/chimera-recovery-initramfs.img" || { echo "Recovery initramfs missing from ISO staging tree." >&2; exit 1; }
 test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery manifest missing from ISO staging tree." >&2; exit 1; }
+test -s "$DIST/iso/boot/loader-menu.cfg" || { echo "Universal Gates loader menu missing from ISO staging tree." >&2; exit 1; }
+grep -Fq "target-init-live.elf chimera-user-init-elf target=live" "$DIST/iso/boot/loader-menu.cfg" || {
+  echo "Universal Gates loader menu does not select the native Live init ELF" >&2; exit 1;
+}
+grep -Fq "target-init-recovery.elf chimera-user-init-elf target=recovery" "$DIST/iso/boot/loader-menu.cfg" || {
+  echo "Universal Gates loader menu does not select the native Recovery init ELF" >&2; exit 1;
+}
 
 # The native ring-3 init is a separate Multiboot module, not the shell /init
 # inside the BusyBox initramfs. Reject images that omit or misroute any target.
