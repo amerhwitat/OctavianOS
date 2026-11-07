@@ -403,7 +403,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$OUT_DIR/acceptance"
+          mkdir -p "$RUNNER_TEMP/aurora-live-output/acceptance"
           python3 - <<'PY_PRODUCTION_GATE'
           import json, os, pathlib
           root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "aurora-live-output" / "acceptance"
