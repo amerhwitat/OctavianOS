@@ -143,7 +143,7 @@ if [ ! -f "$BASE/.packages-installed-v2" ]; then
   "$native_cc" -std=c11 -O2 -Wall -Wextra -Werror \
     "$COMMAND_SOURCE/src/chimera-command-compat/chimera-cmd.c" -o "$native_cmd"
   chmod 0755 "$native_cmd"
-  for name in pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false; do
+  for name in pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false rmdir ln readlink basename dirname uname wc head tail sleep env printenv which seq yes tty id fold nl tr tee cmp; do
     ln -sfn ../chimera-cmd.native "$native_bin_dir/$name"
   done
   cat > "$BASE/etc/profile.d/chimera-native-commands.sh" <<'EOF_NATIVE_PATH'
@@ -156,8 +156,8 @@ import json, pathlib, sys
 report=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 native=[row for row in report["commands"] if row.get("mode")=="native"]
 bad=[row["name"] for row in native if row.get("status")!="native-multicall-elf-and-entrypoint-present"]
-if len(native)!=15 or bad:
-    raise SystemExit(f"native command implementation gate failed: expected 15, found {len(native)}, missing={bad}")
+if len(native)!=37 or bad:
+    raise SystemExit(f"native command implementation gate failed: expected 37, found {len(native)}, missing={bad}")
 print(f"Verified {len(native)} compiled native command entrypoints; external providers remain separately classified.")
 PY_NATIVE_GATE
   touch "$BASE/.packages-installed-v2"
