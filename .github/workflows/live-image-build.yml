@@ -59,10 +59,20 @@ jobs:
             debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
             gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 \
-            build-essential pkg-config libssl-dev cmake ninja-build clang lld \
-            libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libxcb-util0-dev libxcb-image0-dev \
-            libfontconfig1-dev libfreetype6-dev \
-            gettext libgtk-4-dev libadwaita-1-dev blueprint-compiler curl minisign
+            debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
+            gcc-14-i686-linux-gnu gcc-14-arm-linux-gnueabi gcc-14-aarch64-linux-gnu gcc-14-arm-linux-gnueabihf gcc-14-riscv64-linux-gnu gcc-14-powerpc64le-linux-gnu gcc-14-s390x-linux-gnu binutils qemu-user-static \
+            git g++ cargo rustc cmake ninja-build pkg-config python3-venv python3-pip nodejs \
+            autoconf automake libtool meson golang-go libncurses-dev libreadline-dev \
+            libvte-2.91-dev libpcre2-dev libpixman-1-dev libfcft-dev libtllist-dev libutf8proc-dev \
+            libgtk-4-dev libadwaita-1-dev libxkbcommon-dev libwayland-dev libx11-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libx11-xcb-dev libxkbcommon-x11-dev libfontconfig1-dev libfreetype-dev \
+            libharfbuzz-dev libvulkan-dev qt6-base-dev qt6-declarative-dev \
+            libdbus-1-dev libssl-dev libasound2-dev libpulse-dev libxrandr-dev \
+            libxi-dev libxinerama-dev libxcursor-dev libxext-dev libxrender-dev \
+            libxfixes-dev libxdamage-dev libxcomposite-dev \
+            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 curl minisign
 
       - name: Validate desktop source and application catalogs
         run: |
@@ -127,9 +137,9 @@ jobs:
           import json, pathlib, sys
           manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
           assert manifest["schema"] == "octavian-terminal-shell-provider-verification/v1"
-          assert manifest["required"] == 18 == manifest["verified"], manifest
-          assert len(manifest["providers"]) == 18
-          print("Verified all 18 terminal/shell provider files and target ELF/script architecture contracts.")
+          assert manifest["required"] == 28 == manifest["verified"], manifest
+          assert len(manifest["providers"]) == 28
+          print("Verified all 28 terminal/shell provider files and target ELF/script architecture contracts.")
           PY
           test -s "$root/opt/aurora/catalog-provenance/command-isa-manifest.json"
           test -s "$root/opt/aurora/catalog-provenance/command-isa.SHA256SUMS"
