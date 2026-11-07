@@ -103,8 +103,10 @@ class SmbBrowseTests(unittest.TestCase):
         result = smb.browse("files.example.org")
         self.assertEqual(result["shares"][0]["name"], "public")
         argv = mocked.call_args.args[0]
-        self.assertIn("-k", argv)
-        self.assertTrue(any("SMB2" in item for item in argv))
+        self.assertIn("--use-kerberos=required", argv)
+        minimum = next(item for item in argv if item.startswith("--option=client min protocol="))
+        self.assertIn(minimum.rsplit("=", 1)[-1], ("SMB2_10", "SMB3_00", "SMB3_02", "SMB3_11"))
+        self.assertIn("--option=client signing=mandatory", argv)
         self.assertNotIn("--no-pass", argv)
 
     def test_host_option_injection_is_rejected(self):
@@ -176,7 +178,7 @@ class OpticalImageTests(unittest.TestCase):
         finally:
             sys.argv = old_argv
         self.assertEqual(mocked.call_args_list[1].args[0],
-                         ["udisksctl", "mount", "--options", "ro", "--block-device", "/dev/sr0"])
+                         ["udisksctl", "mount", "--options", "ro,nodev,nosuid", "--block-device", "/dev/sr0"])
 
     def test_random_file_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
