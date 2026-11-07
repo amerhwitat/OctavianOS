@@ -96,7 +96,7 @@ jobs:
             debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file qemu-system-x86 xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
             openbox x11-utils xdotool xvfb dbus-x11 git cargo rustc cmake ninja-build pkg-config \
-            python3-venv python3-pip nodejs autoconf automake libtool meson golang-go \
+            python3-venv python3-pip nodejs autoconf automake libtool gettext meson golang-go \
             libncurses-dev libreadline-dev libvte-2.91-dev libvte-2.91-gtk4-dev blueprint-compiler valac \
             libpcre2-dev libpixman-1-dev libfcft-dev libtllist-dev libutf8proc-dev \
             libjson-glib-dev libgee-0.8-dev libxml2-dev librsvg2-dev libgraphene-1.0-dev libpqmarble-dev \
