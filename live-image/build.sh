@@ -190,6 +190,9 @@ done
 if [[ -s "$REPO_DIR/system/commands/octavian-command-list.json" ]]; then
   install -D -m 0644 "$REPO_DIR/system/commands/octavian-command-list.json" "$CATALOG_DEST/octavian-command-list.json"
 fi
+if [[ -s "$REPO_DIR/catalogues/runtime-command-isa-contract.json" ]]; then
+  install -D -m 0644 "$REPO_DIR/catalogues/runtime-command-isa-contract.json" "$CATALOG_DEST/runtime-command-isa-contract.json"
+fi
 python3 - "$CATALOG_DEST" <<'PY_CATALOG_GATE'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
