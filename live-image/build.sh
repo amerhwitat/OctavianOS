@@ -496,7 +496,7 @@ EOF
 # These are currently safe native text consoles: graphical Live, disk-writing
 # installation and filesystem repair remain separate, explicitly gated work.
 log "Koronos kernel and native target payloads"
-for tool in nasm gcc g++ ld readelf cpio gzip busybox; do
+for tool in nasm gcc g++ ld readelf cpio gzip busybox file; do
   command -v "$tool" >/dev/null 2>&1 || { echo "missing required Koronos build tool: $tool" >&2; exit 2; }
 done
 if ! file "$(command -v busybox)" | grep -qi "statically linked"; then
