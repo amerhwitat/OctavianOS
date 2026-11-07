@@ -22,6 +22,8 @@ on:
       - 'catalogues/**'
       - 'runtime/commands/**'
       - 'runtime/isa/**'
+      - 'aurora/terminals/**'
+      - 'aurora/shells/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -52,6 +54,8 @@ on:
       - 'catalogues/**'
       - 'runtime/commands/**'
       - 'runtime/isa/**'
+      - 'aurora/terminals/**'
+      - 'aurora/shells/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -90,15 +94,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes \
             debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
-            mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 \
-            libfontconfig1-dev libfreetype6-dev libx11-xcb-dev libxcb-util0-dev \
-            libxcb-image0-dev libxkbcommon-x11-dev
+            mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+            openbox x11-utils xdotool xvfb dbus-x11 git cargo rustc cmake ninja-build pkg-config \
+            python3-venv python3-pip nodejs autoconf automake libtool meson golang-go \
+            libncurses-dev libreadline-dev libvte-2.91-dev libvte-2.91-gtk4-dev blueprint-compiler valac \
+            libpcre2-dev libpixman-1-dev libfcft-dev libtllist-dev libutf8proc-dev \
+            libjson-glib-dev libgee-0.8-dev libxml2-dev librsvg2-dev libgraphene-1.0-dev libpqmarble-dev \
+            appstream-util desktop-file-utils patch libgtk-4-dev libadwaita-1-dev \
+            libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libfontconfig1-dev libfreetype-dev libharfbuzz-dev libvulkan-dev qt6-base-dev qt6-declarative-dev \
+            libdbus-1-dev libssl-dev libasound2-dev libpulse-dev libxrandr-dev libxi-dev \
+            libxinerama-dev libxcursor-dev libxext-dev libxrender-dev libxfixes-dev \
+            libxdamage-dev libxcomposite-dev curl minisign
 
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
           python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
+          python3 -m py_compile live-image/lib/verify-terminal-shell-providers.py
+          bash -n live-image/lib/build-terminal-shell-sources.sh
           bash -n live-image/build.sh
           bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
           bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
@@ -113,6 +128,11 @@ jobs:
             python3 -m json.tool apps/desktop-application-catalog.json >/dev/null
             python3 -m json.tool vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json >/dev/null
           fi
+
+      - name: Verify terminal and shell source build dependencies
+        run: |
+          command -v git cargo rustc go cmake ninja meson minisign
+          python3 -m py_compile live-image/lib/verify-terminal-shell-providers.py
 
       - name: Verify kiosk fullscreen at 1280x720
         run: |
