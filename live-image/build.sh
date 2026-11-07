@@ -142,6 +142,7 @@ if [ ! -f "$BASE/.packages-installed-v4" ]; then
         libxcb-render0 libxcb-shape0 libxcb-xfixes0 libxcb-cursor0 \
         libfontconfig1 libfreetype6 libharfbuzz0b libvulkan1 \
         libqt6core6t64 libqt6gui6t64 libqt6widgets6t64 libqt6qml6t64 libqt6quick6t64 \
+        libqt6network6t64 libqt6dbus6t64 libqt6opengl6t64 libqt6svg6t64 libqt6waylandclient6 libqt6waylandcompositor6 \
         libdbus-1-3 libssl3 libasound2t64 libpulse0 libxrandr2 libxi6 \
         libxinerama1 libxcursor1 libxext6 libxrender1 libxfixes3 libxdamage1 libxcomposite1; do
         if apt-cache show "$pkg" >/dev/null 2>&1; then
