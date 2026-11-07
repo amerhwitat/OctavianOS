@@ -207,6 +207,8 @@ jobs:
           (cd "$bootcheck/boot/koronos" && sha256sum --check koronos.elf.sha256)
           grep -Fq 'set timeout=300' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'set timeout_style=menu' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set gfxmode=5120x2880,1920x1080,1280x1024,1024x768,640x480,auto' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set gfxpayload=keep' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-live.elf chimera-user-init-elf target=live' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-installer.elf chimera-user-init-elf target=installer' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-recovery.elf chimera-user-init-elf target=recovery' "$bootcheck/boot/grub/grub.cfg"
