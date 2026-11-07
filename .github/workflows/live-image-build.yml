@@ -116,7 +116,7 @@ jobs:
           python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
           python3 -m py_compile live-image/lib/verify-terminal-shell-providers.py
           python3 -m py_compile vendor/chimera-ii-os/source/tools/commands/build-command-isa-coverage.py
-          bash -n live-image/lib/build-terminal-shell-sources.sh
+          bash -n live-image/build.sh live-image/lib/build-terminal-shell-sources.sh
           bash -n live-image/build.sh
           bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
           bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
