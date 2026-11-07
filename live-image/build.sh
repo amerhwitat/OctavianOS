@@ -336,6 +336,7 @@ Keys    : Ctrl+Q quit kiosk · Ctrl+R reload · Ctrl+Alt+F2 text console
 Console : login live / live (passwordless sudo)
 Menu    : "Classic X session" boots openbox + xterm
 Artwork : /opt/aurora/wallpapers and /usr/share/backgrounds/$SHORT
+Icons   : /opt/aurora/desktop/aurora-icons and /opt/aurora/desktop/app-icons
 Apps    : /opt/aurora/app-catalogs and /opt/aurora/apps/native
 Source  : $REPO_URL
 EOF
