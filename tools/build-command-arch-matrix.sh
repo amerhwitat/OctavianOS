@@ -5,7 +5,7 @@ SOURCE="${CHIMERA_CMD_SOURCE:-$ROOT/src/chimera-command-compat/chimera-cmd.c}"
 OUT="${CHIMERA_CMD_OUT:-$ROOT/build/command-arch-matrix}"
 CC_BIN="${CC:-cc}"
 ARCH="${TARGET_ARCH:-$(uname -m)}"
-COMMANDS=(pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false)
+COMMANDS=(pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false rmdir ln readlink basename dirname uname wc head tail sleep env printenv which seq yes tty id fold nl tr tee cmp)
 test -s "$SOURCE" || { echo "missing command source: $SOURCE" >&2; exit 2; }
 command -v "$CC_BIN" >/dev/null 2>&1 || { echo "missing compiler: $CC_BIN" >&2; exit 127; }
 command -v readelf >/dev/null 2>&1 || { echo "readelf is required to verify target ELF metadata" >&2; exit 127; }
@@ -13,7 +13,7 @@ STAGE="$OUT/$ARCH"
 BIN="$STAGE/usr/lib/chimera/chimera-cmd.native"
 ENTRY="$STAGE/usr/lib/chimera/native-bin"
 mkdir -p "$(dirname "$BIN")" "$ENTRY"
-"$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror "$SOURCE" -o "$BIN"
+"$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror -static "$SOURCE" -o "$BIN"
 chmod 0755 "$BIN"
 for name in "${COMMANDS[@]}"; do
   ln -sfn ../chimera-cmd.native "$ENTRY/$name"
@@ -26,7 +26,7 @@ commands=sys.argv[4:]
 header=subprocess.run(["readelf","-h",str(binary)],check=True,text=True,stdout=subprocess.PIPE).stdout
 machine=next((line.split(":",1)[1].strip() for line in header.splitlines() if line.strip().startswith("Machine:")),None)
 if not machine: raise SystemExit("ELF machine metadata missing")
-expected={"x86_64":"Advanced Micro Devices X86-64","i686":"Intel 80386",
+expected={"x86_64":"Advanced Micro Devices X86-64","i686":"Intel 80386","armel":"ARM",
           "aarch64":"AArch64","armv7":"ARM","riscv64":"RISC-V",
           "ppc64le":"PowerPC64","s390x":"IBM S/390"}.get(arch)
 if expected is None: raise SystemExit(f"unsupported target architecture: {arch}")
@@ -49,5 +49,5 @@ report={"schema":"CHIMERA-NATIVE-MULTICALL-ARCH-1","target_architecture":arch,
 path=binary.parent/"native-command-coverage.json"
 path.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
 json.loads(path.read_text(encoding="utf-8"))
-print(f"Built one genuine native multicall ELF for {arch}: {len(rows)} command entrypoints; machine={machine}; sha256={digest}")
+print(f"Built one genuine Linux ABI multicall ELF for {arch}: {len(rows)} command entrypoints; machine={machine}; sha256={digest}; Koronos ABI remains unverified")
 PY
