@@ -58,7 +58,11 @@ build_wezterm() {
 build_ghostty() {
   require python3
   local src="$OUT/src/ghostty" zigver venv
-  git clone --depth 1 https://github.com/ghostty-org/ghostty.git "$src"
+  # Ghostty 1.4 raised its GTK/libadwaita floor to GTK 4.18 / Adwaita 1.7,
+  # newer than the Ubuntu 24.04 CI builder. Pin the supported 1.3 line,
+  # which supports GTK 4.14 / Adwaita 1.5, and derive Zig from that source.
+  local ref="${CHIMERA_GHOSTTY_REF:-v1.3.0}"
+  git clone --depth 1 --branch "$ref" https://github.com/ghostty-org/ghostty.git "$src"
   # Recent Ghostty revisions declare their required compiler in build.zig.zon;
   # older revisions used .zig-version. Read the source's own version contract.
   if [[ -s "$src/.zig-version" ]]; then
