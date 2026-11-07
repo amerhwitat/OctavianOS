@@ -90,10 +90,10 @@ jobs:
           from pathlib import Path
           d=json.loads(Path("runtime/commands/native-command-candidates.json").read_text(encoding="utf-8"))
           assert d["counts"]["total"] == len(d["commands"])
-          assert d["counts"]["native_implemented"] == 15
+          assert d["counts"]["native_implemented"] == 37
           assert d["counts"]["candidate_only"] > 1000
           assert all(not x["execution_allowed"] for x in d["commands"] if x["status"] == "candidate-only")
-          print("Octavian native/candidate registry:", d["counts"])
+          print("Octavian 37-native/candidate registry:", d["counts"])
           PY
       - name: Persist generated Octavian command and ISA registries
         if: success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
