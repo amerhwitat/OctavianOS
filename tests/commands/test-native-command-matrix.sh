@@ -96,6 +96,50 @@ for arch in x86_64 i686 armel aarch64 armv7 riscv64 ppc64le s390x; do
   run "$alias" "$tmp/rmdir-$arch"
   [[ ! -e "$tmp/rmdir-$arch" ]] || { echo "$arch rmdir failed" >&2; exit 1; }
   alias="$tmp/sleep"; ln -sf "$bin" "$alias"; run "$alias" 0.001
+  alias="$tmp/seq"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" 3)"
+  expected="$(printf '1\n2\n3')"
+  [[ "$output" == "$expected" ]] || { echo "$arch seq failed: $output" >&2; exit 1; }
+  alias="$tmp/printenv"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" PATH)"
+  [[ -n "$output" && "$output" == *"/"* ]] || { echo "$arch printenv failed" >&2; exit 1; }
+  alias="$tmp/env"; ln -sf "$bin" "$alias"
+  output="$(run "$alias")"
+  [[ "$output" == *"PATH="* ]] || { echo "$arch env failed" >&2; exit 1; }
+  alias="$tmp/which"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" sh)"
+  [[ "$output" == /*/sh || "$output" == "/sh" ]] || { echo "$arch which failed: $output" >&2; exit 1; }
+  alias="$tmp/id"; ln -sf "$bin" "$alias"
+  output="$(run "$alias")"
+  [[ "$output" == uid=*gid=* ]] || { echo "$arch id failed: $output" >&2; exit 1; }
+  alias="$tmp/tty"; ln -sf "$bin" "$alias"
+  if run "$alias" >"$tmp/tty-output-$arch"; then echo "$arch tty should report non-tty on CI stdin" >&2; exit 1; fi
+  grep -q "not a tty" "$tmp/tty-output-$arch" || { echo "$arch tty output mismatch" >&2; exit 1; }
+  alias="$tmp/yes"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" chimera | head -n 2 || true)"
+  expected="$(printf 'chimera\nchimera')"
+  [[ "$output" == "$expected" ]] || { echo "$arch yes failed: $output" >&2; exit 1; }
+  printf 'abcdefghij\n' > "$tmp/fold-input-$arch"
+  alias="$tmp/fold"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" -w 4 "$tmp/fold-input-$arch")"
+  expected="$(printf 'abcd\nefgh\nij')"
+  [[ "$output" == "$expected" ]] || { echo "$arch fold failed: $output" >&2; exit 1; }
+  alias="$tmp/nl"; ln -sf "$bin" "$alias"
+  output="$(run "$alias" "$tmp/fold-input-$arch")"
+  expected="$(printf '     1\tabcdefghij')"
+  [[ "$output" == "$expected" ]] || { echo "$arch nl failed: $output" >&2; exit 1; }
+  alias="$tmp/tr"; ln -sf "$bin" "$alias"
+  output="$(printf 'abc\n' | run "$alias" abc xyz)"
+  [[ "$output" == "xyz" ]] || { echo "$arch tr failed: $output" >&2; exit 1; }
+  alias="$tmp/tee"; ln -sf "$bin" "$alias"
+  printf 'tee-test\n' | run "$alias" "$tmp/tee-file-$arch" > "$tmp/tee-stdout-$arch"
+  cmp -s "$tmp/tee-file-$arch" "$tmp/tee-stdout-$arch" || { echo "$arch tee output mismatch" >&2; exit 1; }
+  alias="$tmp/cmp"; ln -sf "$bin" "$alias"
+  run "$alias" "$tmp/tee-file-$arch" "$tmp/tee-stdout-$arch"
+  printf 'different\n' > "$tmp/cmp-different-$arch"
+  if run "$alias" "$tmp/tee-file-$arch" "$tmp/cmp-different-$arch"; then
+    echo "$arch cmp failed to detect different files" >&2; exit 1
+  fi
   printf 'PASS %s Linux userspace command ABI smoke tests\n' "$arch"
 done
 python3 - "$OUT/manifest.json" <<'PY'
