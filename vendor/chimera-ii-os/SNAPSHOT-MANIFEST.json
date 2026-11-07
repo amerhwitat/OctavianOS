@@ -9,6 +9,7 @@
   "history_preserved": false,
   "local_port_modifications": [
     "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation",
-    "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness."
+    "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness.",
+    "vendor/chimera-ii-os/source/boot/jasper/{jasper,live,install,recovery,diagnostics,retro}.cfg, boot/spitfire/spitfire-menu.cfg and boot/installation/menu.cfg: enforce timeout=120 and timeout_style=menu so nested menus remain visible for explicit selection."
   ]
 }
