@@ -9,10 +9,10 @@ This directory mirrors the authoritative ChimeraIIOS command and ISA reference c
 
 ## Binary policy
 
-The Chimera native multicall source currently implements 15 command names. They share one source-built executable plus aliases. Every other catalogued command requires a real provider or must remain unavailable. The coverage inventory marks all repository binary presence as unverified; it does not invent executables.
+The shared Chimera multicall source implements 25 command names, with one source-built executable and symlink aliases. The mirrored catalogue contains 854 unique commands across 971 platform entries; the remaining 829 names require a real provider or must remain unavailable. Hosted Linux providers are not Koronos-native syscall implementations. The coverage inventory keeps repository binary status unverified until a target artifact is built and validated; it does not invent executables.
 
-ISA rows with zero verified forms are catalogue/discovery entries only. Rows with verified forms are still partial; they do not imply a complete assembler, decoder, emulator, JIT, or OS port. A command binary for a target ISA must be compiled with that target's toolchain, checked for the correct object format and machine type, then exercised under native hardware or a validated emulator before it can be marked supported.
+The CI matrix cross-builds and QEMU-user smoke-tests eight Linux userspace ABIs. This is not an eight-architecture Koronos kernel port. The current Koronos boot target remains x86-64. ISA rows with zero verified forms are catalogue/discovery entries only; rows with some verified forms are still partial and do not imply a complete assembler, decoder, emulator, JIT or OS port. Each architecture needs its own toolchain, kernel/runtime contract and conformance tests before support can be claimed.
 
 ## Provenance
 
-Copied from ChimeraIIOS main. Blob SHAs are recorded in `commands/coverage.json`.
+Mirrored from the ChimeraIIOS integration branch. Upstream blob SHAs are recorded in `commands/coverage.json`.
