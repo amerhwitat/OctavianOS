@@ -1,43 +1,61 @@
-name: Native command cross-build matrix
+name: Native command cross-build and Linux ABI smoke matrix
+
 on:
   push:
     paths:
       - 'runtime/commands/src/chimera-cmd.c'
+      - 'runtime/catalogues/commands/chimera-command-list.json'
       - 'runtime/catalogues/commands/compatibility-binary-policy.json'
-      - 'tools/commands/build_native_command_matrix.py'
+      - 'runtime/catalogues/commands/coverage.json'
+      - 'tools/commands/build_linux_abi_command_matrix.py'
+      - 'tests/commands/**'
       - '.github/workflows/command-isa-matrix.yml'
   pull_request:
     paths:
       - 'runtime/commands/src/chimera-cmd.c'
+      - 'runtime/catalogues/commands/chimera-command-list.json'
       - 'runtime/catalogues/commands/compatibility-binary-policy.json'
-      - 'tools/commands/build_native_command_matrix.py'
+      - 'runtime/catalogues/commands/coverage.json'
+      - 'tools/commands/build_linux_abi_command_matrix.py'
+      - 'tests/commands/**'
       - '.github/workflows/command-isa-matrix.yml'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   cross-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install cross compilers and ELF inspection tools
+      - name: Install eight Linux ABI cross compilers and QEMU user emulators
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-riscv64-linux-gnu binutils
-      - name: Build native multicall commands for target ISAs
+          sudo apt-get install -y \
+            gcc-i686-linux-gnu gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf gcc-riscv64-linux-gnu \
+            gcc-powerpc64le-linux-gnu gcc-s390x-linux-gnu \
+            binutils qemu-user-static
+      - name: Validate mirrored command catalogue and native policy
+        run: python3 tests/commands/test_native_catalogue_alignment.py
+      - name: Cross-build real native multicall source for eight Linux ABIs
         run: |
-          python3 tools/commands/build_native_command_matrix.py \
-            --source 'runtime/commands/src/chimera-cmd.c' \
-            --policy 'runtime/catalogues/commands/compatibility-binary-policy.json' \
+          python3 tools/commands/build_linux_abi_command_matrix.py \
+            --source runtime/commands/src/chimera-cmd.c \
+            --policy runtime/catalogues/commands/compatibility-binary-policy.json \
             --output build/native-command-isa \
             --require-all
-      - name: Upload target command binaries and machine-verification manifest
+      - name: Execute command behavior smoke tests natively and under QEMU user mode
+        run: bash tests/commands/test-native-command-matrix.sh build/native-command-isa
+      - name: Upload ELF binaries, hashes and runtime-scope manifest
         uses: actions/upload-artifact@v4
         with:
-          name: native-command-binaries-x86_64-aarch64-riscv64
+          name: octavian-native-command-linux-abi-x86_64-i686-armel-aarch64-armv7-riscv64-ppc64le-s390x
           path: build/native-command-isa/
           if-no-files-found: error
           retention-days: 30
