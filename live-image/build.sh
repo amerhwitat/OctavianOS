@@ -20,6 +20,13 @@ case "$ED" in
 esac
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMMAND_SOURCE="$REPO_DIR"
+if [[ -f "$REPO_DIR/vendor/chimera-ii-os/source/tools/commands/generate_runtime_manifest.py" ]]; then
+  COMMAND_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source"
+fi
+python3 "$COMMAND_SOURCE/tools/commands/generate_runtime_manifest.py"
+python3 -m json.tool "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" >/dev/null
+
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
 BASE="$BUILD/rootfs-base"
@@ -86,9 +93,10 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-if [ ! -f "$BASE/.packages-installed" ]; then
+if [ ! -f "$BASE/.packages-installed-v2" ]; then
   log "installing shared package set (one-off)"
   mount_chroot "$BASE"
+  cp "$COMMAND_SOURCE/tools/commands/install-command-providers.sh" "$BASE/tmp/chimera-install-command-providers.sh"
   DEBIAN_FRONTEND=noninteractive chroot "$BASE" /bin/bash -c '
     set -e
     export DEBIAN_FRONTEND=noninteractive
@@ -106,11 +114,53 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
+      # Optional open-source shells and terminal emulators from signed Debian repositories.
+      # Missing providers remain explicit in the generated manifest; no fake launchers.
+      for pkg in bash zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
+        if apt-cache show "$pkg" >/dev/null 2>&1; then
+          apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] package install failed: $pkg"
+        else
+          echo "[AURORA-TERMINALS] no Debian package candidate: $pkg"
+        fi
+      done
+    bash /tmp/chimera-install-command-providers.sh
+    rm -f /tmp/chimera-install-command-providers.sh
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed"
+  bash "$REPO_DIR/live-image/verify-terminal-shell-suite.sh" "$BASE" x86_64
+  install -D -m 0644 "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" "$BASE/usr/share/chimera/commands/command-runtime-capabilities.json"
+  install -D -m 0644 "$COMMAND_SOURCE/tools/commands/os-command-runtime.json" "$BASE/usr/share/chimera/commands/os-command-runtime.json"
+  # Build the actual C multicall ELF for this amd64 rootfs. The /usr/bin
+  # chimera-cmd script is only an alias dispatcher and is never counted as
+  # native implementation evidence.
+  native_cmd="$BASE/usr/lib/chimera/chimera-cmd.native"
+  native_bin_dir="$BASE/usr/lib/chimera/native-bin"
+  mkdir -p "$(dirname "$native_cmd")" "$native_bin_dir" "$BASE/etc/profile.d"
+  native_cc="${CHIMERA_NATIVE_CC:-${CC:-cc}}"
+  command -v "$native_cc" >/dev/null 2>&1 || { echo "missing native command compiler: $native_cc" >&2; exit 2; }
+  "$native_cc" -std=c11 -O2 -Wall -Wextra -Werror \
+    "$COMMAND_SOURCE/src/chimera-command-compat/chimera-cmd.c" -o "$native_cmd"
+  chmod 0755 "$native_cmd"
+  for name in pwd echo ls cp mv touch mkdir rm cat clear whoami hostname date true false; do
+    ln -sfn ../chimera-cmd.native "$native_bin_dir/$name"
+  done
+  cat > "$BASE/etc/profile.d/chimera-native-commands.sh" <<'EOF_NATIVE_PATH'
+# Prefer the explicitly tested Chimera C multicall entrypoints in user shells.
+export PATH="/usr/lib/chimera/native-bin:$PATH"
+EOF_NATIVE_PATH
+  python3 "$COMMAND_SOURCE/tools/commands/verify-command-provider-coverage.py" "$BASE" "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" x86_64
+  python3 - "$BASE/usr/share/chimera/commands/command-provider-coverage.json" <<'PY_NATIVE_GATE'
+import json, pathlib, sys
+report=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+native=[row for row in report["commands"] if row.get("mode")=="native"]
+bad=[row["name"] for row in native if row.get("status")!="native-multicall-elf-and-entrypoint-present"]
+if len(native)!=15 or bad:
+    raise SystemExit(f"native command implementation gate failed: expected 15, found {len(native)}, missing={bad}")
+print(f"Verified {len(native)} compiled native command entrypoints; external providers remain separately classified.")
+PY_NATIVE_GATE
+  touch "$BASE/.packages-installed-v2"
 fi
 
 # ------------------------------------------------------------- rootfs copy

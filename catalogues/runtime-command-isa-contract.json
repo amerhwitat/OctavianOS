@@ -1,0 +1,51 @@
+{
+  "schema": "OCTAVIAN-RUNTIME-CATALOGUE-CONTRACT-1",
+  "commands": {
+    "discovery_catalog": "runtime/commands/native-command-candidates.json",
+    "imported_source": "vendor/chimera-ii-os/source/system/commands/native-command-candidates.json",
+    "runtime_stager": "tools/runtime/stage_native_command_runtime.py",
+    "source_native_multicall": "vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c",
+    "native_multicall_binary": "/usr/lib/chimera/chimera-cmd.native",
+    "native_multicall_entrypoints": "/usr/lib/chimera/native-bin",
+    "native_multicall_verification": "compiled ELF plus argv[0] symlinks and host smoke tests; never the /usr/bin/chimera-cmd compatibility script",
+    "native_allowlist": [
+      "pwd",
+      "echo",
+      "ls",
+      "cp",
+      "mv",
+      "touch",
+      "mkdir",
+      "rm",
+      "cat",
+      "clear",
+      "whoami",
+      "hostname",
+      "date",
+      "true",
+      "false"
+    ],
+    "rule": "The candidate catalogue is discovery metadata. Only implemented commands with a built target binary are binary-backed; unknown commands remain provider-missing or discovery-only."
+  },
+  "isa": {
+    "catalogue": "runtime/isa/universal-instruction-catalog.json",
+    "imported_source": "vendor/chimera-ii-os/source/isa/generated/universal-instruction-catalog.json",
+    "rule": "ISA instructions/encodings are not command binaries. Execution requires a target-specific backend and architecture conformance tests."
+  },
+  "architecture_builds": {
+    "workflow": ".github/workflows/command-arch-matrix.yml",
+    "targets": [
+      "x86_64",
+      "i686",
+      "aarch64",
+      "armv7",
+      "riscv64",
+      "ppc64le",
+      "s390x"
+    ],
+    "output": "build/command-arch-matrix/<arch>/chimera-cmd",
+    "artifact_abi": "Linux ELF cross-build artifact; not automatically a Koronos-native executable",
+    "runtime_gate": "Validate loader/syscall ABI and actual Koronos runtime behavior before inclusion in an ISO."
+  },
+  "current_kernel_runtime": "The current published native Koronos release is AMD64. Cross-built command artifacts do not establish non-AMD64 kernel support."
+}

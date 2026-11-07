@@ -90,6 +90,7 @@ extern "C" int chimera_syscall_get_snapshot(chimera_syscall_snapshot *out) {
 
 extern "C" {
 volatile uint64_t koronos_user_exit_code = 0;
+volatile uint64_t koronos_user_exit_requested = 0;
 }
 extern "C" uint32_t koronos_target_active_pid(void);
 extern "C" uint32_t koronos_target_validate_syscall_context(uint64_t user_rip);
@@ -110,12 +111,34 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
         return static_cast<uint64_t>(-38ll);
     }
     koronos_target_log("[SYSC] accepted user syscall context");
-    switch (frame->rax) {
+
+    /* The user init enters through the Linux x86-64 syscall ABI. Translate the
+     * raw Linux syscall number into the stable Chimera semantic ABI before
+     * dispatch. Do not interpret Linux syscall 1 (write) as native
+     * CHM_SYS_EXIT (also 1). */
+    if (frame->rax > 0xFFFFFFFFull) {
+        koronos_target_log("[SYSC] rejected out-of-range Linux syscall number");
+        return static_cast<uint64_t>(-38ll);
+    }
+    chimera_syscall_identity identity{};
+    if (chimera_compat_recognize_syscall(
+            CHM_ENTRY_X86_SYSCALL, 64u,
+            static_cast<uint32_t>(frame->rax), &identity) != 0 ||
+        identity.canonical == 0xFFFFFFFFu) {
+        koronos_target_log("[SYSC] rejected unknown Linux syscall number");
+        return static_cast<uint64_t>(-38ll);
+    }
+
+    switch (identity.canonical) {
         case CHM_SYS_GETPID: {
             /* PID comes from the active kernel-owned process record. Never
              * fabricate PID 1 when no target process is actually running. */
             const uint32_t pid = koronos_target_active_pid();
-            return pid ? static_cast<uint64_t>(pid) : static_cast<uint64_t>(-38ll);
+            if (!pid) {
+                koronos_target_log("[SYSC] GETPID rejected: active process PID missing");
+                return static_cast<uint64_t>(-38ll);
+            }
+            return static_cast<uint64_t>(pid);
         }
         case CHM_SYS_YIELD:
             // The bootstrap user entry is single-process until the scheduler owns
@@ -133,6 +156,7 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
         case CHM_SYS_EXIT:
         case CHM_SYS_EXIT_GROUP:
             koronos_user_exit_code = frame->rdi & 0xFFu;
+            koronos_user_exit_requested = 1;
             koronos_target_log("[SYSC] userspace exit syscall received");
             return KORONOS_USER_SYSCALL_EXIT_SENTINEL;
         default:

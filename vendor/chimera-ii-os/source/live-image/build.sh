@@ -20,6 +20,13 @@ case "$ED" in
 esac
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMMAND_SOURCE="$REPO_DIR"
+if [[ -f "$REPO_DIR/vendor/chimera-ii-os/source/tools/commands/generate_runtime_manifest.py" ]]; then
+  COMMAND_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source"
+fi
+python3 "$COMMAND_SOURCE/tools/commands/generate_runtime_manifest.py"
+python3 -m json.tool "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" >/dev/null
+
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
 BASE="$BUILD/rootfs-base"
@@ -86,9 +93,10 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-if [ ! -f "$BASE/.packages-installed" ]; then
+if [ ! -f "$BASE/.packages-installed-v2" ]; then
   log "installing shared package set (one-off)"
   mount_chroot "$BASE"
+  cp "$COMMAND_SOURCE/tools/commands/install-command-providers.sh" "$BASE/tmp/chimera-install-command-providers.sh"
   DEBIAN_FRONTEND=noninteractive chroot "$BASE" /bin/bash -c '
     set -e
     export DEBIAN_FRONTEND=noninteractive
@@ -105,15 +113,31 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
       sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
       iproute2 iputils-ping netbase procps psmisc rsync \
-      e2fsprogs dosfstools parted gdisk alsa-utils kmod \
+      e2fsprogs dosfstools parted gdisk alsa-utils kmod
+    # Optional open-source shells and terminal emulators: install only packages
+    # available from the signed Debian repositories. Missing packages remain
+    # visible in the staging manifest instead of producing placeholder launchers.
+    for pkg in bash zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
+      if apt-cache show "$pkg" >/dev/null 2>&1; then
+        apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] package install failed: $pkg"
+      else
+        echo "[AURORA-TERMINALS] no Debian package candidate: $pkg"
+      fi
+    done \
       samba smbclient cifs-utils wsdd avahi-daemon \
       realmd adcli sssd-ad sssd-ldap sssd-tools libnss-sss libpam-sss \
       krb5-user ldap-utils libsasl2-modules-gssapi-mit udisks2 oddjob oddjob-mkhomedir
+    bash /tmp/chimera-install-command-providers.sh
+    rm -f /tmp/chimera-install-command-providers.sh
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  touch "$BASE/.packages-installed"
+  bash "$REPO_DIR/live-image/verify-terminal-shell-suite.sh" "$BASE" x86_64
+  install -D -m 0644 "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" "$BASE/usr/share/chimera/commands/command-runtime-capabilities.json"
+  install -D -m 0644 "$COMMAND_SOURCE/tools/commands/os-command-runtime.json" "$BASE/usr/share/chimera/commands/os-command-runtime.json"
+  python3 "$COMMAND_SOURCE/tools/commands/verify-command-provider-coverage.py" "$BASE" "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" x86_64
+  touch "$BASE/.packages-installed-v2"
 fi
 
 # ------------------------------------------------------------- rootfs copy

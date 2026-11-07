@@ -1,0 +1,22 @@
+{
+  "schema": "OCTAVIAN-DESKTOP-ARTWORK-CATALOG-1",
+  "wallpaper_source_manifest": "live-image/artwork/manifest.json",
+  "generated_wallpaper_glob": "live-image/artwork/wp*.jpg",
+  "generated_wallpaper_count": 28,
+  "desktop_wallpapers": [
+    "desktop/aurora/assets/octavian-octopus-aurora.svg",
+    "desktop/marine/assets/marine-desktop.svg"
+  ],
+  "shared_chimera_artwork": [
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-desktop.svg",
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-installer.svg",
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-library.svg",
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-wayland-glass.svg",
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/aurora-wayland-glass.png",
+    "vendor/chimera-ii-os/source/desktop/aurora/assets/library-artwork-manifest.json",
+    "vendor/chimera-ii-os/source/desktop/aurora/icons/icon_theme.json",
+    "vendor/chimera-ii-os/source/desktop/aurora/icons/chimera_icons.cpp",
+    "vendor/chimera-ii-os/source/desktop/aurora/icons/chimera_icons.hpp"
+  ],
+  "packaging_rule": "Stage all original Octavian and shared generated Chimera desktop assets into offline desktop bundles. Keep Aurora and Marine artwork separately selectable. Verify every referenced file and hash; rasterize SVG for firmware-stage display."
+}

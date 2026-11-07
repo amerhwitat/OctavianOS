@@ -25,7 +25,7 @@ CACHE="${CHIMERA_SHELL_CACHE:-${ROOT}/build/shell-cache}"
 MODE="${CHIMERA_SHELL_MODE:-source-first}"
 mkdir -p "$PREFIX/bin" "$PREFIX/share/chimera/aurora/shells" "$CACHE"
 cp "$ROOT/aurora/shells/registry.json" "$PREFIX/share/chimera/aurora/shells/registry.json"
-log(){ printf '[AURORA-SHELL] %s\n' "$*"; }
+log(){ printf '[AURORA-SHELL] %s\n' "$*" >&2; }
 have(){ command -v "$1" >/dev/null 2>&1; }
 copy_if_present(){ local b="$1"; if have "$b"; then cp -L "$(command -v "$b")" "$PREFIX/bin/$b" 2>/dev/null || true; log "Imported existing $b"; return 0; fi; return 1; }
 clone(){ local id="$1" url="$2"; local src="$CACHE/src-$id"; if [[ ! -d "$src" ]]; then log "Cloning $id"; git clone --depth 1 "$url" "$src"; fi; printf '%s' "$src"; }
@@ -36,7 +36,7 @@ build_source(){
     bash) (cd "$src" && ./configure --prefix=/usr && make -j"$(nproc)"); cp "$src/bash" "$PREFIX/bin/bash" ;;
     zsh) (cd "$src" && (./Util/preconfig || autoconf) && ./configure --prefix=/usr && make -j"$(nproc)"); cp "$src/Src/zsh" "$PREFIX/bin/zsh" ;;
     fish) (cd "$src" && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j"$(nproc)"); cp "$src/build/fish" "$PREFIX/bin/fish" ;;
-    dash) (cd "$src" && ./configure --prefix=/usr && make -j"$(nproc)"); cp "$src/src/dash" "$PREFIX/bin/dash" ;;
+    dash) (cd "$src" && { if [[ ! -x ./configure ]]; then if [[ -x ./autogen.sh ]]; then ./autogen.sh; elif command -v autoreconf >/dev/null 2>&1; then autoreconf -fi; else echo "dash source requires autogen.sh or autoreconf" >&2; exit 1; fi; fi; } && ./configure --prefix=/usr && make -j"$(nproc)"); cp "$src/src/dash" "$PREFIX/bin/dash" ;;
     mksh) (cd "$src" && sh Build.sh -r -j"$(nproc)"); find "$src" -type f -name mksh -perm -111 -exec cp {} "$PREFIX/bin/mksh" \; -quit ;;
     elvish) have go || return 1; (cd "$src" && go build -o "$PREFIX/bin/elvish" ./cmd/elvish) ;;
     nushell) have cargo || return 1; (cd "$src" && cargo build --release --bin nu); cp "$src/target/release/nu" "$PREFIX/bin/nu" ;;
@@ -44,7 +44,7 @@ build_source(){
     *) return 1 ;;
   esac
 }
-for b in bash zsh fish dash mksh elvish nu yash; do copy_if_present "$b" || true; done
+for b in bash zsh fish dash mksh elvish nu yash; do log "$b: build from source or stage a verified target package; host binaries are never copied"; done
 [[ "$MODE" == "binary-only" ]] && { log "Binary-only mode selected; using packages/prebuilt artifacts already present"; exit 0; }
 build_source bash https://git.savannah.gnu.org/git/bash.git || log "Bash source build unavailable; keeping system/package Bash"
 build_source zsh https://github.com/zsh-users/zsh.git || log "Zsh source build unavailable; keeping system/package Zsh"
