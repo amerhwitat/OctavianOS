@@ -110,7 +110,7 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     # Debian repository for this rootfs architecture; absent packages remain
     # explicitly unavailable rather than receiving placeholder executables.
     terminal_shell_packages=()
-    for package in gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour zsh fish dash mksh yash elvish nushell; do
+    for package in gnome-console gnome-terminal blackbox-terminal konsole ptyxis xfce4-terminal foot kitty alacritty wezterm ghostty contour terminator tilix mate-terminal qterminal sakura terminology lxterminal zsh fish dash mksh yash elvish nushell; do
       if apt-cache show "$package" >/dev/null 2>&1; then
         terminal_shell_packages+=("$package")
       else
@@ -137,11 +137,14 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     mkdir -p /usr/share/chimera/aurora
     {
       for item in \
-        "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+        "xterm:xterm" "gnome-console:kgx" "gnome-terminal:gnome-terminal" \
+        "blackbox-terminal:blackbox" "konsole:konsole" "ptyxis:ptyxis" \
         "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
-        "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
-        "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
-        "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+        "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" "contour:contour" \
+        "terminator:terminator" "tilix:tilix" "mate-terminal:mate-terminal" \
+        "qterminal:qterminal" "sakura:sakura" "terminology:terminology" "lxterminal:lxterminal" \
+        "bash:bash" "zsh:zsh" "fish:fish" "dash:dash" "mksh:mksh" \
+        "yash:yash" "elvish:elvish" "nushell:nu"; do
         id="${item%%:*}"; binary="${item#*:}"
         if command -v "$binary" >/dev/null 2>&1; then
           path="$(command -v "$binary")"
@@ -221,7 +224,7 @@ SOURCE_REQUIRED="$WORK/usr/share/chimera/aurora/terminal-shell-source-required.t
 python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY'
 import pathlib, sys
 status, missing = map(pathlib.Path, sys.argv[1:])
-source_recipes = {"yash", "elvish", "nushell", "wezterm", "ghostty", "contour"}
+source_recipes = {"bash", "zsh", "fish", "dash", "mksh", "yash", "elvish", "nushell", "alacritty", "foot", "blackbox-terminal", "wezterm", "ghostty", "contour"}
 rows = []
 if status.is_file():
     for line in status.read_text().splitlines():
