@@ -217,6 +217,36 @@ jobs:
               json.loads((root / rel).read_text(encoding="utf-8"))
           print("Validated actual ISO contains Koronos kernel, three target ELFs, Live/Recovery initramfs and Installer media.")
           PY_KORONOS_ISO
+          # Verify the catalogues are also present inside the native Koronos
+          # Live and Recovery initramfs modules, not just the Linux rootfs.
+          for spec in \
+            "live:boot/live/chimera-live-initramfs.img" \
+            "recovery:boot/recovery/chimera-recovery-initramfs.img"; do
+            target="${spec%%:*}"
+            rel="${spec#*:}"
+            initroot="$tmp/$target-initramfs"
+            mkdir -p "$initroot"
+            gzip -dc "$bootcheck/$rel" | (cd "$initroot" && cpio -id --quiet)
+            for catalogue in native-command-candidates.json universal-instruction-catalog.json riscv-opcodes.json; do
+              test -s "$initroot/etc/chimera/catalogs/$catalogue" || {
+                echo "::error::Koronos $target initramfs missing catalogue $catalogue"; exit 1;
+              }
+            done
+            python3 - "$initroot/etc/chimera/catalogs" <<'PY_INITRAMFS_CATALOGS'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          commands = json.loads((root / "native-command-candidates.json").read_text())
+          isa = json.loads((root / "universal-instruction-catalog.json").read_text())
+          riscv = json.loads((root / "riscv-opcodes.json").read_text())
+          assert commands["counts"]["total"] == len(commands["commands"]) == 4081
+          assert commands["counts"]["native_implemented"] == 37
+          assert isa["record_count"] == len(isa["instructions"]) == 1613
+          assert len(isa["unique_architectures"]) == 15
+          assert riscv["record_count"] == len(riscv["instructions"]) == 1459
+          assert riscv["failed_files"] == 0
+          PY_INITRAMFS_CATALOGS
+            echo "Verified full command/ISA catalogues inside Koronos $target initramfs."
+          done
           # Boot each native target from the actual ISO. The 300-second GRUB
           # menu is kept intact; QEMU sends explicit keyboard input to select
           # the target. Timeout is expected after the target reports readiness.
