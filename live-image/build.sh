@@ -22,6 +22,7 @@ esac
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERE="$REPO_DIR/live-image"
 BUILD="${BUILD_ROOT:-$HERE/.build}"
+NATIVE_COMMAND_OUT="$BUILD/native-command-isa"
 BASE="$BUILD/rootfs-base"
 WORK="${WORK_DIR:-$BUILD/rootfs-$ED}"
 ISODIR="$BUILD/iso-$ED"
@@ -336,6 +337,20 @@ import shutil
 shutil.copy2(out, payload / "terminal-shell-provider-verification.json")
 print(f"verified all {len(verified)} terminal/shell providers for {arch}")
 PY
+# Cross-build and run semantic smoke tests for all 37 real POSIX commands on
+# every supported Linux userspace ABI before staging the hosted ISO.
+python3 "$REPO_DIR/tools/commands/build_linux_abi_command_matrix.py" \
+  --source "$REPO_DIR/runtime/commands/src/chimera-cmd.c" \
+  --policy "$REPO_DIR/runtime/catalogues/commands/compatibility-binary-policy.json" \
+  --output "$NATIVE_COMMAND_OUT" --require-all
+bash "$REPO_DIR/tests/commands/test-native-command-matrix.sh" "$NATIVE_COMMAND_OUT"
+install -d "$WORK/usr/lib/chimera/commands/linux-abi" "$WORK/usr/share/chimera/catalogs"
+cp -a "$NATIVE_COMMAND_OUT/." "$WORK/usr/lib/chimera/commands/linux-abi/"
+install -D -m 0644 "$REPO_DIR/runtime/catalogues/commands/chimera-command-list.json" "$WORK/usr/share/chimera/catalogs/chimera-command-list.json"
+install -D -m 0644 "$REPO_DIR/runtime/catalogues/commands/compatibility-binary-policy.json" "$WORK/usr/share/chimera/catalogs/compatibility-binary-policy.json"
+install -D -m 0644 "$REPO_DIR/runtime/catalogues/commands/coverage.json" "$WORK/usr/share/chimera/catalogs/command-isa-coverage.json"
+install -D -m 0644 "$NATIVE_COMMAND_OUT/manifest.json" "$WORK/usr/share/chimera/catalogs/linux-abi-command-matrix.json"
+
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
 
 # Export every real SVG icon embedded in the vendored Aurora source into an
