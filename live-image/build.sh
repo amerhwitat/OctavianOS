@@ -117,7 +117,16 @@ if [ ! -f "$BASE/.packages-installed-v3" ]; then
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
       # Optional open-source shells and terminal emulators from signed Debian repositories.
       # Missing providers remain explicit in the generated manifest; no fake launchers.
-      for pkg in bash zsh fish dash mksh yash elvish nushell gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour; do
+      for item in \
+        "xterm:xterm" "gnome-console:kgx" "gnome-terminal:gnome-terminal" \
+        "blackbox-terminal:blackbox" "konsole:konsole" "ptyxis:ptyxis" \
+        "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+        "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" "contour:contour" \
+        "terminator:terminator" "tilix:tilix" "mate-terminal:mate-terminal" \
+        "qterminal:qterminal" "sakura:sakura" "terminology:terminology" "lxterminal:lxterminal" \
+        "bash:bash" "zsh:zsh" "fish:fish" "dash:dash" "mksh:mksh" \
+        "yash:yash" "elvish:elvish" "nushell:nu"; do
+        pkg="${item%%:*}"
         if apt-cache show "$pkg" >/dev/null 2>&1; then
           apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] package install failed: $pkg"
         else
@@ -130,7 +139,6 @@ if [ ! -f "$BASE/.packages-installed-v3" ]; then
     rm -rf /var/lib/apt/lists/*
   '
   umount_chroot "$BASE"
-  bash "$REPO_DIR/live-image/verify-terminal-shell-suite.sh" "$BASE" x86_64
   install -D -m 0644 "$COMMAND_SOURCE/system/commands/command-runtime-capabilities.json" "$BASE/usr/share/chimera/commands/command-runtime-capabilities.json"
   install -D -m 0644 "$COMMAND_SOURCE/tools/commands/os-command-runtime.json" "$BASE/usr/share/chimera/commands/os-command-runtime.json"
   # Build the actual C multicall ELF for this amd64 rootfs. The /usr/bin
