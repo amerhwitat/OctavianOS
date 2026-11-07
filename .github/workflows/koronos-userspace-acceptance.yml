@@ -5,11 +5,21 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'live-image/build.sh'
+      - 'tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'live-image/build.sh'
+      - 'tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
