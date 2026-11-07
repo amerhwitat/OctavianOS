@@ -59,8 +59,16 @@ build_ghostty() {
   require python3
   local src="$OUT/src/ghostty" zigver venv
   git clone --depth 1 https://github.com/ghostty-org/ghostty.git "$src"
-  zigver="$(tr -d '[:space:]' < "$src/.zig-version")"
-  [[ -n "$zigver" ]] || { echo "Ghostty source has no pinned .zig-version" >&2; exit 2; }
+  # Recent Ghostty revisions declare their required compiler in build.zig.zon;
+  # older revisions used .zig-version. Read the source's own version contract.
+  if [[ -s "$src/.zig-version" ]]; then
+    zigver="$(tr -d '[:space:]' < "$src/.zig-version")"
+  elif [[ -s "$src/build.zig.zon" ]]; then
+    zigver="$(sed -nE 's/^[[:space:]]*\\.minimum_zig_version[[:space:]]*=[[:space:]]*"([0-9]+\\.[0-9]+\\.[0-9]+)".*/\\1/p' "$src/build.zig.zon" | head -n 1)"
+  else
+    zigver=""
+  fi
+  [[ -n "$zigver" ]] || { echo "Ghostty source has no parseable Zig version in .zig-version or build.zig.zon" >&2; exit 2; }
   venv="$OUT/zig-venv"
   python3 -m venv "$venv"
   "$venv/bin/pip" install --disable-pip-version-check "ziglang==$zigver"
