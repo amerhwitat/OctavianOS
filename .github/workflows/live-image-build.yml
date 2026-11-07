@@ -206,6 +206,7 @@ jobs:
           readelf -h "$bootcheck/boot/koronos/koronos.elf" | grep -Eq 'Class:[[:space:]]+ELF64'
           (cd "$bootcheck/boot/koronos" && sha256sum --check koronos.elf.sha256)
           grep -Fq 'set timeout=300' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set timeout_style=menu' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-live.elf chimera-user-init-elf target=live' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-installer.elf chimera-user-init-elf target=installer' "$bootcheck/boot/grub/grub.cfg"
           grep -Fq 'target-init-recovery.elf chimera-user-init-elf target=recovery' "$bootcheck/boot/grub/grub.cfg"
