@@ -3,31 +3,41 @@
   "upstream": {
     "repository": "amerhwitat/ChimeraIIOS",
     "isa_database_blob": "f464986e9da84a0dbbfde398ba42eb7edaa2de0b",
-    "command_catalog_blob": "d248cad54175e4857bb3fd5939e6a998929c0555",
-    "binary_policy_blob": "7b38c9f8ca6e7e19f6a70fc2ceaa74dd161d4518"
+    "command_catalog_blob": "cfdc7f8f8cae643cf1a2db2cdf6ba311b8612f42",
+    "binary_policy_blob": "b359af5582a1cbd2a81313a2b8e9e02d8fe6e1f7"
   },
   "policy": "This is a catalogue and gap inventory. It does not claim that a command binary, ISA encoder/decoder, emulator, native kernel, or runtime exists. Never substitute placeholder binaries. Build real target binaries with an architecture-specific toolchain, validate the ELF/format and run target tests before changing binary_status.",
   "counts": {
     "architectures": 104,
-    "command_platform_entries": 853,
-    "unique_commands": 853,
-    "native_source_commands": 15
+    "command_platform_entries": 971,
+    "unique_commands": 854,
+    "native_source_commands": 25
   },
   "native_source_commands": [
+    "basename",
     "cat",
     "clear",
     "cp",
     "date",
+    "dirname",
     "echo",
     "false",
+    "head",
     "hostname",
+    "ln",
     "ls",
     "mkdir",
     "mv",
     "pwd",
+    "readlink",
     "rm",
+    "rmdir",
+    "sleep",
+    "tail",
     "touch",
     "true",
+    "uname",
+    "wc",
     "whoami"
   ],
   "architectures": [
@@ -1570,9 +1580,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "bash",
@@ -1798,7 +1808,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "CATCH",
@@ -2829,7 +2839,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "clear_console",
@@ -3083,7 +3093,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "cpio",
@@ -3349,7 +3359,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "DateAdd",
@@ -3604,9 +3614,9 @@
       "platforms": [
         "linux_bash"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "DIRQUOTA",
@@ -3959,7 +3969,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "ed",
@@ -4180,7 +4190,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "FC",
@@ -4995,9 +5005,9 @@
       "platforms": [
         "linux_bash"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "help",
@@ -5055,7 +5065,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "Hour",
@@ -5529,9 +5539,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "local",
@@ -5685,7 +5695,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "lsattr",
@@ -5868,7 +5878,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "mkfifo",
@@ -6088,7 +6098,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "NBTSTAT",
@@ -6664,7 +6674,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "quota",
@@ -6755,6 +6765,15 @@
       "implementation": "provider-required-or-unavailable",
       "binary_status": "not-verified-in-repository",
       "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+    },
+    {
+      "name": "readlink",
+      "binary_status": "not-verified-in-repository",
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately",
+      "platforms": [
+        "linux_bash"
+      ],
+      "implementation": "native-source-implemented"
     },
     {
       "name": "readonly",
@@ -7099,7 +7118,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "rmdir",
@@ -7107,9 +7126,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "rmmod",
@@ -7513,9 +7532,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "slocate",
@@ -7879,9 +7898,9 @@
       "platforms": [
         "linux_bash"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "tar",
@@ -8050,7 +8069,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "tput",
@@ -8132,7 +8151,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "TRUNCATE",
@@ -8240,9 +8259,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "unexpand",
@@ -8521,9 +8540,9 @@
         "linux_bash",
         "macos_core"
       ],
-      "implementation": "provider-required-or-unavailable",
+      "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "Weekday",
@@ -8610,7 +8629,7 @@
       ],
       "implementation": "native-source-implemented",
       "binary_status": "not-verified-in-repository",
-      "target_build": "must-be-built-and-ELF-validated-for-each-target-ISA"
+      "target_build": "must-be-built-and-ELF-machine-validated; runtime evidence is tracked separately"
     },
     {
       "name": "WINRM",
