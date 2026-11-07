@@ -46,6 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -92,15 +95,15 @@ jobs:
           assert all(not x["execution_allowed"] for x in d["commands"] if x["status"] == "candidate-only")
           print("Octavian native/candidate registry:", d["counts"])
           PY
-      - name: Persist generated Octavian command registry
-        if: github.event_name != 'pull_request'
+      - name: Persist generated Octavian command and ISA registries
+        if: success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add runtime/commands/native-command-candidates.json runtime/isa/riscv-opcodes.json runtime/isa/universal-instruction-catalog.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(runtime): persist imported command candidates [catalog-bot]"
-            git push
+            git push origin "HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           else
             echo "Octavian command registry is already current."
           fi
