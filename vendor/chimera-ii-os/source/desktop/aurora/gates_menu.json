@@ -89,8 +89,8 @@
     "diagnostics_entry": "/boot/jasper/diagnostics.cfg",
     "vmlinuz": false,
     "primary_menu_timeout_seconds": 300,
-    "submenu_timeout_seconds": 120,
-    "timeout_policy": "Wait for user input for 300 seconds on the primary Gates menu, then select the configured default action (live). Nested menus wait 120 seconds before selecting their configured default entry.",
+    "submenu_timeout_seconds": 300,
+    "timeout_policy": "Wait for user input for 300 seconds on primary and nested Gates/Jasper/GRUB2 menus, then select the configured default action (live).",
     "default_action": "live"
   },
   "actions": {
