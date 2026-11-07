@@ -493,8 +493,8 @@ EOF
 
 # Build and stage the actual Koronos kernel plus separate Live, Installer
 # and Recovery ring-3 target ELFs and their matching initramfs/media payloads.
-# These are currently safe native text consoles: graphical Live, disk-writing
-# installation and filesystem repair remain separate, explicitly gated work.
+# These are ring-3 text/ABI targets: graphical Live, disk-writing installation
+# and the recovery-shell handoff remain separate, explicitly gated work.
 log "Koronos kernel and native target payloads"
 for tool in nasm gcc g++ ld readelf cpio gzip busybox file; do
   command -v "$tool" >/dev/null 2>&1 || { echo "missing required Koronos build tool: $tool" >&2; exit 2; }
@@ -551,7 +551,7 @@ menuentry "OctavianOS — Koronos Native Installer Console (non-writing)" --id k
   module2 /install/installer/installer_profiles.json chimera-installer-profiles
   boot
 }
-menuentry "OctavianOS — Koronos Native Recovery Console (read-only)" --id koronos-recovery {
+menuentry "OctavianOS — Koronos Native Recovery ABI Probe (repair handoff pending)" --id koronos-recovery {
   multiboot2 /boot/koronos/koronos.elf
   module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
   module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
