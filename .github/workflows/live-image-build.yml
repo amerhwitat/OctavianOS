@@ -4,6 +4,10 @@ on:
   push:
     branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
     paths:
+      - 'boot/iso/**'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
       - 'live-image/**'
       - 'tests/live-image/**'
       - 'tests/unit/**'
@@ -21,6 +25,10 @@ on:
       - '.github/workflows/live-image-build.yml'
   pull_request:
     paths:
+      - 'boot/iso/**'
+      - 'boot/jasper/**'
+      - 'boot/spitfire/**'
+      - 'boot/installation/**'
       - 'live-image/**'
       - 'tests/live-image/**'
       - 'web/**'
