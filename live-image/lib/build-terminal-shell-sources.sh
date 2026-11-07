@@ -76,7 +76,8 @@ build_ghostty() {
   venv="$OUT/zig-venv"
   python3 -m venv "$venv"
   "$venv/bin/pip" install --disable-pip-version-check "ziglang==$zigver"
-  (cd "$src" && "$venv/bin/python" -m ziglang build -Doptimize=ReleaseFast)
+  # Ubuntu 24.04 does not package gtk4-layer-shell; let Ghostty build its pinned source dependency.
+  (cd "$src" && "$venv/bin/python" -m ziglang build -Doptimize=ReleaseFast -fno-sys=gtk4-layer-shell)
   install -D -m 0755 "$src/zig-out/bin/ghostty" "$ROOTFS/usr/local/bin/ghostty"
 }
 build_contour() {
