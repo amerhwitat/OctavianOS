@@ -143,7 +143,7 @@ if [[ -d "$(dirname "$RUNTIME_AURORA_ROOT")" ]]; then
 fi
 # Stage production Koronos ring-3 init ELFs. The Linux initramfs is a
 # separate compatibility payload and cannot satisfy CHIMERA_MODULE_USER_INIT_ELF.
-printf '%s\\n' '[4b/7] Stage production Koronos ring-3 target init ELFs'
+printf '%s\n' '[4b/7] Stage production Koronos ring-3 target init ELFs'
 TARGETS_OUT="$DIST/iso/boot/targets"
 mkdir -p "$TARGETS_OUT"
 for target in live installer recovery; do
