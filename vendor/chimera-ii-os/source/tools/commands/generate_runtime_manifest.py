@@ -76,7 +76,7 @@ def main():
         elif key in SHELL: mode="shell-builtin"; provider="chimera-shell"
         elif key in registry_modes:
             declared, runtime=registry_modes[key]
-            mode="native-provider-required" if declared=="native-when-present" else declared
+            # Only the explicit 15-command CHIMERA multicall set is backed by the\n            # compiled chimera-cmd.native artifact. Registry entries marked\n            # "native" describe separate native-provider commands/wrappers;\n            # do not misclassify them as multicall entrypoints.\n            mode="native-provider-required" if declared in ("native-when-present", "native") else declared
             provider=runtime
         else:
             mode="compatibility-provider-required"
