@@ -61,7 +61,8 @@ jobs:
             gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 \
             build-essential pkg-config libssl-dev cmake ninja-build clang lld \
             libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libxcb-util0-dev libxcb-image0-dev \
-            libfontconfig1-dev libfreetype6-dev
+            libfontconfig1-dev libfreetype6-dev \
+            gettext libgtk-4-dev libadwaita-1-dev blueprint-compiler
 
       - name: Validate desktop source and application catalogs
         run: |
