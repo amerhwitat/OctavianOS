@@ -8,6 +8,7 @@ on:
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
       - 'apps/**'
       - 'applications/**'
       - 'appcenter/**'
@@ -47,18 +48,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install current stable Rust toolchain for source-built terminals
+        uses: dtolnay/rust-toolchain@stable
+
+
       - name: Install host ISO and graphical smoke-test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
             debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11
+            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11 \
+            build-essential pkg-config libssl-dev cmake ninja-build clang lld \
+            libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libxcb-util0-dev libxcb-image0-dev \
+            libfontconfig1-dev libfreetype6-dev \
+            gettext libgtk-4-dev libadwaita-1-dev blueprint-compiler
 
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
-          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py
+          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
+          bash -n live-image/lib/stage-command-isa-catalogs.sh live-image/build.sh live-image/lib/build-terminal-shell-sources.sh
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -85,7 +95,7 @@ jobs:
           OUT_DIR: ${{ runner.temp }}/aurora-live-output
         run: |
           set -euo pipefail
-          sudo -E bash live-image/build.sh octavian
+          sudo env "PATH=$PATH" "CARGO_HOME=$HOME/.cargo" "RUSTUP_HOME=$HOME/.rustup" bash live-image/build.sh octavian
           # The builder runs as root to configure the chroot; restore runner
           # ownership so the validation and artifact-upload steps can read it.
           sudo chown -R "$(id -u):$(id -g)" "$OUT_DIR"
@@ -103,14 +113,71 @@ jobs:
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           xorriso -osirrox on -indev "$iso" -extract /live/filesystem.squashfs "$tmp/filesystem.squashfs" >/dev/null
-          unsquashfs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
+          # Extract as root so security.capability and other privileged xattrs are restored;
+          # do not weaken the image by disabling xattr preservation in the validator.
+          sudo unsquashfs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
           root="$tmp/root"
           test -x "$root/usr/bin/openbox"
           test -x "$root/usr/bin/xprop"
           test -x "$root/usr/local/bin/aurora-session"
           test -s "$root/opt/aurora/application-bundle.json"
           test -d "$root/opt/aurora/app-catalogs"
+          test -s "$root/opt/aurora/terminal-shell-provider-verification.json"
+          python3 - "$root/opt/aurora/terminal-shell-provider-verification.json" <<'PY'
+          import json, pathlib, sys
+          manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert manifest["schema"] == "octavian-terminal-shell-provider-verification/v1"
+          assert manifest["required"] == 18 == manifest["verified"], manifest
+          assert len(manifest["providers"]) == 18
+          print("Verified all 18 terminal/shell provider files and target ELF/script architecture contracts.")
+          PY
+          test -s "$root/opt/aurora/catalog-provenance/command-isa-manifest.json"
+          test -s "$root/opt/aurora/catalog-provenance/command-isa.SHA256SUMS"
+          test -s "$root/opt/aurora/ISA.csv"
+          test -d "$root/opt/aurora/system/commands"
+          test -d "$root/opt/aurora/isa"
+          python3 - "$root/opt/aurora" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          manifest = json.loads((root / "catalog-provenance/command-isa-manifest.json").read_text())
+          assert manifest["schema"] == "octavian-command-isa-catalogues/v1"
+          assert manifest["command_catalogue_revision"] == "9331eb2bc8722630e6a3d7f9c010bf01b95ed4fa"
+          assert manifest["binary_status"].startswith("catalogue-data-only")
+          assert manifest["json_catalogue_count"] > 0
+          for rel in manifest["catalogue_roots"]:
+              assert (root / rel).is_dir(), f"missing staged catalogue root: {rel}"
+          print("Verified staged command/ISA catalogues:", manifest["json_catalogue_count"])
+          PY
           test -d "$root/opt/aurora/apps/native/aurora"
+          test -s "$root/usr/share/icons/chimera-aurora/manifest.json"
+          test -d "$root/opt/aurora/desktop/aurora-shell/assets/icons/generated"
+          python3 - "$root/usr/share/icons/chimera-aurora" "$root/opt/aurora/desktop/aurora-shell/assets/icons/generated" <<'PY'
+          import json, pathlib, sys
+          theme, desktop = map(pathlib.Path, sys.argv[1:])
+          manifest = json.loads((theme / "manifest.json").read_text())
+          assert manifest["schema"] == "CHIMERA-AURORA-ICON-EXPORT-1"
+          assert manifest["count"] > 0, "empty Aurora icon theme"
+          for icon in manifest["icons"]:
+              path = theme / icon["file"]
+              assert path.is_file(), f"missing theme icon: {path}"
+              assert (desktop / path.name).is_file(), f"missing desktop icon asset: {path.name}"
+          print(f"Verified {manifest['count']} generated Aurora SVG icons in GTK and desktop assets.")
+          PY
+          test -s "$root/opt/aurora/desktop/app-icons/catalog.svg"
+          test -s "$root/opt/aurora/desktop/app-icons/manifest.json"
+          python3 - "$root/usr/share/icons/hicolor/scalable/apps" "$root/opt/aurora/desktop/app-icons" <<'PY'
+          import json, pathlib, sys
+          theme, desktop = map(pathlib.Path, sys.argv[1:])
+          source = json.loads((desktop / "manifest.json").read_text())
+          exported = json.loads((desktop / "export-manifest.json").read_text())
+          assert source["count"] == 133 == len(source["apps"]), "source app-icon manifest count mismatch"
+          assert exported["count"] == source["count"], "not all original app icons were exported"
+          assert len(exported["icons"]) == len(source["apps"])
+          for icon in exported["icons"]:
+              assert (theme / icon["file"]).is_file(), f"missing hicolor icon: {icon['file']}"
+              assert (desktop / "icons" / icon["file"]).is_file(), f"missing desktop icon: {icon['file']}"
+          print(f"Verified all {exported['count']} original Aurora app artwork symbols.")
+          PY
           grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
           python3 - "$root/opt/aurora" <<'PY'
           import json, pathlib, sys

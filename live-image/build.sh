@@ -103,9 +103,59 @@ if [ ! -f "$BASE/.packages-installed" ]; then
       libgl1 libglx-mesa0 libegl1 libgles2 \
       openbox xterm feh \
       fonts-dejavu-core fonts-liberation2 fonts-noto-core \
-      sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils \
+      sudo ca-certificates curl wget less nano htop pciutils usbutils file unzip xz-utils binutils \
       iproute2 iputils-ping netbase procps psmisc rsync \
       e2fsprogs dosfstools parted gdisk alsa-utils kmod
+    # Resolve optional open-source terminals and shells against the actual
+    # Debian repository for this rootfs architecture; absent packages remain
+    # explicitly unavailable rather than receiving placeholder executables.
+    terminal_shell_packages=()
+    for package in gnome-terminal konsole xfce4-terminal foot kitty alacritty wezterm ghostty contour zsh fish dash mksh yash elvish nushell; do
+      if apt-cache show "$package" >/dev/null 2>&1; then
+        terminal_shell_packages+=("$package")
+      else
+        echo "[TERMINAL-SHELL][UNAVAILABLE] package=$package arch=$(dpkg --print-architecture)"
+      fi
+    done
+    if ((${#terminal_shell_packages[@]} > 0)); then
+      apt-get install -y -qq --no-install-recommends "${terminal_shell_packages[@]}"
+    fi
+    # Install real open-source astronomy applications when the target
+    # distribution publishes packages for this architecture. Missing packages
+    # are reported explicitly; no launcher or executable placeholder is made.
+    astronomy_packages=()
+    for package in stellarium kstars xplanet astrometry.net; do
+      if apt-cache show "$package" >/dev/null 2>&1; then
+        astronomy_packages+=("$package")
+      else
+        echo "[ASTRONOMY][UNAVAILABLE] package=$package arch=$(dpkg --print-architecture)"
+      fi
+    done
+    if ((${#astronomy_packages[@]} > 0)); then
+      apt-get install -y -qq --no-install-recommends "${astronomy_packages[@]}"
+    fi
+    mkdir -p /usr/share/chimera/aurora
+    {
+      for item in \
+        "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+        "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+        "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
+        "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
+        "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+        id="${item%%:*}"; binary="${item#*:}"
+        if command -v "$binary" >/dev/null 2>&1; then
+          path="$(command -v "$binary")"
+          if readelf -h "$path" >/dev/null 2>&1; then
+            machine="$(readelf -h "$path" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')"
+            printf '%s\tverified-elf\t%s\t%s\n' "$id" "$path" "$machine"
+          else
+            printf '%s\tprovider-present-non-elf\t%s\n' "$id" "$path"
+          fi
+        else
+          printf '%s\tunavailable\t%s\n' "$id" "$binary"
+        fi
+      done
+    } > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   '
@@ -119,6 +169,43 @@ rm -rf "$WORK"; mkdir -p "$WORK"
 # cp -a keeps ownership/modes and is markedly faster than a tar pipe on this tree;
 # device nodes are rebuilt empty because CAP_MKNOD is unavailable in the builder.
 cp -a "$BASE/." "$WORK/" 2>/dev/null || true
+# Re-scan the copied target rootfs, rather than trusting a possibly cached
+# base-rootfs report. This makes the provider manifest describe the exact
+# filesystem that will be packed into the ISO.
+chroot "$WORK" /bin/bash -s <<'PROVIDER_SCAN'
+set -euo pipefail
+mkdir -p /usr/share/chimera/aurora
+: > /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+for item in \
+  "xterm:xterm" "gnome-terminal:gnome-terminal" "konsole:konsole" \
+  "xfce4-terminal:xfce4-terminal" "foot:foot" "kitty:kitty" \
+  "alacritty:alacritty" "wezterm:wezterm" "ghostty:ghostty" \
+  "contour:contour" "bash:bash" "zsh:zsh" "fish:fish" \
+  "dash:dash" "mksh:mksh" "yash:yash" "elvish:elvish" "nushell:nu"; do
+  id="${item%%:*}"
+  binary="${item#*:}"
+  if path="$(command -v "$binary" 2>/dev/null)" && [ -n "$path" ]; then
+    if readelf -h "$path" >/dev/null 2>&1; then
+      machine="$(readelf -h "$path" | sed -n 's/^[[:space:]]*Machine:[[:space:]]*//p')"
+      printf '%s\tverified-elf\t%s\t%s\n' "$id" "$path" "$machine" \
+        >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+    else
+      printf '%s\tprovider-present-non-elf\t%s\n' "$id" "$path" \
+        >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+    fi
+  else
+    printf '%s\tunavailable\t%s\n' "$id" "$binary" \
+      >> /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+  fi
+done
+echo "Target-rootfs provider scan:"
+cat /usr/share/chimera/aurora/terminal-shell-provider-status.tsv
+PROVIDER_SCAN
+# Keep the same terminal/shell catalogue in both live editions, independently
+# of which optional provider packages are available on this build architecture.
+install -d "$WORK/usr/share/chimera/aurora/terminals" "$WORK/usr/share/chimera/aurora/shells"
+install -m 0644 "$REPO_DIR/aurora/terminals/registry.json" "$WORK/usr/share/chimera/aurora/terminals/registry.json"
+install -m 0644 "$REPO_DIR/aurora/shells/registry.json" "$WORK/usr/share/chimera/aurora/shells/registry.json"
 rm -rf "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run
 mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mnt "$WORK"/media
 
@@ -126,7 +213,169 @@ mkdir -p "$WORK"/dev "$WORK"/proc "$WORK"/sys "$WORK"/run "$WORK"/tmp "$WORK"/mn
 log "staging payload"
 PAY="$WORK/opt/aurora"
 rm -rf "$PAY"; mkdir -p "$PAY/wallpapers"
+
+# Compile the supported missing providers from upstream source; do not let an
+# unavailable package silently become a catalogue-only success.
+PROVIDER_STATUS="$WORK/usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
+SOURCE_REQUIRED="$WORK/usr/share/chimera/aurora/terminal-shell-source-required.tsv"
+python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY'
+import pathlib, sys
+status, missing = map(pathlib.Path, sys.argv[1:])
+source_recipes = {"yash", "elvish", "nushell", "wezterm", "ghostty", "contour"}
+rows = []
+if status.is_file():
+    for line in status.read_text().splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3 and fields[1] == "unavailable" and fields[0] in source_recipes:
+            rows.append("|".join((fields[0], fields[2], "distribution-provider-unavailable-source-build-required")))
+missing.parent.mkdir(parents=True, exist_ok=True)
+missing.write_text("\n".join(rows) + ("\n" if rows else ""))
+print("terminal/shell source builds required:", len(rows))
+PY
+if [ -s "$SOURCE_REQUIRED" ]; then
+  bash "$HERE/lib/build-terminal-shell-sources.sh" "$WORK" "$BUILD/terminal-shell-source-build"
+fi
+python3 - "$REPO_DIR" "$WORK" "$PAY" <<'PY'
+import json, pathlib, subprocess, sys
+repo, root, payload = map(pathlib.Path, sys.argv[1:])
+registries = [repo / "aurora/terminals/registry.json", repo / "aurora/shells/registry.json"]
+entries = [entry for path in registries for entry in json.loads(path.read_text())["entries"]]
+status_path = root / "usr/share/chimera/aurora/terminal-shell-provider-status.tsv"
+statuses = {}
+if status_path.is_file():
+    for line in status_path.read_text().splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3:
+            statuses[fields[0]] = {"status": fields[1], "path": fields[2], "machine": fields[3] if len(fields) > 3 else ""}
+built_path = root / "usr/share/chimera/aurora/terminal-shell-installed.tsv"
+if built_path.is_file():
+    for line in built_path.read_text().splitlines():
+        fields = line.split("|")
+        if len(fields) >= 5 and fields[2] == "source-built":
+            statuses[fields[0]] = {"status": "source-built", "path": "/usr/local/bin/" + fields[1], "machine": ""}
+arch = subprocess.check_output(["chroot", str(root), "dpkg", "--print-architecture"], text=True).strip()
+expected = {"amd64": "Advanced Micro Devices X86-64", "arm64": "AArch64", "armhf": "ARM", "i386": "Intel 80386", "riscv64": "RISC-V", "ppc64el": "PowerPC64", "s390x": "IBM S/390"}.get(arch)
+if not expected:
+    raise SystemExit(f"unsupported target architecture for provider verification: {arch}")
+verified, failures = [], []
+for entry in entries:
+    ident, binary = entry["id"], entry["binary"]
+    item = statuses.get(ident)
+    if not item or item["status"] == "unavailable":
+        failures.append(f"{ident}: no installed or source-built provider")
+        continue
+    rel = item["path"]
+    path = root / rel.lstrip("/")
+    if not path.is_file():
+        failures.append(f"{ident}: provider path missing in target rootfs: {rel}")
+        continue
+    header = subprocess.run(["readelf", "-h", str(path)], text=True, capture_output=True)
+    if header.returncode == 0:
+        machine = next((line.split(":", 1)[1].strip() for line in header.stdout.splitlines() if "Machine:" in line), "")
+        if machine != expected:
+            failures.append(f"{ident}: ELF machine {machine!r} does not match {arch}/{expected}")
+            continue
+        kind = "verified-elf"
+    else:
+        first = path.open("rb").readline(256).decode("utf-8", "replace").strip()
+        if not first.startswith("#!"):
+            failures.append(f"{ident}: provider is neither a target ELF nor an executable script")
+            continue
+        interpreter = first[2:].split()[0]
+        if not (root / interpreter.lstrip("/")).exists():
+            failures.append(f"{ident}: script interpreter missing: {interpreter}")
+            continue
+        kind = "verified-script"
+    # Execute each provider inside the target rootfs. Shells must execute a
+    # command; terminal emulators must successfully report their version.
+    # This does not claim that GUI windows were interactively exercised.
+    if entry["kind"] == "shell":
+        shell_commands = {
+            "bash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "zsh": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "fish": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "dash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "mksh": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "yash": ["-c", "printf CHIMERA_SHELL_SMOKE"],
+            "elvish": ["-c", "echo CHIMERA_SHELL_SMOKE"],
+            "nu": ["-c", "print CHIMERA_SHELL_SMOKE"],
+        }
+        args = shell_commands.get(binary, ["--version"])
+        expected_output = b"CHIMERA_SHELL_SMOKE"
+    else:
+        args = ["-version"] if binary == "xterm" else ["--version"]
+        expected_output = None
+    try:
+        probe = subprocess.run(["chroot", str(root), rel, *args],
+                                capture_output=True, timeout=15)
+        output = probe.stdout + probe.stderr
+        if probe.returncode != 0 or (expected_output and expected_output not in output):
+            failures.append(f"{ident}: provider execution smoke failed (exit={probe.returncode})")
+            continue
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        failures.append(f"{ident}: provider execution smoke failed: {exc}")
+        continue
+    verified.append({"id": ident, "binary": binary, "path": rel, "status": kind,
+                     "elf_machine": expected if kind == "verified-elf" else None,
+                     "runtime_status": "shell-command-smoke-pass" if entry["kind"] == "shell" else "version-smoke-pass"})
+if failures:
+    raise SystemExit("terminal/shell provider gate failed:\n" + "\n".join(failures))
+manifest = {"schema": "octavian-terminal-shell-provider-verification/v1", "target_architecture": arch,
+            "required": len(entries), "verified": len(verified), "providers": verified,
+            "runtime_launch_smoke": "shell command and terminal --version smoke tests passed; GUI launch/input not tested"}
+out = root / "usr/share/chimera/aurora/terminal-shell-provider-verification.json"
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+import shutil
+shutil.copy2(out, payload / "terminal-shell-provider-verification.json")
+print(f"verified all {len(verified)} terminal/shell providers for {arch}")
+PY
 cp -a "$REPO_DIR/$DESKTOP_COPY" "$PAY/desktop"
+
+# Export every real SVG icon embedded in the vendored Aurora source into an
+# installable icon theme and the desktop's offline asset bundle.
+ICON_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora/icons/chimera_icons.cpp"
+ICON_THEME="$WORK/usr/share/icons/chimera-aurora"
+ICON_ASSETS="$PAY/desktop/aurora-shell/assets/icons/generated"
+if [ ! -s "$ICON_SOURCE" ]; then
+  echo "ERROR: embedded Aurora SVG icon source is missing: $ICON_SOURCE" >&2
+  exit 2
+fi
+ICON_CATALOG="$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora/icons/icon_theme.json"
+if [ ! -s "$ICON_CATALOG" ]; then
+  echo "ERROR: Aurora icon catalogue is missing: $ICON_CATALOG" >&2
+  exit 2
+fi
+python3 "$HERE/lib/export-aurora-icons.py" --source "$ICON_SOURCE" --catalog "$ICON_CATALOG" --output "$ICON_THEME"
+test -s "$ICON_THEME/manifest.json"
+mkdir -p "$ICON_ASSETS"
+cp -a "$ICON_THEME/scalable/apps/." "$ICON_ASSETS/"
+install -d "$WORK/etc/gtk-3.0"
+cat > "$WORK/etc/gtk-3.0/settings.ini" <<'GTK'
+[Settings]
+gtk-icon-theme-name=chimera-aurora
+GTK
+echo "  Aurora SVG icons exported and staged: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$ICON_THEME/manifest.json")"
+
+# Export the complete 133-symbol original app artwork sprite as real SVG files.
+APP_ICON_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source/desktop/app-icons"
+APP_ICON_THEME="$WORK/usr/share/icons/hicolor/scalable/apps"
+APP_ICON_ASSETS="$PAY/desktop/app-icons"
+if [ ! -s "$APP_ICON_SOURCE/catalog.svg" ] || [ ! -s "$APP_ICON_SOURCE/manifest.json" ]; then
+  echo "ERROR: complete Aurora app-icon sprite/manifest is missing" >&2
+  exit 2
+fi
+mkdir -p "$APP_ICON_THEME" "$APP_ICON_ASSETS/icons"
+cp -f "$APP_ICON_SOURCE/catalog.svg" "$APP_ICON_ASSETS/catalog.svg"
+cp -f "$APP_ICON_SOURCE/manifest.json" "$APP_ICON_ASSETS/manifest.json"
+python3 "$HERE/lib/export-app-icon-theme.py" \
+  --sprite "$APP_ICON_SOURCE/catalog.svg" \
+  --manifest "$APP_ICON_SOURCE/manifest.json" \
+  --output "$APP_ICON_THEME"
+cp -f "$APP_ICON_THEME"/chimera-*.svg "$APP_ICON_ASSETS/icons/"
+cp -f "$APP_ICON_THEME/manifest.json" "$APP_ICON_ASSETS/export-manifest.json"
+echo "  Original Aurora app artwork exported: $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$APP_ICON_THEME/manifest.json")"
+
 [ "$ED" = "octavian" ] && cp -a "$REPO_DIR/apps" "$PAY/apps"
 
 # Aurora desktop shell (multi-profile window manager) is staged for every edition.
@@ -154,6 +403,10 @@ PY
 mkdir -p "$PAY/repo"
 tar -C "$REPO_DIR" --exclude=./.git --exclude=./live-image/.build -cf - . 2>/dev/null \
   | tar -C "$PAY/repo" -xf - 2>/dev/null || true
+
+# Stage the same vendored command and ISA catalogue data in the hosted edition.
+bash "$REPO_DIR/live-image/lib/stage-command-isa-catalogs.sh" \
+  "$REPO_DIR/vendor/chimera-ii-os/source" "$PAY"
 
 # Stage every repository-owned application catalog for offline discovery.
 # Catalog-only upstream references remain distinct from installed executables.
