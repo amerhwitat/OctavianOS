@@ -20,6 +20,8 @@ on:
       - 'boot/**'
       - 'system/commands/**'
       - 'catalogues/**'
+      - 'runtime/commands/**'
+      - 'runtime/isa/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -48,6 +50,8 @@ on:
       - 'boot/**'
       - 'system/commands/**'
       - 'catalogues/**'
+      - 'runtime/commands/**'
+      - 'runtime/isa/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -214,6 +218,9 @@ jobs:
           require_path nonempty "$root/usr/share/chimera/catalogs/catalog.json"
           require_path nonempty "$root/usr/share/chimera/catalogs/isa-encoding-registry.json"
           require_path nonempty "$root/usr/share/chimera/catalogs/runtime-command-isa-contract.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/native-command-candidates.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/universal-instruction-catalog.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/riscv-opcodes.json"
           require_path nonempty "$root/usr/share/chimera/commands/command-provider-coverage.json"
           require_path nonempty "$root/usr/share/icons/chimera-aurora/manifest.json"
           require_path nonempty "$root/usr/share/icons/hicolor/index.theme"
@@ -244,6 +251,20 @@ jobs:
                   json.loads(path.read_text())
           assert (root / "repo").is_dir(), "full source snapshot missing"
           print(f"Embedded {len(manifest['catalog_files'])} offline application catalogs.")
+          command_candidates = json.loads((root.parent.parent / "usr/share/chimera/catalogs/native-command-candidates.json").read_text())
+          isa_catalog = json.loads((root.parent.parent / "usr/share/chimera/catalogs/universal-instruction-catalog.json").read_text())
+          riscv_catalog = json.loads((root.parent.parent / "usr/share/chimera/catalogs/riscv-opcodes.json").read_text())
+          assert command_candidates["counts"]["total"] == len(command_candidates["commands"])
+          assert command_candidates["counts"]["native_implemented"] == 37
+          assert command_candidates["counts"]["candidate_only"] == command_candidates["counts"]["total"] - 37
+          assert all(not row["execution_allowed"] for row in command_candidates["commands"] if row["status"] == "candidate-only")
+          assert isa_catalog["record_count"] == len(isa_catalog["instructions"]) == 1613
+          assert len(isa_catalog["unique_architectures"]) == 15
+          assert riscv_catalog["record_count"] == len(riscv_catalog["instructions"]) == 1459
+          assert riscv_catalog["failed_files"] == 0
+          print("Embedded command candidates:", command_candidates["counts"])
+          print("Embedded ISA instruction records:", isa_catalog["record_count"], "across", len(isa_catalog["unique_architectures"]), "architectures.")
+          print("RISC-V source import:", riscv_catalog["record_count"], "records; failed files:", riscv_catalog["failed_files"])
           commands = json.loads((root.parent.parent / "usr/share/chimera/commands/command-provider-coverage.json").read_text())
           assert commands["catalog_count"] >= 800, commands.get("catalog_count")
           aurora_icons = json.loads((root.parent.parent / "usr/share/icons/chimera-aurora/manifest.json").read_text())
