@@ -7,11 +7,13 @@ on:
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'tests/commands/**'
       - 'tools/build-command-arch-matrix.sh'
+      - 'tests/commands/**'
       - '.github/workflows/command-arch-matrix.yml'
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'tools/build-command-arch-matrix.sh'
+      - 'tests/commands/**'
       - '.github/workflows/command-arch-matrix.yml'
 permissions:
   contents: read
@@ -26,6 +28,7 @@ jobs:
           - { arch: x86_64, package: '', compiler: cc }
           - { arch: i686, package: gcc-i686-linux-gnu, compiler: i686-linux-gnu-gcc }
           - { arch: aarch64, package: gcc-aarch64-linux-gnu, compiler: aarch64-linux-gnu-gcc }
+          - { arch: armel, package: gcc-arm-linux-gnueabi, compiler: arm-linux-gnueabi-gcc }
           - { arch: armv7, package: gcc-arm-linux-gnueabihf, compiler: arm-linux-gnueabihf-gcc }
           - { arch: riscv64, package: gcc-riscv64-linux-gnu, compiler: riscv64-linux-gnu-gcc }
           - { arch: ppc64le, package: gcc-powerpc64le-linux-gnu, compiler: powerpc64le-linux-gnu-gcc }
@@ -36,7 +39,7 @@ jobs:
         if: matrix.package != ''
         run: |
           sudo apt-get update
-          sudo apt-get install --yes ${{ matrix.package }} binutils
+          sudo apt-get install --yes ${{ matrix.package }} binutils qemu-user-static
       - name: Run host multicall smoke tests
         if: matrix.arch == 'x86_64'
         run: bash tests/commands/test_chimera_cmd.sh
@@ -46,6 +49,10 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
           CHIMERA_CMD_SOURCE: vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c
         run: bash tools/build-command-arch-matrix.sh
+      - name: Execute all 37 multicall commands for this Linux ABI
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: bash tests/commands/test-native-command-arch.sh
       - uses: actions/upload-artifact@v4
         with:
           name: octavian-command-${{ matrix.arch }}
