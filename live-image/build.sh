@@ -163,6 +163,42 @@ PY_NATIVE_GATE
   touch "$BASE/.packages-installed-v2"
 fi
 
+# --------------------------------------------------------- command + ISA catalogues
+# The vendor snapshot is the canonical source when present. Stage the actual
+# source catalogues into the guest image (not just the generated capability
+# summary) so both OS editions ship the same auditable command/ISA references.
+CATALOG_DEST="$BASE/usr/share/chimera/catalogs"
+catalog_files=(
+  system/commands/octavian-command-list.json
+  system/commands/chimera-command-list.json
+  system/commands/ss64-command-catalog.json
+  system/commands/compatibility-binary-policy.json
+  system/commands/command-runtime-capabilities.json
+  tools/commands/os-command-runtime.json
+  isa/catalog.json
+  isa/generated/isa-encoding-registry.json
+  ISA.csv
+)
+staged_catalogs=()
+for rel in "${catalog_files[@]}"; do
+  if [[ -s "$COMMAND_SOURCE/$rel" ]]; then
+    install -D -m 0644 "$COMMAND_SOURCE/$rel" "$CATALOG_DEST/$(basename "$rel")"
+    staged_catalogs+=("$rel")
+  else
+    echo "[CATALOG] unavailable source file (not fabricated): $rel"
+  fi
+done
+python3 - "$CATALOG_DEST" <<'PY_CATALOG_GATE'
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+required = ("octavian-command-list.json", "isa/catalog.json", "isa-encoding-registry.json")
+missing = [name for name in required if not (root / name).is_file() or (root / name).stat().st_size == 0]
+if missing:
+    raise SystemExit("required command/ISA catalogue files missing: " + ", ".join(missing))
+for path in root.glob("*.json"):
+    json.loads(path.read_text(encoding="utf-8"))
+print("Staged and parsed command/ISA catalogues:", len(list(root.iterdir())))
+PY_CATALOG_GATE
 # ------------------------------------------------------------- rootfs copy
 log "staging rootfs"
 rm -rf "$WORK"; mkdir -p "$WORK"
