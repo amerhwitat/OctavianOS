@@ -33,8 +33,8 @@
   "linux_vmlinuz": false,
   "timeouts": {
     "primary_seconds": 300,
-    "submenu_seconds": 120,
+    "submenu_seconds": 300,
     "default_entry": "live",
-    "policy": "Wait for user input for five minutes on primary boot menus and two minutes on nested menus, then select the configured default entry."
+    "policy": "Wait for user input for five minutes on primary and nested boot menus, then select the configured default entry."
   }
 }
