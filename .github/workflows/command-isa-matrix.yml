@@ -37,9 +37,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            gcc-i686-linux-gnu gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabihf gcc-riscv64-linux-gnu \
-            gcc-powerpc64le-linux-gnu gcc-s390x-linux-gnu \
+            gcc-14-i686-linux-gnu gcc-14-arm-linux-gnueabi gcc-14-aarch64-linux-gnu \
+            gcc-14-arm-linux-gnueabihf gcc-14-riscv64-linux-gnu \
+            gcc-14-powerpc64le-linux-gnu gcc-14-s390x-linux-gnu \
             binutils qemu-user-static
       - name: Validate mirrored command catalogue and native policy
         run: python3 tests/commands/test_native_catalogue_alignment.py
