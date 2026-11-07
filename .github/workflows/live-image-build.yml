@@ -93,7 +93,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
+            debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file qemu-system-x86 xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
             openbox x11-utils xdotool xvfb dbus-x11 git cargo rustc cmake ninja-build pkg-config \
             python3-venv python3-pip nodejs autoconf automake libtool meson golang-go \
@@ -217,6 +217,38 @@ jobs:
               json.loads((root / rel).read_text(encoding="utf-8"))
           print("Validated actual ISO contains Koronos kernel, three target ELFs, Live/Recovery initramfs and Installer media.")
           PY_KORONOS_ISO
+          # Boot each native target from the actual ISO. The 300-second GRUB
+          # menu is kept intact; QEMU sends explicit keyboard input to select
+          # the target. Timeout is expected after the target reports readiness.
+          for target in live installer recovery; do
+            log="$OUT_DIR/koronos-$target-iso-qemu.log"
+            case "$target" in
+              live) keys="sendkey end; sleep 1; sendkey up; sleep 1; sendkey up; sleep 1; sendkey ret" ;;
+              installer) keys="sendkey end; sleep 1; sendkey up; sleep 1; sendkey ret" ;;
+              recovery) keys="sendkey end; sleep 1; sendkey ret" ;;
+            esac
+            set +e
+            ( sleep 5; IFS=';' read -ra commands <<< "$keys"; for command in "${commands[@]}"; do eval "$command"; done ) | \
+              timeout 25s qemu-system-x86_64 -machine q35 -accel tcg -cpu qemu64 -m 1536 \
+                -cdrom "$iso" -boot d -display none -serial none -monitor stdio \
+                -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9 \
+                >/dev/null 2>&1
+            qemu_rc=$?
+            set -e
+            [[ "$qemu_rc" -eq 124 || "$qemu_rc" -eq 137 || "$qemu_rc" -eq 0 ]] || {
+              echo "::error::QEMU failed for actual ISO target $target (exit $qemu_rc)"; exit 1;
+            }
+            grep -Fq "[KRN ] KORONOS READY" "$log"
+            syscall_pid="$(grep -oE "USER INIT SYSCALL: target=$target init_pid=[0-9]+" "$log" | tail -1 | sed 's/.*=//')"
+            ready_pid="$(grep -oE "USERSPACE READY: target=$target init_pid=[0-9]+" "$log" | tail -1 | sed 's/.*=//')"
+            test -n "$syscall_pid" && test "$syscall_pid" -gt 0
+            test "$syscall_pid" = "$ready_pid" || {
+              echo "::error::Target $target did not report matching CPL3 syscall/readiness PID"; exit 1;
+            }
+            echo "Actual ISO $target boot passed with matching nonzero ring-3 PID $ready_pid."
+          done
+          cp "$root/usr/share/chimera/aurora/terminal-shell-provider-verification.json" "$OUT_DIR/"
+          cp "$root/usr/share/chimera/catalogs/command-isa-coverage.json" "$OUT_DIR/"
           require_path() {
             local kind="$1" path="$2"
             if [[ "$kind" == "executable" && ! -x "$path" ]] ||
@@ -333,6 +365,11 @@ jobs:
             ${{ runner.temp }}/aurora-live-output/octavian-os-live-amd64.iso
             ${{ runner.temp }}/aurora-live-output/octavian-os-live-amd64.iso.sha256
             ${{ runner.temp }}/aurora-live-output/ISO-BOOT-REPORT.txt
+            ${{ runner.temp }}/aurora-live-output/koronos-live-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/koronos-installer-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/koronos-recovery-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/terminal-shell-provider-verification.json
+            ${{ runner.temp }}/aurora-live-output/command-isa-coverage.json
           if-no-files-found: error
           retention-days: 30
 
