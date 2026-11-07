@@ -10,7 +10,8 @@
 #   SKIP_DEBOOTSTRAP=1 reuse an existing base rootfs
 #
 # Requires (Debian/Ubuntu host): debootstrap xorriso squashfs-tools grub-pc-bin
-# grub-efi-amd64-bin mtools dosfstools imagemagick python3.
+# grub-efi-amd64-bin mtools dosfstools imagemagick python3 nasm gcc g++ make
+# binutils file busybox-static cpio gzip.
 set -euo pipefail
 
 ED="${1:-}"
