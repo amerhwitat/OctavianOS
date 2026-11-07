@@ -5,12 +5,15 @@ on:
     branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
     paths:
       - 'live-image/**'
+      - 'live-image/lib/export-*.py'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/boot/**'
       - 'vendor/chimera-ii-os/source/install/**'
       - 'vendor/chimera-ii-os/source/installer/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/icons/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
       - 'tests/boot/**'
@@ -30,12 +33,15 @@ on:
   pull_request:
     paths:
       - 'live-image/**'
+      - 'live-image/lib/export-*.py'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/boot/**'
       - 'vendor/chimera-ii-os/source/install/**'
       - 'vendor/chimera-ii-os/source/installer/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/icons/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
       - 'tests/boot/**'
@@ -88,7 +94,7 @@ jobs:
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
-          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py
+          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
           bash -n live-image/build.sh
           bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
           bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
@@ -209,6 +215,13 @@ jobs:
           require_path nonempty "$root/usr/share/chimera/catalogs/isa-encoding-registry.json"
           require_path nonempty "$root/usr/share/chimera/catalogs/runtime-command-isa-contract.json"
           require_path nonempty "$root/usr/share/chimera/commands/command-provider-coverage.json"
+          require_path nonempty "$root/usr/share/icons/chimera-aurora/manifest.json"
+          require_path nonempty "$root/usr/share/icons/hicolor/index.theme"
+          require_path nonempty "$root/usr/share/icons/hicolor/scalable/apps/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/aurora-icons/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/catalog.svg"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/export-manifest.json"
           require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-staging.json"
           require_path executable "$root/usr/local/bin/aurora-session"
           require_path nonempty "$root/opt/aurora/application-bundle.json"
@@ -233,6 +246,21 @@ jobs:
           print(f"Embedded {len(manifest['catalog_files'])} offline application catalogs.")
           commands = json.loads((root.parent.parent / "usr/share/chimera/commands/command-provider-coverage.json").read_text())
           assert commands["catalog_count"] >= 800, commands.get("catalog_count")
+          aurora_icons = json.loads((root.parent.parent / "usr/share/icons/chimera-aurora/manifest.json").read_text())
+          app_icons = json.loads((root.parent.parent / "usr/share/icons/hicolor/scalable/apps/manifest.json").read_text())
+          import hashlib
+          for base, manifest in ((root.parent.parent / "usr/share/icons/chimera-aurora", aurora_icons),
+                                 (root.parent.parent / "usr/share/icons/hicolor/scalable/apps", app_icons)):
+              assert manifest["count"] == len(manifest["icons"]) and manifest["count"] > 0
+              for icon in manifest["icons"]:
+                  path = base / icon["file"]
+                  assert path.is_file(), f"missing exported icon: {path}"
+                  assert hashlib.sha256(path.read_bytes()).hexdigest() == icon["sha256"], f"icon hash mismatch: {path}"
+          assert app_icons["count"] == 133, app_icons["count"]
+          assert (root / "desktop/app-icons/catalog.svg").is_file()
+          assert (root / "desktop/app-icons/manifest.json").is_file()
+          assert (root / "desktop/app-icons/export-manifest.json").is_file()
+          print("Verified all", aurora_icons["count"], "Aurora UI icons and", app_icons["count"], "app artwork icons.")
           terminals = json.loads((root.parent.parent / "usr/share/chimera/aurora/terminal-shell-staging.json").read_text())
           assert terminals["schema"] == "AURORA-TERMINAL-SHELL-STAGING-2"
           assert len(terminals["entries"]) == 18
