@@ -19,7 +19,7 @@ for rel in PRIMARY:
     assert actual==300, f"{rel}: expected 300 seconds, got {actual}"
 for rel in SUBMENUS:
     actual=timeout(BOOT/rel)
-    assert actual==120, f"{rel}: expected 120 seconds, got {actual}"
+    assert actual==300, f"{rel}: expected 300 seconds, got {actual}"
 # Every interactive boot path that can start a Koronos target must pass the
 # matching native ring-3 init ELF; initramfs-only entries are not accepted as
 # production Live/Installer/Recovery handoffs.
@@ -63,12 +63,12 @@ for rel in MENU_FILES:
             assert marker in menu, f"{rel}: menuentry missing native Koronos {target} init module: {menu.splitlines()[0]}"
 
 contract=json.loads((BOOT/"boot-menu-contract.json").read_text())
-assert contract["timeouts"]=={"primary_seconds":300,"submenu_seconds":120,"default_entry":"live","policy":"Wait for user input for five minutes on primary boot menus and two minutes on nested menus, then select the configured default entry."}
+assert contract["timeouts"]=={"primary_seconds":300,"submenu_seconds":300,"default_entry":"live","policy":"Wait for user input for five minutes on primary and nested boot menus, then select the configured default entry."}
 gates=json.loads((SOURCE/"desktop/aurora/gates_menu.json").read_text())
 interaction=gates["interaction"]; boot=gates["boot_contract"]
 assert interaction["auto_launch_default"] is True
 assert interaction["idle_default_timeout_seconds"]==300
 assert interaction["menu_remains_open_until_user_action"] is False
-assert boot["primary_menu_timeout_seconds"]==300 and boot["submenu_timeout_seconds"]==120
+assert boot["primary_menu_timeout_seconds"]==300 and boot["submenu_timeout_seconds"]==300
 assert boot["default_action"]=="live"
-print("PASS: primary menus wait 300 seconds; nested menus wait 120 seconds; Gates default action is live.")
+print("PASS: primary and nested menus wait 300 seconds; Gates default action is live.")
