@@ -133,6 +133,23 @@ if [ ! -f "$BASE/.packages-installed-v4" ]; then
           echo "[AURORA-TERMINALS] no Debian package candidate: $pkg"
         fi
       done
+      # Runtime libraries for source-built GTK4/Wayland/Qt6 terminal providers.
+      for pkg in \
+        libgtk-4-1 libadwaita-1-0 libvte-2.91-0 libvte-2.91-gtk4-0 \
+        libfcft4 libpixman-1-0 libutf8proc2 libjson-glib-1.0-0 libgee-0.8-2 \
+        libxml2 librsvg2-2 libgraphene-1.0-0 libwayland-client0 libwayland-cursor0 \
+        libxkbcommon0 libxkbcommon-x11-0 libx11-6 libx11-xcb1 libxcb1 \
+        libxcb-render0 libxcb-shape0 libxcb-xfixes0 libxcb-cursor0 \
+        libfontconfig1 libfreetype6 libharfbuzz0b libvulkan1 \
+        libqt6core6t64 libqt6gui6t64 libqt6widgets6t64 libqt6qml6t64 libqt6quick6t64 \
+        libdbus-1-3 libssl3 libasound2t64 libpulse0 libxrandr2 libxi6 \
+        libxinerama1 libxcursor1 libxext6 libxrender1 libxfixes3 libxdamage1 libxcomposite1; do
+        if apt-cache show "$pkg" >/dev/null 2>&1; then
+          apt-get install -y -qq --no-install-recommends "$pkg" || echo "[AURORA-TERMINALS] runtime library install failed: $pkg"
+        else
+          echo "[AURORA-TERMINALS] no runtime library package candidate: $pkg"
+        fi
+      done
     bash /tmp/chimera-install-command-providers.sh
     rm -f /tmp/chimera-install-command-providers.sh
     apt-get clean
