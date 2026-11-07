@@ -18,6 +18,7 @@ on:
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
       - "vendor/chimera-ii-os/source/system/commands/**"
+      - "vendor/chimera-ii-os/source/isa/**"
       - "tests/runtime/**"
       - ".github/workflows/native-command-import.yml"
   pull_request:
@@ -35,6 +36,7 @@ on:
       - "vendor/chimera-ii-os/source/tools/commands/command_candidate_router.py"
       - "vendor/chimera-ii-os/source/tools/commands/test_import_command_candidates.py"
       - "vendor/chimera-ii-os/source/system/commands/**"
+      - "vendor/chimera-ii-os/source/isa/**"
       - "tests/runtime/**"
       - ".github/workflows/native-command-import.yml"
   workflow_dispatch:
@@ -58,6 +60,10 @@ jobs:
         run: |
           python3 vendor/chimera-ii-os/source/tools/isa/import_riscv_opcodes.py --output runtime/isa/riscv-opcodes.json --max-files 500 --allow-cached
           python3 vendor/chimera-ii-os/source/tools/isa/build_universal_catalog.py --database vendor/chimera-ii-os/source/isa/isa_database.json --input runtime/isa/riscv-opcodes.json --output runtime/isa/universal-instruction-catalog.json
+          mkdir -p vendor/chimera-ii-os/source/system/commands vendor/chimera-ii-os/source/isa/sources/imports vendor/chimera-ii-os/source/isa/generated
+          cp runtime/commands/native-command-candidates.json vendor/chimera-ii-os/source/system/commands/native-command-candidates.json
+          cp runtime/isa/riscv-opcodes.json vendor/chimera-ii-os/source/isa/sources/imports/riscv-opcodes.json
+          cp runtime/isa/universal-instruction-catalog.json vendor/chimera-ii-os/source/isa/generated/universal-instruction-catalog.json
       - name: Validate command safety and RNN fallback
         env:
           PYTHONPATH: vendor/chimera-ii-os/source
@@ -100,7 +106,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add runtime/commands/native-command-candidates.json runtime/isa/riscv-opcodes.json runtime/isa/universal-instruction-catalog.json
+          git add runtime/commands/native-command-candidates.json runtime/isa/riscv-opcodes.json runtime/isa/universal-instruction-catalog.json vendor/chimera-ii-os/source/system/commands/native-command-candidates.json vendor/chimera-ii-os/source/isa/sources/imports/riscv-opcodes.json vendor/chimera-ii-os/source/isa/generated/universal-instruction-catalog.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(runtime): persist imported command candidates [catalog-bot]"
             git push origin "HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
@@ -116,6 +122,9 @@ jobs:
             runtime/commands/native-command-candidates.json
             runtime/isa/riscv-opcodes.json
             runtime/isa/universal-instruction-catalog.json
+            vendor/chimera-ii-os/source/system/commands/native-command-candidates.json
+            vendor/chimera-ii-os/source/isa/sources/imports/riscv-opcodes.json
+            vendor/chimera-ii-os/source/isa/generated/universal-instruction-catalog.json
             runtime/cognition/trained-command-isa-rnn.json
             runtime/cognition/runtime-capabilities.json
           if-no-files-found: error
