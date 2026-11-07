@@ -38,6 +38,7 @@ chimera_copy_if_distinct() {
 }
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 "$ROOT/tools/commands/generate_runtime_manifest.py"
 # Always inherit the canonical build directory selected by build-chimera-iso.sh.
 # CHIMERA_LIVE_BOOT_DIR remains an explicit override for standalone builds.
 BUILD_DIR="${CHIMERA_BUILD_DIR:-$ROOT/build}"
@@ -49,11 +50,75 @@ mkdir -p "$OUT/boot/koronos" "$OUT/boot/live" "$OUT/boot/recovery" "$OUT/initram
 KORONOS="${CHIMERA_KORONOS_KERNEL:-$BUILD_DIR/koronos/x86_64/koronos.elf}"
 [[ -f "$KORONOS" ]] || KORONOS="$(find "$BUILD_DIR" "$ROOT/kernel" -type f \( -name 'koronos*.elf' -o -name 'kernel.bin' \) 2>/dev/null | head -n1 || true)"
 if [[ -n "$KORONOS" && -f "$KORONOS" ]]; then chimera_copy_if_distinct "$KORONOS" "$OUT/boot/koronos/koronos.elf"; sha256sum "$OUT/boot/koronos/koronos.elf" > "$OUT/boot/koronos/koronos.elf.sha256"; else echo "ERROR: Koronos ELF64 kernel not found." >&2; exit 2; fi
+# The production ring-3 target ELFs are separate Multiboot2 modules. Stage
+# the exact artifacts built by kernel/build-koronos.sh; initramfs images are
+# payload data and cannot substitute for these user-mode entry points.
+TARGETS_OUT="$OUT/boot/targets"
+mkdir -p "$TARGETS_OUT"
+for target in live installer recovery; do
+  target_elf="$BUILD_DIR/koronos/x86_64/target-init-$target.elf"
+  if [[ ! -s "$target_elf" ]]; then
+    echo "ERROR: production Koronos target ELF is missing: $target_elf" >&2
+    echo "Build the koronos-x86_64 target before staging Live/Installer/Recovery media." >&2
+    exit 2
+  fi
+  readelf -h "$target_elf" | grep -Eq 'Class:[[:space:]]+ELF64' || {
+    echo "ERROR: target init is not ELF64: $target_elf" >&2; exit 2;
+  }
+  readelf -h "$target_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || {
+    echo "ERROR: target init is not an executable ELF: $target_elf" >&2; exit 2;
+  }
+  chimera_copy_if_distinct "$target_elf" "$TARGETS_OUT/target-init-$target.elf"
+  sha256sum "$TARGETS_OUT/target-init-$target.elf" > "$TARGETS_OUT/target-init-$target.elf.sha256"
+done
+for target in live installer recovery; do
+  test -s "$TARGETS_OUT/target-init-$target.elf"
+  (cd "$TARGETS_OUT" && sha256sum --check "target-init-$target.elf.sha256")
+done
 INIT="$OUT/initramfs/root"
+# Initramfs packing needs cpio and gzip on the build host; fail loudly rather
+# than emitting a truncated image when either is missing (the cpio pipeline used
+# to hide "command not found" behind 2>/dev/null and still exit 127).
+for tool in cpio gzip; do
+  command -v "$tool" >/dev/null || { echo "ERROR: $tool is required to pack the live/recovery initramfs." >&2; exit 2; }
+done
 BUSYBOX="$(command -v busybox || true)"
 [[ -n "$BUSYBOX" ]] || { echo "ERROR: busybox is required to build the live/recovery initramfs." >&2; exit 2; }
+if command -v file >/dev/null 2>&1 && ! file "$BUSYBOX" | grep -qi 'statically linked'; then
+  echo "ERROR: a statically linked BusyBox is required for the initramfs; install busybox-static." >&2
+  exit 2
+fi
 cp -f "$BUSYBOX" "$INIT/bin/busybox"
+# Expose every applet implemented by the shipped BusyBox binary, not just a hand-picked subset.
+while IFS= read -r applet; do
+  [[ -n "$applet" && "$applet" != "busybox" ]] || continue
+  [[ "$applet" == */* ]] && continue
+  ln -sf busybox "$INIT/bin/$applet"
+done < <("$BUSYBOX" --list)
+# Keep compatibility aliases required by the init scripts even if a BusyBox
+# build omits an optional applet.
 for x in sh mount umount switch_root echo printf ps top tail date clear sed awk head cat ls grep find sleep uname dmesg blkid fsck ip route reboot poweroff gzip mkdir ln; do ln -sf busybox "$INIT/bin/$x"; done
+
+# Embed the complete command/ISA catalogues and an evidence-based implementation map.
+install -d "$INIT/etc/chimera/catalogs"
+for rel in \
+  system/commands/chimera-command-list.json \
+  system/commands/ss64-command-catalog.json system/commands/ss64-command-catalog.ar.json \
+  system/commands/native-command-candidates.json system/commands/command-runtime-capabilities.json \
+  system/commands/compatibility-binary-policy.json \
+  config/linux-command-registry.json tools/commands/os-command-runtime.json \
+  ISA.csv isa/catalog.json isa/generated/universal-instruction-catalog.json \
+  isa/generated/isa-encoding-registry.json data/isa/online-isa-index.json; do
+  if [[ -s "$ROOT/$rel" ]]; then install -D -m 0644 "$ROOT/$rel" "$INIT/etc/chimera/catalogs/$(basename "$rel")"; fi
+done
+install -D -m 0644 "$ROOT/aurora/terminals/registry.json" "$INIT/etc/chimera/catalogs/terminals-registry.json"
+install -D -m 0644 "$ROOT/aurora/shells/registry.json" "$INIT/etc/chimera/catalogs/shells-registry.json"
+bash "$ROOT/tools/commands/install-busybox-applets.sh" "$INIT"
+python3 "$ROOT/tools/commands/build-command-isa-coverage.py" \
+  --root "$ROOT" --busybox "$BUSYBOX" --rootfs "$INIT" \
+  --output "$INIT/etc/chimera/catalogs/command-isa-coverage.json"
+python3 "$ROOT/tools/commands/verify-command-provider-coverage.py" \
+  "$INIT" "$ROOT/system/commands/command-runtime-capabilities.json" x86_64
 for f in tools/chimera-driver-manager.sh tools/chimera-logrotate.sh tools/boot/chimera-recovery-console.sh tools/boot/chimera-recovery-targets.sh; do [[ -f "$ROOT/$f" ]] && cp -f "$ROOT/$f" "$INIT/bin/"; done
 [[ -f "$ROOT/config/drivers/driver-repositories.json" ]] && cp -f "$ROOT/config/drivers/driver-repositories.json" "$INIT/etc/chimera/drivers/"
 [[ -f "$ROOT/config/drivers/driver-policy.json" ]] && cp -f "$ROOT/config/drivers/driver-policy.json" "$INIT/etc/chimera/drivers/"
@@ -74,8 +139,8 @@ progress() {
     n=$((n + 1))
   done
   line="[LIVE] [${bar}] ${pct}% ${phase}: ${message}"
-  printf '%s\\n' "$line" >> /var/log/mesgs
-  printf '%s\\n' "$line" > /dev/console 2>/dev/null || printf '%s\\n' "$line"
+  printf '%s\n' "$line" >> /var/log/mesgs
+  printf '%s\n' "$line" > /dev/console 2>/dev/null || printf '%s\n' "$line"
   printf 'percent=%s\\nphase=%s\\nmessage=%s\\n' "$pct" "$phase" "$message" > /run/chimera/progress.state
 }
 progress 0 "Initramfs" "Starting early userspace"
@@ -110,10 +175,13 @@ else
   echo "Available block devices:"
   ls -l /dev/sr* /dev/vd* /dev/sd* /dev/mmcblk* 2>/dev/null || true
 fi
-exec /bin/sh
+# This marker is emitted by the initramfs userspace process, not by Koronos.
+# It proves the diagnostic shell handoff only; Aurora desktop readiness is separate.
+printf 'USERSPACE READY: target=live init_pid=%s\n' "$$" > /dev/console 2>/dev/null || printf 'USERSPACE READY: target=live init_pid=%s\n' "$$"
+exec /bin/sh -i
 EOF
 chmod +x "$INIT/init" "$INIT/bin/chimera-recovery-console.sh" 2>/dev/null || true
-(cd "$INIT" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
+(cd "$INIT" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$OUT/boot/live/chimera-live-initramfs.img"
 sha256sum "$OUT/boot/live/chimera-live-initramfs.img" > "$OUT/boot/live/chimera-live-initramfs.img.sha256"
 
 # Dedicated recovery image: same hardware/filesystem utilities as Live, but
@@ -139,8 +207,8 @@ recovery_progress() {
     n=$((n + 1))
   done
   line="[RECOVERY] [${bar}] ${pct}% ${phase}: ${message}"
-  printf '%s\\n' "$line" >> /var/log/mesgs
-  printf '%s\\n' "$line" > /dev/console 2>/dev/null || printf '%s\\n' "$line"
+  printf '%s\n' "$line" >> /var/log/mesgs
+  printf '%s\n' "$line" > /dev/console 2>/dev/null || printf '%s\n' "$line"
   printf 'percent=%s\\nphase=%s\\nmessage=%s\\n' "$pct" "$phase" "$message" > /run/chimera/progress.state
 }
 recovery_progress 0 "Initramfs" "Starting Jasper recovery userspace"
@@ -151,10 +219,13 @@ if [ -x /bin/chimera-driver-manager.sh ]; then
   /bin/chimera-driver-manager.sh inventory || recovery_progress 50 "Drivers" "inventory returned an error; repair shell remains available"
 fi
 recovery_progress 100 "Recovery shell" "repair console is ready; individual repair actions report their own status"
+# This marker confirms that recovery initramfs reached its userspace handoff.
+# It does not claim that any individual repair operation succeeded.
+printf 'USERSPACE READY: target=recovery init_pid=%s\n' "$$" > /dev/console 2>/dev/null || printf 'USERSPACE READY: target=recovery init_pid=%s\n' "$$"
 exec /bin/chimera-recovery-console.sh
 EOF
 chmod +x "$REC/init" "$REC/bin/chimera-recovery-console.sh"
-(cd "$REC" && find . -print0 | cpio --null -o -H newc 2>/dev/null | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
+(cd "$REC" && find . -print0 | cpio --null -o -H newc | gzip -9) > "$OUT/boot/recovery/chimera-recovery-initramfs.img"
 sha256sum "$OUT/boot/recovery/chimera-recovery-initramfs.img" > "$OUT/boot/recovery/chimera-recovery-initramfs.img.sha256"
 
 for arch in arm64 armv7 x86_64; do
