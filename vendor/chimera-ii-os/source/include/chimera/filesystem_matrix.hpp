@@ -5,6 +5,7 @@
 
 namespace chimera::filesystem {
 
+// SupportMode describes the host/compatibility backend, not Koronos runtime readiness.
 enum class SupportMode {
     NativeReadWrite,
     NativeReadOnly,
@@ -17,6 +18,7 @@ struct FilesystemProfile {
     SupportMode mode;
     std::string_view semantic_layer;
     std::string_view family;
+    constexpr bool koronos_native() const noexcept { return false; }
 };
 
 inline constexpr std::array<FilesystemProfile, 48> kFilesystemMatrix = {{
@@ -67,7 +69,7 @@ inline constexpr std::array<FilesystemProfile, 48> kFilesystemMatrix = {{
     {"reiserfs", SupportMode::NativeReadOnly, "POSIX/VFS", "Linux"},
     {"hamer2", SupportMode::UserspaceCompatibility, "BSD VFS compatibility", "DragonFly BSD"},
     {"apfs", SupportMode::UserspaceCompatibility, "Apple filesystem compatibility", "Apple"},
-    {"qfs", SupportMode::NativeReadWrite, "Chimera Native VFS / QFS", "Chimera"}
+    {"qfs", SupportMode::UserspaceCompatibility, "QFS prototype; native VFS pending", "Chimera"}
 }};
 
 class FilesystemMatrix {
@@ -84,5 +86,11 @@ public:
 };
 
 inline constexpr FilesystemMatrix filesystem_matrix{};
+
+// Host support modes do not imply a native Koronos VFS implementation.
+static_assert(!kFilesystemMatrix[14].koronos_native(), "ISO-9660 is not a native Koronos mount");
+static_assert(!kFilesystemMatrix[15].koronos_native(), "UDF is not a native Koronos mount");
+static_assert(!kFilesystemMatrix[29].koronos_native(), "NFS is not a native Koronos mount");
+static_assert(!kFilesystemMatrix[30].koronos_native(), "SMB is not a native Koronos mount");
 
 } // namespace chimera::filesystem
