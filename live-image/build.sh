@@ -169,7 +169,6 @@ fi
 # summary) so both OS editions ship the same auditable command/ISA references.
 CATALOG_DEST="$BASE/usr/share/chimera/catalogs"
 catalog_files=(
-  system/commands/octavian-command-list.json
   system/commands/chimera-command-list.json
   system/commands/ss64-command-catalog.json
   system/commands/compatibility-binary-policy.json
@@ -188,10 +187,13 @@ for rel in "${catalog_files[@]}"; do
     echo "[CATALOG] unavailable source file (not fabricated): $rel"
   fi
 done
+if [[ -s "$REPO_DIR/system/commands/octavian-command-list.json" ]]; then
+  install -D -m 0644 "$REPO_DIR/system/commands/octavian-command-list.json" "$CATALOG_DEST/octavian-command-list.json"
+fi
 python3 - "$CATALOG_DEST" <<'PY_CATALOG_GATE'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
-required = ("octavian-command-list.json", "isa/catalog.json", "isa-encoding-registry.json")
+required = ("octavian-command-list.json", "catalog.json", "isa-encoding-registry.json")
 missing = [name for name in required if not (root / name).is_file() or (root / name).stat().st_size == 0]
 if missing:
     raise SystemExit("required command/ISA catalogue files missing: " + ", ".join(missing))
