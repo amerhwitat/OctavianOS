@@ -408,6 +408,64 @@ ln -sfn /lib/systemd/system/systemd-networkd.socket \
 mkdir -p "$WORK/usr/share/backgrounds/$SHORT"
 cp -a "$PAY/wallpapers/." "$WORK/usr/share/backgrounds/$SHORT/"
 
+# Export every source-backed Aurora SVG icon and every app-* symbol from the
+# original 133-icon artwork sprite. The source/manifest match is strict: no
+# empty themes, guessed filenames or missing-symbol placeholders are emitted.
+ICON_SOURCE="$COMMAND_SOURCE/desktop/aurora/icons/chimera_icons.cpp"
+ICON_CATALOG="$COMMAND_SOURCE/desktop/aurora/icons/icon_theme.json"
+ICON_THEME="$WORK/usr/share/icons/chimera-aurora"
+ICON_ASSETS="$PAY/desktop/aurora-icons"
+if [[ ! -s "$ICON_SOURCE" || ! -s "$ICON_CATALOG" ]]; then
+  echo "ERROR: Aurora SVG source or icon catalogue is missing." >&2
+  exit 2
+fi
+python3 "$HERE/lib/export-aurora-icons.py" --source "$ICON_SOURCE" --catalog "$ICON_CATALOG" --output "$ICON_THEME"
+test -s "$ICON_THEME/manifest.json"
+mkdir -p "$ICON_ASSETS"
+cp -a "$ICON_THEME/." "$ICON_ASSETS/"
+install -d "$WORK/etc/gtk-3.0"
+cat > "$WORK/etc/gtk-3.0/settings.ini" <<'GTK_ICONS'
+[Settings]
+gtk-icon-theme-name=chimera-aurora
+GTK_ICONS
+
+APP_ICON_SOURCE="$COMMAND_SOURCE/desktop/app-icons"
+APP_ICON_THEME="$WORK/usr/share/icons/hicolor/scalable/apps"
+APP_ICON_ASSETS="$PAY/desktop/app-icons"
+if [[ ! -s "$APP_ICON_SOURCE/catalog.svg" || ! -s "$APP_ICON_SOURCE/manifest.json" ]]; then
+  echo "ERROR: original Aurora app-icon sprite or manifest is missing." >&2
+  exit 2
+fi
+mkdir -p "$APP_ICON_THEME" "$APP_ICON_ASSETS/icons"
+cp -f "$APP_ICON_SOURCE/catalog.svg" "$APP_ICON_ASSETS/catalog.svg"
+cp -f "$APP_ICON_SOURCE/manifest.json" "$APP_ICON_ASSETS/manifest.json"
+python3 "$HERE/lib/export-app-icon-theme.py" \
+  --sprite "$APP_ICON_SOURCE/catalog.svg" \
+  --manifest "$APP_ICON_SOURCE/manifest.json" \
+  --output "$APP_ICON_THEME"
+cp -f "$APP_ICON_THEME"/chimera-*.svg "$APP_ICON_ASSETS/icons/"
+cp -f "$APP_ICON_THEME/manifest.json" "$APP_ICON_ASSETS/export-manifest.json"
+cat > "$WORK/usr/share/icons/hicolor/index.theme" <<'HICOLOR'
+[Icon Theme]
+Name=hicolor
+Comment=Fallback theme with all exported Aurora app artwork
+Directories=scalable/apps
+[scalable/apps]
+Size=64
+Type=Scalable
+MinSize=16
+MaxSize=256
+HICOLOR
+python3 - "$ICON_THEME/manifest.json" "$APP_ICON_THEME/manifest.json" <<'PY_ICON_GATE'
+import json, pathlib, sys
+aurora, apps = (json.loads(pathlib.Path(p).read_text(encoding="utf-8")) for p in sys.argv[1:])
+if aurora.get("count") != len(aurora.get("icons", [])) or not aurora.get("count"):
+    raise SystemExit("Aurora icon theme export is incomplete")
+if apps.get("count") != len(apps.get("icons", [])) or not apps.get("count"):
+    raise SystemExit("app artwork export is incomplete")
+print(f"Verified {aurora['count']} Aurora UI icons and {apps['count']} app artwork icons")
+PY_ICON_GATE
+
 printf 'MODULES=most\nCOMPRESS=gzip\n' > "$WORK/etc/initramfs-tools/conf.d/live.conf"
 mount_chroot "$WORK"
 chroot "$WORK" /bin/bash -c "update-initramfs -u -k all" >/dev/null
