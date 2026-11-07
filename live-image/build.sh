@@ -421,6 +421,8 @@ Desktop : $ENTRY (fullscreen kiosk)
 Keys    : Ctrl+Q quit kiosk · Ctrl+R reload · Ctrl+Alt+F2 text console
 Console : login live / live (passwordless sudo)
 Menu    : "Classic X session" boots openbox + xterm
+Koronos : experimental native Live console, non-writing Installer ABI probe, Recovery ABI probe
+Timeout : GRUB/Jasper/Gates menus wait 300 seconds before the configured default
 Artwork : /opt/aurora/wallpapers and /usr/share/backgrounds/$SHORT
 Icons   : /opt/aurora/desktop/aurora-icons and /opt/aurora/desktop/app-icons
 Apps    : /opt/aurora/app-catalogs and /opt/aurora/apps/native
