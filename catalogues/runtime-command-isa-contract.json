@@ -47,7 +47,13 @@
       "tee",
       "cmp"
     ],
-    "rule": "The candidate catalogue is discovery metadata. Only implemented commands with a built target binary are binary-backed; unknown commands remain provider-missing or discovery-only."
+    "rule": "The candidate catalogue is discovery metadata. Only implemented commands with a built target binary are binary-backed; unknown commands remain provider-missing or discovery-only.",
+    "coverage_catalogue": "vendor/chimera-ii-os/source/system/commands/command-isa-coverage.json",
+    "coverage_counts": {
+      "unique_commands": 855,
+      "native_source_implemented": 37,
+      "provider_or_native_implementation_remaining": 818
+    }
   },
   "isa": {
     "catalogue": "runtime/isa/universal-instruction-catalog.json",
