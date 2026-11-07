@@ -181,6 +181,7 @@ catalog_files=(
   system/commands/chimera-command-list.json
   system/commands/ss64-command-catalog.json
   system/commands/compatibility-binary-policy.json
+  system/commands/command-isa-coverage.json
   system/commands/command-runtime-capabilities.json
   tools/commands/os-command-runtime.json
   isa/catalog.json
