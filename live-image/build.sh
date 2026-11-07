@@ -490,33 +490,81 @@ menuentry "Reboot" { reboot }
 menuentry "Power off" { halt }
 EOF
 
-# Native Koronos kernel (vendored Chimera II tree) built with the Linux-style kbuild
-# workflow and staged as a multiboot2 diagnostic payload. It never replaces the
-# Linux live entries: the microkernel has no verified userspace handoff.
-log "koronos kernel"
-if [ -f "$REPO_DIR/kernel/Makefile" ] && command -v nasm >/dev/null 2>&1; then
-  ( cd "$REPO_DIR" && make -C kernel defconfig all >/tmp/octavian-koronos.log 2>&1 ) || \
-    echo "  [warn] Koronos build failed, see /tmp/octavian-koronos.log"
-  koronos_elf="$(ls "$REPO_DIR"/vendor/chimera-ii-os/source/build/koronos/x86_64/koronos.elf 2>/dev/null | head -1)"
-  if [ -n "$koronos_elf" ] && [ -s "$koronos_elf" ]; then
-    install -Dm644 "$koronos_elf" "$ISODIR/boot/koronos/koronos.elf"
-    install -Dm644 "$(dirname "$koronos_elf")/System.map" "$ISODIR/boot/koronos/System.map" 2>/dev/null || true
-    echo "  staged $(du -h "$koronos_elf" | cut -f1) koronos.elf"
-  fi
+# Build and stage the actual Koronos kernel plus separate Live, Installer
+# and Recovery ring-3 target ELFs and their matching initramfs/media payloads.
+# These are currently safe native text consoles: graphical Live, disk-writing
+# installation and filesystem repair remain separate, explicitly gated work.
+log "Koronos kernel and native target payloads"
+for tool in nasm gcc g++ ld readelf cpio gzip busybox; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "missing required Koronos build tool: $tool" >&2; exit 2; }
+done
+if ! file "$(command -v busybox)" | grep -qi "statically linked"; then
+  echo "Koronos initramfs requires a statically linked BusyBox (install busybox-static)." >&2
+  exit 2
 fi
+(
+  cd "$COMMAND_SOURCE"
+  bash kernel/build-koronos.sh
+)
+CHIMERA_BUILD_DIR="$COMMAND_SOURCE/build" \
+CHIMERA_LIVE_BOOT_DIR="$ISODIR" \
+  bash "$COMMAND_SOURCE/tools/build-live-boot-binaries.sh"
+bash "$COMMAND_SOURCE/tools/chimera-stage-installer-media.sh" "$ISODIR"
+
+for required in \
+  "$ISODIR/boot/koronos/koronos.elf" \
+  "$ISODIR/boot/targets/target-init-live.elf" \
+  "$ISODIR/boot/targets/target-init-installer.elf" \
+  "$ISODIR/boot/targets/target-init-recovery.elf" \
+  "$ISODIR/boot/live/chimera-live-initramfs.img" \
+  "$ISODIR/boot/recovery/chimera-recovery-initramfs.img" \
+  "$ISODIR/install/installer/installation.img"; do
+  test -s "$required" || { echo "missing native Koronos ISO payload: $required" >&2; exit 2; }
+done
+install -D -m 0644 "$ISODIR/boot/live/live-manifest.json" "$ISODIR/boot/live/live-manifest.json"
+install -D -m 0644 "$ISODIR/boot/recovery/recovery-manifest.json" "$ISODIR/boot/recovery/recovery-manifest.json"
+
+# Keep the Linux-hosted Aurora desktop as the default until the Koronos-native
+# graphical session passes its own runtime/interaction gates. Offer the three
+# real Koronos ring-3 targets explicitly; never label a console probe as a GUI.
+python3 - "$ISODIR/boot/grub/grub.cfg" <<'PY_KORONOS_MENU'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+text = p.read_text(encoding="utf-8")
+if "insmod multiboot2" not in text:
+    text = text.replace("insmod all_video", "insmod all_video\ninsmod multiboot2", 1)
+text += """
+menuentry "OctavianOS — Koronos Native Live Console (experimental)" --id koronos-live {
+  multiboot2 /boot/koronos/koronos.elf
+  module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live
+  module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs
+  module2 /boot/live/live-manifest.json chimera-live-manifest
+  boot
+}
+menuentry "OctavianOS — Koronos Native Installer Console (non-writing)" --id koronos-installer {
+  multiboot2 /boot/koronos/koronos.elf
+  module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer
+  module2 /install/installer/installation.img chimera-installation-image
+  module2 /install/installer/installation-manifest.json chimera-installation-manifest
+  module2 /install/installer/installer-contract.json chimera-installer-contract
+  module2 /install/installer/installation_phases.json chimera-install-phases
+  module2 /install/installer/installer_profiles.json chimera-installer-profiles
+  boot
+}
+menuentry "OctavianOS — Koronos Native Recovery Console (read-only)" --id koronos-recovery {
+  multiboot2 /boot/koronos/koronos.elf
+  module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
+  module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+  module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
+  boot
+}
+"""
+p.write_text(text, encoding="utf-8")
+PY_KORONOS_MENU
 
 log "iso"
 rm -f "$OUT/$ISO_NAME"
-if [ -f "$ISODIR/boot/koronos/koronos.elf" ]; then
-  cat >> "$ISODIR/boot/grub/grub.cfg" <<'KORONOS'
-
-menuentry "Koronos native microkernel (diagnostic console — no graphical userspace)" {
-  echo "Loading Koronos microkernel (multiboot2)…"
-  multiboot2 /boot/koronos/koronos.elf
-  boot
-}
-KORONOS
-fi
 
 grub-mkrescue --compress=xz -o "$OUT/$ISO_NAME" "$ISODIR" -- -volid "$VOLID"
 ( cd "$OUT" && sha256sum "$ISO_NAME" > "$ISO_NAME.sha256" )
