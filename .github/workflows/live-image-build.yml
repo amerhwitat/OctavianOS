@@ -92,7 +92,7 @@ jobs:
           OUT_DIR: ${{ runner.temp }}/aurora-live-output
         run: |
           set -euo pipefail
-          sudo -E bash live-image/build.sh octavian
+          sudo env "PATH=$PATH" bash live-image/build.sh octavian
           # The builder runs as root to configure the chroot; restore runner
           # ownership so the validation and artifact-upload steps can read it.
           sudo chown -R "$(id -u):$(id -g)" "$OUT_DIR"
