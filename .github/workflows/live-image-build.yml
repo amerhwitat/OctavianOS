@@ -8,6 +8,7 @@ on:
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'system/commands/**'
+      - 'catalogues/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -24,6 +25,7 @@ on:
       - 'vendor/chimera-ii-os/source/tools/commands/**'
       - 'vendor/chimera-ii-os/source/system/commands/**'
       - 'system/commands/**'
+      - 'catalogues/**'
       - 'vendor/chimera-ii-os/source/isa/**'
       - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
@@ -137,6 +139,7 @@ jobs:
           require_path nonempty "$root/usr/share/chimera/catalogs/octavian-command-list.json"
           require_path nonempty "$root/usr/share/chimera/catalogs/catalog.json"
           require_path nonempty "$root/usr/share/chimera/catalogs/isa-encoding-registry.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/runtime-command-isa-contract.json"
           require_path nonempty "$root/usr/share/chimera/commands/command-provider-coverage.json"
           require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-staging.json"
           require_path executable "$root/usr/local/bin/aurora-session"
