@@ -97,7 +97,7 @@ jobs:
                    -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_VARS.fd")
           fi
           set +e
-          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 25s "${QEMU[@]}"
+          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 25s "${QEMU[@]}"
           qemu_rc=$?
           set -e
           # A healthy test init exits to the kernel, which then idles. Timeout
@@ -148,7 +148,7 @@ jobs:
           grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
           LOG="$OUT/qemu-timeout.log"
           set +e
-          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
+          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
             -display none -serial none -monitor stdio -no-reboot -no-shutdown \
             -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
           qemu_rc=$?
