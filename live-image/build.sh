@@ -120,6 +120,20 @@ if [ ! -f "$BASE/.packages-installed" ]; then
     if ((${#terminal_shell_packages[@]} > 0)); then
       apt-get install -y -qq --no-install-recommends "${terminal_shell_packages[@]}"
     fi
+    # Install real open-source astronomy applications when the target
+    # distribution publishes packages for this architecture. Missing packages
+    # are reported explicitly; no launcher or executable placeholder is made.
+    astronomy_packages=()
+    for package in stellarium kstars xplanet astrometry.net; do
+      if apt-cache show "$package" >/dev/null 2>&1; then
+        astronomy_packages+=("$package")
+      else
+        echo "[ASTRONOMY][UNAVAILABLE] package=$package arch=$(dpkg --print-architecture)"
+      fi
+    done
+    if ((${#astronomy_packages[@]} > 0)); then
+      apt-get install -y -qq --no-install-recommends "${astronomy_packages[@]}"
+    fi
     mkdir -p /usr/share/chimera/aurora
     {
       for item in \
