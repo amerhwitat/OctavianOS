@@ -93,7 +93,7 @@ umount_chroot() {
 trap 'umount_chroot "$WORK"; umount_chroot "$BASE"' EXIT
 
 # ------------------------------------------------------------- package set
-if [ ! -f "$BASE/.packages-installed-v2" ]; then
+if [ ! -f "$BASE/.packages-installed-v3" ]; then
   log "installing shared package set (one-off)"
   mount_chroot "$BASE"
   cp "$COMMAND_SOURCE/tools/commands/install-command-providers.sh" "$BASE/tmp/chimera-install-command-providers.sh"
@@ -160,7 +160,7 @@ if len(native)!=37 or bad:
     raise SystemExit(f"native command implementation gate failed: expected 37, found {len(native)}, missing={bad}")
 print(f"Verified {len(native)} compiled native command entrypoints; external providers remain separately classified.")
 PY_NATIVE_GATE
-  touch "$BASE/.packages-installed-v2"
+  touch "$BASE/.packages-installed-v3"
 fi
 
 # --------------------------------------------------------- command + ISA catalogues
