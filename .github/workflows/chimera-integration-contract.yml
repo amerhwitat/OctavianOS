@@ -2,6 +2,7 @@ name: Vendored Chimera Registry, Network, Directory, Optical and FHS Contracts
 on:
   pull_request:
     paths:
+      - "vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json"
       - "vendor/chimera-ii-os/source/services/registry/**"
       - "vendor/chimera-ii-os/source/services/network/**"
       - "vendor/chimera-ii-os/source/services/storage/**"
@@ -20,6 +21,7 @@ on:
   push:
     branches: [main, docs/cpu-architecture-matrix-20261104]
     paths:
+      - "vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json"
       - "vendor/chimera-ii-os/source/services/registry/**"
       - "vendor/chimera-ii-os/source/services/network/**"
       - "vendor/chimera-ii-os/source/services/storage/**"
