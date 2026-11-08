@@ -67,6 +67,12 @@ fi
 
 mkdir -p "$(dirname "$RUNTIME_FILE")" 2>/dev/null || true
 printf '%s\n' "$profile" > "$RUNTIME_FILE" 2>/dev/null || true
+MANIFEST_CHECK="${AURORA_SESSION_MANIFEST_CHECK:-/usr/local/bin/aurora-session-manifest-check}"
+if [ ! -x "$MANIFEST_CHECK" ]; then
+  echo "[Aurora][FATAL] session manifest validator missing: $MANIFEST_CHECK" >&2
+  exit 127
+fi
+"$MANIFEST_CHECK" "$profile" || exit $?
 
 # Marine is a distinct desktop implementation, not merely an Aurora theme
 # query parameter. Jasper/Gates remain Aurora-shell interaction profiles.
