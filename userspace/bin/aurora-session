@@ -1,36 +1,89 @@
 #!/bin/bash
 # Aurora session entry point (systemd ExecStart / tty1 autologin).
-# Linux session model: the desktop profile is data resolved from /run, /etc or the
-# kernel command line, then handed to the shell as a plain URL parameter.
+# The browser shell is a hosted Linux desktop; native Koronos session startup
+# remains a separate release gate.
 set -u
 
 PROFILE_FILE="${AURORA_PROFILE_FILE:-/etc/aurora/profile}"
-RUNTIME_FILE=/run/aurora/profile
+RUNTIME_FILE="${AURORA_RUNTIME_PROFILE_FILE:-/run/aurora/profile}"
+CMDLINE_FILE="${AURORA_CMDLINE_FILE:-/proc/cmdline}"
 SESSION_CONF="${AURORA_SESSION_CONF:-/etc/aurora/session.conf}"
+profile_override=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --profile)
+      [ "$#" -ge 2 ] || { echo "usage: aurora-session [--profile jasper|gates|aurora|marine]" >&2; exit 2; }
+      profile_override="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage: aurora-session [--profile jasper|gates|aurora|marine]"
+      exit 0
+      ;;
+    *)
+      echo "unknown option: $1" >&2
+      echo "Usage: aurora-session [--profile jasper|gates|aurora|marine]" >&2
+      exit 2
+      ;;
+  esac
+done
+
+valid_profile() {
+  case "$1" in jasper|gates|aurora|marine) return 0 ;; *) return 1 ;; esac
+}
+read_profile() {
+  file=$1
+  [ -s "$file" ] || return 1
+  value="$(head -n1 "$file" | tr -d '[:space:]')"
+  valid_profile "$value" || return 1
+  printf '%s' "$value"
+}
 
 profile=""
-for candidate in "$RUNTIME_FILE" "$PROFILE_FILE"; do
-  if [ -s "$candidate" ]; then
-    profile="$(head -n1 "$candidate" | tr -d '[:space:]')"
-    [ -n "$profile" ] && break
+if [ -n "$profile_override" ]; then
+  valid_profile "$profile_override" || { echo "invalid desktop profile: $profile_override" >&2; exit 2; }
+  profile="$profile_override"
+elif value="$(read_profile "$RUNTIME_FILE" 2>/dev/null)"; then
+  profile="$value"
+else
+  cmdline_profile=""
+  if [ -r "$CMDLINE_FILE" ]; then
+    for token in $(cat "$CMDLINE_FILE"); do
+      case "$token" in
+        aurora.profile=*) cmdline_profile="${token#aurora.profile=}" ;;
+        chm.desktop=*) cmdline_profile="${token#chm.desktop=}" ;;
+      esac
+    done
   fi
-done
-if [ -z "$profile" ]; then
-  profile="$(sed -n 's/.*aurora\.profile=\([a-zA-Z0-9_-]*\).*/\1/p' /proc/cmdline 2>/dev/null | head -n1)"
+  if valid_profile "$cmdline_profile"; then
+    profile="$cmdline_profile"
+  elif value="$(read_profile "$PROFILE_FILE" 2>/dev/null)"; then
+    profile="$value"
+  else
+    profile="aurora"
+  fi
 fi
-case "${profile:-}" in
-  jasper|gates|aurora|marine) ;;
-  *) profile="aurora" ;;
-esac
-mkdir -p /run/aurora 2>/dev/null || true
-printf '%s\n' "$profile" > /run/aurora/profile 2>/dev/null || true
 
-uri="file:///opt/aurora/desktop/aurora-shell/index.html"
+mkdir -p "$(dirname "$RUNTIME_FILE")" 2>/dev/null || true
+printf '%s\n' "$profile" > "$RUNTIME_FILE" 2>/dev/null || true
+
+# Marine is a distinct desktop implementation, not merely an Aurora theme
+# query parameter. Jasper/Gates remain Aurora-shell interaction profiles.
+if [ "$profile" = "marine" ]; then
+  uri="file:///opt/aurora/desktop/marine/index.html"
+  append_profile=0
+else
+  uri="file:///opt/aurora/desktop/aurora-shell/index.html"
+  append_profile=1
+fi
 # shellcheck disable=SC1091
 [ -r "$SESSION_CONF" ] && . "$SESSION_CONF"
 uri="${AURORA_DESKTOP_URI:-$uri}"
-case "$uri" in *\?*) sep='&' ;; *) sep='?' ;; esac
-uri="${uri}${sep}profile=${profile}"
+if [ "$append_profile" -eq 1 ]; then
+  case "$uri" in *\?*) sep='&' ;; *) sep='?' ;; esac
+  uri="${uri}${sep}profile=${profile}"
+fi
 
 export LIBGL_ALWAYS_SOFTWARE=1
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
@@ -43,14 +96,13 @@ xsetroot -solid '#071a2b' 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true
 
-if grep -q "session=classic" /proc/cmdline 2>/dev/null; then
+if grep -q "session=classic" "$CMDLINE_FILE" 2>/dev/null; then
   for w in /usr/share/backgrounds/*/wp01.jpg; do [ -f "$w" ] && feh --bg-fill "$w"; done
   exec openbox
 fi
 
-# GTK's fullscreen request is an EWMH message. Without a window manager the request
-# is ignored and the undecorated WebView stays at GTK's small default size, so a WM
-# must be running (and registered) before the kiosk starts.
+# GTK's fullscreen request is an EWMH message. A window manager must be ready
+# before the WebKit kiosk starts, otherwise the desktop remains windowed.
 if ! command -v openbox >/dev/null 2>&1 || ! command -v xprop >/dev/null 2>&1; then
   echo "[Aurora][FATAL] Openbox and xprop are required for fullscreen desktop mode." >&2
   exit 1
@@ -76,5 +128,5 @@ if [ "$wm_ready" -ne 1 ]; then
   kill "$wm_pid" 2>/dev/null || true
   exit 1
 fi
-echo "[Aurora] Openbox ready; starting fullscreen desktop (profile: $profile)."
+echo "[Aurora] Openbox ready; starting fullscreen desktop (profile: $profile, uri: $uri)."
 exec /usr/bin/python3 /usr/local/bin/aurora-kiosk.py "$uri"
