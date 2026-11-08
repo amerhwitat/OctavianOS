@@ -486,7 +486,9 @@ jobs:
           python3 vendor/chimera-ii-os/source/tools/boot/run-six-case-qemu.py \
             --iso dist/output.iso \
             --evidence-dir six-case-evidence \
-            --timeout 35
+            --timeout 35 \
+            --main-menu-index installer=3 \
+            --main-menu-index recovery=6
           sha256sum dist/output.iso | tee six-case-evidence/canonical-iso.sha256
       - name: Verify one ISO across six target/firmware cases
         id: six_case
