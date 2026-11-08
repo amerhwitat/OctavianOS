@@ -625,6 +625,10 @@ menuentry "$TITLE $VERSION — Aurora desktop (Linux 7.x style)" {
   linux /live/vmlinuz boot=live components hostname=$SHORT username=live aurora.profile=aurora console=tty0 console=ttyS0,115200n8 quiet loglevel=3
   initrd /live/initrd.img
 }
+menuentry "$TITLE $VERSION — Marine desktop (Windows 10 style)" {
+  linux /live/vmlinuz boot=live components hostname=$SHORT username=live aurora.profile=marine console=tty0 console=ttyS0,115200n8 quiet loglevel=3
+  initrd /live/initrd.img
+}
 menuentry "$TITLE $VERSION — Classic X session (openbox)" {
   linux /live/vmlinuz boot=live components hostname=$SHORT username=live session=classic console=tty0 console=ttyS0,115200n8 quiet loglevel=3
   initrd /live/initrd.img
