@@ -34,7 +34,7 @@ declare -A SOURCE_BUILD_BIN=(
   [bash]=bash [zsh]=zsh [fish]=fish [dash]=dash [mksh]=mksh
   [yash]=yash [elvish]=elvish [nushell]=nu
   [alacritty]=alacritty [foot]=foot [blackbox-terminal]=blackbox
-  [wezterm]=wezterm [ghostty]=ghostty [contour]=contour [ptyxis]=ptyxis
+  [wezterm]=wezterm [ghostty]=ghostty [contour]=contour
 )
 SOURCE_REQUIRED="$DEST/usr/share/chimera/aurora/terminal-shell-source-required.tsv"
 : > "$SOURCE_REQUIRED"
