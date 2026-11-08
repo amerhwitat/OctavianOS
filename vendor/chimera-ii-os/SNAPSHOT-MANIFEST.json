@@ -11,6 +11,7 @@
     "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation",
     "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness.",
     "vendor/chimera-ii-os/source/boot/spitfire/spitfire-menu.cfg: set timeout=120 and timeout_style=menu so the vendored Spit Fire menu remains visible for explicit user selection.",
-    "vendor/chimera-ii-os/source/desktop/aurora/gates_menu.json: require explicit user selection, disable auto-activation, and return to the open menu after 300 seconds."
+    "vendor/chimera-ii-os/source/desktop/aurora/gates_menu.json: require explicit user selection, disable auto-activation, and return to the open menu after 300 seconds.",
+    "vendor/chimera-ii-os/source/kernel/build-koronos.sh: remove the duplicated bash command before run-registry-host-tests.sh so the native Koronos build can execute the registry host test suite."
   ]
 }
