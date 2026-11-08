@@ -426,13 +426,13 @@ jobs:
           mkdir -p "$smoke"
           set +e
           # The production GRUB menu intentionally waits 300 seconds.
-          # Simulate a user pressing Enter on the selected default item instead
-          # of letting headless CI time out before the kernel is loaded.
+          # The generated GRUB config accepts serial input, so drive the real
+          # serial console rather than sending a key to a disabled display.
           (
             sleep 5
-            printf 'sendkey ret\\n'
+            printf '\r'
             sleep 1
-          ) | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
+          ) | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial stdio -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
           qemu_status=$?
           set -e
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
