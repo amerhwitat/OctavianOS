@@ -103,14 +103,30 @@ jobs:
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           xorriso -osirrox on -indev "$iso" -extract /live/filesystem.squashfs "$tmp/filesystem.squashfs" >/dev/null
-          unsquashfs -no-xattrs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
+          if ! unsquashfs -no-xattrs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null; then
+            echo "::error::Could not extract the live root filesystem from the ISO" >&2
+            exit 1
+          fi
           root="$tmp/root"
-          test -x "$root/usr/bin/openbox"
-          test -x "$root/usr/bin/xprop"
-          test -x "$root/usr/local/bin/aurora-session"
-          test -s "$root/opt/aurora/application-bundle.json"
-          test -d "$root/opt/aurora/app-catalogs"
-          test -d "$root/opt/aurora/apps/native/aurora"
+          for required in /usr/bin/openbox /usr/bin/xprop /usr/local/bin/aurora-session; do
+            if [[ ! -x "$root$required" ]]; then
+              echo "::error::Live root filesystem is missing executable $required" >&2
+              find "$root/usr" -maxdepth 4 -type f -perm /111 | sort | head -80 >&2 || true
+              exit 1
+            fi
+          done
+          for required in /opt/aurora/application-bundle.json; do
+            if [[ ! -s "$root$required" ]]; then
+              echo "::error::Live root filesystem is missing required bundle file $required" >&2
+              exit 1
+            fi
+          done
+          for required in /opt/aurora/app-catalogs /opt/aurora/apps/native/aurora; do
+            if [[ ! -d "$root$required" ]]; then
+              echo "::error::Live root filesystem is missing required bundle directory $required" >&2
+              exit 1
+            fi
+          done
           grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
           python3 - "$root/opt/aurora" <<'PY'
           import json, pathlib, sys
