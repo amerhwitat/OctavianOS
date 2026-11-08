@@ -28,12 +28,12 @@ def main():
     for menu in configs:
         menu_text = read(menu)
         timeouts = re.findall(
-            r"^\\s*set\\s+timeout\\s*=\\s*([^\\s#]+)",
+            r"^\s*set\s+timeout\s*=\s*([^\s#]+)",
             menu_text,
             re.MULTILINE,
         )
         styles = re.findall(
-            r"^\\s*set\\s+timeout_style\\s*=\\s*([^\\s#]+)",
+            r"^\s*set\s+timeout_style\s*=\s*([^\s#]+)",
             menu_text,
             re.MULTILINE,
         )
