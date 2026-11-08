@@ -256,9 +256,21 @@ install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 if [ -d "$REPO_DIR/userspace" ]; then
   make -C "$REPO_DIR/userspace" install DESTDIR="$WORK" >/dev/null
   echo "  userspace units installed (aurora-shell.target, jasper/gates/aurora targets)"
+  if [ "$ED" = "octavian" ]; then
+    install -d "$WORK/usr/share/octavianos/sessions"
+    install -m 0644 "$REPO_DIR/desktop/sessions/aurora.json" "$WORK/usr/share/octavianos/sessions/aurora.json"
+    install -m 0644 "$REPO_DIR/desktop/sessions/marine.json" "$WORK/usr/share/octavianos/sessions/marine.json"
+    install -m 0644 "$REPO_DIR/desktop/sessions/session-manifest.schema.json" "$WORK/usr/share/octavianos/sessions/session-manifest.schema.json"
+  fi
 fi
 install -d "$WORK/etc/aurora"
-printf 'AURORA_DESKTOP_URI=file:///opt/aurora/%s\n' "$ENTRY" > "$WORK/etc/aurora/session.conf"
+if [ "$ED" = "octavian" ]; then
+  cat > "$WORK/etc/aurora/session.conf" <<'EOF'
+# Optional override. The selected profile chooses Aurora or Marine by default.
+EOF
+else
+  printf 'AURORA_DESKTOP_URI=file:///opt/aurora/%s\n' "$ENTRY" > "$WORK/etc/aurora/session.conf"
+fi
 printf '%s\n' "${PROFILE:-aurora}" > "$WORK/etc/aurora/profile"
 
 printf '#!/bin/sh\nexec /usr/local/bin/aurora-session\n' > "$WORK/etc/xinitrc"
@@ -381,6 +393,10 @@ menuentry "$TITLE $VERSION — Gates desktop (macOS style)" {
 }
 menuentry "$TITLE $VERSION — Aurora desktop (Linux 7.x style)" {
   linux /live/vmlinuz boot=live components hostname=$SHORT username=live aurora.profile=aurora console=tty0 console=ttyS0,115200n8 quiet loglevel=3
+  initrd /live/initrd.img
+}
+menuentry "$TITLE $VERSION — Marine desktop (Ocean Glass)" {
+  linux /live/vmlinuz boot=live components hostname=$SHORT username=live aurora.profile=marine chm.desktop=marine console=tty0 console=ttyS0,115200n8 quiet loglevel=3
   initrd /live/initrd.img
 }
 menuentry "$TITLE $VERSION — Classic X session (openbox)" {
