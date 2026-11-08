@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "vendor/chimera-ii-os/source/**"
+      - "vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json"
       - "tools/chimera/**"
       - "tools/migration/**"
       - "docs/CHIMERA_SOURCE_INTEGRATION.md"
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - "vendor/chimera-ii-os/source/**"
+      - "vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json"
       - "tests/migration/**"
       - "tools/migration/**"
       - ".github/workflows/octavian-chimera-integration.yml"
