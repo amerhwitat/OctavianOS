@@ -143,13 +143,25 @@ for arch in "$ARCH"; do
   fi
   printf 'PASS %s Linux userspace command ABI smoke tests\n' "$arch"
 done
-python3 - "$OUT/manifest.json" <<'PY'
-import json,sys
-from pathlib import Path
-p=Path(sys.argv[1]); data=json.loads(p.read_text())
-for row in data["targets"]:
-    row["runtime_status"]="qemu-user-linux-abi-smoke-tested" if row["target"]!="x86_64" else "native-linux-abi-smoke-tested"
+python3 - "$OUT/$ARCH/usr/lib/chimera/native-command-coverage.json" "$ARCH" <<'PY'
+import hashlib,json,pathlib,sys
+report=pathlib.Path(sys.argv[1]); arch=sys.argv[2]
+data=json.loads(report.read_text(encoding="utf-8"))
+binary=report.parent/"chimera-cmd.native"
+if data.get("schema") != "CHIMERA-NATIVE-MULTICALL-ARCH-1":
+    raise SystemExit("unexpected per-architecture command coverage schema")
+if data.get("target_architecture") != arch:
+    raise SystemExit(f"coverage target mismatch: expected {arch}, got {data.get('target_architecture')}")
+commands=data.get("commands", [])
+if data.get("implemented_command_count") != 37 or len(commands) != 37:
+    raise SystemExit(f"expected 37 built command entrypoints, got {len(commands)}")
+digest=hashlib.sha256(binary.read_bytes()).hexdigest()
+if data.get("binary_sha256") != digest:
+    raise SystemExit("coverage report binary hash does not match the staged ELF")
+if any(row.get("sha256") != digest or row.get("status") != "native-elf-entrypoint-built" for row in commands):
+    raise SystemExit("one or more command entrypoint rows do not match the verified ELF")
+data["runtime_status"]="qemu-user-linux-abi-smoke-tested" if arch != "x86_64" else "native-linux-abi-smoke-tested"
 data["runtime_scope"]="Linux userspace under native execution/QEMU user mode; this does not validate Koronos syscalls or kernel boot."
-p.write_text(json.dumps(data,indent=2,sort_keys=True)+"\n")
-print("Updated manifest with Linux ABI smoke-test evidence; Koronos remains untested.")
+report.write_text(json.dumps(data,indent=2,sort_keys=True)+"\\n",encoding="utf-8")
+print(f"Updated {arch} per-target coverage report with Linux ABI smoke-test evidence; Koronos remains untested.")
 PY
