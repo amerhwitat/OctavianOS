@@ -335,8 +335,8 @@ is_writable_dir(){
 is_wsl(){ grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null || [[ -n "${WSL_INTEROP:-}" ]] || [[ -d /mnt/wsl ]]; }
 # Publish WSL2 DrvFs volumes under /mnt/drive/<letter> before storage
 # selection. This aliases existing mounts; it does not implement NTFS in Koronos.
-if is_wsl && [[ -x "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh" ]]; then
-  if ! "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh"; then
+if is_wsl && [[ -f "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh" ]]; then
+  if ! bash "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh"; then
     log_warning "Unable to refresh /mnt/drive aliases; native WSL /mnt/<letter> mounts remain available."
   fi
 fi
