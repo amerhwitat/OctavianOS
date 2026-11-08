@@ -1,21 +1,57 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Complex { pub re: f64, pub im: f64 }
+pub struct Complex {
+    pub re: f64,
+    pub im: f64,
+}
 
 impl Complex {
-    pub fn norm2(self) -> f64 { self.re * self.re + self.im * self.im }
-    pub fn mul(self, b: Self) -> Self { Self { re: self.re * b.re - self.im * b.im, im: self.re * b.im + self.im * b.re } }
-    pub fn add(self, b: Self) -> Self { Self { re: self.re + b.re, im: self.im + b.im } }
+    pub fn norm2(self) -> f64 {
+        self.re * self.re + self.im * self.im
+    }
+}
+
+impl core::ops::Mul for Complex {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self {
+            re: self.re * rhs.re - self.im * rhs.im,
+            im: self.re * rhs.im + self.im * rhs.re,
+        }
+    }
+}
+
+impl core::ops::Add for Complex {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            re: self.re + rhs.re,
+            im: self.im + rhs.im,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum Gate { X, Y, Z, H, Phase(f64) }
+pub enum Gate {
+    X,
+    Y,
+    Z,
+    H,
+    Phase(f64),
+}
 
 #[derive(Clone, Debug)]
-pub struct StateVector { pub qubits: usize, pub amplitudes: Vec<Complex> }
+pub struct StateVector {
+    pub qubits: usize,
+    pub amplitudes: Vec<Complex>,
+}
 
 impl StateVector {
     pub fn new(qubits: usize) -> Result<Self, &'static str> {
-        if qubits >= usize::BITS as usize - 1 { return Err("qubit count is too large for host indexing"); }
+        if qubits >= usize::BITS as usize - 1 {
+            return Err("qubit count is too large for host indexing");
+        }
         let n = 1usize << qubits;
         let mut amplitudes = vec![Complex::default(); n];
         amplitudes[0] = Complex { re: 1.0, im: 0.0 };
@@ -23,47 +59,105 @@ impl StateVector {
     }
 
     pub fn apply_single(&mut self, gate: Gate, target: usize) -> Result<(), &'static str> {
-        if target >= self.qubits { return Err("target qubit out of range"); }
+        if target >= self.qubits {
+            return Err("target qubit out of range");
+        }
         let bit = 1usize << target;
         let (a, b, c, d) = match gate {
-            Gate::X => (Complex::default(), Complex { re: 1.0, im: 0.0 }, Complex { re: 1.0, im: 0.0 }, Complex::default()),
-            Gate::Y => (Complex::default(), Complex { re: 0.0, im: -1.0 }, Complex { re: 0.0, im: 1.0 }, Complex::default()),
-            Gate::Z => (Complex { re: 1.0, im: 0.0 }, Complex::default(), Complex::default(), Complex { re: -1.0, im: 0.0 }),
-            Gate::H => { let s = 1.0 / 2.0_f64.sqrt(); (Complex { re: s, im: 0.0 }, Complex { re: s, im: 0.0 }, Complex { re: s, im: 0.0 }, Complex { re: -s, im: 0.0 }) },
-            Gate::Phase(theta) => (Complex { re: 1.0, im: 0.0 }, Complex::default(), Complex::default(), Complex { re: theta.cos(), im: theta.sin() }),
+            Gate::X => (
+                Complex::default(),
+                Complex { re: 1.0, im: 0.0 },
+                Complex { re: 1.0, im: 0.0 },
+                Complex::default(),
+            ),
+            Gate::Y => (
+                Complex::default(),
+                Complex { re: 0.0, im: -1.0 },
+                Complex { re: 0.0, im: 1.0 },
+                Complex::default(),
+            ),
+            Gate::Z => (
+                Complex { re: 1.0, im: 0.0 },
+                Complex::default(),
+                Complex::default(),
+                Complex { re: -1.0, im: 0.0 },
+            ),
+            Gate::H => {
+                let s = 1.0 / 2.0_f64.sqrt();
+                (
+                    Complex { re: s, im: 0.0 },
+                    Complex { re: s, im: 0.0 },
+                    Complex { re: s, im: 0.0 },
+                    Complex { re: -s, im: 0.0 },
+                )
+            }
+            Gate::Phase(theta) => (
+                Complex { re: 1.0, im: 0.0 },
+                Complex::default(),
+                Complex::default(),
+                Complex {
+                    re: theta.cos(),
+                    im: theta.sin(),
+                },
+            ),
         };
         for base in 0..self.amplitudes.len() {
-            if base & bit != 0 { continue; }
+            if base & bit != 0 {
+                continue;
+            }
             let j = base | bit;
             let x = self.amplitudes[base];
             let y = self.amplitudes[j];
-            self.amplitudes[base] = a.mul(x).add(b.mul(y));
-            self.amplitudes[j] = c.mul(x).add(d.mul(y));
+            self.amplitudes[base] = a * x + b * y;
+            self.amplitudes[j] = c * x + d * y;
         }
         Ok(())
     }
 
-    pub fn probability_sum(&self) -> f64 { self.amplitudes.iter().map(|a| a.norm2()).sum() }
-    pub fn probabilities(&self) -> Vec<f64> { self.amplitudes.iter().map(|a| a.norm2()).collect() }
+    pub fn probability_sum(&self) -> f64 {
+        self.amplitudes.iter().map(|a| a.norm2()).sum()
+    }
+    pub fn probabilities(&self) -> Vec<f64> {
+        self.amplitudes.iter().map(|a| a.norm2()).collect()
+    }
 }
 
 pub fn bell_state() -> [Complex; 4] {
     let s = 1.0_f64 / 2.0_f64.sqrt();
-    [Complex { re: s, im: 0.0 }, Complex::default(), Complex::default(), Complex { re: s, im: 0.0 }]
+    [
+        Complex { re: s, im: 0.0 },
+        Complex::default(),
+        Complex::default(),
+        Complex { re: s, im: 0.0 },
+    ]
 }
 
-pub fn probability_sum(s: &[Complex]) -> f64 { s.iter().map(|x| x.norm2()).sum() }
+pub fn probability_sum(s: &[Complex]) -> f64 {
+    s.iter().map(|x| x.norm2()).sum()
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn bell_normalized() { assert!((probability_sum(&bell_state()) - 1.0).abs() < 1e-12); }
-    #[test] fn hadamard_creates_equal_probabilities() {
-        let mut s = StateVector::new(1).unwrap(); s.apply_single(Gate::H, 0).unwrap();
-        let p = s.probabilities(); assert!((p[0] - 0.5).abs() < 1e-12); assert!((p[1] - 0.5).abs() < 1e-12);
+    #[test]
+    fn bell_normalized() {
+        assert!((probability_sum(&bell_state()) - 1.0).abs() < 1e-12);
     }
-    #[test] fn phase_preserves_probability() {
-        let mut s = StateVector::new(1).unwrap(); s.apply_single(Gate::H, 0).unwrap(); let before = s.probability_sum();
-        s.apply_single(Gate::Phase(std::f64::consts::FRAC_PI_2), 0).unwrap(); assert!((before - s.probability_sum()).abs() < 1e-12);
+    #[test]
+    fn hadamard_creates_equal_probabilities() {
+        let mut s = StateVector::new(1).unwrap();
+        s.apply_single(Gate::H, 0).unwrap();
+        let p = s.probabilities();
+        assert!((p[0] - 0.5).abs() < 1e-12);
+        assert!((p[1] - 0.5).abs() < 1e-12);
+    }
+    #[test]
+    fn phase_preserves_probability() {
+        let mut s = StateVector::new(1).unwrap();
+        s.apply_single(Gate::H, 0).unwrap();
+        let before = s.probability_sum();
+        s.apply_single(Gate::Phase(std::f64::consts::FRAC_PI_2), 0)
+            .unwrap();
+        assert!((before - s.probability_sum()).abs() < 1e-12);
     }
 }
