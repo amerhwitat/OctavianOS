@@ -23,8 +23,8 @@ for rel in SUBMENUS:
 # The ISO menu must accept both physical keyboard and serial-console input.
 # This is required for remote/headless machines and deterministic QEMU menu tests.
 grub_menu=(BOOT/"iso/grub.cfg").read_text(encoding="utf-8")
-assert re.search(r"^\\s*serial --unit=0 --speed=115200\\s*$",grub_menu,re.M), "GRUB serial device is not configured"
-assert re.search(r"^\\s*terminal_input serial console\\s*$",grub_menu,re.M), "GRUB menu must accept serial and local keyboard input"
+assert re.search(r"^\s*serial --unit=0 --speed=115200\s*$",grub_menu,re.M), "GRUB serial device is not configured"
+assert re.search(r"^\s*terminal_input serial console\s*$",grub_menu,re.M), "GRUB menu must accept serial and local keyboard input"
 # The OctavianOS repository has its own Jasper/GRUB menus in addition to
 # the vendored Chimera boot tree. Validate both; never let SOURCE selection
 # silently leave the product's own menus outside the timeout gate.
