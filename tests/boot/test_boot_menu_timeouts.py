@@ -20,6 +20,18 @@ for rel in PRIMARY:
 for rel in SUBMENUS:
     actual=timeout(BOOT/rel)
     assert actual==300, f"{rel}: expected 300 seconds, got {actual}"
+# The OctavianOS repository has its own Jasper/GRUB menus in addition to
+# the vendored Chimera boot tree. Validate both; never let SOURCE selection
+# silently leave the product's own menus outside the timeout gate.
+if SOURCE != ROOT:
+    OCTAVIAN_PRIMARY=("iso/grub.cfg","jasper/jasper.cfg","spitfire/spitfire-menu.cfg")
+    OCTAVIAN_SUBMENUS=("installation/menu.cfg","jasper/diagnostics.cfg","jasper/install.cfg",
+                       "jasper/live.cfg","jasper/recovery.cfg","jasper/retro.cfg")
+    for rel in OCTAVIAN_PRIMARY + OCTAVIAN_SUBMENUS:
+        menu_path=ROOT/"boot"/rel
+        assert menu_path.is_file(), f"OctavianOS boot menu missing: {rel}"
+        actual=timeout(menu_path)
+        assert actual==300, f"OctavianOS {rel}: expected 300 seconds, got {actual}"
 # Every interactive boot path that can start a Koronos target must pass the
 # matching native ring-3 init ELF; initramfs-only entries are not accepted as
 # production Live/Installer/Recovery handoffs.
