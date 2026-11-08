@@ -6,6 +6,9 @@ on:
       - 'desktop/**'
       - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
+      - 'desktop/sessions/**'
+      - 'userspace/**'
+      - 'live-image/build.sh'
       - 'vendor/chimera-ii-os/source/desktop/**'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
       - '.github/workflows/native-desktop-suite.yml'
@@ -34,6 +37,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m json.tool boot/live/desktop-sessions.json >/dev/null
+          python3 -m json.tool desktop/sessions/aurora.json >/dev/null
+          python3 -m json.tool desktop/sessions/marine.json >/dev/null
+          bash -n userspace/bin/aurora-session
+          sh -n userspace/bin/aurora-profile-apply
+          bash userspace/tests/test_aurora_profile_selection.sh
+          test -s desktop/sessions/aurora.json
+          test -s desktop/sessions/marine.json
           python3 - <<'PY'
           import json
           from pathlib import Path
