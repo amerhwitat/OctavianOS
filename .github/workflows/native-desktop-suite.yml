@@ -45,6 +45,8 @@ jobs:
           bash -n userspace/bin/aurora-session
           sh -n userspace/bin/aurora-profile-apply
           bash userspace/tests/test_aurora_profile_selection.sh
+          python3 -m unittest userspace.tests.test_aurora_session_manifest_check -v
+          python3 -m py_compile userspace/bin/aurora-session-manifest-check.py
           test -s desktop/sessions/aurora.json
           test -s desktop/sessions/marine.json
           python3 - <<'PY'
