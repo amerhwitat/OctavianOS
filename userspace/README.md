@@ -17,10 +17,14 @@ the boot order becomes declarative.
 | `jasper.target` | Windows-style shell profile | `aurora-profile@jasper` |
 | `gates.target` | macOS-style shell profile | `aurora-profile@gates` |
 | `aurora.target` | Linux 7.x-style shell profile | `aurora-profile@aurora` |
+| `marine.target` | Windows 10-style ocean shell profile | `aurora-profile@marine` |
 
-Profiles are data, not code: the active profile lives in `/etc/aurora/profile`
-(persistent) and `/run/aurora/profile` (runtime). The kernel command line wins
-only when neither file exists, e.g. `aurora.profile=jasper`.
+Profiles are data, not code: an explicit boot-menu kernel argument such as
+`aurora.profile=marine` takes precedence over the runtime (`/run/aurora/profile`)
+and persistent (`/etc/aurora/profile`) defaults. Without an explicit argument,
+the runtime value wins, then the persistent image default. The hosted Linux ISO
+uses Xorg + xinit + Openbox; its GRUB menu exposes Jasper, Gates, Aurora and
+Marine profiles, and `aurora-session` passes the selected profile to the shared shell.
 
 ## Usage
 
@@ -28,6 +32,7 @@ only when neither file exists, e.g. `aurora.profile=jasper`.
 make check                 # unit + helper contract checks
 make install DESTDIR=/tmp/stage
 systemctl isolate jasper.target
+systemctl isolate marine.target
 ```
 
 Installed paths follow the FHS: units in `/usr/lib/systemd/system`, sysusers in
