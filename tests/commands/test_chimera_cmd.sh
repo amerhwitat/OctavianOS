@@ -29,12 +29,21 @@ printf 'copy-payload' > "$TMP/source"
 test "$(cat "$TMP/copied")" = "copy-payload"
 printf 'hardlink-payload' > "$TMP/hard-source"
 ln "$TMP/hard-source" "$TMP/hard-destination"
-if "$TMP/cp" "$TMP/hard-source" "$TMP/hard-destination"; then
-  echo "cp truncated an aliased source file" >&2
+set +e
+"$TMP/cp" "$TMP/hard-source" "$TMP/hard-destination"
+cp_status=$?
+set -e
+if [[ "$cp_status" -eq 0 ]]; then
+  echo "cp accepted two paths for the same inode" >&2
   exit 1
 fi
-test "$(cat "$TMP/hard-source")" = "hardlink-payload"
-test "$(cat "$TMP/hard-destination")" = "hardlink-payload"
+python3 - "$TMP/hard-source" "$TMP/hard-destination" <<'PY_HARDLINK'
+from pathlib import Path
+import sys
+for name in sys.argv[1:]:
+    actual=Path(name).read_bytes()
+    assert actual == b"hardlink-payload", f"cp damaged hard-linked data at {name}: {actual!r}"
+PY_HARDLINK
 "$TMP/mv" "$TMP/copied" "$TMP/moved"
 test ! -e "$TMP/copied"
 test "$(cat "$TMP/moved")" = "copy-payload"
