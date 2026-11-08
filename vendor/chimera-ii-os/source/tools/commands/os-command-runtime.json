@@ -373,17 +373,11 @@
         "chimera-emulator",
         "chimera-rom",
         "chimera-rom-scan",
-        "chimera-run"
+        "chimera-run",
+        "chimera-cpu-mode"
       ],
       "runtime": "Chimera command ABI and registered providers",
       "mode": "native"
-    },
-    "cpu-mode-manager": {
-      "commands": [
-        "chimera-cpu-mode"
-      ],
-      "runtime": "DOSBox-X/DOSBox profile selector; QEMU guest vCPU topology manager",
-      "mode": "explicit-profile-selection"
     }
   },
   "foreign_binary_handlers": {
