@@ -291,7 +291,7 @@ python3 - "$PROVIDER_STATUS" "$SOURCE_REQUIRED" <<'PY_SOURCE_REQUIRED'
 import pathlib, sys
 status, missing = map(pathlib.Path, sys.argv[1:])
 source_recipes = {"bash", "zsh", "fish", "dash", "mksh", "yash", "elvish", "nushell",
-                  "alacritty", "foot", "blackbox-terminal", "wezterm", "ghostty", "contour"}
+                  "alacritty", "foot", "blackbox-terminal", "wezterm", "ghostty", "contour", "ptyxis"}
 rows = []
 for line in status.read_text(encoding="utf-8").splitlines():
     fields = line.split("\t")
