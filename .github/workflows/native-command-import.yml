@@ -82,7 +82,7 @@ jobs:
           assert isa["record_count"] == len(isa["instructions"]) == 1613
           assert len(isa["unique_architectures"]) == 15
           assert riscv["record_count"] == len(riscv["instructions"]) == 1459
-          assert riscv["failed_files"] == 0
+          assert len(riscv["failed_files"]) == 0
           print("Validated 3,349 imported command records (37 implemented; 818 core-catalogue candidates) and 1,613 ISA forms across 15 architectures.")
           PY_CATALOG_COUNTS
       - name: Validate command safety and RNN fallback
