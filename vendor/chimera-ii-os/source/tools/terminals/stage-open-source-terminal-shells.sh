@@ -29,6 +29,14 @@ declare -A APT_PACKAGE=(
   [terminator]=terminator [tilix]=tilix [mate-terminal]=mate-terminal [qterminal]=qterminal
   [sakura]=sakura [terminology]=terminology [lxterminal]=lxterminal [blackbox-terminal]=blackbox-terminal
 )
+declare -A SOURCE_BUILD_BIN=(
+  [bash]=bash [zsh]=zsh [fish]=fish [dash]=dash [mksh]=mksh
+  [yash]=yash [elvish]=elvish [nushell]=nu
+  [alacritty]=alacritty [foot]=foot [blackbox-terminal]=blackbox
+  [wezterm]=wezterm [ghostty]=ghostty [contour]=contour [ptyxis]=ptyxis
+)
+SOURCE_REQUIRED="$DEST/usr/share/chimera/aurora/terminal-shell-source-required.tsv"
+: > "$SOURCE_REQUIRED"
 echo "[AURORA-TERMINALS] Updating signed APT metadata"
 if [[ "$(id -u)" -eq 0 ]]; then APT=(apt-get); else command -v sudo >/dev/null 2>&1 || { echo "[AURORA-TERMINALS] sudo required for signed package metadata/downloads" >&2; exit 1; }; APT=(sudo apt-get); fi
 "${APT[@]}" update -o Acquire::Retries=5
@@ -40,6 +48,10 @@ for id in "${!APT_PACKAGE[@]}"; do
     AVAILABLE+=("$pkg")
   else
     echo "[AURORA-TERMINALS] no signed distro package candidate for $id ($pkg); source build required"
+    binary="${SOURCE_BUILD_BIN[$id]:-}"
+    if [[ -n "$binary" && ! -x "$DEST/usr/local/bin/$binary" && ! -x "$DEST/usr/bin/$binary" ]]; then
+      printf '%s|%s|distribution-provider-unavailable-source-build-required\n' "$id" "$binary" >> "$SOURCE_REQUIRED"
+    fi
   fi
 done
 if (("${#AVAILABLE[@]}")); then
@@ -84,6 +96,13 @@ if (("${#AVAILABLE[@]}")); then
       printf '[AURORA-TERMINALS] extracted provider: %s\n' "$binary"
     fi
   done
+fi
+if [[ -s "$SOURCE_REQUIRED" ]]; then
+  repo_dir="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || true)"
+  source_builder="${CHIMERA_TERMINAL_SOURCE_BUILDER:-$repo_dir/live-image/lib/build-terminal-shell-sources.sh}"
+  [[ -f "$source_builder" ]] || { echo "[AURORA-TERMINALS] missing source-build provider driver: $source_builder" >&2; exit 2; }
+  echo "[AURORA-TERMINALS] building source-required providers from pinned upstream revisions"
+  bash "$source_builder" "$DEST" "$WORK/source-build"
 fi
 python3 - "$DEST" "$REQUIRE_ALL" "${CHIMERA_TARGET_ARCH:-$(uname -m)}" <<'PY'
 import hashlib,json,pathlib,shutil,subprocess,sys,platform
