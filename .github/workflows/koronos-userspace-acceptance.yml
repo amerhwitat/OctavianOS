@@ -7,7 +7,10 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
-    branches: [main]
+    branches:
+      - main
+      - chore/koronos-vendor-release-gates-20261104
+      - docs/cpu-architecture-matrix-20261104
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
