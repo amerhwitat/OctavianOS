@@ -55,11 +55,11 @@ jobs:
           data = json.loads(Path("boot/live/desktop-sessions.json").read_text())
           assert data["default"] == "aurora"
           sessions = {item["id"]: item for item in data["sessions"]}
-          assert sessions["aurora"]["name"] == "Aurora Wayland Glass Desktop"
+          assert sessions["aurora"]["name"] == "Aurora Glass Desktop (X11/WebKit hosted prototype)"
           assert sessions["marine"]["name"] == "Marine Desktop"
           # Keep the UI honest until a real kernel userspace session launcher exists.
-          assert sessions["aurora"]["status"] == "prototype"
-          assert sessions["marine"]["status"] == "prototype"
+          assert sessions["aurora"]["status"] == "prototype-hosted-linux-session"
+          assert sessions["marine"]["status"] == "prototype-hosted-linux-session"
           for path in (
               "desktop/aurora-wayland-glass/index.html",
               "desktop/marine/index.html",
