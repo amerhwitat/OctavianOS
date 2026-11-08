@@ -22,6 +22,54 @@ def main():
     require(configs, "no boot configuration files found")
     all_text = "\n".join(read(p) for p in configs)
 
+    # Keep every source menu visible. GRUB's menu timeout is cancelled by a
+    # keypress; timeout_style=menu leaves selection to the user instead of
+    # hiding the menu behind a countdown.
+    for menu in configs:
+        menu_text = read(menu)
+        timeouts = re.findall(
+            r"^\\s*set\\s+timeout\\s*=\\s*([^\\s#]+)",
+            menu_text,
+            re.MULTILINE,
+        )
+        styles = re.findall(
+            r"^\\s*set\\s+timeout_style\\s*=\\s*([^\\s#]+)",
+            menu_text,
+            re.MULTILINE,
+        )
+        require(
+            timeouts == ["120"],
+            f"{menu.relative_to(ROOT)} must define exactly one 120-second timeout",
+        )
+        require(
+            styles == ["menu"],
+            f"{menu.relative_to(ROOT)} must keep its menu visible",
+        )
+
+    gates = json.loads(
+        read(ROOT / "vendor/chimera-ii-os/source/desktop/aurora/gates_menu.json")
+    )
+    selection = gates["interaction"]["selection_policy"]
+    require(selection.get("wait_for_user_input") is True, "Gates must wait for user input")
+    require(selection.get("auto_activate") is False, "Gates must never auto-activate")
+    require(selection.get("timeout_seconds") == 300, "Gates timeout must be five minutes")
+    require(selection.get("timeout_action") == "remain_open", "Gates timeout must return to the open menu")
+    require(
+        selection.get("selection_requires_explicit_confirmation") is True,
+        "Gates selection must require explicit confirmation",
+    )
+
+    builder = read(ROOT / "boot/iso/build-iso.sh")
+    require('rm -rf "$ISO_ROOT"' in builder, "native ISO builder must discard stale staged menu files")
+    require(
+        'cp -f "$ROOT/boot/iso/grub.cfg" "$ISO_ROOT/boot/grub/grub.cfg"' in builder,
+        "native ISO builder must stage the canonical visible GRUB menu",
+    )
+    require(
+        'cp -f "$ROOT/$cfg" "$ISO_ROOT/$cfg"' in builder,
+        "native ISO builder must stage canonical nested Jasper and Spit Fire menus",
+    )
+
     # Every absolute configfile edge must resolve to a tracked source config.
     targets = re.findall(r"\bconfigfile\s+(/boot/[^\s;]+)", all_text)
     require(targets, "no configfile edges discovered")
