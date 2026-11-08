@@ -155,7 +155,7 @@ static int copy_file(const char *src, const char *dst)
         return 1;
     }
     if (st.st_dev == dst_st.st_dev && st.st_ino == dst_st.st_ino) {
-        fprintf(stderr, "cp: '%s' and '%s' are the same file\\n", src, dst);
+        fprintf(stderr, "cp: '%s' and '%s' are the same file\n", src, dst);
         close(in);
         close(out);
         return 1;
