@@ -28,6 +28,7 @@ declare -A APT_PACKAGE=(
   [alacritty]=alacritty [wezterm]=wezterm [ghostty]=ghostty [contour]=contour
   [terminator]=terminator [tilix]=tilix [mate-terminal]=mate-terminal [qterminal]=qterminal
   [sakura]=sakura [terminology]=terminology [lxterminal]=lxterminal [blackbox-terminal]=blackbox-terminal
+  [flatpak]=flatpak
 )
 declare -A SOURCE_BUILD_BIN=(
   [bash]=bash [zsh]=zsh [fish]=fish [dash]=dash [mksh]=mksh
@@ -104,6 +105,10 @@ if [[ -s "$SOURCE_REQUIRED" ]]; then
   echo "[AURORA-TERMINALS] building source-required providers from pinned upstream revisions"
   bash "$source_builder" "$DEST" "$WORK/source-build"
 fi
+repo_dir="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || true)"
+ptyxis_helper="${CHIMERA_PTYXIS_FLATPAK_HELPER:-$repo_dir/live-image/lib/install-ptyxis-flatpak.sh}"
+[[ -f "$ptyxis_helper" ]] || { echo "[AURORA-TERMINALS] missing signed Ptyxis Flatpak integration helper: $ptyxis_helper" >&2; exit 2; }
+bash "$ptyxis_helper" "$DEST" "$WORK/ptyxis-flatpak"
 python3 - "$DEST" "$REQUIRE_ALL" "${CHIMERA_TARGET_ARCH:-$(uname -m)}" <<'PY'
 import hashlib,json,pathlib,shutil,subprocess,sys,platform
 dest=pathlib.Path(sys.argv[1]); require_all=sys.argv[2]=="1"; target=sys.argv[3]; readelf=shutil.which("readelf")
@@ -176,6 +181,28 @@ for ident,kind,binary in rows:
                 else:
                     row["runtime_status"]="not-runnable-on-builder"
         else: row["status"]="present-hash-only"
+    if row["id"] == "ptyxis":
+        flatpak_meta = dest / "usr/share/chimera/aurora/ptyxis-flatpak-provider.json"
+        try:
+            meta = json.loads(flatpak_meta.read_text(encoding="utf-8"))
+            valid_flatpak = (meta.get("app_id") == "app.devsuite.Ptyxis"
+                             and meta.get("remote") == "flathub"
+                             and meta.get("branch") == "stable"
+                             and meta.get("signature_verified") is True
+                             and bool(meta.get("commit")) and bool(meta.get("runtime"))
+                             and bool(meta.get("app_binary_sha256")))
+        except (OSError, json.JSONDecodeError):
+            valid_flatpak = False
+            meta = {}
+        if valid_flatpak:
+            row["provider_type"] = "flatpak"
+            row["flatpak_app_id"] = meta["app_id"]
+            row["flatpak_commit"] = meta["commit"]
+            row["flatpak_runtime"] = meta["runtime"]
+            row["flatpak_signature_verified"] = True
+            row["flatpak_app_binary_sha256"] = meta["app_binary_sha256"]
+        else:
+            row["status"] = "flatpak-verification-failed"
     manifest.append(row)
 out={"schema":"AURORA-TERMINAL-SHELL-STAGING-1","policy":"Only real executable files are listed; SHA-256 identifies exact bytes; staging does not imply runtime compatibility.","entries":manifest}
 p=dest/"usr/share/chimera/aurora/terminal-shell-staging.json"; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(json.dumps(out,indent=2)+"\n")
