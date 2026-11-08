@@ -85,7 +85,7 @@ def main():
     # serial consoles, and no later gfxterm command may silently drop serial.
     for menu_path in ("boot/iso/grub.cfg", "boot/jasper/jasper.cfg", "boot/spitfire/spitfire-menu.cfg"):
         menu = read(ROOT / menu_path)
-        require(re.search(r"(?m)^set timeout=300\\s*$", menu) is not None, f"{menu_path} must wait 300 seconds")
+        require(re.search(r"(?m)^set timeout=300\s*$", menu) is not None, f"{menu_path} must wait 300 seconds")
         require("serial --unit=0 --speed=115200" in menu, f"{menu_path} lacks serial initialization")
         require("terminal_input serial console" in menu, f"{menu_path} lacks serial/local keyboard input")
         outputs = [line.strip() for line in menu.splitlines() if line.strip().startswith("terminal_output ")]
