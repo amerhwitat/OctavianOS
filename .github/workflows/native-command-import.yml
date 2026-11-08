@@ -73,14 +73,17 @@ jobs:
           commands = json.loads(Path("runtime/commands/native-command-candidates.json").read_text())
           isa = json.loads(Path("runtime/isa/universal-instruction-catalog.json").read_text())
           riscv = json.loads(Path("runtime/isa/riscv-opcodes.json").read_text())
-          assert commands["counts"]["total"] == len(commands["commands"]) == 4081
+          assert commands["counts"]["total"] == len(commands["commands"]) == 3349
           assert commands["counts"]["native_implemented"] == 37
-          assert commands["counts"]["candidate_only"] == 4044
+          assert commands["counts"]["catalogue_unique"] == 855
+          assert commands["counts"]["catalogue_native_implemented"] == 37
+          assert commands["counts"]["catalogue_candidate_only"] == 818
+          assert commands["counts"]["candidate_only"] == 3312
           assert isa["record_count"] == len(isa["instructions"]) == 1613
           assert len(isa["unique_architectures"]) == 15
           assert riscv["record_count"] == len(riscv["instructions"]) == 1459
           assert riscv["failed_files"] == 0
-          print("Validated 4,081 command records (37 implemented) and 1,613 ISA forms across 15 architectures.")
+          print("Validated 3,349 imported command records (37 implemented; 818 core-catalogue candidates) and 1,613 ISA forms across 15 architectures.")
           PY_CATALOG_COUNTS
       - name: Validate command safety and RNN fallback
         env:
