@@ -41,6 +41,7 @@ if SOURCE != ROOT:
         data=(ROOT/"boot"/rel).read_text(encoding="utf-8")
         assert re.search(r"^\s*serial --unit=0 --speed=115200\s*$",data,re.M), f"OctavianOS {rel}: serial console is not initialized"
         assert re.search(r"^\s*terminal_input serial console\s*$",data,re.M), f"OctavianOS {rel}: menu must accept serial and local keyboard input"
+        assert re.search(r"^\s*terminal_output .*serial.*console\s*$",data,re.M), f"OctavianOS {rel}: menu must mirror output to serial and local consoles"
 # Every interactive boot path that can start a Koronos target must pass the
 # matching native ring-3 init ELF; initramfs-only entries are not accepted as
 # production Live/Installer/Recovery handoffs.
