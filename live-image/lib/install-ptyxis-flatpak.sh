@@ -19,8 +19,9 @@ flatpak install --system --assumeyes --noninteractive flathub app.devsuite.Ptyxi
 location="$(flatpak info --system --show-location app.devsuite.Ptyxis)"
 commit="$(flatpak info --system --show-commit app.devsuite.Ptyxis)"
 runtime="$(flatpak info --system --show-runtime app.devsuite.Ptyxis)"
-arch="$(flatpak info --system --show-arch app.devsuite.Ptyxis)"
-[[ -n "$commit" && -n "$runtime" && -n "$arch" ]] || { echo "[PTYXIS] Flatpak metadata is incomplete" >&2; exit 2; }
+ref="$(flatpak info --system --show-ref app.devsuite.Ptyxis)"
+IFS=/ read -r ref_kind ref_app arch ref_branch <<< "$ref"
+[[ "$ref_kind" == "app" && "$ref_app" == "app.devsuite.Ptyxis" && "$ref_branch" == "stable" && -n "$commit" && -n "$runtime" && -n "$arch" ]] || { echo "[PTYXIS] Flatpak metadata is incomplete" >&2; exit 2; }
 case "$location" in
   "$FLATPAK_SYSTEM_DIR"/app/app.devsuite.Ptyxis/*) ;;
   *) echo "[PTYXIS] Flatpak app resolved outside target rootfs: $location" >&2; exit 2 ;;
