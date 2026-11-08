@@ -46,20 +46,26 @@ if (("${#AVAILABLE[@]}")); then
   chmod 0777 "$WORK/archives"
   "${APT[@]}" install --download-only --reinstall --no-install-recommends -y \
     -o "Dir::Cache::archives=$WORK/archives" "${AVAILABLE[@]}"
-  shopt -s nullglob
-  package_archives=( "$WORK"/archives/*.deb "$WORK"/archives/partial/*.deb )
-  ((${#package_archives[@]})) || { echo "[AURORA-TERMINALS] APT reported success but produced no package archives" >&2; exit 2; }
+  # APT may leave successfully fetched archives in nested cache directories
+  # (notably archives/partial when downloads run through sudo). Walk the cache
+  # recursively rather than assuming a single directory depth. The download is
+  # authenticated by APT repository metadata; make completed files readable
+  # to this extraction process before invoking dpkg-deb.
+  mapfile -d '' package_archives < <(find "$WORK/archives" -type f -name '*.deb' -print0)
+  (("${#package_archives[@]}")) || { echo "[AURORA-TERMINALS] APT reported success but produced no package archives under $WORK/archives" >&2; exit 2; }
+  printf '[AURORA-TERMINALS] extracting %s authenticated package archives\n' "${#package_archives[@]}"
   for deb in "${package_archives[@]}"; do
-    [[ -f "$deb" ]] || continue
+    chmod u+rw,go+r "$deb"
     dpkg-deb -x "$deb" "$WORK/extracted"
   done
-  shopt -u nullglob
-  # Overlay the complete authenticated package payload, including binaries.
-  # The previous cp -an skipped package executables whenever a stale/dangling
-  # path already existed in the rootfs, leaving downloaded providers unstaged.
-  # Package executables are genuine providers too; the post-stage verifier checks
-  # architecture and runtime behavior before they can count as accepted.
+  # Overlay complete authenticated package payload. Do not use cp -n: stale
+  # paths or dangling links must not suppress genuine package executables.
   cp -a "$WORK/extracted/." "$DEST/"
+  for binary in xterm gnome-terminal kgx konsole xfce4-terminal foot kitty ptyxis alacritty wezterm ghostty contour terminator tilix mate-terminal qterminal sakura terminology lxterminal blackbox; do
+    if [[ -x "$WORK/extracted/usr/bin/$binary" || -x "$WORK/extracted/usr/local/bin/$binary" ]]; then
+      printf '[AURORA-TERMINALS] extracted provider: %s\n' "$binary"
+    fi
+  done
 fi
 python3 - "$DEST" "$REQUIRE_ALL" "${CHIMERA_TARGET_ARCH:-$(uname -m)}" <<'PY'
 import hashlib,json,pathlib,shutil,subprocess,sys,platform
