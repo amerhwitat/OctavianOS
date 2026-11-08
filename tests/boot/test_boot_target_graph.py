@@ -76,7 +76,20 @@ def main():
     sessions = json.loads(read(ROOT / "boot/live/desktop-sessions.json"))
     session_ids = {s["id"] for s in sessions["sessions"]}
     require(session_ids == {"aurora", "marine"}, "desktop selection contract must define exactly Aurora and Marine")
-    require(sessions["status"] == "selection-contract-only", "desktop manifest must not claim native launch readiness")
+    require(sessions["status"] == "hosted-linux-profile-routing-implemented-native-koronos-pending", "desktop manifest must distinguish hosted Linux routing from native Koronos readiness")
+    require("native Koronos remains separately gated" in sessions["note"], "desktop manifest must disclose native Koronos limitation")
+    for session in sessions["sessions"]:
+        require(session["status"] == "prototype-hosted-linux-session", f"session status must remain prototype: {session['id']}")
+
+    # All three user-facing boot menus must remain interactive over local and
+    # serial consoles, and no later gfxterm command may silently drop serial.
+    for menu_path in ("boot/iso/grub.cfg", "boot/jasper/jasper.cfg", "boot/spitfire/spitfire-menu.cfg"):
+        menu = read(ROOT / menu_path)
+        require(re.search(r"(?m)^set timeout=300\\s*$", menu) is not None, f"{menu_path} must wait 300 seconds")
+        require("serial --unit=0 --speed=115200" in menu, f"{menu_path} lacks serial initialization")
+        require("terminal_input serial console" in menu, f"{menu_path} lacks serial/local keyboard input")
+        outputs = [line.strip() for line in menu.splitlines() if line.strip().startswith("terminal_output ")]
+        require(outputs and "serial" in outputs[-1] and "console" in outputs[-1], f"{menu_path} later drops serial output: {outputs}")
 
     print(f"boot target graph static contract: PASS ({len(configs)} configs, {len(set(targets))} configfile edges)")
     print("This is source-level validation only; ISO payload existence, GRUB runtime, Koronos handoff, and desktop readiness require build/QEMU tests.")
