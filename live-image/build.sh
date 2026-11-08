@@ -437,8 +437,9 @@ install -Dm755 "$HERE/lib/aurora-kiosk.py" "$WORK/usr/local/bin/aurora-kiosk.py"
 
 # Linux-style userspace: systemd units, sysusers/tmpfiles, D-Bus policy, helpers.
 if [ -d "$REPO_DIR/userspace" ]; then
+  make -C "$REPO_DIR/userspace" check
   make -C "$REPO_DIR/userspace" install DESTDIR="$WORK" >/dev/null
-  echo "  userspace units installed (aurora-shell.target, jasper/gates/aurora targets)"
+  echo "  userspace units installed (aurora-shell.target, jasper/gates/aurora/marine targets)"
 fi
 install -d "$WORK/etc/aurora"
 printf 'AURORA_DESKTOP_URI=file:///opt/aurora/%s\n' "$ENTRY" > "$WORK/etc/aurora/session.conf"
