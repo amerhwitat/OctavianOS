@@ -89,6 +89,10 @@ export LIBGL_ALWAYS_SOFTWARE=1
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
 export GDK_BACKEND=x11
+export XDG_SESSION_TYPE=x11
+export XDG_CURRENT_DESKTOP="OctavianOS"
+export DESKTOP_SESSION="$profile"
+export XDG_SESSION_DESKTOP="$profile"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-live}"
 mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null || true
 chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
