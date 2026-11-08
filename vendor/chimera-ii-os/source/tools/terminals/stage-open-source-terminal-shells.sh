@@ -55,7 +55,14 @@ if (("${#AVAILABLE[@]}")); then
   (("${#package_archives[@]}")) || { echo "[AURORA-TERMINALS] APT reported success but produced no package archives under $WORK/archives" >&2; exit 2; }
   printf '[AURORA-TERMINALS] extracting %s authenticated package archives\n' "${#package_archives[@]}"
   for deb in "${package_archives[@]}"; do
-    chmod u+rw,go+r "$deb"
+    if [[ "$EUID" -eq 0 ]]; then
+      chmod a+r "$deb"
+    elif command -v sudo >/dev/null 2>&1; then
+      sudo chmod a+r "$deb"
+    else
+      echo "[AURORA-TERMINALS] cannot read root-owned APT archive without sudo: $deb" >&2
+      exit 2
+    fi
     dpkg-deb -x "$deb" "$WORK/extracted"
   done
   # Overlay complete authenticated package payload. Do not use cp -n: stale
