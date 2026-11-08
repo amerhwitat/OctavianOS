@@ -1,0 +1,16 @@
+{
+  "id": "aurora",
+  "name": "Aurora Wayland Glass Desktop",
+  "version": "0.1.0",
+  "launch": {
+    "executable": "/usr/local/bin/aurora-session",
+    "args": ["--profile", "aurora"]
+  },
+  "architectures": ["x86_64"],
+  "display_backend": "x11",
+  "requires": ["X.Org X Server", "Openbox", "WebKit2GTK"],
+  "license": "OctavianOS first-party implementation; see repository license",
+  "readiness_probe": "pending:visible-window-and-session-readiness",
+  "launch_method": "web",
+  "status": "prototype"
+}
