@@ -29,13 +29,12 @@ printf 'copy-payload' > "$TMP/source"
 test "$(cat "$TMP/copied")" = "copy-payload"
 printf 'hardlink-payload' > "$TMP/hard-source"
 ln "$TMP/hard-source" "$TMP/hard-destination"
-set +e
-"$TMP/cp" "$TMP/hard-source" "$TMP/hard-destination"
-cp_status=$?
-set -e
-if [[ "$cp_status" -eq 0 ]]; then
+if "$TMP/cp" "$TMP/hard-source" "$TMP/hard-destination"; then
   echo "cp accepted two paths for the same inode" >&2
   exit 1
+else
+  cp_status=$?
+  printf 'PASS: cp rejected same-inode paths (exit=%s)\n' "$cp_status"
 fi
 python3 - "$TMP/hard-source" "$TMP/hard-destination" <<'PY_HARDLINK'
 from pathlib import Path
