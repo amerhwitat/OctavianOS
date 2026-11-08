@@ -33,6 +33,16 @@ endif()
 
 message(STATUS "Building for architecture: ${KORONOS_ARCH}")
 
+# Keep the native init build reproducible when invoked by the SDK scanner.
+# An empty KORONOS_ARCH_MARCH expands to the invalid compiler flag -march=.
+if(NOT DEFINED KORONOS_ARCH_MARCH OR KORONOS_ARCH_MARCH STREQUAL "")
+    if(KORONOS_ARCH STREQUAL "x86_64")
+        set(KORONOS_ARCH_MARCH "x86-64")
+    else()
+        message(FATAL_ERROR "KORONOS_ARCH_MARCH must be specified for ${KORONOS_ARCH}")
+    endif()
+endif()
+
 # Only x86-64 currently has a real native Koronos entry/syscall veneer.
 # ARM64 and RISC-V source files and kernel user-entry contracts are not present;
 # do not build placeholder ELFs and advertise them as runnable targets.
