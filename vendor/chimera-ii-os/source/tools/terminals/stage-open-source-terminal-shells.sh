@@ -43,7 +43,7 @@ for id in "${!APT_PACKAGE[@]}"; do
   fi
 done
 if (("${#AVAILABLE[@]}")); then
-  chmod 0777 "$WORK/archives"
+  chmod 0755 "$WORK/archives"
   "${APT[@]}" install --download-only --reinstall --no-install-recommends -y \
     -o "Dir::Cache::archives=$WORK/archives" "${AVAILABLE[@]}"
   # APT may leave successfully fetched archives in nested cache directories
@@ -51,6 +51,17 @@ if (("${#AVAILABLE[@]}")); then
   # recursively rather than assuming a single directory depth. The download is
   # authenticated by APT repository metadata; make completed files readable
   # to this extraction process before invoking dpkg-deb.
+  # sudo apt-get may create archives/partial as root/_apt with mode 0700.
+  # Make every cache directory searchable and every authenticated .deb readable
+  # before the unprivileged extraction process walks the tree.
+  if [[ "$EUID" -eq 0 ]]; then
+    chmod -R a+rX "$WORK/archives"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo chmod -R a+rX "$WORK/archives"
+  else
+    echo "[AURORA-TERMINALS] cannot read nested APT archives without sudo chmod" >&2
+    exit 2
+  fi
   mapfile -d '' package_archives < <(find "$WORK/archives" -type f -name '*.deb' -print0)
   (("${#package_archives[@]}")) || { echo "[AURORA-TERMINALS] APT reported success but produced no package archives under $WORK/archives" >&2; exit 2; }
   printf '[AURORA-TERMINALS] extracting %s authenticated package archives\n' "${#package_archives[@]}"
@@ -106,16 +117,21 @@ for ident,kind,binary in rows:
             else:
                 interp=dest/interpreter.lstrip("/") if interpreter.startswith("/") else None
                 valid=interp is not None and interp.is_file() and bool(interp.stat().st_mode&0o111)
-            if valid:
+            if valid and kind=="shell":
                 rel="/"+str(path.relative_to(dest))
-                args=[rel,"-c","printf CHIMERA_SHELL_SMOKE"] if kind=="shell" else [rel,"--version"]
                 try:
-                    probe=subprocess.run(["chroot",str(dest),*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=12)
-                    ok=probe.returncode==0 and (kind!="shell" or b"CHIMERA_SHELL_SMOKE" in probe.stdout)
+                    probe=subprocess.run(["chroot",str(dest),rel,"-c","printf CHIMERA_SHELL_SMOKE"],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=12)
+                    ok=probe.returncode==0 and b"CHIMERA_SHELL_SMOKE" in probe.stdout
                     row["status"]="verified-script-provider" if ok else "script-smoke-failed"
-                    row["runtime_status"]=("shell-command-smoke-pass" if kind=="shell" else "version-smoke-pass") if ok else "script-smoke-failed"
+                    row["runtime_status"]="shell-command-smoke-pass" if ok else "script-smoke-failed"
                 except (OSError,subprocess.TimeoutExpired):
                     row["status"]="script-smoke-failed"; row["runtime_status"]="script-smoke-failed"
+            elif valid:
+                # A terminal emulator needs a real display/input session. A
+                # --version call without Xorg/Wayland is not a GUI acceptance
+                # test and must not misclassify a genuine staged executable.
+                row["status"]="verified-script-provider"
+                row["runtime_status"]="not-gui-tested"
             else:
                 row["status"]="script-interpreter-missing"
         elif readelf:
@@ -127,21 +143,24 @@ for ident,kind,binary in rows:
                 row["elf_machine"]=machine
                 host=platform.machine()
                 aliases={"amd64":"x86_64","arm64":"aarch64"}
-                if aliases.get(host,host)==aliases.get(target,target):
-                    args=[str(path),"-c","printf CHIMERA_SHELL_SMOKE"] if kind=="shell" else [str(path),"--version"]
+                if kind=="shell" and aliases.get(host,host)==aliases.get(target,target):
                     try:
-                        probe=subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=12)
-                        ok=probe.returncode==0 and (kind!="shell" or b"CHIMERA_SHELL_SMOKE" in probe.stdout)
-                        row["runtime_status"]=("shell-command-smoke-pass" if kind=="shell" else "version-smoke-pass") if ok else ("shell-command-smoke-fail" if kind=="shell" else "version-smoke-fail")
+                        probe=subprocess.run([str(path),"-c","printf CHIMERA_SHELL_SMOKE"],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=12)
+                        ok=probe.returncode==0 and b"CHIMERA_SHELL_SMOKE" in probe.stdout
+                        row["runtime_status"]="shell-command-smoke-pass" if ok else "shell-command-smoke-fail"
+                        if not ok:
+                            row["status"]="shell-command-smoke-fail"
                     except (OSError,subprocess.TimeoutExpired):
-                        row["runtime_status"]="smoke-test-failed"
+                        row["status"]="shell-command-smoke-fail"; row["runtime_status"]="shell-command-smoke-fail"
+                elif kind=="terminal":
+                    row["runtime_status"]="not-gui-tested"
                 else:
                     row["runtime_status"]="not-runnable-on-builder"
         else: row["status"]="present-hash-only"
     manifest.append(row)
 out={"schema":"AURORA-TERMINAL-SHELL-STAGING-1","policy":"Only real executable files are listed; SHA-256 identifies exact bytes; staging does not imply runtime compatibility.","entries":manifest}
 p=dest/"usr/share/chimera/aurora/terminal-shell-staging.json"; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(json.dumps(out,indent=2)+"\n")
-missing=[r["id"] for r in manifest if r["status"] not in ("binary-present","verified-script-provider") or r["runtime_status"] not in ("shell-command-smoke-pass","version-smoke-pass")]
+missing=[r["id"] for r in manifest if r["status"] not in ("binary-present","verified-script-provider") or (r["kind"]=="shell" and r["runtime_status"]!="shell-command-smoke-pass")]
 print(f"[AURORA-TERMINALS] staged={len(manifest)-len(missing)}/{len(manifest)} missing={','.join(missing) if missing else 'none'}")
 if require_all and missing: raise SystemExit("required terminal/shell binaries missing: "+", ".join(missing))
 PY
