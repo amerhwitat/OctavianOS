@@ -179,11 +179,17 @@ for entry in "${FOUND[@]}"; do
 done
 
 # Plain-language sources that need no build system but must still parse.
+# Do not feed an arbitrary first-20-file sample to javac: unrelated source
+# trees can have duplicate packages and external dependencies. Maven/Gradle
+# projects are already discovered and built above. Record loose Java files as
+# unbuilt until they have an explicit project descriptor/classpath.
 if have javac; then
-  mapfile -t JAVA < <(cd "$ROOT" && find . -path ./.git -prune -o -name '*.java' -print 2>/dev/null | grep -v '/build/' | head -20)
-  if [ "${#JAVA[@]}" -gt 0 ]; then
-    mkdir -p "$WORK/javac-out"
-    run_step java "java-sources" "$ROOT" javac -d "$WORK/javac-out" "${JAVA[@]}"
+  if ! find "$ROOT" -path "$ROOT/.git" -prune -o -path "$ROOT/build" -prune -o \
+      -type f \( -name pom.xml -o -name build.gradle -o -name build.gradle.kts \) -print -quit | grep -q .; then
+    if find "$ROOT" -path "$ROOT/.git" -prune -o -path "$ROOT/build" -prune -o -name '*.java' -print -quit | grep -q .; then
+      record java "java-sources" "skipped" 0 "loose Java sources have no Maven/Gradle descriptor; refusing an arbitrary partial javac build"
+      echo "  java     java-sources                                      skipped (no project descriptor)"
+    fi
   fi
 fi
 
