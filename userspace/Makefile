@@ -16,7 +16,7 @@ BINDIR ?= $(PREFIX)/local/bin
 DOCDIR ?= $(PREFIX)/share/doc/aurora
 
 UNITS := $(wildcard systemd/*.service systemd/*.target)
-HELPERS := bin/aurora-session bin/aurora-profile-apply bin/aurora-profile-set bin/aurora-network-wait bin/voiceconnect-broker
+HELPERS := bin/aurora-session bin/aurora-session-manifest-check.py bin/aurora-profile-apply bin/aurora-profile-set bin/aurora-network-wait bin/voiceconnect-broker
 
 .PHONY: all install check uninstall help
 
