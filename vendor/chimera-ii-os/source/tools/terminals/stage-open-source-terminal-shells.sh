@@ -46,10 +46,14 @@ if (("${#AVAILABLE[@]}")); then
   chmod 0777 "$WORK/archives"
   "${APT[@]}" install --download-only --reinstall --no-install-recommends -y \
     -o "Dir::Cache::archives=$WORK/archives" "${AVAILABLE[@]}"
-  for deb in "$WORK"/archives/*.deb; do
+  shopt -s nullglob
+  package_archives=( "$WORK"/archives/*.deb "$WORK"/archives/partial/*.deb )
+  ((${#package_archives[@]})) || { echo "[AURORA-TERMINALS] APT reported success but produced no package archives" >&2; exit 2; }
+  for deb in "${package_archives[@]}"; do
     [[ -f "$deb" ]] || continue
     dpkg-deb -x "$deb" "$WORK/extracted"
   done
+  shopt -u nullglob
   # Overlay the complete authenticated package payload, including binaries.
   # The previous cp -an skipped package executables whenever a stale/dangling
   # path already existed in the rootfs, leaving downloaded providers unstaged.
