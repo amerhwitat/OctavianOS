@@ -216,6 +216,24 @@ build_contour() {
   [[ -n "$binary" ]] || { echo "Contour build produced no executable" >&2; exit 2; }
   install -D -m 0755 "$binary" "$ROOTFS/usr/local/bin/contour"
 }
+build_ptyxis() {
+  require meson; require ninja; require pkg-config; require gcc
+  local src="$OUT/src/ptyxis"
+  git clone --depth 1 --branch 50.1 https://gitlab.gnome.org/chergert/ptyxis.git "$src"
+  # Refuse a source build against older GTK/VTE APIs: a successful compile
+  # must represent the upstream supported runtime, not a stub or compatibility shim.
+  pkg-config --atleast-version=2.80 glib-2.0
+  pkg-config --atleast-version=4.14 gtk4
+  pkg-config --atleast-version=1.6 libadwaita-1
+  pkg-config --atleast-version=1.6 json-glib-1.0
+  pkg-config --atleast-version=0.79 vte-2.91-gtk4
+  pkg-config --exists libportal-gtk4
+  meson setup "$src/build" "$src" --buildtype=release --prefix=/usr/local
+  ninja -C "$src/build" -j"${JOBS:-2}"
+  DESTDIR="$OUT/stage" ninja -C "$src/build" install
+  cp -a "$OUT/stage/." "$ROOTFS/"
+  test -x "$ROOTFS/usr/local/bin/ptyxis" || { echo "Ptyxis 50.1 build did not install /usr/local/bin/ptyxis" >&2; exit 2; }
+}
 tmp="$OUT/providers-built.tsv"
 : > "$tmp"
 while IFS='|' read -r package binary status; do
