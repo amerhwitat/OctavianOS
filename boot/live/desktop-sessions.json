@@ -10,7 +10,7 @@
   "sessions": [
     {
       "id": "aurora",
-      "name": "Aurora Wayland Glass Desktop",
+      "name": "Aurora Glass Desktop (X11/WebKit hosted prototype)",
       "launch_manifest": "/usr/share/octavianos/sessions/aurora.json",
       "status": "prototype-hosted-linux-session"
     },
