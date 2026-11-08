@@ -105,6 +105,10 @@ def main():
                 errors.append("desktop shell: missing %s profile definition" % profile)
             if profile != "aurora" and (profile + ".target") not in unit_names:
                 errors.append("userspace: missing %s.target" % profile)
+            if ("aurora.profile=" + profile) not in builder_text:
+                errors.append("live-image GRUB menu: missing %s desktop profile entry" % profile)
+        if "set timeout=300" not in builder_text or "set timeout_style=menu" not in builder_text:
+            errors.append("live-image GRUB menu: must remain interactive for 300 seconds")
         cmdline_pos = session_text.find('cmdline_profile="$(tr ')
         fallback_pos = session_text.find('for candidate in "$RUNTIME_FILE" "$PROFILE_FILE"; do')
         if cmdline_pos < 0 or fallback_pos < 0 or cmdline_pos > fallback_pos:
