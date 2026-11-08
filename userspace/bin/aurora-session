@@ -8,15 +8,23 @@ PROFILE_FILE="${AURORA_PROFILE_FILE:-/etc/aurora/profile}"
 RUNTIME_FILE=/run/aurora/profile
 SESSION_CONF="${AURORA_SESSION_CONF:-/etc/aurora/session.conf}"
 
+# An explicit boot-menu choice must override the image's baked-in default
+# profile. Runtime and persistent profile files are fallbacks only.
+CMDLINE_FILE="${AURORA_CMDLINE_FILE:-/proc/cmdline}"
 profile=""
-for candidate in "$RUNTIME_FILE" "$PROFILE_FILE"; do
-  if [ -s "$candidate" ]; then
-    profile="$(head -n1 "$candidate" | tr -d '[:space:]')"
-    [ -n "$profile" ] && break
-  fi
-done
-if [ -z "$profile" ]; then
-  profile="$(sed -n 's/.*aurora\.profile=\([a-zA-Z0-9_-]*\).*/\1/p' /proc/cmdline 2>/dev/null | head -n1)"
+cmdline_profile=""
+if [ -r "$CMDLINE_FILE" ]; then
+  cmdline_profile="$(tr ' ' '\n' < "$CMDLINE_FILE" | sed -n 's/^aurora\.profile=//p' | head -n1)"
+fi
+if [ -n "$cmdline_profile" ]; then
+  profile="$cmdline_profile"
+else
+  for candidate in "$RUNTIME_FILE" "$PROFILE_FILE"; do
+    if [ -s "$candidate" ]; then
+      profile="$(head -n1 "$candidate" | tr -d '[:space:]')"
+      [ -n "$profile" ] && break
+    fi
+  done
 fi
 case "${profile:-}" in
   jasper|gates|aurora|marine) ;;
