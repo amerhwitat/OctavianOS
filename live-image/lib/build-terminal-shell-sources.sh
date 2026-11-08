@@ -139,28 +139,32 @@ build_elvish() {
   (cd "$src" && go build -trimpath -o "$ROOTFS/usr/local/bin/elvish" ./cmd/elvish)
 }
 build_wezterm() {
-  require cargo
+  require cargo; require curl
   local src="$OUT/src/wezterm"
   # WezTerm's workspace includes git submodules (including source members).
-  # A shallow non-recursive clone leaves Cargo workspace members missing and
-  # fails before compilation; follow the upstream source-build instructions.
+  # A shallow non-recursive clone leaves Cargo workspace members missing.
   git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/wez/wezterm.git "$src"
   git -C "$src" submodule update --init --recursive
-  local cargo_cmd=(cargo)
-  if command -v rustup >/dev/null 2>&1; then
-    # WezTerm's current Cargo workspace uses edition 2024, requiring Cargo 1.85+.
-    rustup toolchain install stable --profile minimal
-    cargo_cmd=(rustup run stable cargo)
-  else
-    local cargo_version
-    cargo_version="$(cargo --version | awk '{print $2}')"
-    python3 - "$cargo_version" <<'PY_CARGO_VERSION'
+  # The Ubuntu runner's distro Cargo can lag the upstream workspace MSRV.
+  # Install rustup when the image does not provide it; never silently fall back
+  # to an older system Cargo after discovering the edition-2024 requirement.
+  if ! command -v rustup >/dev/null 2>&1; then
+    curl --fail --location --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 \
+      https://sh.rustup.rs --output "$OUT/rustup-init.sh"
+    sh "$OUT/rustup-init.sh" -y --profile minimal --default-toolchain stable
+    export PATH="$HOME/.cargo/bin:$PATH"
+  fi
+  command -v rustup >/dev/null 2>&1 || { echo "rustup installation did not provide rustup" >&2; exit 2; }
+  rustup toolchain install stable --profile minimal
+  local cargo_cmd=(rustup run stable cargo)
+  local cargo_version
+  cargo_version="$("${cargo_cmd[@]}" --version | awk '{print $2}')"
+  python3 - "$cargo_version" <<'PY_CARGO_VERSION'
 import sys
 parts=tuple(int(x) for x in sys.argv[1].split(".")[:3])
 if parts < (1,85,0):
-    raise SystemExit(f"WezTerm requires Cargo 1.85+ (edition 2024); found {sys.argv[1]}. Install rustup stable.")
+    raise SystemExit(f"WezTerm requires Cargo 1.85+ (edition 2024); found {sys.argv[1]}.")
 PY_CARGO_VERSION
-  fi
   "${cargo_cmd[@]}" --version
   (cd "$src" && "${cargo_cmd[@]}" build --release --locked --bin wezterm)
   install -D -m 0755 "$src/target/release/wezterm" "$ROOTFS/usr/local/bin/wezterm"
