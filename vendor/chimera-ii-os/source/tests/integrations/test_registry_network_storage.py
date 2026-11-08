@@ -80,8 +80,11 @@ class SmbBrowseTests(unittest.TestCase):
         result = smb.browse("files.example.org")
         self.assertEqual(result["shares"][0]["name"], "public")
         argv = mocked.call_args.args[0]
-        self.assertIn("-k", argv)
-        self.assertTrue(any("SMB2" in item for item in argv))
+        # Require an explicit Kerberos policy. The long-form option is
+        # equivalent to the legacy -k switch and makes the required policy
+        # unambiguous (rather than merely requesting opportunistic Kerberos).
+        self.assertIn("--use-kerberos=required", argv)
+        self.assertTrue(any(item == "--option=client min protocol=SMB2_10" for item in argv))
         self.assertNotIn("--no-pass", argv)
 
     def test_host_option_injection_is_rejected(self):
