@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
@@ -51,6 +52,7 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
@@ -105,6 +107,14 @@ jobs:
           set -euo pipefail
           bash kernel/build-koronos.sh
           test -s build/koronos/x86_64/koronos.elf
+      - name: Test x86_64 saved-context frame contract
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -UNDEBUG -I kernel/include \
+            kernel/core/x86_64_context.cpp tests/kernel/x86_64_context_test.cpp \
+            -o /tmp/octavian-x86-64-context-test
+          /tmp/octavian-x86-64-context-test
       - name: Validate ELF and Multiboot2 entry contract
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -115,6 +125,33 @@ jobs:
           nm -a --defined-only build/koronos/x86_64/koronos.elf > build/koronos/x86_64/symbols.txt
           grep -q 'chimera_process_admit_elf' build/koronos/x86_64/symbols.txt
           grep -q 'chimera_sched_run_parallel' build/koronos/x86_64/symbols.txt
+      - name: Compile and run scheduler runtime regressions
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -I kernel/include \
+            tests/kernel/scheduler_runtime_test.cpp kernel/core/scheduler.cpp \
+            -o /tmp/octavian-koronos-scheduler-test
+          /tmp/octavian-koronos-scheduler-test
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("kernel")
+          boot=(root/"core/koronos.cpp").read_text()
+          build=(root/"build-koronos.sh").read_text()
+          assert "chimera_sched_init(1)" in boot
+          assert "chimera_learning_init(1)" in boot
+          assert "Online scheduler CPUs: 1 (AP startup not implemented)" in boot
+          assert "chimera_sched_init(f->logical_cpus)" not in boot
+          assert "BSP scheduler callback runner" in build
+          assert "SMP-safe scheduler" not in build
+          installer_diag = "[INST] Installer metadata phase entered; no installer userspace runtime is initialized"
+          kore_diag = "[KORE] Core service identities registered; no service start callbacks are installed"
+          assert installer_diag in boot and installer_diag in build, "installer metadata diagnostic/build contract drifted"
+          assert kore_diag in boot and kore_diag in build, "Kore service-identity diagnostic/build contract drifted"
+          for claim in ("Initializing installer services in parallel", "Hardware discovery service started", "Storage discovery service started", "Core storage/security/logging services active"):
+              assert claim not in boot, f"misleading boot claim remains: {claim}"
+          print("Koronos BSP-only scheduler and truthful service-claim policy: PASS")
+          PY
       - name: Compile and run Multiboot2 live/recovery module classification tests
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -147,6 +184,7 @@ jobs:
           if [[ ! -f "$smoke/debugcon.log" ]]; then echo "::error::QEMU produced no debugcon log"; exit 1; fi
           cat "$smoke/debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/debugcon.log" || { echo "::error::Koronos did not reach its readiness marker (QEMU exit $qemu_status)"; exit 1; }
+          grep -Fq '[SCH ] BSP same-CR3 saved-context switch self-test passed; process scheduling remains disabled' "$smoke/debugcon.log" || { cat "$smoke/debugcon.log"; echo "::error::BSP saved-context switch self-test failed"; exit 1; }
       - name: Upload QEMU kernel smoke trace
         if: always()
         uses: actions/upload-artifact@v4

@@ -281,3 +281,71 @@ koronos_syscall_stack_top:
 section .rodata
 align 4
 koronos_default_mxcsr: dd 0x1F80
+
+
+; int koronos_x86_64_context_switch(context *from, const context *to)
+; Save callee-saved registers/RFLAGS and restore a context only within the
+; same CR3. Cross-address-space switches remain disabled until shared supervisor
+; mappings and TLB shootdowns are implemented.
+section .text
+global koronos_x86_64_context_switch
+koronos_x86_64_context_switch:
+    test rdi, rdi
+    jz .context_invalid
+    test rsi, rsi
+    jz .context_invalid
+    cmp rdi, rsi
+    je .context_same
+
+    mov rax, [rsi]
+    test rax, rax
+    jz .context_invalid
+    mov rcx, [rsi + 8]
+    test rcx, rcx
+    jz .context_invalid
+    test rcx, 0xFFF
+    jnz .context_invalid
+    mov rdx, cr3
+    cmp rcx, rdx
+    jne .context_space_mismatch
+
+    pushfq
+    cli
+    push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov [rdi + 8], rdx
+    mov [rdi], rsp
+    mov rsp, rax
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
+    pop rbp
+    popfq
+    xor eax, eax
+    ret
+
+.context_same:
+    xor eax, eax
+    ret
+.context_space_mismatch:
+    mov eax, -2
+    ret
+.context_invalid:
+    mov eax, -1
+    ret
+
+; Initial frame trampoline: R13=entry, R12=argument.
+global koronos_x86_64_context_trampoline
+koronos_x86_64_context_trampoline:
+    mov rdi, r12
+    sub rsp, 8
+    call r13
+    add rsp, 8
+    ud2
