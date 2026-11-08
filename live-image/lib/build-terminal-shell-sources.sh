@@ -141,9 +141,14 @@ build_elvish() {
 build_wezterm() {
   require cargo; require curl
   local src="$OUT/src/wezterm"
-  # WezTerm's workspace includes git submodules (including source members).
-  # A shallow non-recursive clone leaves Cargo workspace members missing.
-  git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/wez/wezterm.git "$src"
+  local revision="458a100c1bf4134d36cb5c42dd90e4c8266d9e1a"
+  # Pin the same reviewed source revision used by Chimera's terminal manifest.
+  # Fetch the exact commit instead of silently building a moving upstream HEAD.
+  git init "$src"
+  git -C "$src" remote add origin https://github.com/wez/wezterm.git
+  git -C "$src" fetch --depth 1 origin "$revision"
+  git -C "$src" checkout --detach FETCH_HEAD
+  test "$(git -C "$src" rev-parse HEAD)" = "$revision"
   git -C "$src" submodule update --init --recursive
   # The Ubuntu runner's distro Cargo can lag the upstream workspace MSRV.
   # Install rustup when the image does not provide it; never silently fall back
