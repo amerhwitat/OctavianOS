@@ -43,7 +43,15 @@ jobs:
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice python3-venv
+      - name: Build and verify Amiga ADF and Commodore D64 starter disks
+        run: |
+          python3 -m venv /tmp/octavian-retro-media-venv
+          . /tmp/octavian-retro-media-venv/bin/activate
+          python -m pip install --disable-pip-version-check amitools
+          command -v c1541
+          python tools/retro-media/build_retro_media.py --output /tmp/octavian-retro-media
+          CHIMERA_RETRO_MEDIA_DIR=/tmp/octavian-retro-media python -m unittest discover -s tests/retro_media -v
       - name: Validate Aurora and Marine session-selection contract
         run: |
           set -euo pipefail
@@ -76,6 +84,15 @@ jobs:
           c++ -std=c++17 -O2 desktop/native/chm-image-inspect.cpp -o /tmp/octavian-image-inspect $(pkg-config --cflags --libs opencv4)
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a /tmp/octavian-opengl-smoke --self-test
           /tmp/octavian-image-inspect --self-test
+          /tmp/octavian-image-inspect --help
+          python3 - <<'PY'
+          from pathlib import Path
+          Path("/tmp/octavian-test.ppm").write_bytes(b"P6\n2 2\n255\n" + bytes([255,0,0, 0,255,0, 0,0,255, 255,255,255]))
+          PY
+          /tmp/octavian-image-inspect /tmp/octavian-test.ppm --edges /tmp/octavian-edges.png --grayscale /tmp/octavian-gray.png --resize 4x4 /tmp/octavian-resized.png --json
+          test -s /tmp/octavian-edges.png
+          test -s /tmp/octavian-gray.png
+          test -s /tmp/octavian-resized.png
           test -s man/chm-opengl-smoke.1
           test -s man/chm-image-inspect.1
 
@@ -111,6 +128,14 @@ jobs:
           cmake -S . -B "${{ runner.temp }}/octavian-cmake" -DCMAKE_BUILD_TYPE=Release
           cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 chm-opengl-smoke chm-image-inspect -j2
 
+      - name: Validate VSCodium manager and local emulator bridge
+        run: |
+          bash -n tools/ides/ide-manager.sh
+          bash tools/ides/ide-manager.sh list
+          bash tools/ides/ide-manager.sh --help
+          node --check vendor/chimera-ii-os/source/web/chimera-hub.js
+          python3 -m py_compile tools/retro-media/build_retro_media.py vendor/chimera-ii-os/source/tools/runtime/chimera-local-bridge.py
+          test -s vendor/chimera-ii-os/source/man/chm-ide.1
       - name: Validate X11 provider manifests and launcher syntax
         run: |
           bash -n vendor/chimera-ii-os/source/desktop/x11/start-session.sh
