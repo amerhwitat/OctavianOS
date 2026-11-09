@@ -397,7 +397,7 @@ jobs:
           # The full ISO intentionally waits 300 seconds at the GRUB menu.
           # Simulate a user pressing Enter after the menu is visible instead
           # of treating the expected wait as a boot failure.
-          ( sleep 8; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
+          ( sleep 8; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
           qemu_status=$?
           set -e
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
