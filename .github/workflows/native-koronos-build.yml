@@ -449,7 +449,7 @@ jobs:
           if "QMP" not in greeting:
               raise SystemExit(f"invalid QMP greeting: {greeting}")
           def command(payload):
-              stream.write(json.dumps(payload).encode() + b"\\r\\n")
+              stream.write(json.dumps(payload).encode() + b"\r\n")
               while True:
                   reply = json.loads(stream.readline())
                   if "return" in reply:
