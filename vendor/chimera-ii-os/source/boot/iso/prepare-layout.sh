@@ -72,6 +72,13 @@ if [[ "${CHIMERA_DOS_FETCH_ON_BUILD:-0}" == "1" ]]; then
   DOS_PAYLOAD_ARGS+=(--fetch)
 fi
 python3 "$ROOT/tools/commands/dos-payload-builder.py" "${DOS_PAYLOAD_ARGS[@]}"
+if [[ "${CHIMERA_STRICT_DOS_PAYLOADS:-0}" == "1" ]]; then
+  included="$(python3 -c 'import json,sys; print(int(json.load(open(sys.argv[1])).get("included_payload_count",0)) )' "$DOS_RUNTIME/apps/CATALOG.json")"
+  if [[ "$included" -lt 1 ]]; then
+    echo "ERROR: strict release build requires at least one license-reviewed, hash-pinned, smoke-tested DOS payload; none were staged." >&2
+    exit 2
+  fi
+fi
 # Preserve online discovery metadata in the ISO when the build refreshed it.
 if [[ -s "$ROOT/build/dos-online-discovery.json" ]]; then
   install -m 0644 "$ROOT/build/dos-online-discovery.json" "$DOS_RUNTIME/ONLINE-DISCOVERY.json"
@@ -176,6 +183,7 @@ chimera_copy_if_distinct "$KERNEL" "$DIST/boot/koronos/koronos.elf"
 cp "$ROOT/boot/spitfire/sf0_mbr.asm" "$ROOT/boot/spitfire/sf1_longmode.asm" "$ROOT/boot/spitfire/sf2_loader.cpp" "$ROOT/boot/spitfire/sf2_loader.h" "$ROOT/boot/spitfire/spitfire.ld" "$DIST/boot/spitfire/"
 cp "$ROOT/boot/spitfire/sfu_uefi.c" "$ROOT/boot/spitfire/sfu_uefi.h" "$ROOT/boot/spitfire/sfu_uefi.ld" "$DIST/EFI/CHIMERA/"
 cp "$ROOT/boot/iso/grub.cfg" "$DIST/boot/grub/grub.cfg"
+cp "$ROOT/boot/loader-menu.cfg" "$DIST/boot/loader-menu.cfg"
 cp "$ROOT/boot/jasper/jasper.cfg" "$DIST/boot/jasper/jasper.cfg"
 # Legacy Jasper contract: older installers and recovery tooling look for
 # /boot/jasper/grub.cfg. Keep it synchronized with the canonical GRUB entry.
@@ -196,7 +204,9 @@ cp "$ROOT/boot/livecd/live-manifest.json" "$DIST/boot/live-manifest.json"
 if [[ -d "$ROOT/build/live-boot/boot/live" ]]; then cp -a "$ROOT/build/live-boot/boot/live" "$DIST/boot/"; fi
 
 cat > "$DIST/boot/jasper/recovery.cfg" <<'EOF'
-set timeout=5
+# Keep recovery selection interactive for five minutes.
+set timeout=300
+set timeout_style=menu
 set default=0
 insmod normal
 insmod gfxterm
