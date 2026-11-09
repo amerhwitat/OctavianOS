@@ -223,7 +223,7 @@ jobs:
           install -m 0644 vendor/chimera-ii-os/source/compat/binary-format-registry.json "$out/share/chimera/"
           install -m 0644 vendor/chimera-ii-os/source/man/chm-ide.1 vendor/chimera-ii-os/source/man/chm-binary-headers.1 vendor/chimera-ii-os/source/man/chm-binary-inspect.1 "$out/share/man/man1/"
           install -m 0755 /tmp/octavian-aarch64-smoke "$out/bin/"
-          (cd "$out" && find . -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$out" && find bin share -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
       - name: Publish compiled native component bundle
         uses: actions/upload-artifact@v4
         with:
