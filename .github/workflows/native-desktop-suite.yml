@@ -153,6 +153,7 @@ jobs:
           python3 vendor/chimera-ii-os/source/tests/tools/test_inspect_binary_headers.py
           python3 vendor/chimera-ii-os/source/tests/tools/test_run_compatible_binary.py
           bash -n vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh
+          bash -n tools/import-verified-desktop-artifacts.sh
           python3 -m json.tool vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json >/dev/null
           bash -n vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh
           bash vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh list >/dev/null
@@ -224,6 +225,7 @@ jobs:
           install -m 0644 vendor/chimera-ii-os/source/man/chm-ide.1 vendor/chimera-ii-os/source/man/chm-binary-headers.1 vendor/chimera-ii-os/source/man/chm-binary-inspect.1 "$out/share/man/man1/"
           install -m 0755 /tmp/octavian-aarch64-smoke "$out/bin/"
           (cd "$out" && find bin share -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$out" && sha256sum -c SHA256SUMS)
       - name: Publish compiled native component bundle
         uses: actions/upload-artifact@v4
         with:
