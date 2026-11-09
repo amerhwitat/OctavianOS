@@ -463,11 +463,11 @@ jobs:
           except socket.timeout:
               pass
           time.sleep(8)           # allow firmware and Jasper/GRUB menus to settle
-          monitor.sendall(b"sendkey ret\\n")
+          monitor.sendall(b"sendkey ret\n")
           time.sleep(2)           # tolerate nested boot menus
-          monitor.sendall(b"sendkey ret\\n")
+          monitor.sendall(b"sendkey ret\n")
           time.sleep(15)
-          monitor.sendall(b"quit\\n")
+          monitor.sendall(b"quit\n")
           monitor.close()
           PY
           monitor_status=$?
