@@ -361,7 +361,7 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          python3 tests/migration/verify-userspace-handoff.py recovery "$smoke/recovery-debugcon.log"
+          python3 tests/boot/verify-userspace-handoff.py recovery "$smoke/recovery-debugcon.log"
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -391,7 +391,7 @@ jobs:
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          python3 tests/migration/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
+          python3 tests/boot/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -454,9 +454,9 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          python3 tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
+          python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
   publish-native-iso:
