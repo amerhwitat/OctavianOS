@@ -62,7 +62,7 @@ jobs:
           while IFS= read -r file; do
             echo "Checking $file"
             grub-script-check "$file"
-          done < <(find boot -type f -name '*.cfg' -print | sort)
+          done < <(find boot vendor/chimera-ii-os/source/boot -type f -name '*.cfg' -print | sort)
       - name: Validate complete configfile target graph
         run: python3 tests/boot/test_boot_target_graph.py
       - name: Validate native installer payload routing

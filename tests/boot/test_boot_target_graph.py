@@ -114,6 +114,42 @@ def main():
     require("not present in this ISO" in retro, "missing retro payload must be reported rather than booting an unrelated payload")
     require("configfile /boot/jasper/jasper.cfg" in spitfire, "Spit Fire must offer Jasper as the canonical target manager")
 
+    # The vendored Chimera boot menus are part of the shipped native boot path,
+    # not merely an inventory snapshot. Require matching CPL3 init payloads for
+    # every Multiboot2 entry and preserve the same visible-menu policy upstream.
+    vendor_root = ROOT / "vendor/chimera-ii-os/source"
+    vendor_menu_paths = (
+        "boot/iso/grub.cfg",
+        "boot/jasper/jasper.cfg",
+        "boot/jasper/live.cfg",
+        "boot/jasper/install.cfg",
+        "boot/jasper/recovery.cfg",
+        "boot/jasper/diagnostics.cfg",
+        "boot/jasper/retro.cfg",
+        "boot/jasper/safe-mode.cfg",
+        "boot/jasper/last-known-good.cfg",
+        "boot/installation/menu.cfg",
+        "boot/spitfire/spitfire-menu.cfg",
+    )
+    for relative in vendor_menu_paths:
+        menu = vendor_root / relative
+        require(menu.is_file(), f"vendored native menu is missing: {relative}")
+        menu_text = read(menu)
+        timeouts = re.findall(r"^\s*set\s+timeout\s*=\s*([^\s#]+)", menu_text, re.MULTILINE)
+        styles = re.findall(r"^\s*set\s+timeout_style\s*=\s*([^\s#]+)", menu_text, re.MULTILINE)
+        require(timeouts == ["120"], f"vendored {relative} must have exactly one 120-second timeout")
+        require(styles == ["menu"], f"vendored {relative} must keep its menu visible")
+        for block in re.split(r"(?m)(?=^menuentry\b)", menu_text):
+            if "multiboot2 " not in block:
+                continue
+            modules = re.findall(
+                r"(?m)^\s*module2\s+/boot/targets/target-init-(live|installer|recovery)\.elf\s+"
+                r"chimera-user-init-elf\s+target=(live|installer|recovery)\s+firmware=\$grub_platform\s*$",
+                block,
+            )
+            require(len(modules) == 1, f"vendored {relative} has a Koronos entry without exactly one native init ELF")
+            require(modules[0][0] == modules[0][1], f"vendored {relative} has mismatched native init target metadata")
+
     payload_contract = json.loads(read(ROOT / "boot/iso/target-payload-contract.json"))
     require(payload_contract["status"] == "staging-contract-only", "payload manifest must not claim ISO assets are built")
     require(payload_contract["targets"]["live-aurora"]["desktop"] == "chm.desktop=aurora", "Aurora payload contract is inconsistent")
