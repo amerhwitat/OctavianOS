@@ -220,6 +220,8 @@ jobs:
           mkdir -p "$out/share/chimera" "$out/share/man/man1"
           install -m 0755 vendor/chimera-ii-os/source/tools/run-compatible-binary.py "$out/share/chimera/"
           install -m 0755 vendor/chimera-ii-os/source/tools/inspect-binary-headers.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/run-compatible-binary.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/binary/inspect_binary.py "$out/share/chimera/"
           install -m 0755 vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh "$out/bin/"
           install -m 0755 vendor/chimera-ii-os/source/tools/ides/ide-manager.sh "$out/bin/chm-ide-manager"
           install -m 0644 vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json "$out/share/chimera/"
@@ -253,6 +255,22 @@ jobs:
           exec "$HERE/../libexec/chm-image-inspect.bin" "$@"
           SH
           chmod 0755 "$out/bin/chm-opengl-smoke" "$out/bin/chm-image-inspect"
+          cat > "$out/bin/chm-run-compatible-binary" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/run-compatible-binary.py" "$@"
+          SH
+          cat > "$out/bin/chm-binary-headers" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/inspect-binary-headers.py" "$@"
+          SH
+          cat > "$out/bin/chm-binary-inspect" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/inspect_binary.py" "$@"
+          SH
+          chmod 0755 "$out/bin/chm-run-compatible-binary" "$out/bin/chm-binary-headers" "$out/bin/chm-binary-inspect"
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$out/bin/chm-opengl-smoke" --self-test
           "$out/bin/chm-image-inspect" --self-test
           ldd "$opengl" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
