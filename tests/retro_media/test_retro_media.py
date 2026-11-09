@@ -10,23 +10,23 @@ class RetroMediaArtifactTests(unittest.TestCase):
 
     def test_expected_media_and_hashes(self):
         files = {item["file"]: item for item in self.manifest["artifacts"]}
-        self.assertEqual(set(files), {"Chimera-Amiga-A500.adf", "Chimera-Amiga-A2000.adf",
-                                     "Chimera-Commodore-C64-Starter.d64"})
+        self.assertEqual(set(files), {"Octavian-Amiga-A500.adf", "Octavian-Amiga-A2000.adf",
+                                     "Octavian-Commodore-C64-Starter.d64"})
         for name, item in files.items():
             data = (self.root / name).read_bytes()
             self.assertEqual(len(data), item["bytes"])
             self.assertEqual(hashlib.sha256(data).hexdigest(), item["sha256"])
 
     def test_amiga_adf_geometry_and_dos_types(self):
-        a500 = (self.root / "Chimera-Amiga-A500.adf").read_bytes()
-        a2000 = (self.root / "Chimera-Amiga-A2000.adf").read_bytes()
+        a500 = (self.root / "Octavian-Amiga-A500.adf").read_bytes()
+        a2000 = (self.root / "Octavian-Amiga-A2000.adf").read_bytes()
         self.assertEqual(len(a500), 901120)
         self.assertEqual(len(a2000), 901120)
         self.assertEqual(a500[:4], b"DOS\0")
         self.assertEqual(a2000[:4], b"DOS\1")
 
     def test_c64_d64_geometry(self):
-        self.assertEqual((self.root / "Chimera-Commodore-C64-Starter.d64").stat().st_size, 174848)
+        self.assertEqual((self.root / "Octavian-Commodore-C64-Starter.d64").stat().st_size, 174848)
 
 if __name__ == "__main__":
     unittest.main()
