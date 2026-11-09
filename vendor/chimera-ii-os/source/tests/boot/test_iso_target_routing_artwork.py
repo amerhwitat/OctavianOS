@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GRUB = (ROOT / "boot/iso/grub.cfg").read_text()
 INSTALL = (ROOT / "boot/jasper/install.cfg").read_text()
 RECOVERY = (ROOT / "boot/jasper/recovery.cfg").read_text()
+PREPARE_LAYOUT = (ROOT / "boot/iso/prepare-layout.sh").read_text()
 FULL_BUILDER = (ROOT / "tools/build-full-iso.sh").read_text()
 LIVE_BUILDER = (ROOT / "iso/chimera-live-iso.sh").read_text()
 
@@ -30,6 +31,15 @@ class IsoTargetRoutingTests(unittest.TestCase):
         entry = GRUB[start:end]
         self.assertIn("configfile /boot/jasper/recovery.cfg", entry)
         self.assertIn("/boot/recovery/chimera-recovery-initramfs.img", RECOVERY)
+        generated_start = PREPARE_LAYOUT.index('cat > "$DIST/boot/jasper/recovery.cfg"')
+        generated_end = PREPARE_LAYOUT.index("\nEOF", generated_start)
+        generated = PREPARE_LAYOUT[generated_start:generated_end]
+        self.assertIn("module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery", generated)
+        self.assertIn("module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs", generated)
+        self.assertIn("  boot", generated)
+        self.assertIn('"$LIVE_BOOT/boot/targets/target-init-$target.elf"', PREPARE_LAYOUT)
+        self.assertIn('"$LIVE_BOOT/boot/recovery/$required"', PREPARE_LAYOUT)
+        self.assertIn('mkdir -p "$DIST/boot/live" "$DIST/boot/targets" "$DIST/boot/recovery"', PREPARE_LAYOUT)
 
     def test_full_iso_injection_replaces_stale_base_grub_menu(self):
         self.assertIn('cp -f "$ROOT/boot/iso/grub.cfg" "$STAGE/boot/grub/grub.cfg"', FULL_BUILDER)
