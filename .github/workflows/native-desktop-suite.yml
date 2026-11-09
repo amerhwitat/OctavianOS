@@ -43,7 +43,7 @@ jobs:
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice fs-uae python3-venv
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice fs-uae python3-venv gcc-aarch64-linux-gnu qemu-user
       - name: Build and verify Amiga ADF and Commodore D64 starter disks
         run: |
           python3 -m venv /tmp/octavian-retro-media-venv
@@ -147,6 +147,17 @@ jobs:
           node --check vendor/chimera-ii-os/source/web/chimera-hub.js
           python3 -m py_compile tools/retro-media/build_retro_media.py vendor/chimera-ii-os/source/tools/runtime/chimera-local-bridge.py vendor/chimera-ii-os/source/tools/inspect-binary-headers.py
           python3 vendor/chimera-ii-os/source/tests/tools/test_inspect_binary_headers.py
+          python3 vendor/chimera-ii-os/source/tests/tools/test_run_compatible_binary.py
+          bash -n tools/binary/install-compat-runtimes.sh
+          python3 -m json.tool vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json >/dev/null
+          sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user
+          cat > /tmp/octavian-aarch64-smoke.c <<'EOF'
+          #include <stdio.h>
+          int main(void) { puts("OCTAVIAN AARCH64 QEMU USER PASS"); return 0; }
+          EOF
+          aarch64-linux-gnu-gcc -static -O2 -o /tmp/octavian-aarch64-smoke /tmp/octavian-aarch64-smoke.c
+          python3 vendor/chimera-ii-os/source/tools/run-compatible-binary.py --dry-run /tmp/octavian-aarch64-smoke
+          python3 vendor/chimera-ii-os/source/tools/run-compatible-binary.py --run /tmp/octavian-aarch64-smoke
           python3 vendor/chimera-ii-os/source/tools/inspect-binary-headers.py --json /bin/true
           test -s vendor/chimera-ii-os/source/man/chm-ide.1
       - name: Validate X11 provider manifests and launcher syntax
