@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/native-koronos-build.yml'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
