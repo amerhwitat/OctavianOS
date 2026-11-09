@@ -123,6 +123,7 @@ jobs:
             $(pkg-config --libs gtk4) -o "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell"
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=aurora --self-test
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=marine --self-test
+          xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=freexp --self-test
           if "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=invalid --self-test; then
             echo "invalid desktop profile was accepted" >&2
             exit 1
