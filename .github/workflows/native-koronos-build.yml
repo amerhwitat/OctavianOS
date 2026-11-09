@@ -363,7 +363,10 @@ jobs:
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=recovery init_pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not enter ring 3"; exit 1; }
           grep -Eq 'USERSPACE READY: (target=recovery init_pid=|recovery init_pid=)[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not report readiness"; exit 1; }
-          grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not return to ring 3"; exit 1; }
+          # The Linux exit syscall enters the kernel and terminates the
+          # userspace task; it does not return to ring 3 after exit.
+          grep -Fq '[SYSC] userspace exit syscall received' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not issue its exit syscall"; exit 1; }
+          grep -Fq '[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not exit cleanly after readiness"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
