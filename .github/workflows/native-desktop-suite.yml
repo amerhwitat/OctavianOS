@@ -43,13 +43,17 @@ jobs:
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice python3-venv
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice fs-uae python3-venv
       - name: Build and verify Amiga ADF and Commodore D64 starter disks
         run: |
           python3 -m venv /tmp/octavian-retro-media-venv
           . /tmp/octavian-retro-media-venv/bin/activate
           python -m pip install --disable-pip-version-check amitools
           command -v c1541
+          command -v fs-uae
+          fs-uae --version
+          bash -n tools/retro-media/install-emulators.sh
+          python3 -m json.tool tools/retro-media/emulator-packages.json >/dev/null
           python tools/retro-media/build_retro_media.py --output /tmp/octavian-retro-media
           CHIMERA_RETRO_MEDIA_DIR=/tmp/octavian-retro-media python -m unittest discover -s tests/retro_media -v
       - name: Upload Amiga and Commodore disk images
