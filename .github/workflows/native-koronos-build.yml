@@ -362,7 +362,7 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=recovery init_pid=' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery init did not enter ring 3"; exit 1; }
-          grep -Fq 'USERSPACE READY: recovery init_pid=' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not report readiness"; exit 1; }
+          grep -Eq 'USERSPACE READY: (target=recovery init_pid=|recovery init_pid=)[1-9][0-9]*' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not report readiness"; exit 1; }
           grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery init did not return to ring 3"; exit 1; }
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
@@ -394,7 +394,7 @@ jobs:
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[INST] Installer image, manifest and contract verified as present' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
           grep -Fq 'USER INIT SYSCALL: target=installer init_pid=' "$smoke/installer-debugcon.log" || { echo "::error::Installer init did not enter ring 3"; exit 1; }
-          grep -Fq 'USERSPACE READY: installer init_pid=' "$smoke/installer-debugcon.log" || { echo "::error::Installer init did not report readiness"; exit 1; }
+          grep -Eq 'USERSPACE READY: (target=installer init_pid=|installer init_pid=)[1-9][0-9]*' "$smoke/installer-debugcon.log" || { echo "::error::Installer init did not report readiness"; exit 1; }
           grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3' "$smoke/installer-debugcon.log" || { echo "::error::Installer init did not return to ring 3"; exit 1; }
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
