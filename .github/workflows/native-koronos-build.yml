@@ -292,6 +292,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests/boot -p test_boot_artwork_renderer.py -v
            (cd vendor/chimera-ii-os/source && bash -n tools/commands/install-legacy-command-compat.sh tests/commands/test-legacy-command-compat.sh && bash tests/commands/test-legacy-command-compat.sh)
+           (cd vendor/chimera-ii-os/source && bash -n tools/commands/build-native-legacy-providers.sh tests/commands/test-native-legacy-providers.sh && bash tests/commands/test-native-legacy-providers.sh)
           python3 tools/boot/render_boot_artwork.py --source desktop/aurora/assets/octavian-octopus-aurora.svg --output /tmp/octavian-octopus-aurora.png
           test -s /tmp/octavian-octopus-aurora.png
           python3 - <<'PY'
