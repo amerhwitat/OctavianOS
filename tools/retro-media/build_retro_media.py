@@ -11,7 +11,7 @@ def run(args: list[str]) -> str:
 def write_c64_prg(path: Path) -> None:
     """Emit a small tokenized BASIC V2 PRG at $0801."""
     lines = [
-        (10, b'\x99"CHIMERA II COMMODORE LAB"'),
+        (10, b'\x99"OCTAVIAN OS COMMODORE LAB"'),
         (20, b'\x99"READY - TYPE LIST OR RUN"'),
         (30, b'\x80'),  # BASIC END token
     ]
@@ -26,15 +26,15 @@ def write_c64_prg(path: Path) -> None:
     path.write_bytes(struct.pack("<H", 0x0801) + body)
 
 def create_adf(xdftool: str, out: Path, volume: str, fs_type: str, model: str, temp: Path) -> dict:
-    image = out / f"Chimera-Amiga-{model}.adf"
+    image = out / f"Octavian-Amiga-{model}.adf"
     startup, readme = temp / f"Startup-Sequence-{model}", temp / f"README-Amiga-{model}.txt"
     startup.write_text(
         f"; Chimera Retro Lab - Amiga {model}\n"
         "; Data disk for a legally licensed Kickstart/Workbench installation.\n"
-        f'Echo "CHIMERA RETRO LAB - AMIGA {model}"\n'
+        f'Echo "OCTAVIAN RETRO LAB - AMIGA {model}"\n'
         'Echo "Disk mounted successfully."\n', encoding="ascii")
     readme.write_text(
-        f"CHIMERA RETRO LAB - AMIGA {model}\nFilesystem: {fs_type.upper()}\n"
+        f"OCTAVIAN RETRO LAB - AMIGA {model}\nFilesystem: {fs_type.upper()}\n"
         "Formatted 880 KiB Amiga floppy data disk.\n"
         "No Kickstart ROM, Workbench, commercial software or proprietary firmware is included.\n"
         "Use with a legally licensed ROM/OS. S/Startup-Sequence is a sample script, not a full OS.\n",
@@ -59,10 +59,10 @@ def create_adf(xdftool: str, out: Path, volume: str, fs_type: str, model: str, t
             "validation": "xdftool filesystem list/info + DOS signature"}
 
 def create_d64(c1541: str, out: Path, temp: Path) -> dict:
-    image, prg, readme = out / "Chimera-Commodore-C64-Starter.d64", temp / "HELLO.PRG", temp / "README-C64.txt"
+    image, prg, readme = out / "Octavian-Commodore-C64-Starter.d64", temp / "HELLO.PRG", temp / "README-C64.txt"
     write_c64_prg(prg)
-    readme.write_text("CHIMERA RETRO LAB - COMMODORE 64\nStandard 35-track D64 with original HELLO.PRG.\nNo ROMs or commercial software included.\n", encoding="ascii")
-    run([c1541, "-format", "CHIMERA,01", "d64", str(image),
+    readme.write_text("OCTAVIAN RETRO LAB - COMMODORE 64\nStandard 35-track D64 with original HELLO.PRG.\nNo ROMs or commercial software included.\n", encoding="ascii")
+    run([c1541, "-format", "OCTAVIAN,01", "d64", str(image),
          "-write", str(prg), "HELLO.PRG", "-write", str(readme), "README.TXT"])
     listing = run([c1541, str(image), "-list"])
     data = image.read_bytes()
@@ -87,14 +87,14 @@ def main() -> int:
     if not c1541: parser.error("c1541 is required (install VICE disk utilities)")
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="chimera-retro-media-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="octavian-retro-media-") as tmpdir:
         temp = Path(tmpdir)
         artifacts = [
-            create_adf(xdftool, out, "CHIMERA_A500", "ofs", "A500", temp),
-            create_adf(xdftool, out, "CHIMERA_A2000", "ffs", "A2000", temp),
+            create_adf(xdftool, out, "OCTAVIAN_A500", "ofs", "A500", temp),
+            create_adf(xdftool, out, "OCTAVIAN_A2000", "ffs", "A2000", temp),
             create_d64(c1541, out, temp),
         ]
-    manifest = {"schema": "chimera-retro-media/v1",
+    manifest = {"schema": "octavian-retro-media/v1",
                 "policy": "open-source-emulator; no proprietary ROM/OS/game payloads",
                 "artifacts": artifacts}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
