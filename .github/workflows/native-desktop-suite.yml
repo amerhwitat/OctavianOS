@@ -126,6 +126,8 @@ jobs:
         env:
           OCTAVIAN_DESKTOP_BUILD_DIR: ${{ runner.temp }}/octavian-desktop
           CHIMERA_ICON_DIR: ${{ runner.temp }}/octavian-desktop/icons
+          GTK_A11Y: none
+          GSK_RENDERER: cairo
         run: |
           set -euo pipefail
           mkdir -p "$OCTAVIAN_DESKTOP_BUILD_DIR/bin"
