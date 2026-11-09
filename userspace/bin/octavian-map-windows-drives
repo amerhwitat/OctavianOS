@@ -25,8 +25,15 @@ mkdir -p "$DRIVE_ROOT"
 mapped=0
 for source in "$MNT_ROOT"/[a-z]; do
   [[ -d "$source" ]] || continue
-  if [[ "$TEST_FIXTURES" != 1 ]] && ! mountpoint -q "$source"; then
-    continue
+  if [[ "$TEST_FIXTURES" != 1 ]]; then
+    if ! mountpoint -q "$source"; then
+      continue
+    fi
+    fstype="$(findmnt -T "$source" -n -o FSTYPE 2>/dev/null | head -n 1 || true)"
+    if [[ "$fstype" != drvfs && "$fstype" != 9p ]]; then
+      echo "[OctavianOS][WSL] skip $source: filesystem type is not DrvFs/9p (${fstype:-unknown})"
+      continue
+    fi
   fi
   letter="${source##*/}"
   upper="${letter^^}"
