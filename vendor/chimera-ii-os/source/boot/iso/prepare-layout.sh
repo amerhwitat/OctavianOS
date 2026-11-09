@@ -172,10 +172,28 @@ KERNEL="$ROOT/build/koronos/x86_64/koronos.elf"
 [[ -s "$KERNEL" ]] || { echo "Koronos kernel ELF missing: $KERNEL" >&2; exit 1; }
 chimera_copy_if_distinct "$KERNEL" "$DIST/boot/koronos/koronos.elf"
 
+# Stage the target-specific ring-3 init ELFs produced by build-koronos.sh.
+# GRUB passes one and only one selected payload to Koronos; the module command
+# line is the source of the live/installer/recovery target identity.
+TARGET_INIT_DIR="$ROOT/build/koronos/x86_64"
+mkdir -p "$DIST/boot/targets"
+for target in live installer recovery; do
+  source_elf="$TARGET_INIT_DIR/target-init-$target.elf"
+  [[ -s "$source_elf" ]] || { echo "Required native $target init ELF missing: $source_elf" >&2; exit 2; }
+  readelf -h "$source_elf" | grep -Eq 'Class:[[:space:]]+ELF64' || {
+    echo "Native $target init is not ELF64: $source_elf" >&2; exit 2;
+  }
+  readelf -lW "$source_elf" | grep -Eq 'LOAD.*R E' || {
+    echo "Native $target init has no executable PT_LOAD: $source_elf" >&2; exit 2;
+  }
+  cp -f "$source_elf" "$DIST/boot/targets/"
+done
+
 # Bootloader source/artifacts and Jasper recovery configuration.
 cp "$ROOT/boot/spitfire/sf0_mbr.asm" "$ROOT/boot/spitfire/sf1_longmode.asm" "$ROOT/boot/spitfire/sf2_loader.cpp" "$ROOT/boot/spitfire/sf2_loader.h" "$ROOT/boot/spitfire/spitfire.ld" "$DIST/boot/spitfire/"
 cp "$ROOT/boot/spitfire/sfu_uefi.c" "$ROOT/boot/spitfire/sfu_uefi.h" "$ROOT/boot/spitfire/sfu_uefi.ld" "$DIST/EFI/CHIMERA/"
 cp "$ROOT/boot/iso/grub.cfg" "$DIST/boot/grub/grub.cfg"
+cp "$ROOT/boot/loader-menu.cfg" "$DIST/boot/loader-menu.cfg"
 cp "$ROOT/boot/jasper/jasper.cfg" "$DIST/boot/jasper/jasper.cfg"
 # Legacy Jasper contract: older installers and recovery tooling look for
 # /boot/jasper/grub.cfg. Keep it synchronized with the canonical GRUB entry.
@@ -196,7 +214,7 @@ cp "$ROOT/boot/livecd/live-manifest.json" "$DIST/boot/live-manifest.json"
 if [[ -d "$ROOT/build/live-boot/boot/live" ]]; then cp -a "$ROOT/build/live-boot/boot/live" "$DIST/boot/"; fi
 
 cat > "$DIST/boot/jasper/recovery.cfg" <<'EOF'
-set timeout=5
+set timeout=300
 set default=0
 insmod normal
 insmod gfxterm
@@ -204,6 +222,7 @@ insmod png
 insmod search
 if [ -f /boot/jasper/background.png ]; then background_image /boot/jasper/background.png; fi
 menuentry "Jasper Recovery — Koronos Rescue" { multiboot2 /boot/koronos/koronos.elf
+  module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
   module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest }
 menuentry "Jasper Recovery — Safe Graphics" { multiboot2 /boot/koronos/koronos.elf }
 menuentry "Jasper Recovery — GRUB Command Line" { commandline }
