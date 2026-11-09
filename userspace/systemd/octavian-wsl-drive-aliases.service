@@ -1,0 +1,14 @@
+[Unit]
+Description=Expose WSL Windows drives under /mnt/drive
+Documentation=file:/usr/share/doc/aurora/wsl-drive-aliases.md
+ConditionVirtualization=wsl
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/octavian-map-windows-drives
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
