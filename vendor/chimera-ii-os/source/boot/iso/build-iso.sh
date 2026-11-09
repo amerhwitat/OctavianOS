@@ -92,7 +92,12 @@ mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
-cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+# Copy every canonical Jasper submenu after prepare-layout, which emits a
+# legacy recovery.cfg. This keeps all referenced submenu files present.
+for cfg in "$ROOT"/boot/jasper/*.cfg; do
+  test -s "$cfg" || { echo "ERROR: Jasper menu config missing: $cfg" >&2; exit 2; }
+  cp -f "$cfg" "$DIST/iso/boot/jasper/$(basename "$cfg")"
+done
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
