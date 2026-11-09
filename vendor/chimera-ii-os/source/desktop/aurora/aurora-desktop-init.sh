@@ -41,13 +41,29 @@ if command -v wireplumber >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -x wireplumbe
   wireplumber >/tmp/aurora-wireplumber.log 2>&1 &
 fi
 
+# Play the shipped startup cue after the user audio session has had a moment
+# to initialize. Sound failure is deliberately non-fatal to the desktop.
+if [[ -x "$AURORA/aurora-event-sound.sh" ]]; then
+  (
+    sleep 1
+    "$AURORA/aurora-event-sound.sh" startup
+  ) >/tmp/aurora-startup-sound.log 2>&1 &
+fi
+
 # Optional initialization video. It is launched only after Wayland is ready and
 # never blocks the desktop if video playback is unavailable.
 if [[ -f "$AURORA/aurora-init-splash.sh" ]]; then
   CHIMERA_INIT_VIDEO="${CHIMERA_INIT_VIDEO:-$AURORA/assets/Init.mp4}"
-  [[ -s "$CHIMERA_INIT_VIDEO" ]] || CHIMERA_INIT_VIDEO="$AURORA/assets/init.mp4" \
+  if [[ ! -s "$CHIMERA_INIT_VIDEO" ]]; then
+    CHIMERA_INIT_VIDEO="$AURORA/assets/init.mp4"
+  fi
+  if [[ -s "$CHIMERA_INIT_VIDEO" ]]; then
     CHIMERA_PROGRESS_FILE="${CHIMERA_PROGRESS_FILE:-/run/chimera/koronos-progress.state}" \
-    bash "$AURORA/aurora-init-splash.sh" >/tmp/aurora-init-splash.log 2>&1 &
+      CHIMERA_INIT_VIDEO="$CHIMERA_INIT_VIDEO" \
+      bash "$AURORA/aurora-init-splash.sh" >/tmp/aurora-init-splash.log 2>&1 &
+  else
+    log "startup video unavailable; continuing without splash"
+  fi
 fi
 
 if command -v swaybg >/dev/null 2>&1; then
