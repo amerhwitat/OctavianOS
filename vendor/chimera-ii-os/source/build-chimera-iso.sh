@@ -349,6 +349,12 @@ is_writable_dir(){
   return 0
 }
 is_wsl(){ grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null || [[ -n "${WSL_INTEROP:-}" ]] || [[ -d /mnt/wsl ]]; }
+# Publish stable Windows-drive aliases under /mnt/drive when building inside WSL2.
+if is_wsl && [[ -f "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh" ]]; then
+  if ! bash "$SCRIPT_DIR/tools/storage/chimera-wsl-drive-map.sh"; then
+    log_warning "Unable to refresh /mnt/drive aliases; native WSL /mnt/<letter> mounts remain available."
+  fi
+fi
 choose_storage(){
   local need="${1:-20}"; local best="" free path
   if is_wsl; then
