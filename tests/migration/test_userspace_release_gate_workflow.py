@@ -35,9 +35,15 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertGreaterEqual(self.text.count("module2 /boot/ai/knowledge-db.json ai-knowledge-db"), 3)
         self.assertNotIn("handoff withheld", self.text)
 
+    def test_installer_probe_stages_real_installer_media_contracts(self):
+        self.assertIn("tools/chimera-stage-installer-media.sh", self.text)
+        for module in ("chimera-installation-image", "chimera-installation-manifest", "chimera-installer-contract", "chimera-install-phases", "chimera-installer-profiles"):
+            self.assertIn(module, self.text)
+
     def test_full_iso_smoke_selects_default_from_long_timeout_menu(self):
         self.assertIn("sendkey ret", self.text)
-        self.assertIn("timeout 25s qemu-system-x86_64", self.text)
+        self.assertIn("timeout 60s qemu-system-x86_64", self.text)
+        self.assertIn("screendump", self.text)
 
 if __name__ == "__main__":
     unittest.main()
