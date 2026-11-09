@@ -430,10 +430,40 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          { sleep 2; printf 'sendkey ret\n'; sleep 22; } | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -qmp "unix:$smoke/qmp.sock,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >"$smoke/qemu-full-iso.log" 2>&1 &
+          qemu_pid=$!
+          python3 - "$smoke/qmp.sock" <<'PY'
+          import json, socket, sys, time
+          path = sys.argv[1]
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          for _ in range(100):
+              try:
+                  client.connect(path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  time.sleep(0.05)
+          else:
+              raise SystemExit("QMP socket did not become ready")
+          stream = client.makefile("rwb", buffering=0)
+          greeting = json.loads(stream.readline())
+          if "QMP" not in greeting:
+              raise SystemExit(f"invalid QMP greeting: {greeting}")
+          def command(payload):
+              stream.write(json.dumps(payload).encode() + b"\\r\\n")
+              while True:
+                  reply = json.loads(stream.readline())
+                  if "return" in reply:
+                      return reply["return"]
+                  if "error" in reply:
+                      raise SystemExit(f"QMP command failed: {reply['error']}")
+          command({"execute": "qmp_capabilities"})
+          command({"execute": "human-monitor-command", "arguments": {"command-line": "sendkey ret"}})
+          client.close()
+          PY
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          test -s "$smoke/full-iso-debugcon.log" || { cat "$smoke/qemu-full-iso.log"; echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload ISA cross-target smoke artifacts
