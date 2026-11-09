@@ -430,7 +430,7 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -qmp "unix:$smoke/qmp.sock,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >"$smoke/qemu-full-iso.log" 2>&1 &
+          timeout 60s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -qmp "unix:$smoke/qmp.sock,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >"$smoke/qemu-full-iso.log" 2>&1 &
           qemu_pid=$!
           python3 - "$smoke/qmp.sock" "$smoke/full-iso-debugcon.log" <<'PY'
           import json, socket, sys, time
@@ -461,11 +461,12 @@ jobs:
           # reached the interactive menu. An immediate keypress can be lost.
           # Wait for the firmware/menu path, then retry Enter while observing
           # the debugcon marker; never shorten the production menu timeout.
-          time.sleep(3)
-          deadline = time.monotonic() + 18
+          time.sleep(5)
+          command({"execute": "human-monitor-command", "arguments": {"command-line": f"screendump {sys.argv[2]}.png"}})
+          deadline = time.monotonic() + 48
           while time.monotonic() < deadline:
               command({"execute": "human-monitor-command", "arguments": {"command-line": "sendkey ret"}})
-              time.sleep(0.75)
+              time.sleep(0.5)
               try:
                   with open(sys.argv[2], encoding="utf-8", errors="replace") as trace:
                       if "[KRN ] KORONOS READY" in trace.read():
@@ -495,6 +496,8 @@ jobs:
           name: octavianos-full-iso-qemu-trace
           path: |
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/qemu-full-iso.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log.png
             vendor/chimera-ii-os/source/build/qemu-smoke/live-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
