@@ -50,6 +50,14 @@ class SharedDesktopIconTests(unittest.TestCase):
         self.assertIn("gtk_menu_button_new", source)
         self.assertIn("dosbox-x", source)
         self.assertIn("--desktop=freexp --self-test", workflow)
+        desktop_profiles = json.loads(
+            (ROOT / "vendor/chimera-ii-os/source/desktop/desktop_profiles.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(any(item["id"] == "freexp" for item in desktop_profiles["profiles"]["chimera"]))
+        package_profiles = json.loads(
+            (ROOT / "vendor/chimera-ii-os/source/desktop/profiles/desktop-profiles.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(any(item["id"] == "freexp" for item in package_profiles["profiles"]))
 
     def test_xorg_provider_is_declared_and_guarded(self):
         provider = json.loads(
