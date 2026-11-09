@@ -131,7 +131,17 @@ cp -a "$MEDIA/." "$DIST/iso/boot/visual/aurora-media/"
 for f in   backgrounds/boot.png   backgrounds/desktop.png   menus/default.png   splash/aurora-splash.png   installer/aurora-installer.png   recovery/aurora-recovery.png   diagnostics/aurora-diagnostics.png   live/aurora-live.png   mobile/aurora-mobile.png   manifest.json   progress/state.json   progress/stages.json   progress/style.json   Init.mp4; do
   test -s "$MEDIA/$f" || { echo "ERROR: Aurora asset missing: $MEDIA/$f" >&2; exit 2; }
 done
-cp -f "$MEDIA/backgrounds/boot.png" "$VISUAL_OUT/aurora-boot.png"
+# Use the Octavian-branded firmware artwork when the parent Octavian build
+# staged it; otherwise retain Chimera's generated Aurora boot background.
+BOOT_BACKGROUND="$MEDIA/backgrounds/boot.png"
+if [[ -s "$VISUAL_OUT/octavian-octopus-aurora.png" ]]; then
+  BOOT_BACKGROUND="$VISUAL_OUT/octavian-octopus-aurora.png"
+  test -s "$VISUAL_OUT/octavian-artwork-manifest.json" || {
+    echo "ERROR: Octavian boot artwork is present without its manifest." >&2; exit 2;
+  }
+  echo "[ISO] Using verified Octavian boot artwork for all firmware/menu stages."
+fi
+cp -f "$BOOT_BACKGROUND" "$VISUAL_OUT/aurora-boot.png"
 cp -f "$MEDIA/backgrounds/desktop.png" "$VISUAL_OUT/aurora-desktop.png"
 cp -f "$MEDIA/menus/default.png" "$VISUAL_OUT/aurora-menu.png"
 cp -f "$MEDIA/splash/aurora-splash.png" "$VISUAL_OUT/aurora-splash.png"
@@ -149,7 +159,7 @@ cp -f "$MEDIA/Init.mp4" "$VISUAL_OUT/Init.mp4"
 for stage in spitfire jasper grub koronos; do
   mkdir -p "$DIST/iso/boot/$stage"
   cp -f "$MEDIA/Init.mp4" "$DIST/iso/boot/$stage/Init.mp4"
-  cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
+  cp -f "$BOOT_BACKGROUND" "$DIST/iso/boot/$stage/aurora-boot.png"
 done
 cp -f "$ROOT/boot/splash/spitfire_background.svg" "$DIST/iso/boot/spitfire/"
 cp -f "$ROOT/boot/splash/jasper_background.svg" "$DIST/iso/boot/jasper/"
