@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Map WSL-mounted Windows drive roots to /mnt/drive/<LETTER> without replacing data.
+set -euo pipefail
+
+MNT_ROOT="${CHM_MNT_ROOT:-/mnt}"
+DRIVE_ROOT="${CHM_DRIVE_ROOT:-$MNT_ROOT/drive}"
+DISTRO_NAME="${CHM_WSL_DISTRO_NAME:-${WSL_DISTRO_NAME:-}}"
+RELEASE_FILE="${CHM_WSL_RELEASE_FILE:-/proc/sys/kernel/osrelease}"
+FORCE="${CHM_WSL_FORCE:-0}"
+
+is_wsl=0
+if [[ "$FORCE" == 1 || -n "$DISTRO_NAME" ]]; then
+  is_wsl=1
+elif [[ -r "$RELEASE_FILE" ]] && grep -Eqi '(microsoft|wsl)' "$RELEASE_FILE"; then
+  is_wsl=1
+fi
+
+if [[ "$is_wsl" != 1 ]]; then
+  echo "[OctavianOS][WSL] not running under WSL; no drive aliases changed."
+  exit 0
+fi
+
+mkdir -p "$DRIVE_ROOT"
+mapped=0
+for source in "$MNT_ROOT"/[a-z]; do
+  [[ -d "$source" ]] || continue
+  letter="${source##*/}"
+  upper="${letter^^}"
+  target="$DRIVE_ROOT/$upper"
+
+  if [[ -L "$target" ]]; then
+    current="$(readlink "$target")"
+    if [[ "$current" == "$source" ]]; then
+      echo "[OctavianOS][WSL] already mapped $source -> $target"
+      continue
+    fi
+    echo "[OctavianOS][WSL][ERROR] refusing to replace conflicting symlink: $target -> $current" >&2
+    exit 2
+  fi
+  if [[ -e "$target" ]]; then
+    echo "[OctavianOS][WSL][ERROR] refusing to replace existing path: $target" >&2
+    exit 2
+  fi
+  ln -s "$source" "$target"
+  echo "[OctavianOS][WSL] mapped $source -> $target"
+  mapped=$((mapped + 1))
+done
+
+echo "[OctavianOS][WSL] drive alias pass complete; new mappings=$mapped"
