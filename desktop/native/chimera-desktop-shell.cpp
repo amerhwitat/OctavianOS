@@ -9,6 +9,7 @@
 namespace {
 const char* desktop_id = "aurora";
 bool self_test = false;
+int semantic_icon_failures = 0;
 GtkLabel* status_label = nullptr;
 
 const char* desktop_name() {
@@ -81,10 +82,29 @@ GtkWidget* action_button(const char* label, const char* action,
 }
 
 GtkWidget* app_card(const char* glyph, const char* title, const char* detail,
-                    const char* action) {
+                    const char* action, const char* semantic_icon) {
   GtkWidget* card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_widget_add_css_class(card, "app-card");
-  GtkWidget* icon = gtk_label_new(glyph);
+  const char* icon_dir = g_getenv("CHIMERA_ICON_DIR");
+  if (!icon_dir || !*icon_dir) icon_dir = "desktop/aurora/icons/generated";
+  gchar* icon_path = g_build_filename(icon_dir,
+      (std::string(semantic_icon) + ".svg").c_str(), nullptr);
+  GtkWidget* icon = nullptr;
+  if (g_file_test(icon_path, G_FILE_TEST_IS_REGULAR)) {
+    icon = gtk_image_new_from_file(icon_path);
+    gtk_image_set_pixel_size(GTK_IMAGE(icon), 64);
+    if (gtk_image_get_storage_type(GTK_IMAGE(icon)) == GTK_IMAGE_EMPTY) {
+      ++semantic_icon_failures;
+      gtk_widget_set_tooltip_text(icon, "Failed to load semantic SVG icon");
+    } else {
+      gtk_widget_set_tooltip_text(icon, semantic_icon);
+    }
+  } else {
+    ++semantic_icon_failures;
+    icon = gtk_label_new(glyph);
+    gtk_widget_set_tooltip_text(icon, "Semantic icon unavailable; text fallback");
+  }
+  g_free(icon_path);
   gtk_widget_add_css_class(icon, "app-glyph");
   GtkWidget* name = gtk_label_new(title);
   gtk_widget_add_css_class(name, "app-name");
@@ -198,13 +218,13 @@ void activate(GtkApplication* app, gpointer) {
   gtk_widget_set_vexpand(grid, TRUE);
   gtk_box_append(GTK_BOX(content), grid);
   gtk_grid_attach(GTK_GRID(grid), app_card("⌘", "Terminal",
-      "Run commands using an installed terminal emulator.", "terminal"), 0, 0, 1, 1);
+      "Run commands using an installed terminal emulator.", "terminal", "terminal"), 0, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), app_card("▣", "Files",
-      "Open your home folder with the host file handler.", "files"), 1, 0, 1, 1);
+      "Open your home folder with the host file handler.", "files", "aurora-files"), 1, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), app_card("◎", "Web",
-      "Open a URL using the configured browser handler.", "browser"), 2, 0, 1, 1);
+      "Open a URL using the configured browser handler.", "browser", "chromium"), 2, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), app_card("⚙", "Settings",
-      "Open host settings when the provider is installed.", "settings"), 0, 1, 1, 1);
+      "Open host settings when the provider is installed.", "settings", "settings"), 0, 1, 1, 1);
 
   GtkWidget* footer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
   gtk_widget_add_css_class(footer, "footer");
@@ -245,5 +265,9 @@ int main(int argc, char** argv) {
   char* app_argv[] = {argv[0], nullptr};
   const int result = g_application_run(G_APPLICATION(app), 1, app_argv);
   g_object_unref(app);
+  if (self_test && semantic_icon_failures != 0) {
+    g_printerr("Semantic SVG icon load failures: %d\\n", semantic_icon_failures);
+    return 3;
+  }
   return result;
 }
