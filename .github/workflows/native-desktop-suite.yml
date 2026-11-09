@@ -43,7 +43,7 @@ jobs:
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
       - name: Validate Aurora and Marine session-selection contract
         run: |
           set -euo pipefail
@@ -68,6 +68,17 @@ jobs:
               assert Path(path).is_file(), f"missing desktop source: {path}"
           print("Desktop contracts valid; native session launch is not claimed.")
           PY
+      - name: Build and runtime-test imported OpenGL and OpenCV tools
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          c++ -std=c++17 -O2 desktop/native/chm-opengl-smoke.cpp -o /tmp/octavian-opengl-smoke $(pkg-config --cflags --libs glfw3 gl)
+          c++ -std=c++17 -O2 desktop/native/chm-image-inspect.cpp -o /tmp/octavian-image-inspect $(pkg-config --cflags --libs opencv4)
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a /tmp/octavian-opengl-smoke --self-test
+          /tmp/octavian-image-inspect --self-test
+          test -s man/chm-opengl-smoke.1
+          test -s man/chm-image-inspect.1
+
       - name: Compile shared native Aurora components from imported Chimera source
         working-directory: vendor/chimera-ii-os/source
         env:
