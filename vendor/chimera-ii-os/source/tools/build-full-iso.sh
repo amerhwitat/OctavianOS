@@ -113,6 +113,24 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE/boot" "$STAGE/install" "$STAGE/system" "$STAGE/sdk" "$STAGE/desktop"
 [[ -n "$KERNEL" && -f "$KERNEL" ]] && cp "$KERNEL" "$STAGE/boot/koronos.elf"
 if [[ -d "$ROOT/build/live-boot/boot" ]]; then cp -a "$ROOT/build/live-boot/boot/." "$STAGE/boot/"; fi
+
+# Stage the exact target init ELFs referenced by the Jasper/GRUB target entries.
+# The earlier full-ISO path copied the initramfs and installer metadata but
+# omitted these three modules, so Koronos correctly withheld every handoff.
+TARGET_INIT_DIR="$ROOT/build/koronos/x86_64"
+mkdir -p "$STAGE/boot/targets" "$STAGE/boot/grub"
+for target in live installer recovery; do
+  target_elf="$TARGET_INIT_DIR/target-init-$target.elf"
+  test -s "$target_elf" || { echo "ERROR: missing $target native init ELF: $target_elf" >&2; exit 2; }
+  readelf -h "$target_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || {
+    echo "ERROR: $target_elf is not an executable ELF" >&2; exit 2;
+  }
+  cp -f "$target_elf" "$STAGE/boot/targets/"
+done
+# Do not inherit a stale GRUB menu from a base ISO. The canonical menu
+# attaches one target=... USER_INIT_ELF module to each selected target.
+cp -f "$ROOT/boot/iso/grub.cfg" "$STAGE/boot/grub/grub.cfg"
+cp -f "$ROOT/boot/loader-menu.cfg" "$STAGE/boot/loader-menu.cfg"
 mkdir -p "$STAGE/boot/jasper" "$STAGE/boot/spitfire" "$STAGE/boot/installation" "$STAGE/boot/recovery" "$STAGE/boot/diagnostics"
 cp -a "$ROOT/boot/jasper/." "$STAGE/boot/jasper/"
 cp -a "$ROOT/boot/spitfire/spitfire-menu.cfg" "$STAGE/boot/spitfire/"
@@ -120,6 +138,29 @@ cp -a "$ROOT/boot/installation/menu.cfg" "$STAGE/boot/installation/"
 cp -a "$ROOT/boot/recovery/." "$STAGE/boot/recovery/"
 cp -a "$ROOT/boot/diagnostics/." "$STAGE/boot/diagnostics/"
 cp -a "$ROOT/boot/boot-menu-contract.json" "$STAGE/boot/"
+
+# Embed boot artwork and splash media in the ISO itself: no network or host
+# filesystem lookup is allowed for early boot visuals.
+mkdir -p "$STAGE/boot/visual" "$STAGE/boot/grub" "$STAGE/desktop/aurora/assets"
+for art in aurora_boot_splash.svg; do
+  [[ -s "$ROOT/boot/splash/$art" ]] && cp -f "$ROOT/boot/splash/$art" "$STAGE/boot/visual/$art"
+done
+for art in aurora-desktop.svg aurora-installer.svg aurora-library.svg aurora-wayland-glass.svg aurora-wayland-glass.png chimera-infinite-research-horizon.svg chimera-artwork-manifest.json; do
+  [[ -s "$ROOT/desktop/aurora/assets/$art" ]] && cp -f "$ROOT/desktop/aurora/assets/$art" "$STAGE/desktop/aurora/assets/$art"
+done
+for art in aurora-wayland-glass.jpg.b64; do
+  if [[ -s "$ROOT/boot/visual/$art" ]]; then
+    base64 -d "$ROOT/boot/visual/$art" > "$STAGE/boot/visual/aurora-wayland-glass.jpg"
+    cp -f "$STAGE/boot/visual/aurora-wayland-glass.jpg" "$STAGE/boot/grub/aurora-wayland-glass.jpg"
+  fi
+done
+if [[ -s "$ROOT/desktop/aurora/assets/Init.mp4" ]]; then
+  cp -f "$ROOT/desktop/aurora/assets/Init.mp4" "$STAGE/boot/grub/Init.mp4"
+  cp -f "$ROOT/desktop/aurora/assets/Init.mp4" "$STAGE/desktop/aurora/assets/Init.mp4"
+fi
+if [[ -s "$ROOT/desktop/aurora/assets/library-artwork-manifest.json" ]]; then
+  cp -f "$ROOT/desktop/aurora/assets/library-artwork-manifest.json" "$STAGE/desktop/aurora/assets/library-artwork-manifest.json"
+fi
 [[ -f "$ROOT/boot/livecd/live-manifest.json" ]] && cp "$ROOT/boot/livecd/live-manifest.json" "$STAGE/boot/"
 [[ -n "$SPIT_IMG" && -f "$SPIT_IMG" ]] && cp "$SPIT_IMG" "$STAGE/boot/spitfire.img"
 cp -a "$ROOT/installer" "$STAGE/install/"
