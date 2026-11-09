@@ -155,6 +155,41 @@ mkdir -p "$PAY/repo"
 tar -C "$REPO_DIR" --exclude=./.git --exclude=./live-image/.build -cf - . 2>/dev/null \
   | tar -C "$PAY/repo" -xf - 2>/dev/null || true
 
+# Mirror the canonical Chimera command/ISA catalog into Octavian's live rootfs.
+# These are source/reference catalogs plus an observed provider ledger; they do
+# not claim that a catalogued command or ISA is implemented or conformant.
+CHIMERA_SOURCE="$REPO_DIR/vendor/chimera-ii-os/source"
+CATALOG_ROOT="$WORK/usr/share/octavian/catalogs"
+if [ -d "$CHIMERA_SOURCE/isa" ] && [ -f "$CHIMERA_SOURCE/system/commands/chimera-command-list.json" ]; then
+  log "staging canonical command and ISA catalogs"
+  python3 "$CHIMERA_SOURCE/tools/commands/generate_runtime_manifest.py"
+  for rel in \
+    isa/isa_database.json \
+    isa/catalog.json \
+    isa/world_architectures.json \
+    isa/README.md \
+    tools/isa/architecture-backends.json \
+    system/commands/chimera-command-list.json \
+    system/commands/compatibility-binary-policy.json \
+    system/commands/command-runtime-capabilities.json \
+    tools/commands/os-command-runtime.json \
+    aurora/terminals/registry.json \
+    aurora/shells/registry.json \
+    system/terminals/chimera-terminals.json; do
+    if [ -f "$CHIMERA_SOURCE/$rel" ]; then
+      install -D -m 0644 "$CHIMERA_SOURCE/$rel" "$CATALOG_ROOT/$rel"
+    fi
+  done
+  install -D -m 0755 "$CHIMERA_SOURCE/tools/commands/audit-command-catalog.py" \
+    "$WORK/usr/libexec/octavian/audit-command-catalog.py"
+  python3 "$WORK/usr/libexec/octavian/audit-command-catalog.py" \
+    --catalog "$CATALOG_ROOT/system/commands/chimera-command-list.json" \
+    --rootfs "$WORK" \
+    --output "$CATALOG_ROOT/system/commands/command-catalog-provider-ledger.json"
+else
+  echo "[OCTAVIAN][WARN] canonical Chimera command/ISA source snapshot missing; catalog staging skipped"
+fi
+
 # Stage every repository-owned application catalog for offline discovery.
 # Catalog-only upstream references remain distinct from installed executables.
 mkdir -p "$PAY/app-catalogs" "$PAY/apps/native/aurora"
