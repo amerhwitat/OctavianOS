@@ -8,7 +8,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/iso/**'
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/kernel/targets/**'
-      - 'vendor/chimera-ii-os/source/tests/migration/**'
+      - 'vendor/chimera-ii-os/source/tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
@@ -109,7 +109,7 @@ jobs:
           if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           # The target ELF must itself originate the syscall and readiness markers.
-          python3 tests/migration/verify-userspace-handoff.py "$TARGET" "$LOG"
+          python3 tests/boot/verify-userspace-handoff.py "$TARGET" "$LOG"
           grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
