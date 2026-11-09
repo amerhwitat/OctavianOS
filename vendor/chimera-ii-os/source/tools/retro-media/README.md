@@ -28,3 +28,11 @@ No Kickstart ROM, Workbench distribution, Commodore KERNAL/BASIC ROM, commercial
 - FS-UAE: https://fs-uae.net/ (GPL family).
 - VICE: https://vice-emu.sourceforge.io/ (GPL-2.0-or-later).
 - amitools / xdftool: https://amitools.readthedocs.io/ (retain upstream notices).
+
+## Installing local emulator runtimes
+
+On Debian/Ubuntu-derived Chimera II OS or OctavianOS, run
+\`sudo bash tools/retro-media/install-emulators.sh\`. This installs FS-UAE and VICE from
+distribution packages. The A2000 launcher profile uses FS-UAE's documented A500 base
+with the A2000 chipset-compatibility setting; it does not claim to emulate every A2000
+expansion board. Firmware remains user-provided/licensed.
