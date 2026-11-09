@@ -41,6 +41,18 @@ class SharedDesktopIconTests(unittest.TestCase):
         self.assertIn("launcherButton(icon.glyph", js)
         self.assertIn(".app-symbol", css)
 
+    def test_xorg_provider_is_declared_and_guarded(self):
+        provider = json.loads(
+            (ROOT / "vendor/chimera-ii-os/source/desktop/x11/xorg-provider.json").read_text(encoding="utf-8")
+        )
+        launcher = (ROOT / "vendor/chimera-ii-os/source/desktop/x11/start-session.sh").read_text(encoding="utf-8")
+        packages = (ROOT / "vendor/chimera-ii-os/source/tools/commands/install-command-providers.sh").read_text(encoding="utf-8")
+        self.assertIn("xserver-xorg", provider["packages"])
+        self.assertIn("xwayland", provider["packages"])
+        self.assertIn("CHIMERA_X11_RUNTIME_VERIFIED", launcher)
+        self.assertIn("CHIMERA_X11_FORCE_UNVERIFIED", launcher)
+        self.assertIn("xserver-xorg", packages)
+
     def test_marine_shortcuts_and_taskbar_use_semantic_icons(self):
         page = (ROOT / "desktop/marine/index.html").read_text(encoding="utf-8")
         self.assertIn("../shared-icons/catalog.svg#app-aurora-files", page)
