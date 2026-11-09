@@ -35,21 +35,32 @@ def main() -> int:
     entries = list(ENTRY_RE.finditer(trace))
     if not entries:
         missing.append("user-originated init syscall acknowledgement (CPL 3)")
+    native_pids = list(NATIVE_PID_RE.finditer(trace))
+    if not native_pids:
+        missing.append("native init PID admission marker")
     ready = list(READY_RE.finditer(trace))
     if not ready:
         missing.append("actual init PID readiness marker")
+    withheld = [marker for marker in WITHHELD_MARKERS if marker in trace]
+    if withheld:
+        print("FAIL: production handoff is explicitly withheld: " + ", ".join(withheld))
+        return 1
     if missing:
         print("FAIL: missing " + ", ".join(missing))
         return 1
     for entry in entries:
         if entry.group(1) != target or kernel_at >= entry.start():
             continue
-        for marker in ready:
-            if (marker.group(1) == target and marker.group(2) == entry.group(2)
-                    and entry.start() < marker.start()):
-                print(f"PASS: target={target} init entered user mode and reported readiness with a consistent PID")
-                return 0
-    print("FAIL: expected ordered kernel-ready -> user-originated init syscall -> userspace-ready markers for target=" + target + " with the same nonzero PID")
+        for native_pid in native_pids:
+            if (native_pid.group(1) != target or native_pid.group(2) != entry.group(2)
+                    or native_pid.start() <= entry.start()):
+                continue
+            for marker in ready:
+                if (marker.group(1) == target and marker.group(2) == entry.group(2)
+                        and native_pid.start() < marker.start()):
+                    print(f"PASS: target={target} passed kernel-ready -> CPL3 syscall -> native PID admission -> userspace-ready")
+                    return 0
+    print("FAIL: expected ordered kernel-ready -> CPL3 syscall -> native init PID admission -> userspace-ready markers for target=" + target + " with the same nonzero PID")
     return 1
 
 
