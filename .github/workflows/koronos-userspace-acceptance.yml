@@ -31,7 +31,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf busybox-static cpio
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
@@ -54,6 +54,11 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
+          if [[ "$TARGET" == "installer" ]]; then
+            # Use the real installer initramfs and metadata contracts. The
+            # ring-3 probe is test-only; production install writes remain gated.
+            bash tools/chimera-stage-installer-media.sh "$ISO_ROOT"
+          fi
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
           set timeout=0
           set default=0
@@ -61,6 +66,17 @@ jobs:
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
             module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+          EOF
+          if [[ "$TARGET" == "installer" ]]; then
+            cat >> "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
+            module2 /install/installer/installation.img chimera-installation-image
+            module2 /install/installer/installation-manifest.json chimera-installation-manifest
+            module2 /install/installer/installer-contract.json chimera-installer-contract
+            module2 /install/installer/installation_phases.json chimera-install-phases
+            module2 /install/installer/installer_profiles.json chimera-installer-profiles
+          EOF
+          fi
+          cat >> "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
             boot
           }
           EOF
