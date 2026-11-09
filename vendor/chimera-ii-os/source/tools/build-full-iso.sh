@@ -117,6 +117,7 @@ mkdir -p "$STAGE/boot/jasper" "$STAGE/boot/spitfire" "$STAGE/boot/installation" 
 cp -a "$ROOT/boot/jasper/." "$STAGE/boot/jasper/"
 # Replace the base ISO menu with the source-controlled target router. Without
 # this, an older GRUB menu can boot a fallback payload for every requested mode.
+mkdir -p "$STAGE/boot/grub"
 cp -f "$ROOT/boot/iso/grub.cfg" "$STAGE/boot/grub/grub.cfg"
 cp -a "$ROOT/boot/spitfire/spitfire-menu.cfg" "$STAGE/boot/spitfire/"
 cp -a "$ROOT/boot/installation/menu.cfg" "$STAGE/boot/installation/"
