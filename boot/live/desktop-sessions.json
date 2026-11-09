@@ -1,22 +1,24 @@
 {
   "schema_version": 1,
   "contract": "octavianos.live.desktop-selection",
-  "status": "selection-contract-only",
-  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker.",
+  "status": "hosted-linux-profile-routing-implemented-native-koronos-pending",
+  "note": "The hosted Linux live userspace consumes aurora.profile=aurora|marine (and chm.desktop=aurora|marine), validates the installed session manifest, and routes to the selected Aurora or Marine kiosk page. This is not a native Koronos graphical userspace handoff; native Koronos remains separately gated.",
   "default": "aurora",
-  "architectures": ["x86_64"],
+  "architectures": [
+    "x86_64"
+  ],
   "sessions": [
     {
       "id": "aurora",
-      "name": "Aurora Wayland Glass Desktop",
+      "name": "Aurora Glass Desktop (X11/WebKit hosted prototype)",
       "launch_manifest": "/usr/share/octavianos/sessions/aurora.json",
-      "status": "prototype"
+      "status": "prototype-hosted-linux-session"
     },
     {
       "id": "marine",
       "name": "Marine Desktop",
       "launch_manifest": "/usr/share/octavianos/sessions/marine.json",
-      "status": "prototype"
+      "status": "prototype-hosted-linux-session"
     }
   ],
   "fallback": {

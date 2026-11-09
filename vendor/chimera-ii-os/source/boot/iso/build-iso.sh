@@ -57,6 +57,19 @@ bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# Stage the genuine target-specific CPL3 init ELFs into the production ISO.
+# GRUB target entries pass exactly one of these modules to Koronos.
+TARGET_INIT_BUILD="$ROOT/build/koronos/x86_64"
+TARGET_INIT_ISO="$DIST/iso/boot/targets"
+mkdir -p "$TARGET_INIT_ISO"
+for target in live installer recovery; do
+  source_elf="$TARGET_INIT_BUILD/target-init-$target.elf"
+  test -s "$source_elf" || { echo "ERROR: target init ELF missing: $source_elf" >&2; exit 2; }
+  readelf -h "$source_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: target init is not ET_EXEC: $source_elf" >&2; exit 2; }
+  readelf -lW "$source_elf" | grep -Eq 'LOAD.*R E' || { echo "ERROR: target init has no executable PT_LOAD: $source_elf" >&2; exit 2; }
+  install -m 0644 "$source_elf" "$TARGET_INIT_ISO/"
+done
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
@@ -143,6 +156,9 @@ if [[ -d "$(dirname "$RUNTIME_AURORA_ROOT")" ]]; then
 fi
 printf '%s\n' '[5/7] Validate kernel-to-GRUB linkage, graphics and installation contracts'
 test -s "$DIST/iso/boot/koronos/koronos.elf"
+for target in live installer recovery; do
+  test -s "$DIST/iso/boot/targets/target-init-$target.elf" || { echo "ERROR: target init missing from ISO tree: $target" >&2; exit 2; }
+done
 test -s "$DIST/iso/boot/spitfire/spitfire-stage2.bin"
 for visual in \
   aurora-boot.png aurora-menu.png aurora-splash.png aurora-installer.png \
@@ -165,6 +181,12 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/jasper/live.cfg"
+grep -q 'module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/jasper/install.cfg"
+grep -q 'module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/jasper/recovery.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 

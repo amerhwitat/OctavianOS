@@ -5,11 +5,15 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
@@ -31,7 +35,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf busybox-static cpio
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
@@ -53,14 +57,28 @@ jobs:
           ISO_ROOT="$OUT/iso"
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
+          cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
+          if [ "$TARGET" = installer ]; then
+            bash tools/chimera-stage-installer-media.sh "$ISO_ROOT"
+          fi
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
           set timeout=0
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/target-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+          EOF
+          if [ "$TARGET" = installer ]; then
+            cat >> "$ISO_ROOT/boot/grub/grub.cfg" <<'INSTALL_MODULES'
+            module2 /install/installer/installation.img chimera-installation-image
+            module2 /install/installer/installation-manifest.json chimera-installation-manifest
+            module2 /install/installer/installer-contract.json chimera-installer-contract
+            module2 /install/installer/installation_phases.json chimera-install-phases
+            module2 /install/installer/installer_profiles.json chimera-installer-profiles
+          INSTALL_MODULES
+          fi
+          cat >> "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
             boot
           }
           EOF
@@ -106,14 +124,17 @@ jobs:
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           # Require a real, nonzero PID supplied by the running probe, not a
           # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          ready_line="$(grep -Eo "USERSPACE READY: (target=${TARGET} init_pid=|${TARGET} init_pid=)[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
           ready_pid="${ready_line##*=}"
           ack_pid="${ack_line##*=}"
           test "$ready_pid" = "$ack_pid"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
+          # The exit syscall deliberately transitions from CPL3 into the
+          # kernel; it does not return to ring 3. Require the actual syscall
+          # acknowledgement and the kernel's clean process-exit observation.
+          grep -Fq "[SYSC] userspace exit syscall received" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"

@@ -37,6 +37,7 @@ install:
 	@install -m 0644 tmpfiles/aurora.conf $(DESTDIR)$(TMPFILES_DIR)/
 	@install -m 0644 dbus/aurora.conf $(DESTDIR)$(DBUS_DIR)/aurora.conf
 	@install -m 0755 $(HELPERS) $(DESTDIR)$(BINDIR)/
+	@install -m 0755 bin/aurora-session-manifest-check.py $(DESTDIR)$(BINDIR)/aurora-session-manifest-check
 	@install -m 0644 README.md $(DESTDIR)$(DOCDIR)/README.md
 	@install -d $(DESTDIR)$(SYSTEMD_UNIT_DIR)/graphical.target.wants \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants
@@ -51,5 +52,6 @@ uninstall:
 	@for u in $(UNITS); do rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$$(basename $$u); done
 	@rm -f $(DESTDIR)$(SYSUSERS_DIR)/aurora.conf $(DESTDIR)$(TMPFILES_DIR)/aurora.conf
 	@rm -f $(DESTDIR)$(DBUS_DIR)/aurora.conf
-	@for h in $(HELPERS); do rm -f $(DESTDIR)$(BINDIR)/$$(basename $$h); done
+	@for h in $(HELPERS); do rm -f $(DESTDIR)$(BINDIR)/$(basename $h); done
+	@rm -f $(DESTDIR)$(BINDIR)/aurora-session-manifest-check
 	@echo "  UNINSTALL aurora userspace"

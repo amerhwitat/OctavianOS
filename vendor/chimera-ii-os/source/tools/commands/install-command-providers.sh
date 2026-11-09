@@ -26,6 +26,8 @@ set -u
 
 PACKAGES=(
   coreutils util-linux findutils grep sed gawk mawk diffutils file
+  # Upstream command providers with Debian package sources.
+  chkconfig inetutils-ftp krb5-user lprng plocate rsh-client
   procps psmisc iproute2 iputils-ping net-tools dnsutils traceroute
   openssh-client openssh-server rsync curl wget ca-certificates
   openssl gnupg jq ripgrep fd-find tree less most nano vim-tiny

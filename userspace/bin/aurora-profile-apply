@@ -1,11 +1,51 @@
 #!/bin/sh
-# Ensure the runtime profile exists before the session starts (systemd ExecStartPre).
+# Resolve the selected desktop profile before the graphical session starts.
+# A runtime selection survives service restarts; otherwise an explicit boot
+# command-line selection overrides the image's persisted default.
 set -eu
-mkdir -p /run/aurora
-if [ -s /run/aurora/profile ]; then exit 0; fi
-if [ -s /etc/aurora/profile ]; then
-  cp /etc/aurora/profile /run/aurora/profile
+
+PROFILE_FILE="${AURORA_PROFILE_FILE:-/etc/aurora/profile}"
+RUNTIME_FILE="${AURORA_RUNTIME_PROFILE_FILE:-/run/aurora/profile}"
+CMDLINE_FILE="${AURORA_CMDLINE_FILE:-/proc/cmdline}"
+
+valid_profile() {
+  case "$1" in jasper|gates|aurora|marine) return 0 ;; *) return 1 ;; esac
+}
+
+read_profile() {
+  file=$1
+  [ -s "$file" ] || return 1
+  value="$(head -n1 "$file" | tr -d '[:space:]')"
+  valid_profile "$value" || return 1
+  printf '%s' "$value"
+}
+
+mkdir -p "$(dirname "$RUNTIME_FILE")"
+
+# A profile selected from the running desktop session takes precedence over
+# boot defaults when a session service is restarted.
+if value="$(read_profile "$RUNTIME_FILE" 2>/dev/null)"; then
   exit 0
 fi
-profile="$(sed -n 's/.*aurora\.profile=\([a-zA-Z0-9_-]*\).*/\1/p' /proc/cmdline 2>/dev/null | head -n1)"
-printf '%s\n' "${profile:-aurora}" > /run/aurora/profile
+
+# Bootloader choices must override the profile baked into the live image.
+cmdline_profile=""
+if [ -r "$CMDLINE_FILE" ]; then
+  for token in $(cat "$CMDLINE_FILE"); do
+    case "$token" in
+      aurora.profile=*) cmdline_profile="${token#aurora.profile=}" ;;
+      chm.desktop=*) cmdline_profile="${token#chm.desktop=}" ;;
+    esac
+  done
+fi
+if valid_profile "$cmdline_profile"; then
+  printf '%s\n' "$cmdline_profile" > "$RUNTIME_FILE"
+  exit 0
+fi
+
+if value="$(read_profile "$PROFILE_FILE" 2>/dev/null)"; then
+  printf '%s\n' "$value" > "$RUNTIME_FILE"
+  exit 0
+fi
+
+printf '%s\n' aurora > "$RUNTIME_FILE"
