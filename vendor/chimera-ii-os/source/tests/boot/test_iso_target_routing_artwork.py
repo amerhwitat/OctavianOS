@@ -12,6 +12,7 @@ FULL_BUILDER = (ROOT / "tools/build-full-iso.sh").read_text()
 LIVE_BUILDER = (ROOT / "iso/chimera-live-iso.sh").read_text()
 FULL_ISO_WORKFLOW = (ROOT / ".github/workflows/chimera-full-iso.yml").read_text()
 PREPARE_LAYOUT = (ROOT / "boot/iso/prepare-layout.sh").read_text()
+TARGET_INIT_BUILDER = (ROOT / "tools/build-live-boot-binaries.sh").read_text()
 
 
 class IsoTargetRoutingTests(unittest.TestCase):
@@ -47,6 +48,17 @@ class IsoTargetRoutingTests(unittest.TestCase):
     def test_full_iso_injection_replaces_stale_base_grub_menu(self):
         self.assertIn('cp -f "$ROOT/boot/iso/grub.cfg" "$STAGE/boot/grub/grub.cfg"', FULL_BUILDER)
 
+    def test_live_builder_stages_real_target_elfs_and_checksums(self):
+        for target in ("live", "installer", "recovery"):
+            self.assertIn('target_elf="$BUILD_DIR/koronos/x86_64/target-init-$target.elf"', TARGET_INIT_BUILDER)
+            self.assertIn('chimera_copy_if_distinct "$target_elf" "$TARGETS_OUT/target-init-$target.elf"', TARGET_INIT_BUILDER)
+            self.assertIn('sha256sum "target-init-$target.elf" > "target-init-$target.elf.sha256"', TARGET_INIT_BUILDER)
+            self.assertIn('sha256sum --check "target-init-$target.elf.sha256"', TARGET_INIT_BUILDER)
+        self.assertIn('TARGETS_OUT="$OUT/boot/targets"', TARGET_INIT_BUILDER)
+
+    def test_full_iso_builder_builds_kernel_before_staging_live_targets(self):
+        self.assertLess(FULL_BUILDER.index("koronos-x86_64"), FULL_BUILDER.index('"$ROOT/tools/build-live-boot-binaries.sh"'))
+
     def test_mobile_target_fails_closed_on_x86_64_iso(self):
         start = GRUB.index('--id mobile {')
         end = GRUB.index('\n}', start)
@@ -55,6 +67,7 @@ class IsoTargetRoutingTests(unittest.TestCase):
         self.assertNotIn("multiboot2", entry)
 
     def test_firmware_matrix_selects_targets_by_ids_from_the_immutable_iso(self):
+        self.assertIn("terminal_input console serial", GRUB)
         # The workflow extracts GRUB from the ISO under test and resolves each
         # target by its stable --id. This guards against stale positional offsets
         # when menu entries are inserted or firmware-specific entries change.
