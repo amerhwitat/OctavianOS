@@ -38,6 +38,7 @@ chimera_copy_if_distinct() {
 }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
 ISO_ROOT="$ROOT/boot/iso"
 DIST="$ISO_ROOT/dist"
 WORK="$ISO_ROOT/work"
@@ -51,12 +52,30 @@ KORONOS_ELF="$ROOT/build/koronos/x86_64/koronos.elf"
 test -s "$KORONOS_ELF"
 command -v grub-file >/dev/null || { echo "grub-file is required." >&2; exit 2; }
 grub-file --is-x86-multiboot2 "$KORONOS_ELF"
+for t in live installer recovery; do
+  test -s "$ROOT/build/koronos/x86_64/target-init-$t.elf" || {
+    echo "ERROR: production ring-3 init ELF missing for target=$t" >&2; exit 2; }
+done
 
 printf '%s\n' '[2/7] Build and link Spit Fire native stages'
 bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# Stage the production ring-3 init ELFs and the AI database as Multiboot2 modules.
+# The previous ISO builder compiled these target ELFs but omitted them from the
+# image, causing Koronos to correctly withhold all native userspace handoffs.
+mkdir -p "$DIST/iso/boot/targets" "$DIST/iso/boot/ai"
+for t in live installer recovery; do
+  cp -f "$ROOT/build/koronos/x86_64/target-init-$t.elf" "$DIST/iso/boot/targets/target-init-$t.elf"
+done
+KB="$OCTAVIAN_ROOT/config/ai/knowledge-db.json"
+test -s "$KB" || { echo "ERROR: Octavian knowledge database missing: $KB" >&2; exit 2; }
+cp -f "$KB" "$DIST/iso/boot/ai/knowledge-db.json"
+python3 "$OCTAVIAN_ROOT/tools/ai/knowledge_db.py" validate --db "$DIST/iso/boot/ai/knowledge-db.json" >/dev/null || {
+  echo "ERROR: staged AI knowledge database failed validation" >&2; exit 2; }
+
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
