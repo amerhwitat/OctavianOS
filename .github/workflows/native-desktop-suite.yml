@@ -144,7 +144,7 @@ jobs:
       - name: Validate VSCodium manager and local emulator bridge
         run: |
           bash -n tools/ides/ide-manager.sh
-          bash tools/ides/ide-manager.sh list
+          bash vendor/chimera-ii-os/source/tools/ides/ide-manager.sh list
           bash tools/ides/ide-manager.sh --help
           node --check vendor/chimera-ii-os/source/web/chimera-hub.js
           python3 -m py_compile tools/retro-media/build_retro_media.py vendor/chimera-ii-os/source/tools/runtime/chimera-local-bridge.py vendor/chimera-ii-os/source/tools/runtime/chimera-terminal-backend.py vendor/chimera-ii-os/source/tools/inspect-binary-headers.py
