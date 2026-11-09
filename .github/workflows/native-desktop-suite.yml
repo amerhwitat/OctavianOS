@@ -111,6 +111,11 @@ jobs:
           cmake -S . -B "${{ runner.temp }}/octavian-cmake" -DCMAKE_BUILD_TYPE=Release
           cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 chm-opengl-smoke chm-image-inspect -j2
 
+      - name: Validate X11 provider manifests and launcher syntax
+        run: |
+          bash -n vendor/chimera-ii-os/source/desktop/x11/start-session.sh
+          bash -n vendor/chimera-ii-os/source/tools/commands/install-command-providers.sh
+          python3 -m json.tool vendor/chimera-ii-os/source/desktop/x11/xorg-provider.json >/dev/null
       - name: Runtime-test imported OpenGL and OpenCV CMake targets
         working-directory: vendor/chimera-ii-os/source
         run: |
