@@ -38,6 +38,7 @@ install:
 	@install -m 0644 dbus/aurora.conf $(DESTDIR)$(DBUS_DIR)/aurora.conf
 	@install -m 0755 $(HELPERS) $(DESTDIR)$(BINDIR)/
 	@install -m 0644 README.md $(DESTDIR)$(DOCDIR)/README.md
+	@install -m 0644 ../docs/wsl-drive-aliases.md $(DESTDIR)$(DOCDIR)/wsl-drive-aliases.md
 	@install -d $(DESTDIR)$(SYSTEMD_UNIT_DIR)/graphical.target.wants \
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants
 	@ln -sfn ../aurora.target $(DESTDIR)$(SYSTEMD_UNIT_DIR)/graphical.target.wants/aurora.target
@@ -49,7 +50,8 @@ check:
 	@python3 scripts/check_units.py --units systemd --helpers bin
 
 uninstall:
-	@for u in $(UNITS); do rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$$(basename $$u); done
+	@for u in $(UNITS); do rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(basename $u); done
+	@rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants/octavian-wsl-drive-aliases.service
 	@rm -f $(DESTDIR)$(SYSUSERS_DIR)/aurora.conf $(DESTDIR)$(TMPFILES_DIR)/aurora.conf
 	@rm -f $(DESTDIR)$(DBUS_DIR)/aurora.conf
 	@for h in $(HELPERS); do rm -f $(DESTDIR)$(BINDIR)/$$(basename $$h); done
