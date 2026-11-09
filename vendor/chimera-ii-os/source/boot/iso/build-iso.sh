@@ -194,7 +194,26 @@ test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery man
 grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/live/live-manifest.json' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/recovery/chimera-recovery-initramfs.img' "$ROOT/boot/jasper/recovery.cfg"
-grep -q 'Recovery Terminal' "$ROOT/boot/jasper/recovery.cfg"
+grep -Eq 'Recovery (Terminal|Shell|Environment)' "$ROOT/boot/jasper/recovery.cfg"
+
+# Verify the target init payload is present in the ISO and attached by the
+# corresponding Jasper menu. This catches the prior failure where the kernel
+# and target ELFs built, but GRUB omitted the Multiboot2 init modules.
+for t in live installer recovery; do
+  test -s "$DIST/iso/boot/targets/target-init-$t.elf" || {
+    echo "ERROR: target init ELF missing from ISO: $t" >&2; exit 2; }
+  case "$t" in
+    live) cfg="$DIST/iso/boot/jasper/live.cfg" ;;
+    installer) cfg="$DIST/iso/boot/jasper/install.cfg" ;;
+    recovery) cfg="$DIST/iso/boot/jasper/recovery.cfg" ;;
+  esac
+  grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$cfg" || {
+    echo "ERROR: Jasper menu does not attach target init for $t" >&2; exit 2; }
+  grep -q "ai-knowledge-db" "$cfg" || {
+    echo "ERROR: Jasper menu does not attach AI knowledge module for $t" >&2; exit 2; }
+done
+test -s "$DIST/iso/boot/ai/knowledge-db.json" || {
+  echo "ERROR: AI knowledge module missing from ISO tree" >&2; exit 2; }
 
 for contract in \
   "$DIST/iso/install/installer/installation.img" \
