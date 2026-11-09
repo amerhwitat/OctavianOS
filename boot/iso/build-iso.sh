@@ -111,10 +111,22 @@ done
 log "5/6 validating menu contract"
 grep -q "ai-knowledge-db" "$ISO_ROOT/boot/grub/grub.cfg" || { echo "ERROR: no knowledge-db module in menu" >&2; exit 2; }
 for t in live installer recovery; do
-  grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \
-    || grep -rq "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/jasper" "$ISO_ROOT/boot/installation" 2>/dev/null || {
-      echo "ERROR: no ring-3 init module staged in the menu graph for target=$t" >&2; exit 2; }
+  test -s "$ISO_ROOT/boot/targets/target-init-$t.elf" || {
+    echo "ERROR: target init ELF missing from ISO tree: $t" >&2; exit 2; }
+  case "$t" in
+    live) cfg="$ISO_ROOT/boot/jasper/live.cfg" ;;
+    installer) cfg="$ISO_ROOT/boot/jasper/install.cfg" ;;
+    recovery) cfg="$ISO_ROOT/boot/jasper/recovery.cfg" ;;
+  esac
+  grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$cfg" || {
+    echo "ERROR: Jasper target config does not attach its native ring-3 init: $t" >&2; exit 2; }
+  grep -q "ai-knowledge-db" "$cfg" || {
+    echo "ERROR: Jasper target config does not attach the AI knowledge module: $t" >&2; exit 2; }
 done
+grep -q "target-init-live.elf chimera-user-init-elf target=live" "$ISO_ROOT/boot/grub/grub.cfg" || {
+  echo "ERROR: primary GRUB Live entry does not attach its native init" >&2; exit 2; }
+grep -q "target-init-installer.elf chimera-user-init-elf target=installer" "$ISO_ROOT/boot/grub/grub.cfg" || {
+  echo "ERROR: primary GRUB Installer entry does not attach its native init" >&2; exit 2; }
 test -s "$ISO_ROOT/boot/live/chimera-live-initramfs.img" || { echo "ERROR: live initramfs missing" >&2; exit 2; }
 test -s "$ISO_ROOT/boot/recovery/chimera-recovery-initramfs.img" || { echo "ERROR: recovery initramfs missing" >&2; exit 2; }
 
