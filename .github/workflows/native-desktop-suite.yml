@@ -70,6 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tests/ide -p test_install_vscode.py -v
+          python3 -m unittest discover -s tests/runtime -p test_chimera_terminal_backend.py -v
           bash tools/graphics/install-opengl-opencv.sh --verify
       - name: Install native build tools
         run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
