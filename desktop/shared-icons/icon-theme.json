@@ -1,0 +1,31 @@
+{
+  "schema": "CHM-OCTAVIAN-SHARED-ICON-THEME-1",
+  "sprite": "desktop/shared-icons/catalog.svg",
+  "manifest": "desktop/shared-icons/manifest.json",
+  "usage": "Resolve semantic icon IDs using local SVG <use> references. Original project artwork; icon availability does not imply app installation or launchability.",
+  "desktops": {
+    "aurora": {
+      "files": "aurora-files",
+      "browser": "chromium",
+      "terminal": "terminal",
+      "voiceconnect": "voiceconnect",
+      "network": "network",
+      "settings": "settings",
+      "system": "system-monitor",
+      "media": "aurora-media-player",
+      "store": "store",
+      "about": "about",
+      "docs": "docs"
+    },
+    "marine": {
+      "start": "chimera-boot-manager",
+      "files": "aurora-files",
+      "browser": "chromium",
+      "terminal": "terminal",
+      "settings": "settings",
+      "network": "network",
+      "downloads": "archive-manager",
+      "store": "store"
+    }
+  }
+}
