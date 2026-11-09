@@ -433,9 +433,48 @@ jobs:
           # The full image has a much larger GRUB menu/artwork payload than the
           # isolated target-smoke ISOs. Allow firmware/GRUB to settle before
           # injecting Enter; send it twice to tolerate a menu redraw race.
-          { sleep 8; printf 'sendkey ret\n'; sleep 2; printf 'sendkey ret\n'; sleep 25; } | timeout 38s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom boot/iso/dist/output.iso -boot d -display none -serial file:"$smoke/full-iso-serial.log" -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null
+          # Use a dedicated QEMU monitor socket instead of piping commands to
+          # -monitor stdio. This avoids stdin/PTY races in non-interactive CI.
+          monitor_socket="$smoke/full-iso-monitor.sock"
+          rm -f "$monitor_socket" "$smoke/full-iso-debugcon.log" "$smoke/full-iso-serial.log"
+          timeout 38s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom boot/iso/dist/output.iso -boot d -display none -serial file:"$smoke/full-iso-serial.log" -monitor "unix:$monitor_socket,server,nowait" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
+          qemu_pid=$!
+          set +e
+          python3 - "$monitor_socket" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          deadline = time.monotonic() + 12
+          monitor = None
+          while time.monotonic() < deadline:
+              try:
+                  monitor = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                  monitor.connect(path)
+                  break
+              except OSError:
+                  if monitor:
+                      monitor.close()
+                  monitor = None
+                  time.sleep(0.1)
+          if monitor is None:
+              raise SystemExit("QEMU monitor socket did not become available")
+          monitor.settimeout(2)
+          try:
+              monitor.recv(4096)  # QEMU greeting
+          except socket.timeout:
+              pass
+          time.sleep(8)           # allow firmware and Jasper/GRUB menus to settle
+          monitor.sendall(b"sendkey ret\\n")
+          time.sleep(2)           # tolerate nested boot menus
+          monitor.sendall(b"sendkey ret\\n")
+          time.sleep(15)
+          monitor.sendall(b"quit\\n")
+          monitor.close()
+          PY
+          monitor_status=$?
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
+          if [[ $monitor_status -ne 0 ]]; then echo "::error::Could not drive full ISO through QEMU monitor"; exit 1; fi
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace after delayed GRUB selection (QEMU exit $qemu_status)"; test ! -s "$smoke/full-iso-serial.log" || cat "$smoke/full-iso-serial.log"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
