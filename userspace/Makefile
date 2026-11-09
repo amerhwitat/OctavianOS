@@ -16,7 +16,7 @@ BINDIR ?= $(PREFIX)/local/bin
 DOCDIR ?= $(PREFIX)/share/doc/aurora
 
 UNITS := $(wildcard systemd/*.service systemd/*.target)
-HELPERS := bin/aurora-session bin/aurora-profile-apply bin/aurora-profile-set bin/aurora-network-wait bin/voiceconnect-broker
+HELPERS := bin/aurora-session bin/aurora-profile-apply bin/aurora-profile-set bin/aurora-network-wait bin/voiceconnect-broker bin/octavian-map-windows-drives
 
 .PHONY: all install check uninstall help
 
@@ -42,6 +42,7 @@ install:
 		$(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants
 	@ln -sfn ../aurora.target $(DESTDIR)$(SYSTEMD_UNIT_DIR)/graphical.target.wants/aurora.target
 	@ln -sfn ../aurora-network.service $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants/aurora-network.service
+	@ln -sfn ../octavian-wsl-drive-aliases.service $(DESTDIR)$(SYSTEMD_UNIT_DIR)/multi-user.target.wants/octavian-wsl-drive-aliases.service
 	@echo "  INSTALL units -> $(DESTDIR)$(SYSTEMD_UNIT_DIR)"
 
 check:
