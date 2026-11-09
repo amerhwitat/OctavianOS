@@ -332,6 +332,8 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      # Positive target acceptance: each synthetic GRUB menu must load the real ring-3 init ELF and AI module.
+      # Do not replace these checks with a kernel-only smoke or an expected 'handoff withheld' trace.
       - name: QEMU Live target userspace handoff smoke test
         working-directory: vendor/chimera-ii-os/source
         run: |
