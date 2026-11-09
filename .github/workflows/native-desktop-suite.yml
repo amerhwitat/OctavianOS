@@ -69,6 +69,8 @@ jobs:
           python3 -m unittest discover -s tools/binary/tests -v
           python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/binary/tests -v
           bash -n retro/commodore/create-retro-media.sh retro/commodore/launch-machine.sh
+      - name: Install graphics verification dependencies
+        run: sudo apt-get update && sudo apt-get install --yes pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils xvfb
       - name: Verify graphics SDK and VS Code installer plans
         working-directory: vendor/chimera-ii-os/source
         run: |
