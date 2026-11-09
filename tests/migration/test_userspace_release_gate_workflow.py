@@ -13,7 +13,7 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
         self.assertIn("needs: build-koronos", self.text)
-        self.assertIn("python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log", self.text)
+        self.assertIn("python3 tests/migration/verify-userspace-handoff.py live trace/live-debugcon.log", self.text)
         self.assertIn("python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
         self.assertIn("python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
 
@@ -26,7 +26,7 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
         section = section.split("      - name:", 1)[0]
-        for trace in ("full-iso-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
+        for trace in ("full-iso-debugcon.log", "live-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
             self.assertIn(trace, section)
 
 if __name__ == "__main__":
