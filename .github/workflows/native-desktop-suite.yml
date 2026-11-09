@@ -190,7 +190,6 @@ jobs:
           install -m 0755 "$opengl" "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/"
           install -m 0755 "$opencv" "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/"
           install -m 0644 man/chm-opengl-smoke.1 man/chm-image-inspect.1 "$OCTAVIAN_DESKTOP_BUILD_DIR/"
-          ldd "$opengl" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
           ldd "$opencv" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opencv-runtime-dependencies.txt"
       - name: Build and headlessly smoke-test native Aurora and Marine GTK shells
         env:
@@ -256,6 +255,7 @@ jobs:
           chmod 0755 "$out/bin/chm-opengl-smoke" "$out/bin/chm-image-inspect"
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$out/bin/chm-opengl-smoke" --self-test
           "$out/bin/chm-image-inspect" --self-test
+          ldd "$opengl" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
           (cd "$out" && find bin share lib libexec -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$out" && sha256sum -c SHA256SUMS)
           (cd "$out" && { find bin libexec -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do LD_LIBRARY_PATH="$out/lib" ldd "$file" 2>&1 || true; done; }) > "$out/share/chimera/runtime-dependencies.txt"
