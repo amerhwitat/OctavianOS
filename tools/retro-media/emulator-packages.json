@@ -1,5 +1,5 @@
 {
-  "schema": "chimera-retro-emulator-packages/v1",
+  "schema": "octavian-retro-emulator-packages/v1",
   "packages": [
     {
       "id": "fs-uae",
