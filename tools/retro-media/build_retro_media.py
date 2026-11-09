@@ -29,7 +29,7 @@ def create_adf(xdftool: str, out: Path, volume: str, fs_type: str, model: str, t
     image = out / f"Octavian-Amiga-{model}.adf"
     startup, readme = temp / f"Startup-Sequence-{model}", temp / f"README-Amiga-{model}.txt"
     startup.write_text(
-        f"; Chimera Retro Lab - Amiga {model}\n"
+        f"; Octavian Retro Lab - Amiga {model}\n"
         "; Data disk for a legally licensed Kickstart/Workbench installation.\n"
         f'Echo "OCTAVIAN RETRO LAB - AMIGA {model}"\n'
         'Echo "Disk mounted successfully."\n', encoding="ascii")
