@@ -67,6 +67,8 @@ class SharedDesktopIconTests(unittest.TestCase):
         packages = (ROOT / "vendor/chimera-ii-os/source/tools/commands/install-command-providers.sh").read_text(encoding="utf-8")
         self.assertIn("xserver-xorg", provider["packages"])
         self.assertIn("xwayland", provider["packages"])
+        self.assertIn("freexp", provider["desktop_sessions"])
+        self.assertIn("freexp", launcher)
         self.assertIn("CHIMERA_X11_RUNTIME_VERIFIED", launcher)
         self.assertIn("CHIMERA_X11_FORCE_UNVERIFIED", launcher)
         self.assertIn("xserver-xorg", packages)
