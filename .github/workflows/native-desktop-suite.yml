@@ -151,7 +151,7 @@ jobs:
           python3 vendor/chimera-ii-os/source/tests/runtime/test_terminal_backend.py
           python3 vendor/chimera-ii-os/source/tests/tools/test_inspect_binary_headers.py
           python3 vendor/chimera-ii-os/source/tests/tools/test_run_compatible_binary.py
-          bash -n tools/binary/install-compat-runtimes.sh
+          bash -n vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh
           python3 -m json.tool vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json >/dev/null
           bash -n vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh
           bash vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh list >/dev/null
