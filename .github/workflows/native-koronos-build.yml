@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes build-essential nasm binutils python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
+          sudo apt-get install --yes build-essential nasm binutils clang llvm file python3 grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools dosfstools qemu-system-x86 busybox-static cpio ffmpeg imagemagick unzip python3-cairosvg
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -434,6 +434,14 @@ jobs:
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+      - name: Upload ISA cross-target smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-isa-cross-target-smokes
+          path: vendor/chimera-ii-os/source/build/isa-smokes/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
