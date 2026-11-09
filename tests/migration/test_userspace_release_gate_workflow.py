@@ -29,5 +29,15 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         for trace in ("full-iso-debugcon.log", "live-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
             self.assertIn(trace, section)
 
+    def test_each_target_qemu_smoke_attaches_native_init_and_ai_modules(self):
+        for target in ("live", "installer", "recovery"):
+            self.assertIn(f"target-init-{target}.elf chimera-user-init-elf target={target}", self.text)
+        self.assertGreaterEqual(self.text.count("module2 /boot/ai/knowledge-db.json ai-knowledge-db"), 3)
+        self.assertNotIn("handoff withheld", self.text)
+
+    def test_full_iso_smoke_selects_default_from_long_timeout_menu(self):
+        self.assertIn("sendkey ret", self.text)
+        self.assertIn("set timeout=300", self.text)
+
 if __name__ == "__main__":
     unittest.main()
