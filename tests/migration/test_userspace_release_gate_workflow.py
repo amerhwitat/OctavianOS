@@ -37,7 +37,7 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
 
     def test_full_iso_smoke_selects_default_from_long_timeout_menu(self):
         self.assertIn("sendkey ret", self.text)
-        self.assertIn("timeout 25s qemu-system-x86_64", self.text)
+        self.assertIn("timeout 38s qemu-system-x86_64", self.text)
 
 if __name__ == "__main__":
     unittest.main()
