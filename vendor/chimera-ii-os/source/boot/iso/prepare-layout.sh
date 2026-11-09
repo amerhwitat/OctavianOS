@@ -80,6 +80,15 @@ fi
 # Hard-stage canonical boot artwork and Init.mp4 so every boot policy layer can access
 # the same offline assets without depending on network access or a desktop session.
 mkdir -p "$DIST/boot/visual" "$DIST/usr/share/chimera/aurora/assets" "$DIST/desktop/aurora"
+# OctavianOS CI may render its branded boot artwork into the source boot/visual
+# directory before ISO composition. Preserve only the explicitly named,
+# verified image and manifest; the later ISO stage selects the image as the
+# canonical boot background for every Jasper/Spit Fire/GRUB/Koronos namespace.
+for asset in octavian-octopus-aurora.png octavian-artwork-manifest.json; do
+  if [[ -s "$ROOT/boot/visual/$asset" ]]; then
+    install -m 0644 "$ROOT/boot/visual/$asset" "$DIST/boot/visual/$asset"
+  fi
+done
 cp -f "$ROOT/boot/splash/spitfire_background.svg" "$DIST/boot/visual/spitfire_background.svg"
 cp -f "$ROOT/boot/splash/jasper_background.svg" "$DIST/boot/visual/jasper_background.svg"
 cp -f "$ROOT/boot/splash/aurora_boot_splash.svg" "$DIST/boot/visual/aurora_boot_splash.svg"
