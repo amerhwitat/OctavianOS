@@ -432,7 +432,7 @@ jobs:
           set +e
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -qmp "unix:$smoke/qmp.sock,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >"$smoke/qemu-full-iso.log" 2>&1 &
           qemu_pid=$!
-          python3 - "$smoke/qmp.sock" <<'PY'
+          python3 - "$smoke/qmp.sock" "$smoke/full-iso-debugcon.log" <<'PY'
           import json, socket, sys, time
           path = sys.argv[1]
           client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -457,7 +457,21 @@ jobs:
                   if "error" in reply:
                       raise SystemExit(f"QMP command failed: {reply['error']}")
           command({"execute": "qmp_capabilities"})
-          command({"execute": "human-monitor-command", "arguments": {"command-line": "sendkey ret"}})
+          # QMP becomes available before firmware and GRUB have necessarily
+          # reached the interactive menu. An immediate keypress can be lost.
+          # Wait for the firmware/menu path, then retry Enter while observing
+          # the debugcon marker; never shorten the production menu timeout.
+          time.sleep(3)
+          deadline = time.monotonic() + 18
+          while time.monotonic() < deadline:
+              command({"execute": "human-monitor-command", "arguments": {"command-line": "sendkey ret"}})
+              time.sleep(0.75)
+              try:
+                  with open(sys.argv[2], encoding="utf-8", errors="replace") as trace:
+                      if "[KRN ] KORONOS READY" in trace.read():
+                          break
+              except FileNotFoundError:
+                  pass
           client.close()
           PY
           wait "$qemu_pid"
