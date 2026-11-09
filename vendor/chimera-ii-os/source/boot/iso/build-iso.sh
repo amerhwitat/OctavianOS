@@ -57,6 +57,14 @@ for t in live installer recovery; do
     echo "ERROR: production ring-3 init ELF missing for target=$t" >&2; exit 2; }
 done
 
+# Compile one freestanding artifact for every declared LLVM/NASM backend.
+# This records toolchain availability separately from full ISA conformance.
+python3 "$ROOT/tools/isa/build-architecture-smokes.py" \
+  --backends "$ROOT/tools/isa/architecture-backends.json" \
+  --output "$ROOT/build/isa-smokes"
+test -s "$ROOT/build/isa-smokes/report.json" || {
+  echo "ERROR: ISA cross-target smoke report missing" >&2; exit 2; }
+
 printf '%s\n' '[2/7] Build and link Spit Fire native stages'
 bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
@@ -66,7 +74,8 @@ bash "$ISO_ROOT/prepare-layout.sh"
 # Stage the production ring-3 init ELFs and the AI database as Multiboot2 modules.
 # The previous ISO builder compiled these target ELFs but omitted them from the
 # image, causing Koronos to correctly withhold all native userspace handoffs.
-mkdir -p "$DIST/iso/boot/targets" "$DIST/iso/boot/ai"
+mkdir -p "$DIST/iso/boot/targets" "$DIST/iso/boot/ai" "$DIST/iso/boot/isa-smokes"
+cp -a "$ROOT/build/isa-smokes/." "$DIST/iso/boot/isa-smokes/"
 for t in live installer recovery; do
   cp -f "$ROOT/build/koronos/x86_64/target-init-$t.elf" "$DIST/iso/boot/targets/target-init-$t.elf"
 done
