@@ -5,12 +5,16 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/native-koronos-build.yml'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/commands/install-busybox-applets.sh'
+      - 'vendor/chimera-ii-os/source/tools/build-full-iso.sh'
+      - 'vendor/chimera-ii-os/source/tests/boot/test_iso_target_routing_artwork.py'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
@@ -38,8 +42,12 @@ on:
       - 'vendor/chimera-ii-os/source/rootfs/usr/sbin/chimera-cpu-mode'
       - 'vendor/chimera-ii-os/source/rootfs/etc/chimera/commands/registry.tsv'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/live-image/**'
+      - 'vendor/chimera-ii-os/source/tests/commands/**'
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/tools/storage/chimera-wsl-drive-map.sh'
+      - 'vendor/chimera-ii-os/source/tests/build/test_cpu_aware_iso.sh'
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/machine-code-pipeline-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-process-loader.yml'
@@ -55,6 +63,9 @@ on:
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/build-full-iso.sh'
+      - 'vendor/chimera-ii-os/source/tools/commands/install-busybox-applets.sh'
+      - 'vendor/chimera-ii-os/source/tests/boot/test_iso_target_routing_artwork.py'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
@@ -73,8 +84,12 @@ on:
       - 'vendor/chimera-ii-os/source/rootfs/usr/sbin/chimera-cpu-mode'
       - 'vendor/chimera-ii-os/source/rootfs/etc/chimera/commands/registry.tsv'
       - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/live-image/**'
+      - 'vendor/chimera-ii-os/source/tests/commands/**'
       - 'vendor/chimera-ii-os/source/src/chimera-command-compat/**'
       - 'vendor/chimera-ii-os/source/build-chimera-iso.sh'
+      - 'vendor/chimera-ii-os/source/tools/storage/chimera-wsl-drive-map.sh'
+      - 'vendor/chimera-ii-os/source/tests/build/test_cpu_aware_iso.sh'
       - 'vendor/chimera-ii-os/source/.github/workflows/isa-command-runtime-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/machine-code-pipeline-ci.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-process-loader.yml'
@@ -272,6 +287,15 @@ jobs:
             vendor/chimera-ii-os/source/build/live-boot/mobile/*/manifest.json
           if-no-files-found: error
           retention-days: 14
+      - name: Validate vendored legacy Linux command providers
+        run: |
+          set -euo pipefail
+          cd vendor/chimera-ii-os/source
+          bash -n tools/commands/install-legacy-command-compat.sh tools/commands/build-native-legacy-providers.sh
+          bash tests/commands/test-legacy-command-compat.sh
+          bash tests/commands/test-native-legacy-providers.sh
+          python3 tests/commands/test_catalogue_provider_resolver.py
+           (cd vendor/chimera-ii-os/source && python3 tests/boot/test_iso_target_routing_artwork.py)
       - name: Validate Octavian Octopus artwork renderer
         run: |
           set -euo pipefail
@@ -394,7 +418,10 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          # The full ISO intentionally waits 300 seconds at the GRUB menu.
+          # Simulate a user pressing Enter after the menu is visible instead
+          # of treating the expected wait as a boot failure.
+          ( sleep 20; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 40s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
           qemu_status=$?
           set -e
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
