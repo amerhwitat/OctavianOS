@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Fail-closed acceptance check for a real target-specific init userspace handoff.
+"""Fail-closed check for a target-specific CPL3 init handoff probe.
 
-The entry acknowledgement must be emitted by the syscall/exception entry path
-after it has established that the originating context was executing at CPL 3.
-A pre-transition kernel log line is not evidence of user-mode execution.
+This proves the kernel can enter a target ELF, acknowledge a user-originated
+syscall, and observe its PID-matched readiness write. It does not prove a full
+desktop, installer disk-write path, or recovery repair implementation.
 """
 from pathlib import Path
 import re
@@ -47,7 +47,7 @@ def main() -> int:
         for marker in ready:
             if (marker.group(1) == target and marker.group(2) == entry.group(2)
                     and entry.start() < marker.start()):
-                print(f"PASS: target={target} init entered user mode and reported readiness with a consistent PID")
+                print(f"PASS: target={target} ring-3 init probe entered user mode and reported readiness with a consistent PID")
                 return 0
     print("FAIL: expected ordered kernel-ready -> user-originated init syscall -> userspace-ready markers for target=" + target + " with the same nonzero PID")
     return 1

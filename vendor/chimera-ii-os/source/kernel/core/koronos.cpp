@@ -279,7 +279,10 @@ static void task_recovery(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
-        console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
+        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+            console_write("[USER] Target init ELF module staged; bootstrap dispatcher owns the ring-3 launch attempt");
+        else
+            console_write("[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload");
     } else {
         console_write("[REC ] Recovery target not selected: no recovery initramfs module");
     }
@@ -325,7 +328,10 @@ static void task_installer(void *) {
             break;
         case 4:
             console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
+            if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF))
+                console_write("[USER] Target init ELF module staged; bootstrap dispatcher owns the ring-3 launch attempt");
+            else
+                console_write("[USER] Installer handoff withheld: no native installer init ELF is wired to this payload");
             chimera_sched_block();
             break;
         default:

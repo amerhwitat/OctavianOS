@@ -84,7 +84,14 @@
     "installation_entry": "/boot/installation/menu.cfg",
     "recovery_entry": "/boot/jasper/recovery.cfg",
     "diagnostics_entry": "/boot/jasper/diagnostics.cfg",
-    "vmlinuz": false
+    "vmlinuz": false,
+    "menu_policy": {
+      "timeout_seconds": 300,
+      "submenu_timeout_seconds": 120,
+      "timeout_style": "menu",
+      "default_entry": "live",
+      "on_timeout": "boot_default"
+    }
   },
   "actions": {
     "live": {
