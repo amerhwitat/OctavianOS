@@ -207,6 +207,22 @@ jobs:
             exit 1
           fi
 
+      - name: Assemble IDE and binary compatibility helpers
+        env:
+          OCTAVIAN_DESKTOP_BUILD_DIR: ${{ runner.temp }}/octavian-desktop
+        run: |
+          set -euo pipefail
+          out="$OCTAVIAN_DESKTOP_BUILD_DIR"
+          mkdir -p "$out/share/chimera" "$out/share/man/man1"
+          install -m 0755 vendor/chimera-ii-os/source/tools/run-compatible-binary.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/inspect-binary-headers.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh "$out/bin/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/ides/ide-manager.sh "$out/bin/chm-ide-manager"
+          install -m 0644 vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json "$out/share/chimera/"
+          install -m 0644 vendor/chimera-ii-os/source/compat/binary-format-registry.json "$out/share/chimera/"
+          install -m 0644 vendor/chimera-ii-os/source/man/chm-ide.1 vendor/chimera-ii-os/source/man/chm-binary-headers.1 vendor/chimera-ii-os/source/man/chm-binary-inspect.1 "$out/share/man/man1/"
+          install -m 0755 /tmp/octavian-aarch64-smoke "$out/bin/"
+          (cd "$out" && find . -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
       - name: Publish compiled native component bundle
         uses: actions/upload-artifact@v4
         with:
