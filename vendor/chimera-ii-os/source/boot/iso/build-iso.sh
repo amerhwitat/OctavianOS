@@ -181,6 +181,12 @@ done
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$DIST/iso"
 
 grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/iso/grub.cfg"
+grep -q 'module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live' "$ROOT/boot/jasper/live.cfg"
+grep -q 'module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer' "$ROOT/boot/jasper/install.cfg"
+grep -q 'module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery' "$ROOT/boot/jasper/recovery.cfg"
 grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$ROOT/boot/iso/grub.cfg"
 grep -q '"native_execution_order"' "$DIST/iso/boot/chimera/manifests/boot-execution-order.json"
 
