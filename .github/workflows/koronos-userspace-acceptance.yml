@@ -5,11 +5,21 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'live-image/build.sh'
+      - 'tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
     branches: [main]
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'live-image/build.sh'
+      - 'tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
@@ -32,7 +42,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
-      - name: Build Koronos and high-address userspace probes
+      - name: Build Koronos and production target init ELFs
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
         run: |
@@ -53,14 +63,16 @@ jobs:
           ISO_ROOT="$OUT/iso"
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
+          cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
+          readelf -h "$ISO_ROOT/boot/target-init-$TARGET.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
-          set timeout=0
+          set timeout=300
+          set timeout_style=menu
           set default=0
           terminal_output console
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/target-init-$TARGET.elf chimera-user-init-elf target=$TARGET
             boot
           }
           EOF
@@ -75,7 +87,7 @@ jobs:
           set -uo pipefail
           OUT="$PWD/build/userspace-acceptance/$TARGET"
           LOG="$OUT/qemu-$FIRMWARE.log"
-          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
+          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
           if [ "$FIRMWARE" = uefi ]; then
             OVMF_CODE=""
             OVMF_VARS=""
@@ -95,7 +107,7 @@ jobs:
                    -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_VARS.fd")
           fi
           set +e
-          timeout 18s "${QEMU[@]}"
+          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 25s "${QEMU[@]}"
           qemu_rc=$?
           set -e
           # A healthy test init exits to the kernel, which then idles. Timeout
@@ -104,19 +116,23 @@ jobs:
           # complete trace before assertions so failures can be debugged from CI.
           if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
-          # Require a real, nonzero PID supplied by the running probe, not a
-          # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          # Require a real, nonzero PID supplied by the running production target init,
+          # not a literal pid=1 baked into the image or a kernel-authored marker.
+          ready_line="$(grep -Eo "USERSPACE READY: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
           ready_pid="${ready_line##*=}"
           ack_pid="${ack_line##*=}"
           test "$ready_pid" = "$ack_pid"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
           grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
+          case "$TARGET" in
+            live) grep -Fq "LIVE: ring-3 text console active; graphical Aurora is not started" "$LOG" ;;
+            installer) grep -Fq "INSTALLER: no disk will be modified; installation is not performed" "$LOG" ;;
+            recovery) grep -Fq "RECOVERY: ring-3 syscall ABI self-check complete" "$LOG" ;;
+          esac
+          echo "Production target-init ring-3 handoff passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc; desktop/install/repair acceptance remains separate"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
         run: |
@@ -129,7 +145,8 @@ jobs:
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
-          set timeout=0
+          set timeout=300
+          set timeout_style=menu
           set default=0
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
@@ -141,8 +158,8 @@ jobs:
           grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
           LOG="$OUT/qemu-timeout.log"
           set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
-            -display none -serial none -monitor none -no-reboot -no-shutdown \
+          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 25s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
+            -display none -serial none -monitor stdio -no-reboot -no-shutdown \
             -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
           qemu_rc=$?
           set -e

@@ -1,0 +1,89 @@
+{
+  "schema": "OCTAVIAN-RUNTIME-CATALOGUE-CONTRACT-1",
+  "commands": {
+    "discovery_catalog": "runtime/commands/native-command-candidates.json",
+    "imported_source": "vendor/chimera-ii-os/source/system/commands/chimera-command-list.json plus imported SS64 platform records",
+    "runtime_stager": "tools/runtime/stage_native_command_runtime.py",
+    "source_native_multicall": "vendor/chimera-ii-os/source/src/chimera-command-compat/chimera-cmd.c",
+    "native_multicall_binary": "/usr/lib/chimera/chimera-cmd.native",
+    "native_multicall_entrypoints": "/usr/lib/chimera/native-bin",
+    "native_multicall_verification": "compiled Linux ABI ELF plus argv[0] symlinks, ELF machine validation, and native/QEMU-user semantic tests for all 37 command entrypoints; Koronos syscall ABI remains separately unverified",
+    "native_allowlist": [
+      "pwd",
+      "echo",
+      "ls",
+      "cp",
+      "mv",
+      "touch",
+      "mkdir",
+      "rm",
+      "cat",
+      "clear",
+      "whoami",
+      "hostname",
+      "date",
+      "true",
+      "false",
+      "rmdir",
+      "ln",
+      "readlink",
+      "basename",
+      "dirname",
+      "uname",
+      "wc",
+      "head",
+      "tail",
+      "sleep",
+      "env",
+      "printenv",
+      "which",
+      "seq",
+      "yes",
+      "tty",
+      "id",
+      "fold",
+      "nl",
+      "tr",
+      "tee",
+      "cmp"
+    ],
+    "rule": "The candidate catalogue is discovery metadata. Only implemented commands with a built target binary are binary-backed; unknown commands remain provider-missing or discovery-only.",
+    "coverage_catalogue": "vendor/chimera-ii-os/source/system/commands/command-isa-coverage.json",
+    "coverage_counts": {
+      "unique_commands": 855,
+      "native_source_implemented": 37,
+      "non_native_commands": 818
+    },
+    "coverage_note": "The 818 non-native entries are not all necessarily missing: inspect each row's provider status. Candidate-only syntax/operators are not executable commands and must not receive fake binaries.",
+    "candidate_registry_counts": {
+      "records": 4081,
+      "native_implemented": 37,
+      "candidate_only": 4044
+    }
+  },
+  "isa": {
+    "catalogue": "runtime/isa/universal-instruction-catalog.json",
+    "imported_source": "vendor/chimera-ii-os/source/isa/isa_database.json plus runtime/isa/riscv-opcodes.json",
+    "rule": "All 1,613 imported instruction records are catalogued with source/provenance and encoding forms. Execution remains disabled until architecture-specific semantics and conformance tests pass.",
+    "riscv_opcodes_catalogue": "runtime/isa/riscv-opcodes.json",
+    "expected_instruction_records": 1613,
+    "expected_architecture_labels": 15
+  },
+  "architecture_builds": {
+    "workflow": ".github/workflows/command-arch-matrix.yml",
+    "targets": [
+      "x86_64",
+      "i686",
+      "armel",
+      "aarch64",
+      "armv7",
+      "riscv64",
+      "ppc64le",
+      "s390x"
+    ],
+    "output": "build/command-arch-matrix/<arch>/usr/lib/chimera/chimera-cmd.native",
+    "artifact_abi": "Linux ELF cross-build artifact; not automatically a Koronos-native executable",
+    "runtime_gate": "Each ABI build is ELF-machine validated and executes all 37 multicall command semantics under native x86_64 or QEMU-user emulation; this validates Linux ABI behavior only, not Koronos kernel compatibility."
+  },
+  "current_kernel_runtime": "The current published native Koronos release is AMD64. Cross-built command artifacts do not establish non-AMD64 kernel support."
+}

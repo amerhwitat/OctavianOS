@@ -5,6 +5,27 @@ on:
     branches: [main, 'fix/live-image-fullscreen-app-bundle-*']
     paths:
       - 'live-image/**'
+      - 'live-image/lib/export-*.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/system/commands/**'
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/install/**'
+      - 'vendor/chimera-ii-os/source/installer/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/icons/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'tests/boot/**'
+      - 'boot/**'
+      - 'system/commands/**'
+      - 'catalogues/**'
+      - 'runtime/commands/**'
+      - 'runtime/isa/**'
+      - 'aurora/terminals/**'
+      - 'aurora/shells/**'
+      - 'vendor/chimera-ii-os/source/isa/**'
+      - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -16,6 +37,27 @@ on:
   pull_request:
     paths:
       - 'live-image/**'
+      - 'live-image/lib/export-*.py'
+      - 'vendor/chimera-ii-os/source/tools/commands/**'
+      - 'vendor/chimera-ii-os/source/system/commands/**'
+      - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/install/**'
+      - 'vendor/chimera-ii-os/source/installer/**'
+      - 'vendor/chimera-ii-os/source/desktop/app-icons/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/icons/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'tests/boot/**'
+      - 'boot/**'
+      - 'system/commands/**'
+      - 'catalogues/**'
+      - 'runtime/commands/**'
+      - 'runtime/isa/**'
+      - 'aurora/terminals/**'
+      - 'aurora/shells/**'
+      - 'vendor/chimera-ii-os/source/isa/**'
+      - 'vendor/chimera-ii-os/source/ISA.csv'
       - 'tests/live-image/**'
       - 'web/**'
       - 'desktop/**'
@@ -44,6 +86,8 @@ jobs:
     name: Build OctavianOS live ISO
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    outputs:
+      production_accepted: ${{ steps.production_gate.outputs.accepted }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,14 +95,35 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
-            mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.1 openbox x11-utils xdotool xvfb dbus-x11
+            debootstrap binutils nasm gcc g++ make busybox-static cpio gzip file qemu-system-x86 ovmf xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools imagemagick python3 python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+            openbox x11-utils xdotool xvfb dbus-x11 git cargo rustc cmake ninja-build pkg-config \
+            python3-venv python3-pip nodejs autoconf automake libtool gettext meson golang-go \
+            libncurses-dev libreadline-dev libvte-2.91-dev libvte-2.91-gtk4-dev blueprint-compiler valac \
+            libpcre2-dev libpixman-1-dev libfcft-dev libtllist-dev libutf8proc-dev \
+            libjson-glib-dev libgee-0.8-dev libxml2-dev librsvg2-dev libgraphene-1.0-dev libpqmarble-dev \
+            appstream-util desktop-file-utils patch libgtk-4-dev libadwaita-1-dev \
+            libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libfontconfig1-dev libfreetype-dev libharfbuzz-dev libvulkan-dev qt6-base-dev qt6-declarative-dev \
+            libdbus-1-dev libssl-dev libasound2-dev libpulse-dev libxrandr-dev libxi-dev \
+            libxinerama-dev libxcursor-dev libxext-dev libxrender-dev libxfixes-dev \
+            libxdamage-dev libxcomposite-dev curl minisign
 
       - name: Validate desktop source and application catalogs
         run: |
           set -euo pipefail
-          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py
+          python3 -m py_compile live-image/lib/aurora-kiosk.py live-image/lib/patch_html.py live-image/lib/export-aurora-icons.py live-image/lib/export-app-icon-theme.py
+          python3 -m py_compile live-image/lib/verify-terminal-shell-providers.py
+          python3 -m py_compile vendor/chimera-ii-os/source/tests/boot/verify-userspace-handoff.py
+          python3 -m py_compile vendor/chimera-ii-os/source/tools/commands/build-command-isa-coverage.py
+          bash -n live-image/build.sh live-image/lib/build-terminal-shell-sources.sh
+          bash -n live-image/build.sh
+          bash -n vendor/chimera-ii-os/source/kernel/build-koronos.sh
+          bash -n vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
+          bash -n vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh
+          python3 tests/boot/test_boot_menu_timeouts.py
+          python3 -m json.tool catalogues/runtime-command-isa-contract.json >/dev/null
           python3 -m json.tool desktop/optional_apps_catalog.json >/dev/null
           if [[ "octavian" == "chimera" ]]; then
             python3 -m json.tool applications/catalog.json >/dev/null
@@ -67,6 +132,11 @@ jobs:
             python3 -m json.tool apps/desktop-application-catalog.json >/dev/null
             python3 -m json.tool vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json >/dev/null
           fi
+
+      - name: Verify terminal and shell source build dependencies
+        run: |
+          command -v git cargo rustc go cmake ninja meson minisign
+          python3 -m py_compile live-image/lib/verify-terminal-shell-providers.py
 
       - name: Verify kiosk fullscreen at 1280x720
         run: |
@@ -103,15 +173,167 @@ jobs:
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           xorriso -osirrox on -indev "$iso" -extract /live/filesystem.squashfs "$tmp/filesystem.squashfs" >/dev/null
-          unsquashfs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
+          unsquashfs -no-xattrs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
           root="$tmp/root"
-          test -x "$root/usr/bin/openbox"
-          test -x "$root/usr/bin/xprop"
-          test -x "$root/usr/local/bin/aurora-session"
-          test -s "$root/opt/aurora/application-bundle.json"
-          test -d "$root/opt/aurora/app-catalogs"
-          test -d "$root/opt/aurora/apps/native/aurora"
-          grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
+          # Inspect the actual ISO boot tree, not only its Linux squashfs.
+          bootcheck="$tmp/bootcheck"
+          mkdir -p "$bootcheck"
+          for rel in \
+            boot/grub/grub.cfg \
+            boot/koronos/koronos.elf \
+            boot/koronos/koronos.elf.sha256 \
+            boot/targets/target-init-live.elf \
+            boot/targets/target-init-live.elf.sha256 \
+            boot/targets/target-init-installer.elf \
+            boot/targets/target-init-installer.elf.sha256 \
+            boot/targets/target-init-recovery.elf \
+            boot/targets/target-init-recovery.elf.sha256 \
+            boot/live/chimera-live-initramfs.img \
+            boot/live/live-manifest.json \
+            boot/recovery/chimera-recovery-initramfs.img \
+            boot/recovery/recovery-manifest.json \
+            install/installer/installation.img \
+            install/installer/installation-manifest.json \
+            install/installer/installer-contract.json \
+            install/installer/installation_phases.json \
+            install/installer/installer_profiles.json; do
+            mkdir -p "$bootcheck/$(dirname "$rel")"
+            xorriso -osirrox on -indev "$iso" -extract "/$rel" "$bootcheck/$rel" >/dev/null
+            test -s "$bootcheck/$rel" || { echo "::error::Missing native Koronos ISO payload: $rel"; exit 1; }
+          done
+          for target in live installer recovery; do
+            readelf -h "$bootcheck/boot/targets/target-init-$target.elf" | grep -Eq 'Class:[[:space:]]+ELF64'
+            readelf -h "$bootcheck/boot/targets/target-init-$target.elf" | grep -Eq 'Type:[[:space:]]+EXEC'
+            (cd "$bootcheck/boot/targets" && sha256sum --check "target-init-$target.elf.sha256")
+          done
+          readelf -h "$bootcheck/boot/koronos/koronos.elf" | grep -Eq 'Class:[[:space:]]+ELF64'
+          (cd "$bootcheck/boot/koronos" && sha256sum --check koronos.elf.sha256)
+          grep -Fq 'set timeout=300' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set timeout_style=menu' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set gfxmode=5120x2880,1920x1080,1280x1024,1024x768,640x480,auto' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'set gfxpayload=keep' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-live.elf chimera-user-init-elf target=live' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-installer.elf chimera-user-init-elf target=installer' "$bootcheck/boot/grub/grub.cfg"
+          grep -Fq 'target-init-recovery.elf chimera-user-init-elf target=recovery' "$bootcheck/boot/grub/grub.cfg"
+          python3 - "$bootcheck" <<'PY_KORONOS_ISO'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for rel in ("boot/live/live-manifest.json", "boot/recovery/recovery-manifest.json",
+                      "install/installer/installation-manifest.json", "install/installer/installer-contract.json",
+                      "install/installer/installation_phases.json", "install/installer/installer_profiles.json"):
+              json.loads((root / rel).read_text(encoding="utf-8"))
+          print("Validated actual ISO contains Koronos kernel, three target ELFs, Live/Recovery initramfs and Installer media.")
+          PY_KORONOS_ISO
+          # Verify the catalogues are also present inside the native Koronos
+          # Live and Recovery initramfs modules, not just the Linux rootfs.
+          for spec in \
+            "live:boot/live/chimera-live-initramfs.img" \
+            "recovery:boot/recovery/chimera-recovery-initramfs.img"; do
+            target="${spec%%:*}"
+            rel="${spec#*:}"
+            initroot="$tmp/$target-initramfs"
+            mkdir -p "$initroot"
+            gzip -dc "$bootcheck/$rel" | (cd "$initroot" && cpio -id --quiet)
+            for catalogue in native-command-candidates.json universal-instruction-catalog.json riscv-opcodes.json; do
+              test -s "$initroot/etc/chimera/catalogs/$catalogue" || {
+                echo "::error::Koronos $target initramfs missing catalogue $catalogue"; exit 1;
+              }
+            done
+            python3 - "$initroot/etc/chimera/catalogs" <<'PY_INITRAMFS_CATALOGS'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          commands = json.loads((root / "native-command-candidates.json").read_text())
+          isa = json.loads((root / "universal-instruction-catalog.json").read_text())
+          riscv = json.loads((root / "riscv-opcodes.json").read_text())
+          assert commands["counts"]["total"] == len(commands["commands"]) == 4081
+          assert commands["counts"]["native_implemented"] == 37
+          assert commands["counts"]["candidate_only"] == 4044
+          assert isa["record_count"] == len(isa["instructions"]) == 1613
+          assert len(isa["unique_architectures"]) == 15
+          assert riscv["record_count"] == len(riscv["instructions"]) == 1459
+          assert riscv["failed_files"] == 0
+          PY_INITRAMFS_CATALOGS
+            echo "Verified full command/ISA catalogues inside Koronos $target initramfs."
+          done
+          # Boot each native target from the actual ISO. The 300-second GRUB
+          # menu is kept intact; QEMU sends explicit keyboard input to select
+          # the target. Timeout is expected after the target reports readiness.
+          for target in live installer recovery; do
+            log="$OUT_DIR/koronos-$target-iso-qemu.log"
+            qemu=(qemu-system-x86_64 -machine q35 -accel tcg -cpu qemu64 -m 1536 \
+              -cdrom "$iso" -boot d -display none -serial none -monitor stdio \
+              -no-reboot -no-shutdown -debugcon "file:$log" -global isa-debugcon.iobase=0xe9)
+            set +e
+            case "$target" in
+              live)
+                ( sleep 5; printf 'sendkey end\n'; sleep 1; printf 'sendkey up\n'; sleep 1; printf 'sendkey up\n'; sleep 1; printf 'sendkey ret\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+              installer)
+                ( sleep 5; printf 'sendkey end\n'; sleep 1; printf 'sendkey up\n'; sleep 1; printf 'sendkey ret\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+              recovery)
+                ( sleep 5; printf 'sendkey end\n'; sleep 1; printf 'sendkey ret\n'; sleep 1 ) | timeout 25s "${qemu[@]}" >/dev/null 2>&1
+                ;;
+            esac
+            qemu_rc=$?
+            set -e
+            [[ "$qemu_rc" -eq 124 || "$qemu_rc" -eq 137 || "$qemu_rc" -eq 0 ]] || {
+              echo "::error::QEMU failed for actual ISO target $target (exit $qemu_rc)"; exit 1;
+            }
+            python3 vendor/chimera-ii-os/source/tests/boot/verify-userspace-handoff.py "$target" "$log"
+            ready_pid="$(grep -oE "USERSPACE READY: target=$target init_pid=[0-9]+" "$log" | tail -1 | sed 's/.*=//')"
+            echo "Actual ISO $target boot passed with matching nonzero ring-3 PID $ready_pid."
+          done
+          cp "$root/usr/share/chimera/aurora/terminal-shell-provider-verification.json" "$OUT_DIR/"
+          cp "$root/usr/share/chimera/catalogs/command-isa-coverage.json" "$OUT_DIR/"
+          require_path() {
+            local kind="$1" path="$2"
+            if [[ "$kind" == "executable" && ! -x "$path" ]] ||
+               [[ "$kind" == "nonempty" && ! -s "$path" ]] ||
+               [[ "$kind" == "directory" && ! -d "$path" ]] ||
+               [[ "$kind" == "file" && ! -f "$path" ]]; then
+              echo "::error::Live rootfs validation missing $kind: $path" >&2
+              ls -ld "$path" 2>&1 || true
+              echo "Nearby staged paths:" >&2
+              find "$root/opt/aurora" "$root/usr/local/bin" -maxdepth 3 -print 2>/dev/null | head -200 >&2 || true
+              return 1
+            fi
+            echo "Validated $kind: $path"
+          }
+          require_path executable "$root/usr/bin/openbox"
+          require_path executable "$root/usr/bin/xprop"
+          require_path nonempty "$root/usr/share/chimera/commands/command-runtime-capabilities.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/octavian-command-list.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/catalog.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/isa-encoding-registry.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/runtime-command-isa-contract.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/native-command-candidates.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/universal-instruction-catalog.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/riscv-opcodes.json"
+          require_path nonempty "$root/usr/share/chimera/catalogs/command-isa-coverage.json"
+          require_path nonempty "$root/usr/share/chimera/commands/command-provider-coverage.json"
+          require_path nonempty "$root/usr/share/icons/chimera-aurora/manifest.json"
+          require_path nonempty "$root/usr/share/icons/hicolor/index.theme"
+          require_path nonempty "$root/usr/share/icons/hicolor/scalable/apps/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/aurora-icons/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/catalog.svg"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/manifest.json"
+          require_path nonempty "$root/opt/aurora/desktop/app-icons/export-manifest.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-staging.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/terminal-shell-provider-verification.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/terminals/registry.json"
+          require_path nonempty "$root/usr/share/chimera/aurora/shells/registry.json"
+          require_path nonempty "$root/opt/aurora/terminal-shell-provider-verification.json"
+          require_path nonempty "$root/opt/aurora/terminal-shell-staging.json"
+          require_path executable "$root/usr/local/bin/aurora-session"
+          require_path nonempty "$root/opt/aurora/application-bundle.json"
+          require_path directory "$root/opt/aurora/app-catalogs"
+          require_path directory "$root/opt/aurora/apps/native/aurora"
+          if ! grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"; then
+            echo "::error::Aurora session launcher is missing the Openbox readiness marker" >&2
+            sed -n '1,220p' "$root/usr/local/bin/aurora-session" >&2
+            exit 1
+          fi
           python3 - "$root/opt/aurora" <<'PY'
           import json, pathlib, sys
           root = pathlib.Path(sys.argv[1])
@@ -124,9 +346,106 @@ jobs:
                   json.loads(path.read_text())
           assert (root / "repo").is_dir(), "full source snapshot missing"
           print(f"Embedded {len(manifest['catalog_files'])} offline application catalogs.")
+          command_coverage = json.loads((root.parent.parent / "usr/share/chimera/catalogs/command-isa-coverage.json").read_text())
+          assert command_coverage["counts"]["unique_commands"] == len(command_coverage["commands"]) == 855
+          assert command_coverage["counts"]["native_source_commands"] == 37
+          assert command_coverage["counts"]["isa_architectures"] == len(command_coverage["architectures"]) == 104
+          command_candidates = json.loads((root.parent.parent / "usr/share/chimera/catalogs/native-command-candidates.json").read_text())
+          isa_catalog = json.loads((root.parent.parent / "usr/share/chimera/catalogs/universal-instruction-catalog.json").read_text())
+          riscv_catalog = json.loads((root.parent.parent / "usr/share/chimera/catalogs/riscv-opcodes.json").read_text())
+          assert command_candidates["counts"]["total"] == len(command_candidates["commands"]) == 4081
+          assert command_candidates["counts"]["native_implemented"] == 37
+          assert command_candidates["counts"]["candidate_only"] == 4044
+          assert all(not row["execution_allowed"] for row in command_candidates["commands"] if row["status"] == "candidate-only")
+          assert isa_catalog["record_count"] == len(isa_catalog["instructions"]) == 1613
+          assert len(isa_catalog["unique_architectures"]) == 15
+          assert riscv_catalog["record_count"] == len(riscv_catalog["instructions"]) == 1459
+          assert riscv_catalog["failed_files"] == 0
+          print("Embedded command candidates:", command_candidates["counts"])
+          print("Embedded ISA instruction records:", isa_catalog["record_count"], "across", len(isa_catalog["unique_architectures"]), "architectures.")
+          print("RISC-V source import:", riscv_catalog["record_count"], "records; failed files:", riscv_catalog["failed_files"])
+          commands = json.loads((root.parent.parent / "usr/share/chimera/commands/command-provider-coverage.json").read_text())
+          assert commands["catalog_count"] >= 800, commands.get("catalog_count")
+          aurora_icons = json.loads((root.parent.parent / "usr/share/icons/chimera-aurora/manifest.json").read_text())
+          app_icons = json.loads((root.parent.parent / "usr/share/icons/hicolor/scalable/apps/manifest.json").read_text())
+          import hashlib
+          for base, manifest in ((root.parent.parent / "usr/share/icons/chimera-aurora", aurora_icons),
+                                 (root.parent.parent / "usr/share/icons/hicolor/scalable/apps", app_icons)):
+              assert manifest["count"] == len(manifest["icons"]) and manifest["count"] > 0
+              for icon in manifest["icons"]:
+                  path = base / icon["file"]
+                  assert path.is_file(), f"missing exported icon: {path}"
+                  assert hashlib.sha256(path.read_bytes()).hexdigest() == icon["sha256"], f"icon hash mismatch: {path}"
+          assert app_icons["count"] == 133, app_icons["count"]
+          assert (root / "desktop/app-icons/catalog.svg").is_file()
+          assert (root / "desktop/app-icons/manifest.json").is_file()
+          assert (root / "desktop/app-icons/export-manifest.json").is_file()
+          print("Verified all", aurora_icons["count"], "Aurora UI icons and", app_icons["count"], "app artwork icons.")
+          terminals = json.loads((root.parent.parent / "usr/share/chimera/aurora/terminal-shell-staging.json").read_text())
+          assert terminals["schema"] == "AURORA-TERMINAL-SHELL-STAGING-2"
+          assert len(terminals["entries"]) == 28
+          print("Command provider coverage:", commands["catalog_count"], commands["counts"])
+          provider_verification = json.loads((root.parent.parent / "usr/share/chimera/aurora/terminal-shell-provider-verification.json").read_text())
+          assert provider_verification["required"] == provider_verification["verified"] == 28
+          assert all(item["status"] in ("verified-elf", "verified-script") for item in provider_verification["providers"])
+          assert "GUI launch/input not tested" in provider_verification["runtime_launch_smoke"]
+          print("Open-source shell/terminal providers:", len(terminals["entries"]), "verified; GUI input remains untested.")
           PY
           cp "$iso" "$OUT_DIR/octavian-os-live-desktop-fixed.iso"
           cp "$iso.sha256" "$OUT_DIR/octavian-os-live-desktop-fixed.iso.sha256"
+
+      - name: Evaluate full production acceptance gates
+        id: production_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aurora-live-output/acceptance"
+          python3 - <<'PY_PRODUCTION_GATE'
+          import json, os, pathlib
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "aurora-live-output" / "acceptance"
+          required = {
+              "firmware_matrix": "firmware-matrix.json",
+              "installer_persistence": "installer-persistence.json",
+              "recovery_repair": "recovery-repair-postcondition.json",
+              "smp_overlap": "smp-overlap.json",
+              "aurora_marine_health": "aurora-marine-runtime-health.json",
+              "architecture_boot_matrix": "architecture-boot-matrix.json",
+              "isa_conformance": "isa-conformance.json",
+              "native_koronos_default_boot": "native-koronos-default-boot.json",
+              "terminal_shell_gui_interaction": "terminal-shell-gui-interaction.json",
+          }
+          missing = [name for name, filename in required.items() if not (root / filename).is_file()]
+          checks = {}
+          for name, filename in required.items():
+              path = root / filename
+              if not path.is_file():
+                  continue
+              data = json.loads(path.read_text(encoding="utf-8"))
+              checks[name] = data.get("passed") is True
+              if name == "firmware_matrix":
+                  checks[name] = checks[name] and data.get("same_iso_sha256") is True and len(data.get("cases", [])) == 6
+              elif name == "smp_overlap":
+                  checks[name] = checks[name] and data.get("cpu_count", 0) >= 2 and data.get("overlap_intervals", 0) > 0
+              elif name == "architecture_boot_matrix":
+                  checks[name] = checks[name] and data.get("all_supported_targets_passed") is True
+              elif name == "aurora_marine_health":
+                  checks[name] = checks[name] and data.get("aurora_live") is True and data.get("marine_live") is True and data.get("gui_interaction_passed") is True
+              elif name == "terminal_shell_gui_interaction":
+                  checks[name] = checks[name] and data.get("providers_tested") == 28 and data.get("mouse_keyboard_input_passed") is True
+              elif name == "native_koronos_default_boot":
+                  checks[name] = checks[name] and data.get("koronos_is_default") is True and data.get("linux_fallback_preserved") is True
+              elif name == "isa_conformance":
+                  checks[name] = checks[name] and data.get("instruction_count") == 1613 and data.get("all_semantics_conformant") is True
+          accepted = not missing and all(checks.get(name, False) for name in required)
+          report = {"schema": "octavian-production-acceptance/v1", "accepted": accepted,
+                    "missing_evidence": missing, "checks": checks,
+                    "note": "The actual ISO ring-3 target boots do not prove native Koronos default boot, installer persistence, recovery repair, SMP, desktop interaction, or all-architecture boot support."}
+          output = pathlib.Path(os.environ["RUNNER_TEMP"]) / "aurora-live-output" / "production-acceptance-status.json"
+          output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"accepted={str(accepted).lower()}\n")
+          PY_PRODUCTION_GATE
 
       - name: Upload verified live ISO candidate
         uses: actions/upload-artifact@v4
@@ -136,13 +455,19 @@ jobs:
             ${{ runner.temp }}/aurora-live-output/octavian-os-live-amd64.iso
             ${{ runner.temp }}/aurora-live-output/octavian-os-live-amd64.iso.sha256
             ${{ runner.temp }}/aurora-live-output/ISO-BOOT-REPORT.txt
+            ${{ runner.temp }}/aurora-live-output/koronos-live-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/koronos-installer-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/koronos-recovery-iso-qemu.log
+            ${{ runner.temp }}/aurora-live-output/terminal-shell-provider-verification.json
+            ${{ runner.temp }}/aurora-live-output/command-isa-coverage.json
+            ${{ runner.temp }}/aurora-live-output/production-acceptance-status.json
           if-no-files-found: error
           retention-days: 30
 
   publish:
     name: Publish verified OctavianOS live ISO
     needs: [build]
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
+    if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish == true)) && needs.build.outputs.production_accepted == 'true' && vars.OCTAVIAN_RELEASE_ACCEPTANCE_APPROVED == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

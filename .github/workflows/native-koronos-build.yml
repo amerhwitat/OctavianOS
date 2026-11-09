@@ -94,6 +94,8 @@ jobs:
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
+      - name: Validate long boot menu timeouts
+        run: python3 tests/boot/test_boot_menu_timeouts.py
       - name: Install native kernel build dependencies
         run: |
           set -euo pipefail
@@ -332,6 +334,33 @@ jobs:
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/grub/aurora-boot.png"
           cmp "$inspect/visual/octavian-octopus-aurora.png" "$inspect/koronos/aurora-boot.png"
           grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/grub/grub.cfg"
+      - name: QEMU Live target routing smoke test (production ring-3 init)
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          smoke=build/qemu-smoke
+          mkdir -p "$smoke/live-tree/boot/grub"
+          cp -a boot/iso/dist/iso/. "$smoke/live-tree/"
+          cat > "$smoke/live-tree/boot/grub/grub.cfg" <<'GRUB'
+          set timeout=0
+          set default=0
+          terminal_output console
+          menuentry "Live production init smoke" --id live {
+            multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live
+            module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs
+            module2 /boot/live/live-manifest.json chimera-live-manifest
+            boot
+          }
+          GRUB
+          grub-mkrescue -o "$smoke/live-smoke.iso" "$smoke/live-tree"
+          set +e
+          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/live-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/live-debugcon.log" -global isa-debugcon.iobase=0xe9
+          qemu_status=$?
+          set -e
+          test -s "$smoke/live-debugcon.log" || { echo "::error::Live QEMU trace missing (exit $qemu_status)"; exit 1; }
+          python3 "$GITHUB_WORKSPACE/tests/migration/verify-userspace-handoff.py" live "$smoke/live-debugcon.log"
+
       - name: QEMU recovery target routing smoke test (no repair claim)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -345,6 +374,7 @@ jobs:
           terminal_output console
           menuentry "Recovery module smoke" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
@@ -356,8 +386,8 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          grep -Fq '[USER] Recovery handoff withheld: no native recovery init ELF/runtime is wired to this payload' "$smoke/recovery-debugcon.log" || { echo "::error::Recovery handoff status missing"; exit 1; }
+          python3 "$GITHUB_WORKSPACE/tests/migration/verify-userspace-handoff.py" recovery "$smoke/recovery-debugcon.log"
+          grep -Fq 'RECOVERY: ring-3 syscall ABI self-check complete' "$smoke/recovery-debugcon.log"
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -371,6 +401,7 @@ jobs:
           terminal_output console
           menuentry "Installer module smoke" --id install {
             multiboot2 /boot/koronos/koronos.elf
+            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
             module2 /install/installer/installer-contract.json chimera-installer-contract
@@ -385,8 +416,8 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          grep -Fq '[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime' "$smoke/installer-debugcon.log" || { echo "::error::Installer handoff status missing"; exit 1; }
+          python3 "$GITHUB_WORKSPACE/tests/migration/verify-userspace-handoff.py" installer "$smoke/installer-debugcon.log"
+          grep -Fq 'INSTALLER: no disk will be modified; installation is not performed' "$smoke/installer-debugcon.log"
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -394,7 +425,14 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          # The production GRUB menu intentionally waits 300 seconds.
+          # The generated GRUB config accepts serial input, so drive the real
+          # serial console rather than sending a key to a disabled display.
+          (
+            sleep 5
+            printf '\r'
+            sleep 1
+          ) | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial stdio -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null 2>&1
           qemu_status=$?
           set -e
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
@@ -407,6 +445,7 @@ jobs:
           name: octavianos-full-iso-qemu-trace
           path: |
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/live-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
           if-no-files-found: ignore
@@ -449,7 +488,7 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py live trace/live-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
           python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"

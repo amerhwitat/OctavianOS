@@ -1,0 +1,9 @@
+[Unit]
+Description=Aurora -- Marine desktop profile (Windows-style ocean workspace)
+Requires=aurora-profile@marine.service
+Wants=aurora-shell.target
+After=aurora-profile@marine.service
+AllowIsolate=yes
+
+[Install]
+WantedBy=graphical.target

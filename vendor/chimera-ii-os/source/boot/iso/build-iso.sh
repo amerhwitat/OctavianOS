@@ -141,6 +141,24 @@ if [[ -d "$(dirname "$RUNTIME_AURORA_ROOT")" ]]; then
   mkdir -p "$RUNTIME_AURORA_ROOT"
   cp -a "$MEDIA/." "$RUNTIME_AURORA_ROOT/"
 fi
+# Stage production Koronos ring-3 init ELFs. The Linux initramfs is a
+# separate compatibility payload and cannot satisfy CHIMERA_MODULE_USER_INIT_ELF.
+printf '%s\n' '[4b/7] Stage production Koronos ring-3 target init ELFs'
+TARGETS_OUT="$DIST/iso/boot/targets"
+mkdir -p "$TARGETS_OUT"
+for target in live installer recovery; do
+  target_elf="$ROOT/build/koronos/x86_64/target-init-$target.elf"
+  test -s "$target_elf" || { echo "ERROR: production Koronos $target init ELF missing: $target_elf" >&2; exit 2; }
+  readelf -h "$target_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || { echo "ERROR: $target_elf is not ET_EXEC" >&2; exit 2; }
+  readelf -lW "$target_elf" | grep -Eq 'LOAD.*R E' || { echo "ERROR: $target_elf has no executable PT_LOAD" >&2; exit 2; }
+  cp -f "$target_elf" "$TARGETS_OUT/"
+  sha256sum "$TARGETS_OUT/target-init-$target.elf" > "$TARGETS_OUT/target-init-$target.elf.sha256"
+done
+for target in live installer recovery; do
+  grep -q "target-init-$target.elf chimera-user-init-elf target=$target" "$ROOT/boot/iso/grub.cfg" || {
+    echo "ERROR: GRUB menu lacks the $target native init module entry" >&2; exit 2; }
+done
+
 printf '%s\n' '[5/7] Validate kernel-to-GRUB linkage, graphics and installation contracts'
 test -s "$DIST/iso/boot/koronos/koronos.elf"
 test -s "$DIST/iso/boot/spitfire/spitfire-stage2.bin"

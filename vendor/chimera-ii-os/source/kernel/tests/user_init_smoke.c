@@ -23,13 +23,13 @@ __attribute__((noreturn, used)) void _start(void) {
     __asm__ volatile("int $0x80" ::: "memory");
     /* Ask the active kernel process record for our PID. Never bake PID 1 into
        the user image: this must keep working when process allocation changes. */
-    register long number __asm__("rax") = 2; /* CHM_SYS_GETPID */
+    register long number __asm__("rax") = 39; /* Linux x86-64 getpid; translated to CHM_SYS_GETPID */
     __asm__ volatile("syscall"
                      : "+a"(number)
                      :
                      : "rcx", "r11", "memory");
     if (number <= 0) {
-        number = 1; /* CHM_SYS_EXIT */
+        number = 60; /* Linux x86-64 exit */
         register long failure_code __asm__("rdi") = 1;
         __asm__ volatile("syscall"
                          : "+a"(number)
@@ -52,7 +52,7 @@ __attribute__((noreturn, used)) void _start(void) {
         pid /= 10u;
     }
     if (digits == 0 || used + digits + 2u > sizeof(ready_message)) {
-        number = 1;
+        number = 60; /* Linux x86-64 exit */
         register long failure_code __asm__("rdi") = 1;
         __asm__ volatile("syscall"
                          : "+a"(number)
@@ -63,7 +63,7 @@ __attribute__((noreturn, used)) void _start(void) {
     while (digits) ready_message[used++] = reversed[--digits];
     ready_message[used++] = '\n';
 
-    number = 9; /* CHM_SYS_WRITE */
+    number = 1; /* Linux x86-64 write */
     register long fd __asm__("rdi") = 1;
     register const char *buffer __asm__("rsi") = ready_message;
     register long length __asm__("rdx") = (long)used;
@@ -74,7 +74,7 @@ __attribute__((noreturn, used)) void _start(void) {
 
     /* This second write proves the native syscall returned to ring 3. */
     static const char returned_message[] = "USERSPACE SYSCALL RETURNED TO RING3\n";
-    number = 9;
+    number = 1; /* Linux x86-64 write */
     fd = 1;
     buffer = returned_message;
     length = (long)(sizeof(returned_message) - 1u);
@@ -83,7 +83,7 @@ __attribute__((noreturn, used)) void _start(void) {
                      : "D"(fd), "S"(buffer), "d"(length)
                      : "rcx", "r11", "memory");
 
-    number = 1; /* CHM_SYS_EXIT */
+    number = 60; /* Linux x86-64 exit */
     fd = 0;
     __asm__ volatile("syscall"
                      : "+a"(number)

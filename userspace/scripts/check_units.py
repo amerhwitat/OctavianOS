@@ -11,6 +11,7 @@ import argparse
 import configparser
 import os
 import sys
+from pathlib import Path
 
 SYSTEM_TARGETS = {"multi-user.target", "graphical.target", "basic.target", "sysinit.target",
                   "local-fs.target", "network-online.target", "default.target", "shutdown.target"}
@@ -79,9 +80,44 @@ def main():
                     if target.endswith(".target") and target not in unit_names and target not in SYSTEM_TARGETS:
                         errors.append("%s: %s references unknown target %s" % (name, key, target))
 
-    for parser_owner in ("jasper.target", "gates.target", "aurora.target"):
+    for parser_owner in ("jasper.target", "gates.target", "aurora.target", "marine.target"):
         if parser_owner not in units:
             errors.append("%s: desktop profile target is missing" % parser_owner)
+
+    # The Xorg session is a real hosted-Linux desktop path. Validate the
+    # boot-menu profile override and all four desktop profiles together so a
+    # baked-in Aurora default cannot silently mask Jasper/Gates/Marine choices.
+    repo_root = Path(__file__).resolve().parents[2]
+    session_path = Path(args.helpers) / "aurora-session"
+    shell_path = repo_root / "desktop/aurora-shell/assets/shell.js"
+    image_builder = repo_root / "live-image/build.sh"
+    try:
+        session_text = session_path.read_text(encoding="utf-8")
+        shell_text = shell_path.read_text(encoding="utf-8")
+        builder_text = image_builder.read_text(encoding="utf-8")
+    except OSError as exc:
+        errors.append("Xorg desktop profile contract: cannot read source (%s)" % exc)
+    else:
+        for profile in ("jasper", "gates", "aurora", "marine"):
+            if profile not in session_text:
+                errors.append("aurora-session: missing %s profile" % profile)
+            if (profile + ": {") not in shell_text:
+                errors.append("desktop shell: missing %s profile definition" % profile)
+            if profile != "aurora" and (profile + ".target") not in unit_names:
+                errors.append("userspace: missing %s.target" % profile)
+            if ("aurora.profile=" + profile) not in builder_text:
+                errors.append("live-image GRUB menu: missing %s desktop profile entry" % profile)
+        if "set timeout=300" not in builder_text or "set timeout_style=menu" not in builder_text:
+            errors.append("live-image GRUB menu: must remain interactive for 300 seconds")
+        cmdline_pos = session_text.find('cmdline_profile="$(tr ')
+        fallback_pos = session_text.find('for candidate in "$RUNTIME_FILE" "$PROFILE_FILE"; do')
+        if cmdline_pos < 0 or fallback_pos < 0 or cmdline_pos > fallback_pos:
+            errors.append("aurora-session: aurora.profile= boot argument must override baked-in profile files")
+        if 'uri="${uri}${sep}profile=${profile}"' not in session_text:
+            errors.append("aurora-session: selected profile is not passed to the desktop shell")
+        for required in ("xserver-xorg-core", "xinit", "exec startx", "/usr/local/bin/aurora-session"):
+            if required not in builder_text:
+                errors.append("live-image: missing hosted Xorg session integration %s" % required)
 
     if errors:
         for err in errors:
