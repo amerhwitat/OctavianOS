@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Reconcile the public upstream several times daily; PRs are opened only when parity changes.
+    # Manual reconciliation: include native desktop dependencies and registry/Hive providers.
     - cron: "23 */6 * * *"
   push:
     branches: [main]
