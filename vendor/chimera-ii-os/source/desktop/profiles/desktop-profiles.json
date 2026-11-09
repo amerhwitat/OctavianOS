@@ -8,6 +8,7 @@
     "boot_critical": false
   },
   "profiles": [
+    {"id":"freexp-trinity","family":"linux","protocol":"x11","packages":["q4os-desktop-trinity","tde-trinity","lookswitcher","tde-style-q4oststyle02-trinity"],"theme":"XPQ4 FreeXP-style theme; use only license-cleared free assets","status":"optional-profile-candidate"},
     {"id":"aurora","family":"chimera","protocol":"wayland","default":true,"packages":["labwc","waybar","wofi","mako"]},
     {"id":"gnome","family":"linux","protocol":"wayland","packages":["gnome-shell","gdm3"]},
     {"id":"kde-plasma","family":"linux","protocol":"wayland","packages":["plasma-desktop","sddm"]},

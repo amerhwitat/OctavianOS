@@ -70,6 +70,7 @@ Do not claim a target GUI or installer works until the boot menu target, staged 
 - [Migration runbook](docs/MIGRATION_RUNBOOK.md) — required GitHub token permissions and history-preserving import procedure.
 - [Boot target audit](docs/BOOT_TARGET_AUDIT.md) — source-level target-to-payload trace and QEMU acceptance gates.
 - [Native N-bit model](docs/architecture/NBIT_NATIVE_MODEL.md) — configurable register substrate, tests, and limitations.
+- [Command and ISA catalog provider status](docs/CATALOG_PROVIDER_STATUS.md) — canonical Chimera catalog mirror, per-command provider ledger and explicit conformance boundaries.
 
 
 ## Installer routing correction

@@ -27,6 +27,7 @@
       {"id":"swiftui","display":"SwiftUI-era","model":"adaptive-native"}
     ],
     "chimera": [
+      {"id":"freexp-trinity","display":"FreeXP / Q4OS Trinity (XPQ4 style)","protocols":["X11"],"model":"classic-windows-xp-inspired","upstream":"https://xpq4.sourceforge.io/","status":"profile-candidate"},
       {"id":"chimera-classic","display":"Chimera Classic","inherits":["windows-classic","mate"]},
       {"id":"chimera-modern","display":"Chimera Modern","inherits":["windows-11","kde-plasma","mac-modern"]},
       {"id":"chimera-arabic","display":"Chimera العربية","inherits":["chimera-modern"],"locale":"ar","direction":"rtl"}

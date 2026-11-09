@@ -38,6 +38,7 @@ chimera_copy_if_distinct() {
 }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+OCTAVIAN_ROOT="$(cd "$ROOT/../../.." && pwd)"
 ISO_ROOT="$ROOT/boot/iso"
 DIST="$ISO_ROOT/dist"
 WORK="$ISO_ROOT/work"
@@ -51,12 +52,39 @@ KORONOS_ELF="$ROOT/build/koronos/x86_64/koronos.elf"
 test -s "$KORONOS_ELF"
 command -v grub-file >/dev/null || { echo "grub-file is required." >&2; exit 2; }
 grub-file --is-x86-multiboot2 "$KORONOS_ELF"
+for t in live installer recovery; do
+  test -s "$ROOT/build/koronos/x86_64/target-init-$t.elf" || {
+    echo "ERROR: production ring-3 init ELF missing for target=$t" >&2; exit 2; }
+done
+
+# Compile one freestanding artifact for every declared LLVM/NASM backend.
+# This records toolchain availability separately from full ISA conformance.
+python3 "$ROOT/tools/isa/build-architecture-smokes.py" \
+  --backends "$ROOT/tools/isa/architecture-backends.json" \
+  --output "$ROOT/build/isa-smokes"
+test -s "$ROOT/build/isa-smokes/report.json" || {
+  echo "ERROR: ISA cross-target smoke report missing" >&2; exit 2; }
 
 printf '%s\n' '[2/7] Build and link Spit Fire native stages'
 bash "$ROOT/boot/spitfire/build-spitfire.sh" "$DIST/bootloaders" "$KORONOS_ELF"
 
 printf '%s\n' '[3/7] Prepare ISO tree'
 bash "$ISO_ROOT/prepare-layout.sh"
+
+# Stage the production ring-3 init ELFs and the AI database as Multiboot2 modules.
+# The previous ISO builder compiled these target ELFs but omitted them from the
+# image, causing Koronos to correctly withhold all native userspace handoffs.
+mkdir -p "$DIST/iso/boot/targets" "$DIST/iso/boot/ai" "$DIST/iso/boot/isa-smokes"
+cp -a "$ROOT/build/isa-smokes/." "$DIST/iso/boot/isa-smokes/"
+for t in live installer recovery; do
+  cp -f "$ROOT/build/koronos/x86_64/target-init-$t.elf" "$DIST/iso/boot/targets/target-init-$t.elf"
+done
+KB="$OCTAVIAN_ROOT/config/ai/knowledge-db.json"
+test -s "$KB" || { echo "ERROR: Octavian knowledge database missing: $KB" >&2; exit 2; }
+cp -f "$KB" "$DIST/iso/boot/ai/knowledge-db.json"
+python3 "$OCTAVIAN_ROOT/tools/ai/knowledge_db.py" validate --db "$DIST/iso/boot/ai/knowledge-db.json" >/dev/null || {
+  echo "ERROR: staged AI knowledge database failed validation" >&2; exit 2; }
+
 cp "$DIST/bootloaders/spitfire-sf0-mbr.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-stage2.bin" "$DIST/iso/boot/spitfire/"
 cp "$DIST/bootloaders/spitfire-sf1-longmode.o" "$DIST/iso/boot/spitfire/"
@@ -73,7 +101,12 @@ mkdir -p "$DIST/iso/boot/recovery"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img" "$DIST/iso/boot/recovery/"
 cp -f "$RECOVERY_BOOT/chimera-recovery-initramfs.img.sha256" "$DIST/iso/boot/recovery/" 2>/dev/null || true
 cp -f "$RECOVERY_BOOT/recovery-manifest.json" "$DIST/iso/boot/recovery/"
-cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/iso/boot/jasper/recovery.cfg"
+# Copy every canonical Jasper submenu after prepare-layout, which emits a
+# legacy recovery.cfg. This keeps all referenced submenu files present.
+for cfg in "$ROOT"/boot/jasper/*.cfg; do
+  test -s "$cfg" || { echo "ERROR: Jasper menu config missing: $cfg" >&2; exit 2; }
+  cp -f "$cfg" "$DIST/iso/boot/jasper/$(basename "$cfg")"
+done
 
 printf '%s\n' '[4/7] Stage complete Aurora artwork, Init.mp4 and professional progress UI'
 VISUAL_OUT="$DIST/iso/boot/visual"
@@ -175,7 +208,43 @@ test -s "$DIST/iso/boot/recovery/recovery-manifest.json" || { echo "Recovery man
 grep -q '/boot/live/chimera-live-initramfs.img' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/live/live-manifest.json' "$ROOT/boot/jasper/live.cfg"
 grep -q '/boot/recovery/chimera-recovery-initramfs.img' "$ROOT/boot/jasper/recovery.cfg"
-grep -q 'Recovery Terminal' "$ROOT/boot/jasper/recovery.cfg"
+grep -Eq 'Recovery (Terminal|Shell|Environment)' "$ROOT/boot/jasper/recovery.cfg"
+
+# Verify the target init payload is present in the ISO and attached by the
+# corresponding Jasper menu. This catches the prior failure where the kernel
+# and target ELFs built, but GRUB omitted the Multiboot2 init modules.
+for t in live installer recovery; do
+  test -s "$DIST/iso/boot/targets/target-init-$t.elf" || {
+    echo "ERROR: target init ELF missing from ISO: $t" >&2; exit 2; }
+  case "$t" in
+    live) cfg="$DIST/iso/boot/jasper/live.cfg" ;;
+    installer) cfg="$DIST/iso/boot/jasper/install.cfg" ;;
+    recovery) cfg="$DIST/iso/boot/jasper/recovery.cfg" ;;
+  esac
+  grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$cfg" || {
+    echo "ERROR: Jasper menu does not attach target init for $t" >&2; exit 2; }
+  grep -q "ai-knowledge-db" "$cfg" || {
+    echo "ERROR: Jasper menu does not attach AI knowledge module for $t" >&2; exit 2; }
+done
+test -s "$DIST/iso/boot/ai/knowledge-db.json" || {
+  echo "ERROR: AI knowledge module missing from ISO tree" >&2; exit 2; }
+
+# Validate the secondary Jasper paths as well; safe graphics and diagnostics
+# must not bypass the native userspace module contract.
+for cfg in live install recovery diagnostics safe retro; do
+  test -s "$DIST/iso/boot/jasper/$cfg.cfg" || {
+    echo "ERROR: Jasper submenu not staged: $cfg" >&2; exit 2; }
+done
+grep -q "target-init-live.elf chimera-user-init-elf target=live" "$DIST/iso/boot/jasper/safe.cfg" || {
+  echo "ERROR: Safe Graphics menu does not attach the Live init ELF" >&2; exit 2; }
+grep -q "ai-knowledge-db" "$DIST/iso/boot/jasper/safe.cfg" || {
+  echo "ERROR: Safe Graphics menu does not attach the AI module" >&2; exit 2; }
+grep -q "target-init-recovery.elf chimera-user-init-elf target=recovery" "$DIST/iso/boot/jasper/diagnostics.cfg" || {
+  echo "ERROR: Diagnostics menu does not attach the Recovery init ELF" >&2; exit 2; }
+grep -q "ai-knowledge-db" "$DIST/iso/boot/jasper/diagnostics.cfg" || {
+  echo "ERROR: Diagnostics menu does not attach the AI module" >&2; exit 2; }
+grep -q "configfile /boot/jasper/live.cfg" "$DIST/iso/boot/spitfire/spitfire-menu.cfg" || {
+  echo "ERROR: Spit Fire does not route to the Jasper Live menu" >&2; exit 2; }
 
 for contract in \
   "$DIST/iso/install/installer/installation.img" \
