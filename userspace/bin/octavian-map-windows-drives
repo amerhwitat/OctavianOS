@@ -7,6 +7,7 @@ DRIVE_ROOT="${CHM_DRIVE_ROOT:-$MNT_ROOT/drive}"
 DISTRO_NAME="${CHM_WSL_DISTRO_NAME:-${WSL_DISTRO_NAME:-}}"
 RELEASE_FILE="${CHM_WSL_RELEASE_FILE:-/proc/sys/kernel/osrelease}"
 FORCE="${CHM_WSL_FORCE:-0}"
+TEST_FIXTURES="${CHM_WSL_TEST_FIXTURES:-0}"
 
 is_wsl=0
 if [[ "$FORCE" == 1 || -n "$DISTRO_NAME" ]]; then
@@ -24,6 +25,9 @@ mkdir -p "$DRIVE_ROOT"
 mapped=0
 for source in "$MNT_ROOT"/[a-z]; do
   [[ -d "$source" ]] || continue
+  if [[ "$TEST_FIXTURES" != 1 ]] && ! mountpoint -q "$source"; then
+    continue
+  fi
   letter="${source##*/}"
   upper="${letter^^}"
   target="$DRIVE_ROOT/$upper"
