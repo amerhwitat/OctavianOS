@@ -266,9 +266,11 @@ every page's background picker. \`repo/\` is a verbatim snapshot of the source t
 
 The image boots a Linux kernel. Openbox manages the Aurora kiosk fullscreen state.
 Offline application catalogs and first-party application sources are staged under
-app-catalogs/ and apps/native/; catalog-only upstream entries are not misrepresented
-as installed applications. The native Spit Fire/Koronos kernel remains a separate
-release track until its userspace handoff is verified.
+app-catalogs/ and apps/native/; command/ISA catalogs and an observed provider ledger
+are staged under /usr/share/octavian/catalogs/. Catalog-only upstream entries are not
+misrepresented as installed applications or conformance-tested instruction support.
+The native Spit Fire/Koronos kernel remains a separate release track until its
+userspace handoff is verified.
 EOF
 
 cat > "$PAY/README.txt" <<EOF
