@@ -41,6 +41,16 @@ class SharedDesktopIconTests(unittest.TestCase):
         self.assertIn("launcherButton(icon.glyph", js)
         self.assertIn(".app-symbol", css)
 
+    def test_native_freexp_profile_has_classic_taskbar_and_dosbox_action(self):
+        source = (ROOT / "vendor/chimera-ii-os/source/desktop/native/chimera-desktop-shell.cpp").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/native-desktop-suite.yml").read_text(encoding="utf-8")
+        self.assertIn('"freexp"', source)
+        self.assertIn("FREEXP  •  CLASSIC WORKSPACE", source)
+        self.assertIn("freexp-taskbar", source)
+        self.assertIn("gtk_menu_button_new", source)
+        self.assertIn("dosbox-x", source)
+        self.assertIn("--desktop=freexp --self-test", workflow)
+
     def test_xorg_provider_is_declared_and_guarded(self):
         provider = json.loads(
             (ROOT / "vendor/chimera-ii-os/source/desktop/x11/xorg-provider.json").read_text(encoding="utf-8")
