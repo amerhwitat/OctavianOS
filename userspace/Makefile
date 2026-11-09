@@ -48,6 +48,7 @@ install:
 
 check:
 	@python3 scripts/check_units.py --units systemd --helpers bin
+	@bash tests/test_wsl_drive_aliases.sh
 
 uninstall:
 	@for u in $(UNITS); do rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(basename $u); done
