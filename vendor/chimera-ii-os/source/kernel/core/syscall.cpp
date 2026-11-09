@@ -123,6 +123,18 @@ extern "C" uint64_t koronos_syscall_user_dispatch(const koronos_user_syscall_fra
             return 0;
         case CHM_SYS_TIME_TICKS:
             return chimera_timer_now();
+        case CHM_SYS_READ: {
+            // No keyboard/TTY input provider is registered yet. Report a real
+            // end-of-file for stdin so target init programs can terminate
+            // cleanly in headless boots instead of spinning until the PIT
+            // watchdog expires. Other descriptors remain unsupported.
+            const uint64_t fd = frame->rdi;
+            const uint64_t address = frame->rsi;
+            const uint64_t length = frame->rdx;
+            (void)address;
+            if (fd != 0u || length > 4096u) return static_cast<uint64_t>(-22ll);
+            return 0;
+        }
         case CHM_SYS_WRITE: {
             const uint64_t fd = frame->rdi;
             const uint64_t address = frame->rsi;
