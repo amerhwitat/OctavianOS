@@ -430,10 +430,13 @@ jobs:
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
           set +e
-          { sleep 2; printf 'sendkey ret\n'; sleep 22; } | timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null
+          # The full image has a much larger GRUB menu/artwork payload than the
+          # isolated target-smoke ISOs. Allow firmware/GRUB to settle before
+          # injecting Enter; send it twice to tolerate a menu redraw race.
+          { sleep 8; printf 'sendkey ret\n'; sleep 2; printf 'sendkey ret\n'; sleep 25; } | timeout 38s qemu-system-x86_64 -machine q35 -m 1024 -vga std -cdrom boot/iso/dist/output.iso -boot d -display none -serial file:"$smoke/full-iso-serial.log" -monitor stdio -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 >/dev/null
           qemu_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace after delayed GRUB selection (QEMU exit $qemu_status)"; test ! -s "$smoke/full-iso-serial.log" || cat "$smoke/full-iso-serial.log"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload ISA cross-target smoke artifacts
@@ -451,6 +454,7 @@ jobs:
           name: octavianos-full-iso-qemu-trace
           path: |
             vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-debugcon.log
+            vendor/chimera-ii-os/source/build/qemu-smoke/full-iso-serial.log
             vendor/chimera-ii-os/source/build/qemu-smoke/live-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/installer-debugcon.log
             vendor/chimera-ii-os/source/build/qemu-smoke/recovery-debugcon.log
