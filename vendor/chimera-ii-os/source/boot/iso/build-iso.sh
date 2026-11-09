@@ -220,6 +220,23 @@ done
 test -s "$DIST/iso/boot/ai/knowledge-db.json" || {
   echo "ERROR: AI knowledge module missing from ISO tree" >&2; exit 2; }
 
+# Validate the secondary Jasper paths as well; safe graphics and diagnostics
+# must not bypass the native userspace module contract.
+for cfg in live install recovery diagnostics safe retro; do
+  test -s "$DIST/iso/boot/jasper/$cfg.cfg" || {
+    echo "ERROR: Jasper submenu not staged: $cfg" >&2; exit 2; }
+done
+grep -q "target-init-live.elf chimera-user-init-elf target=live" "$DIST/iso/boot/jasper/safe.cfg" || {
+  echo "ERROR: Safe Graphics menu does not attach the Live init ELF" >&2; exit 2; }
+grep -q "ai-knowledge-db" "$DIST/iso/boot/jasper/safe.cfg" || {
+  echo "ERROR: Safe Graphics menu does not attach the AI module" >&2; exit 2; }
+grep -q "target-init-recovery.elf chimera-user-init-elf target=recovery" "$DIST/iso/boot/jasper/diagnostics.cfg" || {
+  echo "ERROR: Diagnostics menu does not attach the Recovery init ELF" >&2; exit 2; }
+grep -q "ai-knowledge-db" "$DIST/iso/boot/jasper/diagnostics.cfg" || {
+  echo "ERROR: Diagnostics menu does not attach the AI module" >&2; exit 2; }
+grep -q "configfile /boot/jasper/live.cfg" "$DIST/iso/boot/spitfire/spitfire-menu.cfg" || {
+  echo "ERROR: Spit Fire does not route to the Jasper Live menu" >&2; exit 2; }
+
 for contract in \
   "$DIST/iso/install/installer/installation.img" \
   "$DIST/iso/install/installer/installation-manifest.json" \
