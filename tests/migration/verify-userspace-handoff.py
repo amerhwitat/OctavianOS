@@ -14,10 +14,20 @@ KERNEL_MARKER = "[KRN ] KORONOS READY"
 ENTRY_RE = re.compile(
     r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
+NATIVE_PID_RE = re.compile(
+    r"NATIVE INIT PID: target=(live|installer|recovery) pid=([1-9][0-9]*)\\b"
+)
 READY_RE = re.compile(
     r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
 
+
+WITHHELD_MARKERS = (
+    "handoff withheld",
+    "NATIVE INIT BLOCKED",
+    "no supported native init ELF/runtime",
+    "no native recovery init ELF/runtime",
+)
 
 def main() -> int:
     if len(sys.argv) != 3 or sys.argv[1] not in TARGETS:
