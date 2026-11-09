@@ -43,7 +43,7 @@ jobs:
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
       - name: Validate Aurora and Marine session-selection contract
         run: |
           set -euo pipefail
@@ -109,8 +109,14 @@ jobs:
         run: |
           set -euo pipefail
           cmake -S . -B "${{ runner.temp }}/octavian-cmake" -DCMAKE_BUILD_TYPE=Release
-          cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 -j2
+          cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 chm-opengl-smoke chm-image-inspect -j2
 
+      - name: Runtime-test imported OpenGL and OpenCV CMake targets
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "${{ runner.temp }}/octavian-cmake/desktop/native/chm-opengl-smoke" --self-test
+          "${{ runner.temp }}/octavian-cmake/desktop/native/chm-image-inspect" --self-test
       - name: Build and headlessly smoke-test native Aurora and Marine GTK shells
         env:
           OCTAVIAN_DESKTOP_BUILD_DIR: ${{ runner.temp }}/octavian-desktop
