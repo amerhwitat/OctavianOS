@@ -13,7 +13,7 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
         self.assertIn("needs: build-koronos", self.text)
-        self.assertIn("python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log", self.text)
+        self.assertIn("python3 tests/migration/verify-userspace-handoff.py live trace/live-debugcon.log", self.text)
         self.assertIn("python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
         self.assertIn("python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
 
@@ -26,8 +26,19 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
         section = section.split("      - name:", 1)[0]
-        for trace in ("full-iso-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
+        for trace in ("full-iso-debugcon.log", "live-debugcon.log", "installer-debugcon.log", "recovery-debugcon.log"):
             self.assertIn(trace, section)
+
+    def test_each_target_qemu_smoke_attaches_native_init_and_ai_modules(self):
+        for target in ("live", "installer", "recovery"):
+            self.assertIn(f"target-init-{target}.elf chimera-user-init-elf target={target}", self.text)
+        self.assertGreaterEqual(self.text.count("module2 /boot/ai/knowledge-db.json ai-knowledge-db"), 3)
+        self.assertNotIn("handoff withheld", self.text)
+
+    def test_full_iso_smoke_selects_default_from_long_timeout_menu(self):
+        self.assertIn("sendkey ret", self.text)
+        self.assertIn("timeout 60s qemu-system-x86_64", self.text)
+        self.assertIn("screendump", self.text)
 
 if __name__ == "__main__":
     unittest.main()

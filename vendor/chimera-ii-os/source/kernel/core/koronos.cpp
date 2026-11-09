@@ -197,6 +197,7 @@ static void console_hex32(uint32_t v) {
 
 static const char *module_kind_name(uint32_t k) {
     switch (k) {
+        case CHIMERA_MODULE_USER_INIT_ELF: return "USER INIT ELF";
         case CHIMERA_MODULE_LIVE_INITRAMFS: return "LIVE INITRAMFS";
         case CHIMERA_MODULE_LIVE_MANIFEST: return "LIVE MANIFEST";
         case CHIMERA_MODULE_RECOVERY_INITRAMFS: return "RECOVERY INITRAMFS";
@@ -232,7 +233,24 @@ static void console_modules() {
 static volatile uint32_t console_task_runs = 0;
 static volatile uint32_t module_task_runs = 0;
 static volatile uint32_t live_task_runs = 0;
-static volatile uint32_t installer_phase = 0;
+
+static bool module_cmdline_selects_target(const chimera_boot_module *module,
+                                          const char *target) {
+    if (!module || !target || !*target) return false;
+    const char prefix[] = "target=";
+    for (const char *p = module->cmdline; *p; ++p) {
+        if (p != module->cmdline && p[-1] != ' ') continue;
+        const char *a = prefix;
+        const char *b = p;
+        while (*a && *b == *a) { ++a; ++b; }
+        if (*a) continue;
+        const char *wanted = target;
+        while (*wanted && *b == *wanted) { ++wanted; ++b; }
+        if (*wanted == 0 && (*b == 0 || *b == ' ')) return true;
+    }
+    return false;
+}
+
 
 static void task_console(void *) {
     if (console_task_runs++ == 0) console_write("[TASK] Console service online");
@@ -251,10 +269,11 @@ static void task_modules(void *) {
 
 static void task_live(void *) {
     if (live_task_runs++ == 0) {
-        if (chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF)) {
+        const chimera_boot_module *user_init = chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF);
+        if (module_cmdline_selects_target(user_init, "live")) {
             const int launch_rc = koronos_launch_selected_userspace();
             if (launch_rc != 0)
-                console_write("[RUN ] Selected userspace target failed its launch/readiness acceptance gate");
+                console_write("[RUN ] Live userspace target failed its launch/readiness acceptance gate");
             chimera_sched_block();
             return;
         }
@@ -276,6 +295,14 @@ static void task_live(void *) {
 }
 
 static void task_recovery(void *) {
+    const chimera_boot_module *user_init = chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF);
+    if (module_cmdline_selects_target(user_init, "recovery")) {
+        const int launch_rc = koronos_launch_selected_userspace();
+        if (launch_rc != 0)
+            console_write("[RUN ] Recovery userspace failed its launch/readiness acceptance gate");
+        chimera_sched_block();
+        return;
+    }
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_RECOVERY_INITRAMFS);
     if (image) {
         console_write("[REC ] Recovery initramfs module recognized");
@@ -290,48 +317,47 @@ static void task_installer(void *) {
     const chimera_boot_module *image = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_IMAGE);
     const chimera_boot_module *manifest = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_MANIFEST);
     const chimera_boot_module *contract = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_CONTRACT);
-    const chimera_boot_module *phases = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PHASES);
-    const chimera_boot_module *profiles = chimera_multiboot_find(CHIMERA_MODULE_INSTALL_PROFILES);
+    const chimera_boot_module *user_init = chimera_multiboot_find(CHIMERA_MODULE_USER_INIT_ELF);
 
-    if (!image && !manifest && !contract && !phases && !profiles) {
-        if (installer_phase++ == 0)
-            console_write("[INST] Installer target not selected: no installer modules");
+    /* Installer media may be present on a multi-target image. Presence of
+       those modules is not itself a request to enter the installer: only the
+       boot-selected init ELF may select that target. */
+    if (user_init && !module_cmdline_selects_target(user_init, "installer")) {
+        console_write("[INST] Installer target not selected; boot-selected userspace belongs to another target");
         chimera_sched_block();
         return;
     }
 
-    switch (installer_phase++) {
-        case 0:
-            console_write("[INST] Installer target detected");
-            if (image) console_write("[INST] Installation image accepted");
-            else console_write("[INST] ERROR: installation image module missing");
-            if (manifest) console_write("[INST] Installation manifest accepted");
-            else console_write("[INST] WARNING: installation manifest module missing");
-            if (contract) console_write("[INST] Installer contract accepted");
-            else console_write("[INST] WARNING: installer contract module missing");
-            break;
-        case 1:
-            console_write("[INST] Installer runtime initialization");
-            console_write("[INST] Initializing installer services in parallel");
-            break;
-        case 2:
-            console_write("[INST] Hardware discovery service started");
-            console_write("[INST] Storage discovery service started");
-            break;
-        case 3:
-            if (phases) console_write("[INST] Installation phases loaded");
-            if (profiles) console_write("[INST] Installer profiles loaded");
-            console_write("[INST] Installer UI scaffolding initialized; graphical userspace is not running");
-            break;
-        case 4:
-            console_write("[INST] Installer metadata/service scaffolding complete; install execution is not verified");
-            console_write("[USER] Installer handoff withheld: production payload has no supported native init ELF/runtime");
-            chimera_sched_block();
-            break;
-        default:
-            chimera_sched_block();
-            break;
+    if (!image && !manifest && !contract) {
+        console_write("[INST] Installer target not selected: no installer modules");
+        chimera_sched_block();
+        return;
     }
+    if (!image || !manifest || !contract) {
+        console_write("[INST] ERROR: installer media is incomplete (image, manifest and contract are all required)");
+        chimera_sched_block();
+        return;
+    }
+    if (!user_init) {
+        console_write("[INST] ERROR: installer payload exists but target-init-installer.elf is missing or was not classified as USER_INIT_ELF");
+        console_write("[INST] Refusing to wait for a userspace loader that was not supplied by Jasper/GRUB");
+        chimera_sched_block();
+        return;
+    }
+    if (!module_cmdline_selects_target(user_init, "installer")) {
+        console_write("[INST] ERROR: supplied USER_INIT_ELF does not select target=installer");
+        console_write("[INST] Module command line:");
+        console_write(user_init->cmdline);
+        chimera_sched_block();
+        return;
+    }
+
+    console_write("[INST] Installer image, manifest and contract verified as present");
+    console_write("[INST] Dispatching the target-specific installer init ELF");
+    const int launch_rc = koronos_launch_selected_userspace();
+    if (launch_rc != 0)
+        console_write("[RUN ] Installer userspace launch failed; see preceding [RUN] error for the failed stage");
+    chimera_sched_block();
 }
 
 static const char *task_state_name(uint32_t state) {
