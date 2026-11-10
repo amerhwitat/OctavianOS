@@ -444,13 +444,65 @@ jobs:
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
-          set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
-          set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
-          cat "$smoke/full-iso-debugcon.log"
-          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # The production GRUB menu deliberately waits for user input. Drive
+          # that real menu in QEMU instead of mistaking its idle timeout for a
+          # kernel boot failure. The kernel readiness assertion remains strict.
+          python3 - <<'PY'
+          import os, socket, subprocess, time
+          from pathlib import Path
+          smoke = Path("build/qemu-smoke")
+          trace = smoke / "full-iso-debugcon.log"
+          monitor = smoke / "full-iso-monitor.sock"
+          monitor.unlink(missing_ok=True)
+          cmd = [
+              "qemu-system-x86_64", "-machine", "q35", "-m", "1024",
+              "-cdrom", "boot/iso/dist/output.iso", "-boot", "d",
+              "-display", "none", "-serial", "none",
+              "-monitor", f"unix:{monitor},server=on,wait=off",
+              "-no-reboot", "-no-shutdown",
+              "-debugcon", f"file:{trace}", "-global", "isa-debugcon.iobase=0xe9",
+          ]
+          proc = subprocess.Popen(cmd)
+          try:
+              deadline = time.monotonic() + 12
+              connected = False
+              while time.monotonic() < deadline and proc.poll() is None:
+                  if monitor.exists():
+                      try:
+                          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                          client.connect(str(monitor))
+                          client.settimeout(1)
+                          client.recv(4096)
+                          client.sendall(b"sendkey ret\\n")
+                          client.close()
+                          connected = True
+                          break
+                      except (OSError, TimeoutError):
+                          time.sleep(0.2)
+                  else:
+                      time.sleep(0.2)
+              if not connected:
+                  raise SystemExit("QEMU monitor did not become available; cannot select the production GRUB entry")
+              try:
+                  proc.wait(timeout=30)
+              except subprocess.TimeoutExpired:
+                  proc.terminate()
+                  try:
+                      proc.wait(timeout=3)
+                  except subprocess.TimeoutExpired:
+                      proc.kill()
+                      proc.wait()
+              if not trace.is_file() or trace.stat().st_size == 0:
+                  raise SystemExit("Full ISO produced no debugcon trace after selecting the GRUB entry")
+              content = trace.read_text(errors="replace")
+              print(content)
+              if "[KRN ] KORONOS READY" not in content:
+                  raise SystemExit("Full ISO did not reach Koronos readiness after GRUB selection")
+          finally:
+              if proc.poll() is None:
+                  proc.terminate()
+                  proc.wait(timeout=5)
+          PY
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
