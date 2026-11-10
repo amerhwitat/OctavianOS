@@ -448,7 +448,7 @@ jobs:
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
     needs: [build-koronos, verify-userspace-handoff]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-userspace-handoff.result == 'success' && vars.OCTAVIAN_RELEASE_ACCEPTANCE_APPROVED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
