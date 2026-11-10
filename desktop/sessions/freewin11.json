@@ -1,0 +1,24 @@
+{
+  "id": "freewin11",
+  "name": "FreeWin11 Modern Desktop",
+  "version": "0.1.0",
+  "launch": {
+    "executable": "octavian-desktop-shell",
+    "args": [
+      "--desktop=freewin11"
+    ]
+  },
+  "architectures": [
+    "x86_64"
+  ],
+  "display_backend": "x11",
+  "requires": [
+    "xorg",
+    "gtk4",
+    "semantic-svg-icon-bundle"
+  ],
+  "license": "Clean-room Windows 11/12-inspired design; no Microsoft binaries or assets",
+  "readiness_probe": "window-visible:FreeWin11 Modern Desktop",
+  "launch_method": "native",
+  "status": "prototype"
+}
