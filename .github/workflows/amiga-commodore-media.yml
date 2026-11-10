@@ -35,6 +35,7 @@ jobs:
           AROS_NIGHTLY_DATE: ${{ inputs.aros_nightly_date || '20261109' }}
         run: |
           set -euo pipefail
+          python3 -m py_compile retro/amiga-commodore/build_media.py retro/amiga-commodore/verify_media.py
           python3 retro/amiga-commodore/build_media.py --out build/retro-media
           python3 retro/amiga-commodore/verify_media.py build/retro-media
           c1541 -attach build/retro-media/CHIMERA-Commodore-64.d64 -list
