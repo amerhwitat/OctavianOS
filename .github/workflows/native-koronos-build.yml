@@ -626,7 +626,7 @@ jobs:
   publish-native-iso:
     name: Publish prerelease only after six-case acceptance
     needs: [build-koronos, verify-userspace-handoff, verify-six-case-matrix]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-six-case-matrix.outputs.accepted == 'true' && needs.verify-userspace-handoff.result == 'success'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-six-case-matrix.outputs.accepted == 'true' && needs.verify-userspace-handoff.result == 'success' && vars.OCTAVIAN_RELEASE_ACCEPTANCE_APPROVED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
