@@ -464,6 +464,10 @@ jobs:
           ]
           proc = subprocess.Popen(cmd)
           try:
+              # The monitor socket exists before firmware and GRUB are ready.
+              # Do not send the menu-selection key during BIOS startup: QEMU
+              # drops it, leaving the full-ISO trace empty despite a valid ISO.
+              time.sleep(5)
               deadline = time.monotonic() + 12
               connected = False
               while time.monotonic() < deadline and proc.poll() is None:
