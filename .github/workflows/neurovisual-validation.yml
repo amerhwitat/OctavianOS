@@ -1,0 +1,45 @@
+name: Neurovisual desktop model validation
+
+on:
+  push:
+    paths:
+      - 'desktop/shared/**'
+      - 'desktop/aurora-wayland-glass/index.html'
+      - 'desktop/marine/index.html'
+      - '.github/workflows/neurovisual-validation.yml'
+  pull_request:
+    paths:
+      - 'desktop/shared/**'
+      - 'desktop/aurora-wayland-glass/index.html'
+      - 'desktop/marine/index.html'
+      - '.github/workflows/neurovisual-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate browser adapter and model metadata
+        run: |
+          node --check desktop/shared/neurovisual.js
+          python3 -m json.tool desktop/shared/neurovisual-model.json >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          for page, identity in [
+              ("desktop/aurora-wayland-glass/index.html", "aurora"),
+              ("desktop/marine/index.html", "marine"),
+          ]:
+              text = Path(page).read_text()
+              assert '../shared/neurovisual.js' in text, f"{page} missing neurovisual runtime"
+              assert f'data-neurovisual="{identity}"' in text, f"{page} missing {identity} identity"
+          PY
+      - name: Compile and run native 14D projection smoke test
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -Idesktop/shared desktop/shared/neurovisual_smoke.cpp -o /tmp/neurovisual-smoke
+          /tmp/neurovisual-smoke
