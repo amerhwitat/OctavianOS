@@ -10,7 +10,6 @@ import shutil
 import subprocess
 import tempfile
 import urllib.request
-import zipfile
 
 ADF_SIZE = 880 * 1024
 D64_SIZE = 174848
@@ -90,8 +89,10 @@ def build_d64(out: pathlib.Path) -> dict:
     prg = out / "CHIMERA64.PRG"
     d64 = out / "CHIMERA-Commodore-64.d64"
     build_c64_basic_prg(prg)
+    # VICE syntax is: -format "name,id" d64 image.d64. Passing only the
+    # image path after the label makes c1541 parse it as a disk-image type.
     command = [
-        "c1541", "-format", "CHIMERA,01", str(d64),
+        "c1541", "-format", "CHIMERA,01", "d64", str(d64),
         "-write", str(prg), "CHIMERA", "-list",
     ]
     result = subprocess.run(command, check=True, text=True, capture_output=True)
