@@ -3,7 +3,6 @@ on:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/tools/commands/install-command-providers.sh'
-      - 'vendor/chimera-ii-os/source/vendor/chimera-ii-os/source/config/services/**'
       - 'vendor/chimera-ii-os/source/config/services/**'
       - 'vendor/chimera-ii-os/source/tests/services/**'
       - 'docs/NETWORK_DAEMONS.md'
