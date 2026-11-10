@@ -34,7 +34,7 @@
       "profile": "retro/commodore/profiles/amiga-a2000.fs-uae",
       "firmware_policy": "PUAE built-in AROS replacement available; genuine Kickstart ROM optional and user-provided only"
     },
-    ,{
+    {
       "id": "amiga-a4000",
       "name": "Commodore Amiga 4000",
       "family": "Amiga",
