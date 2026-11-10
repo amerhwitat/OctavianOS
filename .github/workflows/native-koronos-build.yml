@@ -473,7 +473,7 @@ jobs:
                           client.connect(str(monitor))
                           client.settimeout(1)
                           client.recv(4096)
-                          client.sendall(b"sendkey ret\\n")
+                          client.sendall(b"sendkey ret\n")
                           client.close()
                           connected = True
                           break
