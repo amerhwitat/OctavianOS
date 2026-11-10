@@ -28,9 +28,30 @@ done
 cp "$TMP/libretro-uae/COPYING" "$OUT/licenses/PUAE-COPYING" 2>/dev/null || true
 cp "$TMP/vice/vice/COPYING" "$OUT/licenses/VICE-COPYING" 2>/dev/null || true
 file "$OUT/puae_libretro.so" "$OUT/x64sc" "$OUT/c1541" > "$OUT/binary-types.txt"
-readelf -h "$OUT/puae_libretro.so" | grep -Eq 'Type:[[:space:]]+DYN'
-readelf -h "$OUT/x64sc" | grep -Eq 'Type:[[:space:]]+EXEC'
-readelf -h "$OUT/c1541" | grep -Eq 'Type:[[:space:]]+EXEC'
+readelf -h "$OUT/puae_libretro.so" | grep -Eq 'Type:[[:space:]]+DYN' || {
+  echo "PUAE provider is not an ELF shared object (ET_DYN)" >&2; exit 1;
+}
+# Ubuntu's GCC toolchain defaults to PIE, so runnable VICE programs may be
+# ET_DYN rather than ET_EXEC. Accept either executable ELF form, but require
+# PT_INTERP for ET_DYN so a shared object cannot pass as a program.
+check_native_executable() {
+  local binary="$1" elf_type
+  elf_type="$(readelf -h "$binary" | awk -F: '/Type:/{gsub(/[[:space:]]/,"",$2); print $2}')"
+  case "$elf_type" in
+    EXEC) ;;
+    DYN)
+      readelf -lW "$binary" | grep -q 'INTERP' || {
+        echo "$binary is ET_DYN but has no PT_INTERP; refusing shared object" >&2; return 1;
+      }
+      ;;
+    *)
+      echo "$binary has unsupported ELF type: $elf_type" >&2; return 1
+      ;;
+  esac
+  echo "Verified runnable ELF: $binary ($elf_type)"
+}
+check_native_executable "$OUT/x64sc"
+check_native_executable "$OUT/c1541"
 ldd "$OUT/x64sc" > "$OUT/x64sc-dependencies.txt"
 ldd "$OUT/c1541" > "$OUT/c1541-dependencies.txt"
 (cd "$OUT" && sha256sum puae_libretro.so x64sc c1541 > SHA256SUMS)
