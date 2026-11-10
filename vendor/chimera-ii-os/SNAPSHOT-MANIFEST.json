@@ -9,6 +9,7 @@
   "history_preserved": false,
   "local_port_modifications": [
     "tools/build-live-boot-binaries.sh: only stages the x86_64 Koronos ELF for x86_64; marks arm64/armv7 runtimes not-built; never asserts verified_binary_generation without architecture-specific validation",
-    "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness."
+    "tools/build-live-boot-binaries.sh: Live and Jasper recovery initramfs emit event-driven progress bars and verbose /dev/console plus /var/log/mesgs logs; percentages report completed early-userspace operations, not kernel or desktop readiness.",
+    "vendor/chimera-ii-os/source/tools/generate-aurora-media.sh: selectively synchronized from ChimeraIIOS PR #247 head 27388e4bfd7b451e0be08066b62b58798e1311e8 (byte-identical to PR #248 head 2c09dd8caa388bd70cd09f4de0d342e50c7c092b); FFmpeg uses -nostdin and /dev/null redirection so batch media generation cannot consume the here-document feeding the sound-effect loop."
   ]
 }
