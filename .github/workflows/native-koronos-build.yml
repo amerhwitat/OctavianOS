@@ -337,6 +337,14 @@ jobs:
           python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
           test -s config/ai/knowledge-db.json
           python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+      - name: Stage native ISO payload generator
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          # The vendored ISO pipeline invokes tools/iso/stage_payload.py.
+          # Keep it synchronized with Octavian's canonical repository copy.
+          install -D -m 0755 "$GITHUB_WORKSPACE/tools/iso/stage_payload.py" tools/iso/stage_payload.py
+          python3 -m py_compile tools/iso/stage_payload.py
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
