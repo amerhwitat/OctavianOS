@@ -9,12 +9,24 @@ on:
       - 'userspace/systemd/octavian-wsl-drive-aliases.service'
       - 'userspace/Makefile'
       - 'desktop/native/**'
+      - 'retro/commodore/**'
+      - 'tools/binary/**'
+      - 'tools/inspect-binary-headers.py'
+      - 'tools/ide/install-development-suite.sh'
+      - 'vendor/chimera-ii-os/source/tools/binary/**'
       - 'boot/live/desktop-sessions.json'
       - 'vendor/chimera-ii-os/source/desktop/**'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-icon-files.py'
       - 'vendor/chimera-ii-os/source/tools/binary/inspect_binary.py'
       - 'vendor/chimera-ii-os/source/tools/ide/install-vscodium.py'
+      - 'vendor/chimera-ii-os/source/tools/ide/install-vscode.py'
+      - 'vendor/chimera-ii-os/source/tools/graphics/**'
+      - 'vendor/chimera-ii-os/source/tests/ide/test_install_vscode.py'
+      - 'vendor/chimera-ii-os/source/tools/runtime/**'
+      - 'vendor/chimera-ii-os/source/tests/runtime/**'
+      - 'vendor/chimera-ii-os/source/docs/WEB_TERMINAL_LOCAL_BACKEND.md'
+      - 'vendor/chimera-ii-os/source/man/chm-terminal-bridge.1'
       - 'vendor/chimera-ii-os/source/tests/ide/test_install_vscodium.py'
       - 'vendor/chimera-ii-os/source/tests/compat/test_binary_headers.py'
       - 'vendor/chimera-ii-os/source/userspace/hive/**'
@@ -50,6 +62,22 @@ jobs:
         run: python3 -m unittest discover -s vendor/chimera-ii-os/source/tests/ide -p test_install_vscodium.py -v
       - name: Validate ELF, PE/COFF and Mach-O header inspection
         run: python3 -m unittest discover -s vendor/chimera-ii-os/source/tests/compat -p test_binary_headers.py -v
+      - name: Test retro media, recursive binary scanner and compatibility dry-run
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s retro/commodore/tests -v
+          python3 -m unittest discover -s tools/binary/tests -v
+          python3 -m unittest discover -s vendor/chimera-ii-os/source/tools/binary/tests -v
+          bash -n retro/commodore/create-retro-media.sh retro/commodore/launch-machine.sh
+      - name: Install graphics verification dependencies
+        run: sudo apt-get update && sudo apt-get install --yes pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils xvfb
+      - name: Verify graphics SDK and VS Code installer plans
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests/ide -p test_install_vscode.py -v
+          python3 -m unittest discover -s tests/runtime -p test_chimera_terminal_backend.py -v
+          bash tools/graphics/install-opengl-opencv.sh --verify
       - name: Install native build tools
         run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
       - name: Validate Aurora and Marine session-selection contract
