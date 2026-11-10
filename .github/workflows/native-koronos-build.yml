@@ -454,22 +454,19 @@ jobs:
           trace = smoke / "full-iso-debugcon.log"
           monitor = smoke / "full-iso-monitor.sock"
           monitor.unlink(missing_ok=True)
+          serial = smoke / "full-iso-serial.log"
           cmd = [
               "qemu-system-x86_64", "-machine", "q35", "-m", "1024",
               "-cdrom", "boot/iso/dist/output.iso", "-boot", "d",
-              "-display", "none", "-serial", "none",
+              "-display", "none", "-serial", f"file:{serial}",
               "-monitor", f"unix:{monitor},server=on,wait=off",
               "-no-reboot", "-no-shutdown",
               "-debugcon", f"file:{trace}", "-global", "isa-debugcon.iobase=0xe9",
           ]
           proc = subprocess.Popen(cmd)
+          client = None
           try:
-              # The monitor socket exists before firmware and GRUB are ready.
-              # Do not send the menu-selection key during BIOS startup: QEMU
-              # drops it, leaving the full-ISO trace empty despite a valid ISO.
-              time.sleep(5)
               deadline = time.monotonic() + 12
-              connected = False
               while time.monotonic() < deadline and proc.poll() is None:
                   if monitor.exists():
                       try:
@@ -477,16 +474,25 @@ jobs:
                           client.connect(str(monitor))
                           client.settimeout(1)
                           client.recv(4096)
-                          client.sendall(b"sendkey ret\n")
-                          client.close()
-                          connected = True
                           break
                       except (OSError, TimeoutError):
+                          if client:
+                              client.close()
+                              client = None
                           time.sleep(0.2)
                   else:
                       time.sleep(0.2)
-              if not connected:
-                  raise SystemExit("QEMU monitor did not become available; cannot select the production GRUB entry")
+              if client is None:
+                  raise SystemExit("QEMU monitor did not become available")
+              # GRUB deliberately waits for input. Retry Enter after firmware
+              # startup while retaining its configured serial terminal.
+              for _ in range(15):
+                  if proc.poll() is not None or (trace.is_file() and trace.stat().st_size):
+                      break
+                  client.sendall(b"sendkey ret\n")
+                  time.sleep(1)
+              client.close()
+              client = None
               try:
                   proc.wait(timeout=30)
               except subprocess.TimeoutExpired:
@@ -497,7 +503,8 @@ jobs:
                       proc.kill()
                       proc.wait()
               if not trace.is_file() or trace.stat().st_size == 0:
-                  raise SystemExit("Full ISO produced no debugcon trace after selecting the GRUB entry")
+                  serial_text = serial.read_text(errors="replace") if serial.exists() else "<no serial output>"
+                  raise SystemExit("Full ISO produced no debugcon trace. GRUB serial output:\\n" + serial_text[-6000:])
               content = trace.read_text(errors="replace")
               print(content)
               if "[KRN ] KORONOS READY" not in content:
