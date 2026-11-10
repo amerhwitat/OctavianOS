@@ -36,7 +36,7 @@ readelf -h "$OUT/puae_libretro.so" | grep -Eq 'Type:[[:space:]]+DYN' || {
 # PT_INTERP for ET_DYN so a shared object cannot pass as a program.
 check_native_executable() {
   local binary="$1" elf_type
-  elf_type="$(readelf -h "$binary" | awk -F: '/Type:/{gsub(/[[:space:]]/,"",$2); print $2}')"
+  elf_type="$(readelf -h "$binary" | awk -F: '/Type:/{sub(/^[[:space:]]*/, "", $2); split($2, fields, /[[:space:]]+/); print fields[1]}')"
   case "$elf_type" in
     EXEC) ;;
     DYN)
