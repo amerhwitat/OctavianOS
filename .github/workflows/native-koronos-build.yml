@@ -551,7 +551,12 @@ jobs:
             xorriso -osirrox on -indev "$iso" -extract "/boot/targets/target-init-$target.elf" "$staged" >/dev/null
             cmp "build/koronos/x86_64/target-init-$target.elf" "$staged"
           done
-          xorriso -osirrox on -indev "$iso" -extract /EFI/BOOT/BOOTX64.EFI "$out/uefi/BOOTX64.EFI" >/dev/null
+          # grub-mkrescue embeds the FAT EFI System Partition as /efi.img;
+          # BOOTX64.EFI is inside that image, not a top-level ISO file.
+          xorriso -osirrox on -indev "$iso" -extract /efi.img "$out/uefi/efi.img" >/dev/null
+          test -s "$out/uefi/efi.img"
+          mdir -i "$out/uefi/efi.img" ::/EFI/BOOT/
+          mcopy -i "$out/uefi/efi.img" ::/EFI/BOOT/BOOTX64.EFI "$out/uefi/BOOTX64.EFI"
           test -s "$out/uefi/BOOTX64.EFI"
           objdump -f "$out/uefi/BOOTX64.EFI" | tee "$out/uefi/BOOTX64.EFI.file-header.txt"
           objdump -p "$out/uefi/BOOTX64.EFI" | tee "$out/uefi/BOOTX64.EFI.pe-header.txt"
