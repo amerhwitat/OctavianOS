@@ -13,9 +13,9 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
         self.assertIn("needs: build-koronos", self.text)
-        self.assertIn("python3 tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log", self.text)
-        self.assertIn("python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
-        self.assertIn("python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
+        self.assertIn("python3 vendor/chimera-ii-os/source/tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log", self.text)
+        self.assertIn("python3 vendor/chimera-ii-os/source/tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
+        self.assertIn("python3 vendor/chimera-ii-os/source/tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
 
     def test_release_depends_on_all_three_userspace_gates(self):
         section = self.text.split("  publish-native-iso:", 1)[1]
