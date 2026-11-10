@@ -1,0 +1,24 @@
+{
+  "id": "freexp",
+  "name": "FreeXP Classic Desktop",
+  "version": "0.1.0",
+  "launch": {
+    "executable": "octavian-desktop-shell",
+    "args": [
+      "--desktop=freexp"
+    ]
+  },
+  "architectures": [
+    "x86_64"
+  ],
+  "display_backend": "x11",
+  "requires": [
+    "xorg",
+    "gtk4",
+    "dosbox-or-dosbox-x"
+  ],
+  "license": "Clean-room profile; upstream components retain their own licenses",
+  "readiness_probe": "window-visible:FreeXP Classic Desktop",
+  "launch_method": "native",
+  "status": "prototype"
+}
