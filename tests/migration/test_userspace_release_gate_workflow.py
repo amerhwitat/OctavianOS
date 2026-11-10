@@ -12,10 +12,14 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
 
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
-        self.assertIn("needs: build-koronos", self.text)
-        self.assertIn("python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log", self.text)
-        self.assertIn("python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
-        self.assertIn("python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
+        section = self.text.split("  verify-userspace-handoff:", 1)[1].split("  verify-six-case-matrix:", 1)[0]
+        self.assertIn("needs: [build-koronos, verify-six-case-matrix]", section)
+        self.assertIn("for target in live installer recovery; do", section)
+        self.assertIn("for firmware in bios uefi; do", section)
+        self.assertIn('trace="six-case-evidence/$target/$firmware/debugcon.log"', section)
+        self.assertIn('python3 tests/migration/verify-userspace-handoff.py "$target" "$trace" || result=1', section)
+        self.assertIn('exit "$result"', section)
+        self.assertNotIn("continue-on-error", section)
 
     def test_release_depends_on_all_three_userspace_gates(self):
         section = self.text.split("  publish-native-iso:", 1)[1]
