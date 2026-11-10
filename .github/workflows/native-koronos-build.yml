@@ -326,6 +326,17 @@ jobs:
           install -m 0644 desktop/aurora/assets/octavian-artwork-manifest.json "$visual_dir/octavian-artwork-manifest.json"
           test -s "$visual_dir/octavian-octopus-aurora.png"
           test -s "$visual_dir/octavian-artwork-manifest.json"
+      - name: Generate native ISO knowledge database
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          # The vendored Chimera ISO builder requires its knowledge database
+          # generator inside the vendored source tree; Octavian keeps the
+          # canonical generator at the repository root.
+          install -D -m 0644 "$GITHUB_WORKSPACE/tools/ai/knowledge_db.py" tools/ai/knowledge_db.py
+          python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
+          test -s config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
