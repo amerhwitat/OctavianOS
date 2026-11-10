@@ -462,7 +462,14 @@ jobs:
           set -euo pipefail
           iso=boot/iso/dist/output.iso
           out=build/native-target-elfs
-          mkdir -p "$out/uefi" "$out/spitfire"
+          mkdir -p "$out/uefi" "$out/spitfire" "$out/staged-iso/targets"
+          # Keep the target-specific modules from the final ISO and verify
+          # they are identical to the native binaries produced by Koronos.
+          for target in live installer recovery; do
+            staged="$out/staged-iso/targets/target-init-$target.elf"
+            xorriso -osirrox on -indev "$iso" -extract "/boot/targets/target-init-$target.elf" "$staged" >/dev/null
+            cmp "build/koronos/x86_64/target-init-$target.elf" "$staged"
+          done
           xorriso -osirrox on -indev "$iso" -extract /EFI/BOOT/BOOTX64.EFI "$out/uefi/BOOTX64.EFI" >/dev/null
           test -s "$out/uefi/BOOTX64.EFI"
           objdump -f "$out/uefi/BOOTX64.EFI" | tee "$out/uefi/BOOTX64.EFI.file-header.txt"
