@@ -1,0 +1,37 @@
+name: CISC and RISC ISA target mapping
+on:
+  pull_request:
+    paths:
+      - 'vendor/chimera-ii-os/source/isa/**'
+      - 'tools/vendor/chimera-ii-os/source/isa/**'
+      - 'tests/vendor/chimera-ii-os/source/isa/**'
+      - 'vendor/chimera-ii-os/source/docs/isa/cisc-risc-c8192-r8192.md'
+      - '.github/workflows/cisc-risc-isa-map.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vendor/chimera-ii-os/source/isa/**'
+      - 'tools/vendor/chimera-ii-os/source/isa/**'
+      - 'tests/vendor/chimera-ii-os/source/isa/**'
+      - 'vendor/chimera-ii-os/source/docs/isa/cisc-risc-c8192-r8192.md'
+      - '.github/workflows/cisc-risc-isa-map.yml'
+permissions:
+  contents: read
+jobs:
+  validate-map:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate complete ISA mapping
+        run: python3 vendor/chimera-ii-os/source/tools/isa/map_cpu_isa.py --validate
+      - name: Run mapping regression tests
+        run: python3 vendor/chimera-ii-os/source/tests/isa/test_cpu_isa_target_map.py
+      - name: Report family coverage without overstating execution support
+        run: |
+          python3 tools/isa/map_cpu_isa.py | tee /tmp/isa-map-validation.txt
+          grep -q 'chimera-c8192' /tmp/isa-map-validation.txt
+          grep -q 'chimera-r8192' /tmp/isa-map-validation.txt
