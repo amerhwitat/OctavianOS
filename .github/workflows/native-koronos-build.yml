@@ -468,7 +468,7 @@ jobs:
           objdump -f "$out/uefi/BOOTX64.EFI" | tee "$out/uefi/BOOTX64.EFI.file-header.txt"
           objdump -p "$out/uefi/BOOTX64.EFI" | tee "$out/uefi/BOOTX64.EFI.pe-header.txt"
           grep -Eq 'architecture: i386:x86-64' "$out/uefi/BOOTX64.EFI.file-header.txt"
-          grep -Eq 'Subsystem[[:space:]]+0000000a[[:space:]]+\\(EFI application\\)' "$out/uefi/BOOTX64.EFI.pe-header.txt"
+          grep -Eq 'Subsystem[[:space:]]+0000000a[[:space:]]+\(EFI application\)' "$out/uefi/BOOTX64.EFI.pe-header.txt"
           for name in spitfire-sf0-mbr.bin spitfire-stage2.bin spitfire-sf1-longmode.o spitfire-sf2-loader.o; do
             xorriso -osirrox on -indev "$iso" -extract "/boot/spitfire/$name" "$out/spitfire/$name" >/dev/null
             test -s "$out/spitfire/$name" || { echo "::error::Missing Spit Fire artifact: $name"; exit 1; }
