@@ -36,6 +36,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile retro/amiga-commodore/build_media.py retro/amiga-commodore/verify_media.py
+          c1541 -format "CHIMERA-CI,01" d64 "$RUNNER_TEMP/chimera-c1541-probe.d64" -list
+          test -s "$RUNNER_TEMP/chimera-c1541-probe.d64"
           python3 retro/amiga-commodore/build_media.py --out build/retro-media
           python3 retro/amiga-commodore/verify_media.py build/retro-media
           c1541 -attach build/retro-media/CHIMERA-Commodore-64.d64 -list
