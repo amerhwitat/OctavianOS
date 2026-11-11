@@ -9,6 +9,8 @@ on:
       - 'boot/spitfire/**'
       - 'boot/installation/**'
       - 'tools/boot/octavian-progress*'
+      - 'tools/boot/octavian-init-splash.sh'
+      - 'boot/splash/octavian-init-splash.service'
       - 'tools/artwork/**'
       - 'tests/boot/test_octavian_splash_progress.py'
       - '.github/workflows/octavian-splash.yml'
@@ -20,6 +22,8 @@ on:
       - 'boot/spitfire/**'
       - 'boot/installation/**'
       - 'tools/boot/octavian-progress*'
+      - 'tools/boot/octavian-init-splash.sh'
+      - 'boot/splash/octavian-init-splash.service'
       - 'tools/artwork/**'
       - 'tests/boot/test_octavian_splash_progress.py'
       - '.github/workflows/octavian-splash.yml'
@@ -41,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash -n tools/boot/octavian-progress.sh tools/artwork/rebrand-init-video.sh
+          bash -n tools/boot/octavian-progress.sh tools/boot/octavian-init-splash.sh tools/artwork/rebrand-init-video.sh
           python3 tests/boot/test_octavian_splash_progress.py
       - name: Rasterize offline GRUB octopus artwork
         run: |
@@ -51,6 +55,13 @@ jobs:
           test -s build/boot/grub/octavian-octopus-background.png
           cp boot/splash/octavian-octopus-background.svg build/boot/splash/
           cp tools/boot/octavian-progress-osd.lua build/boot/splash/
+          cp tools/boot/octavian-init-splash.sh build/boot/splash/
+          mkdir -p build/rootfs/boot/splash build/rootfs/usr/bin build/rootfs/usr/share/octavian/boot build/rootfs/usr/lib/systemd/user build/rootfs/usr/lib/systemd/user/graphical-session.target.wants
+          cp boot/splash/octavian-init-splash.service build/boot/splash/
+          install -m 0755 tools/boot/octavian-init-splash.sh build/rootfs/usr/bin/octavian-init-splash
+          install -m 0644 tools/boot/octavian-progress-osd.lua build/rootfs/usr/share/octavian/boot/octavian-progress-osd.lua
+          install -m 0644 boot/splash/octavian-init-splash.service build/rootfs/usr/lib/systemd/user/octavian-init-splash.service
+          ln -sf ../octavian-init-splash.service build/rootfs/usr/lib/systemd/user/graphical-session.target.wants/octavian-init-splash.service
           sha256sum build/boot/grub/octavian-octopus-background.png > build/boot/splash/artwork.sha256
       - name: Import and rebrand original Init.mp4 frames
         uses: actions/checkout@v4
@@ -66,12 +77,17 @@ jobs:
           mkdir -p build/boot/splash
           bash tools/artwork/rebrand-init-video.sh source-chimera/Init.mp4 build/boot/splash/Init-OctavianOS.mp4
           test -s build/boot/splash/Init-OctavianOS.mp4
+          install -m 0644 build/boot/splash/Init-OctavianOS.mp4 build/rootfs/boot/splash/Init-OctavianOS.mp4
+          install -m 0644 build/boot/splash/octavian-progress-osd.lua build/rootfs/boot/splash/octavian-progress-osd.lua
+          sha256sum build/boot/splash/Init-OctavianOS.mp4 >> build/boot/splash/artwork.sha256
           ffprobe -v error -show_entries stream=codec_type,codec_name,width,height -of json build/boot/splash/Init-OctavianOS.mp4 > build/boot/splash/video-metadata.json
           sha256sum build/boot/splash/Init-OctavianOS.mp4 >> build/boot/splash/artwork.sha256
       - name: Upload generated offline splash assets
         uses: actions/upload-artifact@v4
         with:
           name: octavianos-splash-assets
-          path: build/boot/
+          path: |
+            build/boot/
+            build/rootfs/
           if-no-files-found: error
           retention-days: 30

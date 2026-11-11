@@ -13,6 +13,9 @@ ARTWORK = ROOT / "boot/splash/octavian-octopus-background.svg"
 ARTWORK_CONTRACT = ROOT / "boot/splash/artwork-contract.json"
 VIDEO_TOOL = ROOT / "tools/artwork/rebrand-init-video.sh"
 OSD = ROOT / "tools/boot/octavian-progress-osd.lua"
+SPLASH = ROOT / "tools/boot/octavian-init-splash.sh"
+SPLASH_UNIT = ROOT / "boot/splash/octavian-init-splash.service"
+WORKFLOW = ROOT / ".github/workflows/octavian-splash.yml"
 
 
 class OctavianSplashProgressTests(unittest.TestCase):
@@ -57,6 +60,17 @@ class OctavianSplashProgressTests(unittest.TestCase):
         self.assertIn("mp.set_osd_ass(0, 0", osd)
         self.assertIn("progress differs by installer", script)
         self.assertIn("progress.state", osd)
+
+    def test_init_video_is_hardcoded_and_live_progress_osd_is_staged(self):
+        script = SPLASH.read_text(encoding="utf-8")
+        unit = SPLASH_UNIT.read_text(encoding="utf-8")
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("/boot/splash/Init-OctavianOS.mp4", script)
+        self.assertIn("/run/octavian/progress.state", script)
+        self.assertIn("--script=", script)
+        self.assertIn("ExecStart=/usr/bin/octavian-init-splash --background", unit)
+        self.assertIn("octavian-init-splash.sh", workflow)
+        self.assertIn("Init-OctavianOS.mp4", workflow)
 
 
 if __name__ == "__main__":
