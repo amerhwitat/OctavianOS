@@ -26,7 +26,7 @@ class TargetInitHandoffWorkflowTests(unittest.TestCase):
 
     def test_acceptance_harness_preserves_grub_firmware_variable(self):
         self.assertIn(
-            r"chimera-user-init-elf target=$TARGET firmware=\\$grub_platform",
+            r"chimera-user-init-elf target=$TARGET firmware=\$grub_platform",
             self.acceptance_workflow,
         )
 
