@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'desktop/**'
+      - 'desktop/sessions/**'
       - 'userspace/bin/octavian-map-windows-drives'
       - 'userspace/tests/test_wsl_drive_aliases.sh'
       - 'userspace/systemd/octavian-wsl-drive-aliases.service'
@@ -11,6 +12,7 @@ on:
       - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
       - 'vendor/chimera-ii-os/source/desktop/**'
+      - 'retro/amiga-commodore/**'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-icon-files.py'
       - 'vendor/chimera-ii-os/source/tools/binary/inspect_binary.py'
@@ -64,6 +66,14 @@ jobs:
           sessions = {item["id"]: item for item in data["sessions"]}
           assert sessions["aurora"]["name"] == "Aurora Wayland Glass Desktop"
           assert sessions["marine"]["name"] == "Marine Desktop"
+          assert sessions["freexp"]["status"] == "prototype"
+          assert sessions["freewin11"]["status"] == "prototype"
+          for session_id in ("freexp", "freewin11"):
+              manifest = json.loads(Path(f"desktop/sessions/{session_id}.json").read_text())
+              assert manifest["id"] == session_id
+              assert manifest["status"] == "prototype"
+              assert manifest["launch"]["args"] == [f"--desktop={session_id}"]
+              assert manifest["display_backend"] == "x11"
           # Keep the UI honest until a real kernel userspace session launcher exists.
           assert sessions["aurora"]["status"] == "prototype"
           assert sessions["marine"]["status"] == "prototype"
@@ -155,6 +165,7 @@ jobs:
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=aurora --self-test
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=marine --self-test
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=freexp --self-test
+          xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=freewin11 --self-test
           if "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=invalid --self-test; then
             echo "invalid desktop profile was accepted" >&2
             exit 1
