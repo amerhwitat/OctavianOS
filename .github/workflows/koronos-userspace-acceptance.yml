@@ -147,7 +147,7 @@ jobs:
           terminal_output console
           menuentry "Koronos in-kernel timeout acceptance" {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live firmware=\$grub_platform
+            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
             boot
           }
           EOF
