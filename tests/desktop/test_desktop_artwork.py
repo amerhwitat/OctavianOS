@@ -24,9 +24,13 @@ class DesktopArtworkTests(unittest.TestCase):
         self.assertIn("Aurora Wayland Glass Desktop", page)
         self.assertIn("dockwrap", page)
         self.assertIn("global menu bar", page)
-        self.assertIn("../aurora/assets/octavian-octopus-aurora.svg", page)
+        # The desktop now prefers the 4K scalable artwork; retain the original
+        # source asset in the repo for existing consumers and backward compatibility.
+        self.assertIn("../aurora/assets/octavian-celestial-octopus-3840x2160.svg", page)
+        self.assertTrue((ROOT / "desktop/aurora/assets/octavian-celestial-octopus-3840x2160.svg").is_file())
         self.assertTrue((ROOT / "desktop/aurora/assets/octavian-octopus-aurora.svg").is_file())
-        self.assertTrue((ROOT / "desktop/aurora/assets/octavian-artwork-manifest.json").is_file())
+        manifest = json.loads((ROOT / "desktop/aurora/assets/octavian-artwork-manifest.json").read_text())
+        self.assertTrue(any(item["path"] == "desktop/aurora/assets/octavian-celestial-octopus-3840x2160.svg" for item in manifest["artworks"]))
 
     def test_marine_windows_style_layout_contract(self):
         page = (ROOT / "desktop/marine/index.html").read_text()
