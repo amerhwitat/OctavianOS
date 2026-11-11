@@ -1,0 +1,38 @@
+# Octavian Retro Media Builder
+
+Creates three reproducible media images:
+
+- \`Octavian-Amiga-A500.adf\`: 880 KiB OFS data floppy.
+- \`Octavian-Amiga-A2000.adf\`: 880 KiB FFS data floppy.
+- \`Octavian-Commodore-C64-Starter.d64\`: standard 35-track D64 with an original BASIC V2 starter program.
+
+## Build and validate
+
+\`\`\`sh
+sudo apt-get install python3-venv vice
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip amitools
+python tools/retro-media/build_retro_media.py --output build/retro-media
+OCTAVIAN_RETRO_MEDIA_DIR="$PWD/build/retro-media" python -m unittest discover -s tests/retro_media -v
+\`\`\`
+
+Amiga images are formatted and inspected by \`xdftool\` from amitools. The D64 is created, directory-listed and PRG-round-tripped with VICE's \`c1541\`. CI publishes the generated images as an artifact.
+
+## Firmware and compatibility boundary
+
+No Kickstart ROM, Workbench distribution, Commodore KERNAL/BASIC ROM, commercial game, or proprietary firmware is included. Amiga emulation requires a legally licensed/user-provided Kickstart ROM; a full Workbench desktop also requires licensed Workbench files. VICE requires the appropriate ROM set or an independently licensed replacement. These are formatted media images, not complete standalone OS installations.
+
+## Upstream projects
+
+- FS-UAE: https://fs-uae.net/ (GPL family).
+- VICE: https://vice-emu.sourceforge.io/ (GPL-2.0-or-later).
+- amitools / xdftool: https://amitools.readthedocs.io/ (retain upstream notices).
+
+## Installing local emulator runtimes
+
+On Debian/Ubuntu-derived OctavianOS or OctavianOS, run
+\`sudo bash tools/retro-media/install-emulators.sh\`. This installs FS-UAE and VICE from
+distribution packages. The A2000 launcher profile uses FS-UAE's documented A500 base
+with the A2000 chipset-compatibility setting; it does not claim to emulate every A2000
+expansion board. Firmware remains user-provided/licensed.

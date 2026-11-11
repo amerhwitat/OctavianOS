@@ -8,6 +8,9 @@ on:
       - 'userspace/tests/test_wsl_drive_aliases.sh'
       - 'userspace/systemd/octavian-wsl-drive-aliases.service'
       - 'userspace/Makefile'
+      - 'tools/import-verified-desktop-artifacts.sh'
+      - 'boot/iso/build-iso.sh'
+      - 'docs/VERIFIED_DESKTOP_COMPAT_ARTIFACTS.md'
       - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
       - 'vendor/chimera-ii-os/source/desktop/**'
@@ -51,7 +54,28 @@ jobs:
       - name: Validate ELF, PE/COFF and Mach-O header inspection
         run: python3 -m unittest discover -s vendor/chimera-ii-os/source/tests/compat -p test_binary_headers.py -v
       - name: Install native build tools
-        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config vice fs-uae python3-venv gcc-aarch64-linux-gnu qemu-user
+      - name: Build and verify Amiga ADF and Commodore D64 starter disks
+        run: |
+          python3 -m venv /tmp/octavian-retro-media-venv
+          . /tmp/octavian-retro-media-venv/bin/activate
+          python -m pip install --disable-pip-version-check amitools
+          command -v c1541
+          command -v x64sc
+          x64sc --version || true
+          command -v fs-uae
+          fs-uae --version
+          bash -n tools/retro-media/install-emulators.sh
+          python3 -m json.tool tools/retro-media/emulator-packages.json >/dev/null
+          python tools/retro-media/build_retro_media.py --output /tmp/octavian-retro-media
+          CHIMERA_RETRO_MEDIA_DIR=/tmp/octavian-retro-media python -m unittest discover -s tests/retro_media -v
+      - name: Upload Amiga and Commodore disk images
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-amiga-commodore-disk-images
+          path: /tmp/octavian-retro-media/
+          if-no-files-found: error
+          retention-days: 30
       - name: Validate Aurora and Marine session-selection contract
         run: |
           set -euo pipefail
@@ -84,6 +108,15 @@ jobs:
           c++ -std=c++17 -O2 desktop/native/chm-image-inspect.cpp -o /tmp/octavian-image-inspect $(pkg-config --cflags --libs opencv4)
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a /tmp/octavian-opengl-smoke --self-test
           /tmp/octavian-image-inspect --self-test
+          /tmp/octavian-image-inspect --help
+          python3 - <<'PY'
+          from pathlib import Path
+          Path("/tmp/octavian-test.ppm").write_bytes(b"P6\n2 2\n255\n" + bytes([255,0,0, 0,255,0, 0,0,255, 255,255,255]))
+          PY
+          /tmp/octavian-image-inspect /tmp/octavian-test.ppm --edges /tmp/octavian-edges.png --grayscale /tmp/octavian-gray.png --resize 4x4 /tmp/octavian-resized.png --json
+          test -s /tmp/octavian-edges.png
+          test -s /tmp/octavian-gray.png
+          test -s /tmp/octavian-resized.png
           test -s man/chm-opengl-smoke.1
           test -s man/chm-image-inspect.1
 
@@ -110,6 +143,7 @@ jobs:
           test -s "$out/icons/chromium.svg"
           test -s "$out/icons/terminal.svg"
           test -s "$out/icons/settings.svg"
+          test -s "$out/icons/vscode.svg"
           "$out/bin/aurora-utf-selftest"
           python3 -m json.tool "$out/manifests/desktop-build-manifest.json" >/dev/null
       - name: Compile imported shell and desktop application targets
@@ -119,6 +153,32 @@ jobs:
           cmake -S . -B "${{ runner.temp }}/octavian-cmake" -DCMAKE_BUILD_TYPE=Release
           cmake --build "${{ runner.temp }}/octavian-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 chm-opengl-smoke chm-image-inspect -j2
 
+      - name: Validate VSCodium manager and local emulator bridge
+        run: |
+          bash -n tools/ides/ide-manager.sh
+          bash vendor/chimera-ii-os/source/tools/ides/ide-manager.sh list
+          bash tools/ides/ide-manager.sh --help
+          node --check vendor/chimera-ii-os/source/web/chimera-hub.js
+          python3 -m py_compile tools/retro-media/build_retro_media.py vendor/chimera-ii-os/source/tools/runtime/chimera-local-bridge.py vendor/chimera-ii-os/source/tools/runtime/chimera-terminal-backend.py vendor/chimera-ii-os/source/tools/inspect-binary-headers.py
+          python3 vendor/chimera-ii-os/source/tests/runtime/test_terminal_backend.py
+          python3 vendor/chimera-ii-os/source/tests/tools/test_inspect_binary_headers.py
+          python3 vendor/chimera-ii-os/source/tests/tools/test_run_compatible_binary.py
+          bash -n vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh
+          bash -n tools/import-verified-desktop-artifacts.sh
+          python3 -m json.tool vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json >/dev/null
+          bash -n vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh
+          bash vendor/chimera-ii-os/source/tools/toolchains/bootstrap-open-toolchains.sh list >/dev/null
+          python3 -m json.tool vendor/chimera-ii-os/source/tools/toolchains/cross-targets.json >/dev/null
+          sudo apt-get install -y gcc-aarch64-linux-gnu qemu-user
+          cat > /tmp/octavian-aarch64-smoke.c <<'EOF'
+          #include <stdio.h>
+          int main(void) { puts("OCTAVIAN AARCH64 QEMU USER PASS"); return 0; }
+          EOF
+          aarch64-linux-gnu-gcc -static -O2 -o /tmp/octavian-aarch64-smoke /tmp/octavian-aarch64-smoke.c
+          python3 vendor/chimera-ii-os/source/tools/run-compatible-binary.py --dry-run /tmp/octavian-aarch64-smoke
+          python3 vendor/chimera-ii-os/source/tools/run-compatible-binary.py --run /tmp/octavian-aarch64-smoke
+          python3 vendor/chimera-ii-os/source/tools/inspect-binary-headers.py --json /bin/true
+          test -s vendor/chimera-ii-os/source/man/chm-ide.1
       - name: Validate X11 provider manifests and launcher syntax
         run: |
           bash -n vendor/chimera-ii-os/source/desktop/x11/start-session.sh
@@ -138,7 +198,6 @@ jobs:
           install -m 0755 "$opengl" "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/"
           install -m 0755 "$opencv" "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/"
           install -m 0644 man/chm-opengl-smoke.1 man/chm-image-inspect.1 "$OCTAVIAN_DESKTOP_BUILD_DIR/"
-          ldd "$opengl" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
           ldd "$opencv" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opencv-runtime-dependencies.txt"
       - name: Build and headlessly smoke-test native Aurora and Marine GTK shells
         env:
@@ -159,6 +218,108 @@ jobs:
             echo "invalid desktop profile was accepted" >&2
             exit 1
           fi
+
+      - name: Assemble IDE and binary compatibility helpers
+        env:
+          OCTAVIAN_DESKTOP_BUILD_DIR: ${{ runner.temp }}/octavian-desktop
+        run: |
+          set -euo pipefail
+          out="$OCTAVIAN_DESKTOP_BUILD_DIR"
+          mkdir -p "$out/share/chimera" "$out/share/man/man1"
+          install -m 0755 vendor/chimera-ii-os/source/tools/run-compatible-binary.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/inspect-binary-headers.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/run-compatible-binary.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/binary/inspect_binary.py "$out/share/chimera/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/binary/install-compat-runtimes.sh "$out/bin/"
+          install -m 0755 vendor/chimera-ii-os/source/tools/ides/ide-manager.sh "$out/bin/chm-ide-manager"
+          install -m 0644 vendor/chimera-ii-os/source/tools/binary/compatibility-runtimes.json "$out/share/chimera/"
+          install -m 0644 vendor/chimera-ii-os/source/compat/binary-format-registry.json "$out/share/chimera/"
+          install -m 0644 vendor/chimera-ii-os/source/man/chm-ide.1 vendor/chimera-ii-os/source/man/chm-binary-headers.1 vendor/chimera-ii-os/source/man/chm-binary-inspect.1 vendor/chimera-ii-os/source/man/chm-run-compatible-binary.1 "$out/share/man/man1/"
+          install -m 0755 /tmp/octavian-aarch64-smoke "$out/bin/"
+          install -m 0755 /tmp/octavian-opengl-smoke "$out/bin/chm-opengl-smoke"
+          install -m 0755 /tmp/octavian-image-inspect "$out/bin/chm-image-inspect"
+          mkdir -p "$out/lib" "$out/libexec"
+          for binary in "$out/bin/chm-opengl-smoke" "$out/bin/chm-image-inspect"; do
+            while read -r soname arrow resolved rest; do
+              [[ "$arrow" == "=>" && "$resolved" == /* && -f "$resolved" ]] || continue
+              case "$soname" in
+                libc.so*|libm.so*|libpthread.so*|librt.so*|libdl.so*|ld-linux*|linux-vdso*) continue ;;
+              esac
+              cp -L "$resolved" "$out/lib/$soname"
+            done < <(ldd "$binary")
+          done
+          mv "$out/bin/chm-opengl-smoke" "$out/libexec/chm-opengl-smoke.bin"
+          mv "$out/bin/chm-image-inspect" "$out/libexec/chm-image-inspect.bin"
+          cat > "$out/bin/chm-opengl-smoke" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="$HERE/../lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          exec "$HERE/../libexec/chm-opengl-smoke.bin" "$@"
+          SH
+          cat > "$out/bin/chm-image-inspect" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="$HERE/../lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          exec "$HERE/../libexec/chm-image-inspect.bin" "$@"
+          SH
+          chmod 0755 "$out/bin/chm-opengl-smoke" "$out/bin/chm-image-inspect"
+          cat > "$out/bin/chm-run-compatible-binary" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/run-compatible-binary.py" "$@"
+          SH
+          cat > "$out/bin/chm-binary-headers" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/inspect-binary-headers.py" "$@"
+          SH
+          cat > "$out/bin/chm-binary-inspect" <<'SH'
+          #!/usr/bin/env bash
+          HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec python3 "$HERE/../share/chimera/inspect_binary.py" "$@"
+          SH
+          chmod 0755 "$out/bin/chm-run-compatible-binary" "$out/bin/chm-binary-headers" "$out/bin/chm-binary-inspect"
+          "$out/bin/chm-run-compatible-binary" --dry-run /bin/true
+          "$out/bin/chm-binary-headers" --json /bin/true >/dev/null
+          "$out/bin/chm-binary-inspect" --json /bin/true >/dev/null
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$out/bin/chm-opengl-smoke" --self-test
+          "$out/bin/chm-image-inspect" --self-test
+          ldd "$opengl" > "$OCTAVIAN_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
+          (cd "$out" && find bin share lib libexec -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$out" && sha256sum -c SHA256SUMS)
+          (cd "$out" && { find bin libexec -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file; do LD_LIBRARY_PATH="$out/lib" ldd "$file" 2>&1 || true; done; }) > "$out/share/chimera/runtime-dependencies.txt"
+          (cd "$out" && sha256sum -c SHA256SUMS)
+      - name: Test verified desktop artifact import and checksum enforcement
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import zipfile
+          root = Path("/tmp/compat-import-fixture")
+          (root / "bin").mkdir(parents=True, exist_ok=True)
+          (root / "share").mkdir(parents=True, exist_ok=True)
+          (root / "lib").mkdir(parents=True, exist_ok=True)
+          (root / "libexec").mkdir(parents=True, exist_ok=True)
+          (root / "bin" / "fixture-tool").write_text("fixture\n")
+          (root / "share" / "fixture.1").write_text("fixture man page\n")
+          (root / "lib" / "libfixture.so").write_text("shared library fixture\n")
+          (root / "libexec" / "fixture.bin").write_text("binary fixture\n")
+          entries = []
+          for path in sorted(p for p in root.rglob("*") if p.is_file()):
+              entries.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.relative_to(root).as_posix()}")
+          (root / "SHA256SUMS").write_text("\n".join(entries) + "\n")
+          with zipfile.ZipFile("/tmp/compat-import-fixture.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              for path in root.rglob("*"):
+                  if path.is_file():
+                      archive.write(path, path.relative_to(root).as_posix())
+          PY
+          bash tools/import-verified-desktop-artifacts.sh /tmp/compat-import-fixture.zip /tmp/compat-imported
+          (cd /tmp/compat-imported && sha256sum -c SHA256SUMS)
+          test -s /tmp/compat-imported/bin/fixture-tool
+          test -s /tmp/compat-imported/IMPORT-MANIFEST.json
+          test -s /tmp/compat-imported/lib/libfixture.so
+          test -s /tmp/compat-imported/libexec/fixture.bin
 
       - name: Publish compiled native component bundle
         uses: actions/upload-artifact@v4
