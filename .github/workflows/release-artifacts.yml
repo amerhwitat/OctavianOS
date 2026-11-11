@@ -49,14 +49,69 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Require imported kernel and userspace payloads
+      - name: Build Koronos and generate real Live/Recovery initramfs inputs
         shell: bash
         run: |
           set -euo pipefail
-          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json)
+          SRC="vendor/chimera-ii-os/source"
+          sudo apt-get update
+          sudo apt-get install --yes build-essential nasm binutils python3 busybox-static cpio gzip
+          (cd "$SRC" && bash kernel/build-koronos.sh)
+          CHIMERA_BUILD_DIR="$PWD/$SRC/build" bash "$SRC/tools/build-live-boot-binaries.sh"
+          ROOT="build/iso-root"
+          OUT="$SRC/build/live-boot"
+          mkdir -p "$ROOT/boot/koronos" "$ROOT/boot/live" "$ROOT/boot/recovery" "$ROOT/install/installer"
+          install -m 0644 "$SRC/build/koronos/x86_64/koronos.elf" "$ROOT/boot/koronos/koronos.elf"
+          install -m 0644 "$OUT/boot/live/chimera-live-initramfs.img" "$ROOT/boot/live/chimera-live-initramfs.img"
+          install -m 0644 "$OUT/boot/live/live-manifest.json" "$ROOT/boot/live/live-manifest.json"
+          install -m 0644 boot/live/desktop-sessions.json "$ROOT/boot/live/desktop-sessions.json"
+          install -m 0644 "$OUT/boot/recovery/chimera-recovery-initramfs.img" "$ROOT/boot/recovery/chimera-recovery-initramfs.img"
+          install -m 0644 "$OUT/boot/recovery/recovery-manifest.json" "$ROOT/boot/recovery/recovery-manifest.json"
+          install -m 0644 "$SRC/install/installation-manifest.json" "$ROOT/install/installer/installation-manifest.json"
+          install -m 0644 "$SRC/install/installer-contract.json" "$ROOT/install/installer/installer-contract.json"
+          install -m 0644 "$SRC/installer/installation_phases.json" "$ROOT/install/installer/installation_phases.json"
+          install -m 0644 "$SRC/installer/installer_profiles.json" "$ROOT/install/installer/installer_profiles.json"
+      - name: Require imported kernel and production userspace payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(build/iso-root/boot/koronos/koronos.elf build/iso-root/boot/live/chimera-live-initramfs.img build/iso-root/boot/live/live-manifest.json build/iso-root/boot/live/desktop-sessions.json build/iso-root/boot/live/user-init-live.elf build/iso-root/install/installer/installation.img build/iso-root/install/installer/installation-manifest.json build/iso-root/install/installer/installer-contract.json build/iso-root/install/installer/installation_phases.json build/iso-root/install/installer/installer_profiles.json build/iso-root/install/installer/user-init-installer.elf build/iso-root/boot/recovery/chimera-recovery-initramfs.img build/iso-root/boot/recovery/recovery-manifest.json build/iso-root/boot/recovery/user-init-recovery.elf)
           missing=0
           for f in "${required[@]}"; do if [[ ! -s "$f" ]]; then echo "::error::Missing real release payload: $f"; missing=1; fi; done
           if (( missing )); then echo 'No ISO will be fabricated from placeholders. Import and port the real kernel and userspace, then rerun.'; exit 2; fi
+          # Production init payloads must be independent, native x86-64 ET_EXEC
+          # programs with an explicit target identity. Presence-only checks can
+          # accidentally admit the ring-3 smoke probes or one ELF copied 3 times.
+          inits=(
+            "build/iso-root/boot/live/user-init-live.elf:live"
+            "build/iso-root/install/installer/user-init-installer.elf:installer"
+            "build/iso-root/boot/recovery/user-init-recovery.elf:recovery"
+          )
+          init_hashes=()
+          for item in "${inits[@]}"; do
+            elf="${item%%:*}"
+            target="${item##*:}"
+            header="$(readelf -h "$elf")"
+            grep -Eq 'Class:[[:space:]]+ELF64' <<<"$header" || { echo "::error::Production init is not ELF64: $elf"; exit 2; }
+            grep -Eq 'Type:[[:space:]]+EXEC' <<<"$header" || { echo "::error::Production init is not ET_EXEC: $elf"; exit 2; }
+            grep -Eq 'Machine:[[:space:]]+Advanced Micro Devices X86-64' <<<"$header" || { echo "::error::Production init is not x86-64: $elf"; exit 2; }
+            strings -a "$elf" | grep -Fxq "CHIMERA_PRODUCTION_INIT_TARGET=$target" || { echo "::error::Missing production target identity '$target' in $elf"; exit 2; }
+            # Reject the currently checked-in fail-closed bootstrap as well as
+            # ring-3 smoke probes. A target string and distinct ELF hashes do not
+            # prove the init can perform production work.
+            if strings -a "$elf" | grep -Fq 'NATIVE INIT BLOCKED: required native filesystem, process, device and graphics services are not available'; then
+              echo "::error::Fail-closed bootstrap was staged as production init: $elf"
+              exit 2
+            fi
+            if strings -a "$elf" | grep -Fq 'USERSPACE SYSCALL RETURNED TO RING3'; then
+              echo "::error::Acceptance probe was staged as production init: $elf"
+              exit 2
+            fi
+            init_hashes+=("$(sha256sum "$elf" | awk '{print $1}')")
+          done
+          [[ "${init_hashes[0]}" != "${init_hashes[1]}" && "${init_hashes[0]}" != "${init_hashes[2]}" && "${init_hashes[1]}" != "${init_hashes[2]}" ]] || {
+            echo "::error::Live, Installer, and Recovery init ELFs must be distinct binaries"; exit 2;
+          }
       - name: Validate staged payloads
         run: |
           python3 tools/boot/validate_iso_payloads.py --root build/iso-root
