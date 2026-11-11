@@ -384,10 +384,50 @@ jobs:
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
+          monitor="$smoke/full-iso-monitor.sock"
+          rm -f "$monitor"
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
+          qemu_pid=$!
+          set -e
+          trap 'kill "$qemu_pid" 2>/dev/null || true' EXIT
+          python3 - "$monitor" "$smoke/full-iso-debugcon.log" <<'PY'
+          import socket, sys, time
+          monitor, trace = sys.argv[1:3]
+          deadline = time.monotonic() + 8.0
+          while True:
+              connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+              try:
+                  connection.connect(monitor)
+                  break
+              except OSError:
+                  connection.close()
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become ready")
+                  time.sleep(0.05)
+          connection.settimeout(1.0)
+          try:
+              connection.recv(4096)
+          except OSError:
+              pass
+          time.sleep(3.0)
+          try:
+              with open(trace, "r", encoding="utf-8", errors="replace") as stream:
+                  before_selection = stream.read()
+          except FileNotFoundError:
+              before_selection = ""
+          if "[KRN ] KORONOS READY" in before_selection:
+              raise SystemExit("Kernel booted before explicit GRUB menu selection")
+          connection.sendall(b"sendkey ret\\n")
+          time.sleep(0.1)
+          connection.close()
+          print("Sent explicit Enter selection to the visible GRUB menu")
+          PY
+          set +e
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
+          trap - EXIT
           test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
