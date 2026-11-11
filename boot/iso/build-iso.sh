@@ -140,8 +140,8 @@ done
 
 log "5/6 validating menu contract"
 for t in live installer recovery; do
-  grep -q "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/grub/grub.cfg" \
-    || grep -rq "target-init-$t.elf chimera-user-init-elf target=$t" "$ISO_ROOT/boot/jasper" "$ISO_ROOT/boot/installation" 2>/dev/null || {
+  grep -q "target-init-$t.elf chimera-user-init-elf target=$t firmware=\$grub_platform" "$ISO_ROOT/boot/grub/grub.cfg" \
+    || grep -rq "target-init-$t.elf chimera-user-init-elf target=$t firmware=\$grub_platform" "$ISO_ROOT/boot/jasper" "$ISO_ROOT/boot/installation" 2>/dev/null || {
       echo "ERROR: no ring-3 init module staged in the menu graph for target=$t" >&2; exit 2; }
 done
 test -s "$ISO_ROOT/boot/live/chimera-live-initramfs.img" || { echo "ERROR: live initramfs missing" >&2; exit 2; }

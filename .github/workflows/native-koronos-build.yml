@@ -404,7 +404,7 @@ jobs:
           terminal_output console
           menuentry "Live native userspace handoff" --id live {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live
+            module2 /boot/targets/target-init-live.elf chimera-user-init-elf target=live firmware=$grub_platform
             module2 /boot/ai/knowledge-db.json ai-knowledge-db
             module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs
             module2 /boot/live/live-manifest.json chimera-live-manifest
@@ -436,7 +436,7 @@ jobs:
           terminal_output console
           menuentry "Installer native userspace handoff" --id installer {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer
+            module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
             module2 /boot/ai/knowledge-db.json ai-knowledge-db
             module2 /install/installer/installation.img chimera-installation-image
             module2 /install/installer/installation-manifest.json chimera-installation-manifest
@@ -471,7 +471,7 @@ jobs:
           terminal_output console
           menuentry "Recovery native userspace handoff" --id recovery {
             multiboot2 /boot/koronos/koronos.elf
-            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery
+            module2 /boot/targets/target-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
             module2 /boot/ai/knowledge-db.json ai-knowledge-db
             module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
             module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
