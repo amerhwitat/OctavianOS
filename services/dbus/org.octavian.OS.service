@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.octavian.OS
+Exec=/usr/libexec/octavian/chimera_dbus_service.py
+User=root
+SystemdService=octavian-dbus.service
