@@ -33,6 +33,10 @@ jobs:
       iso_sha: ${{ steps.iso_hash.outputs.iso_sha }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate boot graph and userspace PID correlation
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python3 tests/boot/test_boot_target_graph.py
       - name: Install kernel and ISO tools
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
