@@ -16,7 +16,6 @@ const char* desktop_name() {
   if (std::strcmp(desktop_id, "marine") == 0) return "Marine Blue Desktop";
   if (std::strcmp(desktop_id, "freexp") == 0) return "FreeXP Classic Desktop";
   if (std::strcmp(desktop_id, "freewin11") == 0) return "FreeWin11 Desktop";
-  if (std::strcmp(desktop_id, "freewin11") == 0) return "FreeWin11 Desktop";
   return "Aurora Wayland Glass Desktop";
 }
 
@@ -190,24 +189,8 @@ void install_style() {
     window.freewin11 .freewin11-start { background: #176bd1; color: white; border: 0; border-radius: 10px; padding: 7px 18px; font-weight: 700; }
     window.freewin11 .freewin11-quick { background: #f7faff; color: #24476c; border: 1px solid #c5d7ec; border-radius: 8px; padding: 7px 12px; }
     window.freewin11 .freewin11-menu { background: #f7faff; border: 1px solid #c5d7ec; border-radius: 14px; padding: 12px; }
-    window.freewin11 { background: #eef4fc; color: #172b45; }
-    window.freewin11 headerbar { background: rgba(247,250,255,.94); color: #142b49; border-bottom: 1px solid #b8cbe2; }
-    window.freewin11 .sidebar { background: linear-gradient(180deg,#f5f8ff,#dce9fa); }
-    window.freewin11 .brand { color: #155dbb; }
-    window.freewin11 .nav-button { background: #e8f1ff; color: #21466f; border: 1px solid #c5d8f0; border-radius: 10px; }
-    window.freewin11 .nav-button:hover { background: #d6e8ff; }
-    window.freewin11 .hero { color: #173e69; }
-    window.freewin11 .muted { color: #506a89; }
-    window.freewin11 .app-card { background: rgba(255,255,255,.88); border: 1px solid #c5d7ec; border-radius: 16px; }
-    window.freewin11 .app-glyph { color: #176bd1; }
-    window.freewin11 .app-name { color: #193c63; }
-    window.freewin11 .app-detail { color: #526b88; }
-    window.freewin11 button.accent { background: #176bd1; color: white; border-radius: 10px; }
-    window.freewin11 .footer { background: #e2edf9; color: #24476c; }
-    window.freewin11 .freewin11-taskbar { background: rgba(238,245,255,.92); border-top: 1px solid #bdcfe4; padding: 7px 12px; }
-    window.freewin11 .freewin11-start { background: #176bd1; color: white; border: 0; border-radius: 10px; padding: 7px 18px; font-weight: 700; }
-    window.freewin11 .freewin11-quick { background: #f7faff; color: #24476c; border: 1px solid #c5d7ec; border-radius: 8px; padding: 7px 12px; }
-    window.freewin11 .freewin11-menu { background: #f7faff; border: 1px solid #c5d7ec; border-radius: 14px; padding: 12px; }
+    window.freewin11 .freewin11-menu-item { background: #ffffff; color: #24476c; border: 1px solid #c5d7ec; border-radius: 9px; padding: 8px 12px; }
+    window.freewin11 .freewin11-menu-item:hover { background: #e5f0ff; }
   )CSS";
   GdkDisplay* display = gdk_display_get_default();
   if (!display) return;
@@ -317,12 +300,11 @@ void activate(GtkApplication* app, gpointer) {
     GtkWidget* menu_title = gtk_label_new("All Programs");
     gtk_widget_add_css_class(menu_title, freewin11 ? "muted" : "freexp-menu-title");
     gtk_box_append(GTK_BOX(start_menu), menu_title);
-    gtk_box_append(GTK_BOX(start_menu), action_button("Terminal", "terminal", "freexp-menu-item"));
-    gtk_box_append(GTK_BOX(start_menu), action_button("File Explorer", "files", "freexp-menu-item"));
-    gtk_box_append(GTK_BOX(start_menu), action_button("Internet", "browser", "freexp-menu-item"));
-    gtk_box_append(GTK_BOX(start_menu), action_button("Control Panel", "settings", "freexp-menu-item"));
-    if (freexp) if (freexp) gtk_box_append(GTK_BOX(start_menu), action_button("DOS Applications", "dos", "freexp-menu-item"));
-    else gtk_box_append(GTK_BOX(start_menu), action_button("System Monitor", "settings", "freewin11-quick"));
+    gtk_box_append(GTK_BOX(start_menu), action_button("Terminal", "terminal", freewin11 ? "freewin11-menu-item" : "freexp-menu-item"));
+    gtk_box_append(GTK_BOX(start_menu), action_button("File Explorer", "files", freewin11 ? "freewin11-menu-item" : "freexp-menu-item"));
+    gtk_box_append(GTK_BOX(start_menu), action_button("Internet", "browser", freewin11 ? "freewin11-menu-item" : "freexp-menu-item"));
+    gtk_box_append(GTK_BOX(start_menu), action_button("Control Panel", "settings", freewin11 ? "freewin11-menu-item" : "freexp-menu-item"));
+    if (freexp) gtk_box_append(GTK_BOX(start_menu), action_button("DOS Applications", "dos", "freexp-menu-item"));
     else gtk_box_append(GTK_BOX(start_menu), action_button("System Monitor", "settings", "freewin11-quick"));
     gtk_popover_set_child(GTK_POPOVER(popover), start_menu);
     gtk_menu_button_set_popover(GTK_MENU_BUTTON(start_button), popover);
