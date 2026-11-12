@@ -180,7 +180,8 @@ if [ "$ED" = "octavian" ]; then
     vendor/chimera-ii-os/source/desktop/optional_apps_catalog.json \
     vendor/chimera-ii-os/source/appcenter/catalog/apps.json \
     vendor/chimera-ii-os/source/appcenter/catalog/external-integrations.json \
-    vendor/chimera-ii-os/source/iso/manifests/application-catalog.txt; do
+    vendor/chimera-ii-os/source/iso/manifests/application-catalog.txt \
+    vendor/chimera-ii-os/source/desktop/applications/desktop-app-catalog.json; do
     stage_catalog "$rel"
   done
   if [ -d "$REPO_DIR/vendor/chimera-ii-os/source/desktop/aurora/apps" ]; then
@@ -258,6 +259,19 @@ if [ -d "$REPO_DIR/userspace" ]; then
   echo "  userspace units installed (aurora-shell.target, jasper/gates/aurora targets)"
 fi
 install -d "$WORK/etc/aurora"
+# Install desktop session contracts for offline inspection by the future session manager.
+# Their presence does not claim that native Koronos compositor startup is complete.
+SESSION_SRC="$REPO_DIR/desktop/sessions"
+install -d "$WORK/usr/share/octavianos/sessions"
+for profile in aurora marine freexp freewin11; do
+  if [ -s "$SESSION_SRC/$profile.json" ]; then
+    install -m 0644 "$SESSION_SRC/$profile.json" "$WORK/usr/share/octavianos/sessions/$profile.json"
+  else
+    echo "[ERROR] missing desktop session manifest: $SESSION_SRC/$profile.json" >&2
+    exit 1
+  fi
+done
+install -Dm0644 "$REPO_DIR/boot/live/desktop-sessions.json" "$WORK/usr/share/octavianos/desktop-sessions.json"
 printf 'AURORA_DESKTOP_URI=file:///opt/aurora/%s\n' "$ENTRY" > "$WORK/etc/aurora/session.conf"
 printf '%s\n' "${PROFILE:-aurora}" > "$WORK/etc/aurora/profile"
 
