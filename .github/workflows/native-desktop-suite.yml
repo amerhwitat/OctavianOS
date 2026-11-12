@@ -11,6 +11,8 @@ on:
       - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
       - 'vendor/chimera-ii-os/source/desktop/**'
+      - 'vendor/chimera-ii-os/source/tools/desktop/**'
+      - 'tests/desktop/**'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-desktop-icon-files.py'
       - 'vendor/chimera-ii-os/source/tools/binary/inspect_binary.py'
@@ -46,6 +48,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test WSL Windows-drive aliases without touching host mounts
         run: bash userspace/tests/test_wsl_drive_aliases.sh
+      - name: Test user-selectable desktop default
+        run: bash tests/desktop/test_default_desktop_selector.sh
+      - name: Validate default desktop launcher syntax
+        run: bash -n vendor/chimera-ii-os/source/desktop/x11/start-session.sh vendor/chimera-ii-os/source/tools/desktop/set-default-desktop.sh
       - name: Test VSCodium installer plans without installing packages
         run: python3 -m unittest discover -s vendor/chimera-ii-os/source/tests/ide -p test_install_vscodium.py -v
       - name: Validate ELF, PE/COFF and Mach-O header inspection
