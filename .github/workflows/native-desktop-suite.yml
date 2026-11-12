@@ -155,6 +155,7 @@ jobs:
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=aurora --self-test
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=marine --self-test
           xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=freexp --self-test
+          xvfb-run -a "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=freewin11 --self-test
           if "$OCTAVIAN_DESKTOP_BUILD_DIR/bin/octavian-desktop-shell" --desktop=invalid --self-test; then
             echo "invalid desktop profile was accepted" >&2
             exit 1
