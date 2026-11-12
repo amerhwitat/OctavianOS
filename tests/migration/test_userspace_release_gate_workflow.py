@@ -23,6 +23,12 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'", section)
         self.assertIn("Published only after Live, Installer, and Recovery userspace handoff gates pass.", section)
 
+
+    def test_iso_build_generates_and_stages_the_ai_knowledge_database(self):
+        self.assertIn("python3 tools/ai/knowledge_db.py build", self.text)
+        self.assertIn("vendor/chimera-ii-os/source/tools/ai/knowledge_db.py", self.text)
+        self.assertIn("vendor/chimera-ii-os/source/config/ai/knowledge-db.json", self.text)
+
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
         section = section.split("      - name:", 1)[0]

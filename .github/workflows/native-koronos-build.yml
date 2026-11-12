@@ -20,6 +20,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'tools/boot/**'
@@ -64,6 +65,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
@@ -298,6 +300,16 @@ jobs:
           install -m 0644 desktop/aurora/assets/octavian-artwork-manifest.json "$visual_dir/octavian-artwork-manifest.json"
           test -s "$visual_dir/octavian-octopus-aurora.png"
           test -s "$visual_dir/octavian-artwork-manifest.json"
+      - name: Build and stage AI knowledge database for native ISO
+        run: |
+          set -euo pipefail
+          python3 tools/ai/knowledge_db.py build
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+          # The vendored ISO builder validates the database using its own tools/
+          # tree, so stage both the canonical generator and its generated corpus.
+          install -D -m 0644 tools/ai/knowledge_db.py vendor/chimera-ii-os/source/tools/ai/knowledge_db.py
+          install -D -m 0644 config/ai/knowledge-db.json vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          python3 vendor/chimera-ii-os/source/tools/ai/knowledge_db.py validate --db vendor/chimera-ii-os/source/config/ai/knowledge-db.json
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -454,9 +466,9 @@ jobs:
         run: |
           set -uo pipefail
           result=0
-          python3 tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
+          python3 tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
   publish-native-iso:
