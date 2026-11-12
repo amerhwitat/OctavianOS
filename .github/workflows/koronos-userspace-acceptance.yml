@@ -110,7 +110,8 @@ jobs:
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           # The target ELF must itself originate the syscall and readiness markers.
           python3 tests/boot/verify-userspace-handoff.py "$TARGET" "$LOG"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
+          # verify-userspace-handoff.py already checks the user-originated syscall,
+          # matching PID, target readiness marker, and clean userspace exit.
           echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
