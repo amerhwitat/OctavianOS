@@ -2,9 +2,11 @@
   "schema_version": 1,
   "contract": "octavianos.live.desktop-selection",
   "status": "selection-contract-only",
-  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker.",
+  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker. User-selectable default desktop candidates are aurora, marine, freexp and freewin11; this is still a session-selection contract, not proof of native compositor startup.",
   "default": "aurora",
-  "architectures": ["x86_64"],
+  "architectures": [
+    "x86_64"
+  ],
   "sessions": [
     {
       "id": "aurora",
@@ -17,10 +19,28 @@
       "name": "Marine Desktop",
       "launch_manifest": "/usr/share/octavianos/sessions/marine.json",
       "status": "prototype"
+    },
+    {
+      "id": "freexp",
+      "name": "FreeXP Classic Desktop",
+      "launch_manifest": "/usr/share/octavianos/sessions/freexp.json",
+      "status": "prototype"
+    },
+    {
+      "id": "freewin11",
+      "name": "FreeWin11 Desktop",
+      "launch_manifest": "/usr/share/octavianos/sessions/freewin11.json",
+      "status": "prototype"
     }
   ],
   "fallback": {
     "mode": "text-recovery",
     "reason": "desktop session missing, compositor startup failed, or readiness timeout"
-  }
+  },
+  "default_candidates": [
+    "aurora",
+    "marine",
+    "freexp",
+    "freewin11"
+  ]
 }
