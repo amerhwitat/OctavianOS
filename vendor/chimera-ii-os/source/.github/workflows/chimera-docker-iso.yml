@@ -4,9 +4,28 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - '.dockerignore'
+      - '.github/workflows/chimera-docker-iso.yml'
       - 'ISA.csv'
       - 'tools/isa/**'
       - 'docker/iso/**'
+      - 'docker/iso-runner/**'
+      - 'tools/build/create-bootable-iso.sh'
+      - 'boot/iso/**'
+      - 'boot/spitfire/**'
+      - 'boot/kernel.bin'
+      - 'cmake/**'
+      - 'src/**'
+      - 'include/**'
+
+  pull_request:
+    paths:
+      - '.dockerignore'
+      - '.github/workflows/chimera-docker-iso.yml'
+      - 'ISA.csv'
+      - 'tools/isa/**'
+      - 'docker/iso/**'
+      - 'docker/iso-runner/**'
       - 'tools/build/create-bootable-iso.sh'
       - 'boot/iso/**'
       - 'boot/spitfire/**'
@@ -44,21 +63,52 @@ jobs:
         run: |
           test -s docker-output/output.iso
           test -s docker-output/output.iso.sha256
+          # The container writes a checksum containing /output/output.iso, which
+          # is valid inside the container but not on the GitHub-hosted runner.
+          # Regenerate a portable checksum against the mounted artifact path.
+          # The container creates mounted files as root; remove its checksum before
+          # writing the host-side portable checksum to avoid an ownership failure.
+          rm -f docker-output/output.iso.sha256
+          sha256sum docker-output/output.iso > docker-output/output.iso.sha256
           sha256sum --check docker-output/output.iso.sha256
-      - name: Verify staged SF0 SF1 kernel and GRUB metadata
+      - name: Build QEMU ISO runner image for validation
         run: |
-          test -s boot/iso/dist/iso/src/ISA.csv
-          test -s boot/iso/dist/iso/boot/spitfire/spitfire-sf0-mbr.bin
-          test -s boot/iso/dist/iso/boot/spitfire/spitfire-sf1-longmode.o
-          test -s boot/iso/dist/iso/boot/kernel.bin
-          grep -q 'My AI OS' boot/iso/dist/iso/boot/grub/grub.cfg
-          grep -q '/boot/kernel.bin' boot/iso/dist/iso/boot/grub/grub.cfg
-      - name: Inspect ISO BIOS El Torito and UEFI metadata
+          set -euo pipefail
+          mkdir -p dist
+          cp docker-output/output.iso dist/output.iso
+          docker build --file docker/iso-runner/Dockerfile --tag chimera-iso-runner:candidate .
+      - name: Install ISO inspection tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y xorriso
+          sudo apt-get install --yes xorriso
+      - name: Verify actual ISO payloads and GRUB metadata
+        run: |
+          set -euo pipefail
+          inspect="docker-output/iso-inspect"
+          mkdir -p "$inspect"
+          # The builder runs inside Docker, so its staging tree is not on the
+          # runner. Inspect the artifact itself instead of testing host-only paths.
+          for item in \
+            "/src/chimera-source.tar.zst:src/chimera-source.tar.zst" \
+            "/src/README.txt:src/README.txt" \
+            "/boot/spitfire/spitfire-sf0-mbr.bin:boot/spitfire/spitfire-sf0-mbr.bin" \
+            "/boot/spitfire/spitfire-sf1-longmode.o:boot/spitfire/spitfire-sf1-longmode.o" \
+            "/boot/koronos/koronos.elf:boot/koronos/koronos.elf" \
+            "/boot/grub/grub.cfg:boot/grub/grub.cfg" \
+            "/boot/visual/aurora-boot.png:boot/visual/aurora-boot.png" \
+            "/boot/visual/Init.mp4:boot/visual/Init.mp4"; do
+            iso_path="${item%%:*}"
+            local_path="${item#*:}"
+            mkdir -p "$inspect/$(dirname "$local_path")"
+            xorriso -osirrox on -indev docker-output/output.iso -extract "$iso_path" "$inspect/$local_path" >/dev/null
+            test -s "$inspect/$local_path" || { echo "ERROR: ISO payload missing: $iso_path" >&2; exit 2; }
+          done
+          grep -q 'multiboot2 /boot/koronos/koronos.elf' "$inspect/boot/grub/grub.cfg"
+          grep -q 'background_image --mode stretch /boot/visual/aurora-boot.png' "$inspect/boot/grub/grub.cfg"
+      - name: Inspect ISO BIOS El Torito and UEFI metadata
+        run: |
           xorriso -indev docker-output/output.iso -report_el_torito plain -report_system_area plain -print '' | tee docker-output/ISO-BOOT-REPORT.txt
-      - name: Upload Docker ISO release artifact
+      - name: Upload Docker ISO candidate artifact
         uses: actions/upload-artifact@v4
         with:
           name: chimera2os-docker-output-iso
@@ -67,3 +117,52 @@ jobs:
             docker-output/output.iso.sha256
             docker-output/ISO-BOOT-REPORT.txt
           retention-days: 14
+
+  publish-iso-runner-candidate:
+    name: Publish QEMU ISO runner candidate to GHCR
+    needs: [docker-iso]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download candidate ISO
+        uses: actions/download-artifact@v4
+        with:
+          name: chimera2os-docker-output-iso
+          path: dist
+      - name: Verify candidate ISO and checksum
+        run: |
+          set -euo pipefail
+          test -s dist/output.iso
+          test -s dist/output.iso.sha256
+          expected="$(awk '{print $1}' dist/output.iso.sha256)"
+          actual="$(sha256sum dist/output.iso | awk '{print $1}')"
+          test "$expected" = "$actual"
+          printf '%s  output.iso\n' "$expected" > dist/output.iso.sha256
+          (cd dist && sha256sum -c output.iso.sha256)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate candidate image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/amerhwitat/chimera-ii-os-iso-runner
+          tags: |
+            type=raw,value=candidate
+            type=sha,prefix=sha-
+      - name: Build and publish candidate ISO runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/iso-runner/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
