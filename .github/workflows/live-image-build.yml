@@ -107,13 +107,26 @@ jobs:
           # This is a read-only content inspection, so omit xattrs during extraction.
           unsquashfs -no-xattrs -d "$tmp/root" "$tmp/filesystem.squashfs" >/dev/null
           root="$tmp/root"
-          test -x "$root/usr/bin/openbox"
-          test -x "$root/usr/bin/xprop"
-          test -x "$root/usr/local/bin/aurora-session"
-          test -s "$root/opt/aurora/application-bundle.json"
-          test -d "$root/opt/aurora/app-catalogs"
-          test -d "$root/opt/aurora/apps/native/aurora"
-          grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session"
+          require_path() {
+            local mode="$1" path="$2"
+            if [[ "$mode" == executable ]]; then
+              [[ -x "$path" ]] || { echo "::error::Missing or non-executable ISO payload: $path"; return 1; }
+            elif [[ "$mode" == directory ]]; then
+              [[ -d "$path" ]] || { echo "::error::Missing ISO directory: $path"; return 1; }
+            else
+              [[ -s "$path" ]] || { echo "::error::Missing or empty ISO file: $path"; return 1; }
+            fi
+            echo "Verified ISO payload: $path"
+          }
+          require_path executable "$root/usr/bin/openbox"
+          require_path executable "$root/usr/bin/xprop"
+          require_path executable "$root/usr/local/bin/aurora-session"
+          require_path file "$root/opt/aurora/application-bundle.json"
+          require_path directory "$root/opt/aurora/app-catalogs"
+          require_path directory "$root/opt/aurora/apps/native/aurora"
+          grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session" || {
+            echo "::error::Aurora session does not contain the Openbox readiness contract"; exit 1;
+          }
           python3 - "$root/opt/aurora" <<'PY'
           import json, pathlib, sys
           root = pathlib.Path(sys.argv[1])
