@@ -10,6 +10,8 @@ on:
       - 'userspace/Makefile'
       - 'desktop/native/**'
       - 'boot/live/desktop-sessions.json'
+      - 'live-image/build.sh'
+      - 'desktop/sessions/**'
       - 'vendor/chimera-ii-os/source/desktop/**'
       - 'vendor/chimera-ii-os/source/tools/desktop/**'
       - 'tests/desktop/**'
