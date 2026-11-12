@@ -2,7 +2,7 @@
   "schema_version": 1,
   "contract": "octavianos.live.desktop-selection",
   "status": "selection-contract-only",
-  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker. User-selectable default desktop candidates are aurora, marine, freexp and freewin11; this is still a session-selection contract, not proof of native compositor startup.",
+  "note": "This file declares requested desktop choices; it does not itself start a compositor. The live userspace must parse the Multiboot command line chm.desktop=aurora|marine, validate the installed session manifest, launch the selected session, and emit a real readiness marker. User-selectable default desktop candidates are aurora, marine, freexp and freewin11; this is still a session-selection contract, not proof of native compositor startup. The first selected candidate is the fallback; a user preference may select any listed desktop. Session launch remains prototype-only.",
   "default": "aurora",
   "architectures": [
     "x86_64"
@@ -42,5 +42,6 @@
     "marine",
     "freexp",
     "freewin11"
-  ]
+  ],
+  "user_preference_key": "CHIMERA_DEFAULT_DESKTOP"
 }
