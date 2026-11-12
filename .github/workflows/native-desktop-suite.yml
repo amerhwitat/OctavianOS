@@ -87,7 +87,11 @@ jobs:
           set -euo pipefail
           for profile in aurora marine freexp freewin11; do
             python3 -m json.tool "desktop/sessions/$profile.json" >/dev/null
+            grep -q "/usr/share/octavianos/sessions/\$profile.json" boot/live/desktop-sessions.json
           done
+          bash -n live-image/build.sh
+          grep -q 'install -m 0644 "\$SESSION_SRC/\$profile.json"' live-image/build.sh
+          grep -q 'desktop/applications/desktop-app-catalog.json' live-image/build.sh
       - name: Build and runtime-test imported OpenGL and OpenCV tools
         working-directory: vendor/chimera-ii-os/source
         run: |
