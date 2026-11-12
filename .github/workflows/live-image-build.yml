@@ -124,7 +124,7 @@ jobs:
           require_path file "$root/opt/aurora/application-bundle.json"
           require_path directory "$root/opt/aurora/app-catalogs"
           require_path directory "$root/opt/aurora/apps/native/aurora"
-          grep -Fq 'Openbox window manager ready' "$root/usr/local/bin/aurora-session" || {
+          grep -Fq '[Aurora] Openbox ready; starting fullscreen desktop' "$root/usr/local/bin/aurora-session" || {
             echo "::error::Aurora session does not contain the Openbox readiness contract"; exit 1;
           }
           python3 - "$root/opt/aurora" <<'PY'
