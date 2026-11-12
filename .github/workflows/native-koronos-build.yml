@@ -103,6 +103,13 @@ jobs:
       - name: Test cross-platform binary header inspector
         working-directory: vendor/chimera-ii-os/source
         run: python3 tests/tools/test_inspect_binary_headers.py
+      - name: Build and stage Octavian knowledge database for vendored Koronos
+        run: |
+          set -euo pipefail
+          python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+          install -D -m 0644 config/ai/knowledge-db.json vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          test -s vendor/chimera-ii-os/source/config/ai/knowledge-db.json
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
