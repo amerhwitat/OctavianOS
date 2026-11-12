@@ -73,30 +73,38 @@ python3 "$ROOT/tools/iso/stage_payload.py" --root "$ROOT" --iso "$ISO_ROOT" --li
 test -s "$ISO_ROOT/payload/MANIFEST.json" || { echo "ERROR: payload manifest missing" >&2; exit 2; }
 
 log "4/6 staging boot artwork"
-python3 - "$ROOT" "$ISO_ROOT" <<'PY' || true
-import os, subprocess, sys
-root, iso = sys.argv[1], sys.argv[2]
-assets = [
-    ("desktop/aurora/assets/octavian-octopus-background.svg", "boot/grub/octavian-octopus-background.png"),
-    ("boot/splash/octavian-octopus-background.svg", "boot/grub/octavian-octopus-background.png"),
-]
-for src, dst in assets:
-    s = os.path.join(root, src)
-    d = os.path.join(iso, dst)
-    if os.path.exists(s):
-        os.makedirs(os.path.dirname(d), exist_ok=True)
-        try:
-            subprocess.run([sys.executable, "-c", "import cairosvg,sys;cairosvg.svg2png(url=sys.argv[1],write_to=sys.argv[2],output_width=1920)", s, d], check=True)
-            break
-        except Exception:
-            continue
+ARTWORK_PNG="$ISO_ROOT/boot/visual/octavian-octopus-aurora.png"
+mkdir -p "$ISO_ROOT/boot/visual" "$ISO_ROOT/boot/grub" "$ISO_ROOT/boot/spitfire" "$ISO_ROOT/boot/jasper" "$ISO_ROOT/boot/koronos"
+ARTWORK_SVG="$ROOT/boot/splash/octavian-octopus-background.svg"
+if [ ! -s "$ARTWORK_SVG" ]; then
+  ARTWORK_SVG="$ROOT/desktop/aurora/assets/octavian-octopus-background.svg"
+fi
+if [ -s "$ARTWORK_SVG" ]; then
+  python3 - "$ARTWORK_SVG" "$ARTWORK_PNG" <<'PY'
+import sys
+import cairosvg
+cairosvg.svg2png(url=sys.argv[1], write_to=sys.argv[2], output_width=1920, output_height=1080)
 PY
-if [ ! -f "$ISO_ROOT/boot/grub/octavian-octopus-background.png" ]; then
-  # Fall back to the repository wallpaper so the GRUB menu always has art.
-  if command -v convert >/dev/null; then
-    convert "$ROOT/live-image/artwork/wp01.jpg" -resize 1920x1080^ -gravity center -extent 1920x1080 -strip \
-      "$ISO_ROOT/boot/grub/octavian-octopus-background.png" 2>/dev/null || true
-  fi
+elif command -v convert >/dev/null && [ -s "$ROOT/live-image/artwork/wp01.jpg" ]; then
+  convert "$ROOT/live-image/artwork/wp01.jpg" -resize 1920x1080^ -gravity center -extent 1920x1080 -strip "$ARTWORK_PNG"
+else
+  echo "ERROR: no supported source or renderer for required Octavian boot artwork" >&2
+  exit 2
+fi
+test -s "$ARTWORK_PNG" || { echo "ERROR: Octavian boot artwork rasterization produced no image" >&2; exit 2; }
+# Keep the canonical artwork at the paths consumed by GRUB, Jasper, Spit Fire,
+# Koronos and the CI ISO-content verifier. These are byte-identical by design.
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/visual/aurora-boot.png"
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/grub/octavian-octopus-background.png"
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/grub/aurora-boot.png"
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/spitfire/aurora-boot.png"
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/jasper/aurora-boot.png"
+cp -f "$ARTWORK_PNG" "$ISO_ROOT/boot/koronos/aurora-boot.png"
+if [ -s "$ROOT/boot/splash/artwork-contract.json" ]; then
+  install -m 0644 "$ROOT/boot/splash/artwork-contract.json" "$ISO_ROOT/boot/visual/octavian-artwork-manifest.json"
+else
+  echo "ERROR: required boot/splash/artwork-contract.json is missing" >&2
+  exit 2
 fi
 
 cp -f "$ROOT/boot/iso/grub.cfg" "$ISO_ROOT/boot/grub/grub.cfg"

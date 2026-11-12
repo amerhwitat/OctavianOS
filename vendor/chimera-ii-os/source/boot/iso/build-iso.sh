@@ -179,6 +179,10 @@ for stage in spitfire jasper grub koronos; do
   test -s "$DIST/iso/boot/$stage/Init.mp4" || { echo "ERROR: Init.mp4 missing from $stage stage." >&2; exit 2; }
   test -s "$DIST/iso/boot/$stage/aurora-boot.png" || { echo "ERROR: Aurora artwork missing from $stage stage." >&2; exit 2; }
   test -s "$DIST/iso/boot/$stage/boot-artwork-manifest.json" || { echo "ERROR: artwork manifest missing from $stage stage." >&2; exit 2; }
+  cmp -s "$DIST/iso/boot/visual/aurora-boot.png" "$DIST/iso/boot/$stage/aurora-boot.png" || {
+    echo "ERROR: $stage boot artwork differs from canonical /boot/visual/aurora-boot.png" >&2
+    exit 2
+  }
 done
 
 # Stage a real installer initramfs and the canonical installer JSON contracts.
