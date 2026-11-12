@@ -414,11 +414,39 @@ jobs:
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
+          # The production GRUB menu deliberately waits 300 seconds for user input.
+          # Drive the default Live entry through QEMU's monitor instead of
+          # shortening the real boot-menu timeout just to satisfy CI.
+          monitor="$smoke/full-iso-monitor.sock"
+          rm -f "$monitor" "$smoke/full-iso-debugcon.log"
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server,nowait" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
+          qemu_pid=$!
+          python3 - "$monitor" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          deadline = time.monotonic() + 8
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          while True:
+              try:
+                  client.connect(path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become ready")
+                  time.sleep(0.1)
+          client.settimeout(1)
+          try:
+              client.recv(4096)  # consume the QEMU monitor greeting/prompt
+          except TimeoutError:
+              pass
+          client.sendall(b"sendkey ret\\n")
+          client.close()
+          PY
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace after selecting the default GRUB entry (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload Live, Installer, and Recovery QEMU traces
