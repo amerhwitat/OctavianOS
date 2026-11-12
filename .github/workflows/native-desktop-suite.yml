@@ -103,6 +103,11 @@ jobs:
           for profile in ("aurora", "marine", "freexp", "freewin11"):
               assert any(item["id"] == profile for item in sessions["sessions"])
               assert f"/usr/share/octavianos/sessions/{profile}.json" in sessions["sessions"][[x["id"] for x in sessions["sessions"]].index(profile)]["launch_manifest"]
+          profiles = json.loads(Path("vendor/chimera-ii-os/source/desktop/profiles/desktop-profiles.json").read_text())
+          candidates = {p["id"] for p in profiles["profiles"] if p.get("default_candidate")}
+          assert candidates == {"aurora", "marine", "freexp", "freewin11"}, candidates
+          apps = json.loads(Path("vendor/chimera-ii-os/source/desktop/applications/desktop-app-catalog.json").read_text())
+          assert len(apps["applications"]) >= 20
           assert 'install -m 0644 "$SESSION_SRC/$profile.json"' in build
           assert "desktop/applications/desktop-app-catalog.json" in build
           PY
