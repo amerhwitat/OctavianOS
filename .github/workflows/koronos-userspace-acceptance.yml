@@ -252,7 +252,7 @@ jobs:
           test -n "$ready_line"
           test -n "$ack_line"
           ready_pid="$(printf '%s' "$ready_line" | cut -d= -f3)"
-          ack_pid="$(printf '%s' "$ack_line" | cut -d= -f2)"
+          ack_pid="$(printf '%s' "$ack_line" | cut -d= -f3)"
           test "$ready_pid" = "$ack_pid"
           grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
