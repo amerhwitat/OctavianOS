@@ -83,8 +83,43 @@ be safely corrected in code.
 
 ## Follow-up implementation and acceptance gate (2026-10-18)
 
-- Kernel diagnostics now explicitly withhold userspace-ready status while process admission remains load-plan-only. Live and Installer paths report an unverified handoff rather than equating a queued module with an executing process.
-- Multiboot2 parsing now recognizes Recovery initramfs and manifest module kinds, and CI compiles a host regression test for Live/Recovery/Installer module classification.
-- The GRUB Install menu routes through Jasper's installer contract checks instead of selecting the Live initramfs under an Install label.
-- Native ISO CI requires the exact `USERSPACE READY: target=live init_pid=` marker before release publication. The current kernel intentionally does not emit it: a real address-space, saved-context, and ring-3 entry acknowledgement is still missing. A built ISO can remain a review artifact, but it must not be published as an accepted userspace release until this gate passes.
-- Next implementation remains page-table/address-space integration, PT_LOAD mapping/BSS, user stack, GDT/TSS and saved context, architecture-controlled ring-3 entry, and a real init acknowledgement. Installer and Recovery then need independent executed-userspace tests, including a real repair operation.
+- The kernel now explicitly logs that userspace readiness is withheld while the process API is still in load-plan mode. Live and Installer paths report `USERSPACE HANDOFF NOT VERIFIED` instead of implying that a queued handoff is an executing process.
+- Multiboot2 module classification now distinguishes the Jasper Recovery initramfs and recovery manifest from Live modules. A host-side regression test covers Live/Recovery/Installer module kinds, and CI compiles it with warnings as errors.
+- The GRUB Install menu now routes through Jasper's installer contract checks instead of booting the Live initramfs under an Install label.
+- Octavian's full-ISO release workflow requires an explicit `USERSPACE READY: target=live init_pid=` marker. The current kernel does not emit that marker because no verified ring-3 entry acknowledgement is wired up. Consequently, the ISO may be built and retained as a review artifact, but release publication is blocked until the real loader/context-switch path exists and the marker is produced by the executing init process.
+- This is deliberately a fail-closed acceptance gate, not a claim that the user process loader has been completed. The next implementation step remains page-table/address-space integration, mapped ELF PT_LOAD segments and BSS, user stack, GDT/TSS and saved context, architecture-controlled ring-3 entry, then a real init process acknowledgement. Installer and Recovery need their own executed userspace/repair tests after that handoff exists.
+
+
+## Stricter runtime proof contract (2026-10-18)
+
+The host-side verifier now requires three ordered events for the same target and
+same nonzero PID:
+
+1. `[KRN ] KORONOS READY`.
+2. `USER INIT SYSCALL: target=<target> init_pid=<pid>`, emitted by the syscall
+   or exception entry path only after it has established that the originating
+   context was at CPL 3. It must not be printed by the pre-transition launch
+   code.
+3. `USERSPACE READY: target=<target> init_pid=<pid>`, emitted only after init's
+   own readiness handshake succeeds.
+
+The stricter verifier and unit tests are an acceptance gate, not proof that the
+kernel currently performs the transition. Until the actual architecture entry
+path emits the first-user-syscall acknowledgement and QEMU traces pass for each
+target, the handoff remains NOT VERIFIED. Never manufacture these markers in a
+host test or kernel-side pre-transition code to satisfy CI.
+
+
+## Architecture source audit — publication gate remains blocked (2026-10-18)
+
+The latest review of the x86-64 source separates acceptance tests from actual execution:
+
+- The ELF loader's callbacks are an interface, not proof that hardware page tables enforce user/supervisor, writable, NX, and W^X permissions.
+- Process admission/load-plan metadata does not by itself own a saved CPU context, runnable process, or cleanup-capable address space.
+- The current entry/GDT and interrupt path do not establish a complete user-selector + TSS/RSP0 setup, a validated ring-3 return frame, or a syscall path that dispatches a verified CPL-3-originated request.
+- A hard-coded GETPID result and an EXIT handler without process teardown are placeholders, not successful process semantics.
+- Cooperative callback scheduling is not architecture context switching or genuine SMP.
+
+The latest repository validation is green, but it is not a QEMU proof: https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39126421943
+
+Do not publish a release or report userspace-ready until a freestanding Koronos build and independent QEMU Live, Installer, and Recovery traces prove the real user-mode entry, first syscall, same kernel-owned nonzero PID, readiness handshake, and target behavior. Keep the PR draft while these conditions are unmet.
