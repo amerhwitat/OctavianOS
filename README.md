@@ -175,3 +175,26 @@ produces the ISO with `grub-mkrescue`. See `live-image/README.md`.
 Scope: the image boots a Linux kernel plus this project's userland. The native Koronos
 kernel is not in the boot path, because production userspace acceptance is still
 `BLOCKED` per [ISO release acceptance](docs/ISO_RELEASE_ACCEPTANCE.md).
+
+
+## Desktop profiles and application catalogue
+
+The selectable desktop profiles are **Aurora Glass**, **Marine Blue**, **FreeXP**, and **FreeWin11**. Aurora remains the initial fallback; the hosted X11 launcher can store a user default with:
+
+```sh
+bash vendor/chimera-ii-os/source/tools/desktop/set-default-desktop.sh freewin11
+bash vendor/chimera-ii-os/source/desktop/x11/start-session.sh
+```
+
+Supported choices are `aurora`, `marine`, `freexp`, and `freewin11`. The native GTK shell accepts all four identities, and the native desktop CI includes headless smoke-test invocations for each. The FreeXP and FreeWin11 browser previews are also linked from the public desktop gallery.
+
+- [Desktop profile registry](vendor/chimera-ii-os/source/desktop/profiles/desktop-profiles.json)
+- [Desktop visual and compatibility profiles](vendor/chimera-ii-os/source/desktop/desktop_profiles.json)
+- [Upstream desktop catalogue](vendor/chimera-ii-os/source/desktop/upstream_desktop_catalog.json)
+- [Open-source desktop application catalogue](vendor/chimera-ii-os/source/desktop/applications/desktop-app-catalog.json)
+- [Session manifests](desktop/sessions/)
+- [FreeXP browser preview](https://amerhwitat.github.io/desktops/freexp.html)
+- [FreeWin11 browser preview](https://amerhwitat.github.io/desktops/freewin11.html)
+- [Public desktop gallery](https://amerhwitat.github.io/apps/desktop-showcase/)
+
+**Runtime boundary:** the native GTK shell and browser previews are desktop personalities running through the host's X11/GTK stack. Native Koronos Wayland compositor startup, real service-backed widgets, and boot-time desktop handoff remain separate acceptance gates. A profile being selectable does not mean its native compositor session has passed boot/runtime verification. Optional application catalogue entries identify open-source package providers; they are not claims that every application is installed in the ISO.
