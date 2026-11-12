@@ -109,7 +109,11 @@ jobs:
           python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
           python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
           install -D -m 0644 config/ai/knowledge-db.json vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          # The vendored ISO staging path invokes this helper from inside the
+          # source tree; ship the matching generator there as well as its DB.
+          install -D -m 0755 tools/ai/knowledge_db.py vendor/chimera-ii-os/source/tools/ai/knowledge_db.py
           test -s vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          test -s vendor/chimera-ii-os/source/tools/ai/knowledge_db.py
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
