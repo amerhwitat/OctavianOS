@@ -144,6 +144,20 @@ cp -f "$MEDIA/manifest.json" "$VISUAL_OUT/aurora-manifest.json"
 cp -f "$MEDIA/progress/"*.json "$VISUAL_OUT/"
 cp -f "$MEDIA/Init.mp4" "$VISUAL_OUT/Init.mp4"
 
+# OctavianOS renders its own boot artwork before invoking this shared builder.
+# Prefer that exact artwork for the boot namespace and mirror it into every
+# native loader stage so the ISO verifier checks real staged files.
+OCTAVIAN_ART="$ROOT/boot/visual/octavian-octopus-aurora.png"
+OCTAVIAN_MANIFEST="$ROOT/boot/visual/octavian-artwork-manifest.json"
+if [[ -s "$OCTAVIAN_ART" && -s "$OCTAVIAN_MANIFEST" ]]; then
+  cp -f "$OCTAVIAN_ART" "$VISUAL_OUT/octavian-octopus-aurora.png"
+  cp -f "$OCTAVIAN_MANIFEST" "$VISUAL_OUT/octavian-artwork-manifest.json"
+  cp -f "$OCTAVIAN_ART" "$VISUAL_OUT/aurora-boot.png"
+  for stage in spitfire jasper grub koronos; do
+    cp -f "$OCTAVIAN_ART" "$DIST/iso/boot/$stage/aurora-boot.png"
+  done
+fi
+
 # Hard-stage the same deterministic artwork/media in every native boot namespace.
 # This prevents Spit Fire/Jasper/GRUB from depending on a later rootfs mount.
 for stage in spitfire jasper grub koronos; do
