@@ -59,6 +59,25 @@ def main():
         "Gates selection must require explicit confirmation",
     )
 
+    # The acceptance log markers contain two '=' delimiters. Both PID
+    # fields must be parsed from the third field; field 2 is target metadata,
+    # not the numeric PID. This guards the historical ready/ack mismatch.
+    acceptance = read(ROOT / ".github/workflows/koronos-userspace-acceptance.yml")
+    require(
+        'ready_pid="$(printf \'%s\' "$ready_line" | cut -d= -f3)"' in acceptance,
+        "ready PID must be extracted from the init_pid field",
+    )
+    require(
+        'ack_pid="$(printf \'%s\' "$ack_line" | cut -d= -f3)"' in acceptance,
+        "syscall acknowledgement PID must be extracted from the init_pid field",
+    )
+    ready_sample = "USERSPACE READY: target=live init_pid=17"
+    ack_sample = "USER INIT SYSCALL: target=live init_pid=17"
+    require(
+        ready_sample.rsplit("=", 1)[-1] == ack_sample.rsplit("=", 1)[-1] == "17",
+        "ready and syscall markers must correlate the same nonzero PID",
+    )
+
     builder = read(ROOT / "boot/iso/build-iso.sh")
     require('rm -rf "$ISO_ROOT"' in builder, "native ISO builder must discard stale staged menu files")
     require(
