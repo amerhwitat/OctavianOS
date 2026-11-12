@@ -50,3 +50,18 @@ not in the boot path.
 | `OUT_DIR` | ISO output directory (default `$BUILD_ROOT/out`) |
 | `JOBS` | squashfs/xz parallelism |
 | `REBUILD_BASE=1` | recreate the base rootfs from scratch |
+
+
+## Desktop profile manifests
+
+The live-image builder stages the four first-party desktop session manifests
+(Aurora, Marine, FreeXP and FreeWin11) under
+`/usr/share/octavianos/sessions/` and the session-selection contract under
+`/usr/share/octavianos/desktop-sessions.json`. The shared open-source desktop
+application catalogue is also copied into the offline application-catalog bundle.
+
+These files make the profiles discoverable to a future session manager; they do
+not start a compositor or launch the native Koronos desktop. The current live
+image remains a Linux-kernel/WebKit kiosk image, and the native session manager
+must still consume the selected profile, launch the compositor and emit a
+readiness marker before the boot-time desktop gate can pass.
