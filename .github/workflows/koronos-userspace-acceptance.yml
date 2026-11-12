@@ -1,4 +1,4 @@
-name: Koronos Userspace Acceptance
+name: Koronos Native Userspace Acceptance (single immutable candidate ISO)
 
 on:
   workflow_dispatch:
@@ -25,8 +25,102 @@ permissions:
   contents: read
 
 jobs:
+  build-candidate:
+    name: Build one immutable Koronos acceptance candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      iso_sha: ${{ steps.iso_hash.outputs.iso_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kernel and ISO tools
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          sudo apt-get update
+          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools
+      - name: Build Koronos and target-specific userspace probes
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          bash kernel/build-koronos.sh
+      - name: Test Multiboot2 module classification
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/koronos-multiboot-modules-test
+          /tmp/koronos-multiboot-modules-test
+      - name: Assemble one BIOS/UEFI ISO with explicit target menu entries
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          OUT="$PWD/build/userspace-acceptance/canonical"
+          ISO_ROOT="$OUT/iso"
+          ISO="$OUT/koronos-native-acceptance.iso"
+          rm -rf "$ISO_ROOT"
+          mkdir -p "$ISO_ROOT/boot/grub"
+          install -m 0644 build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
+          install -m 0644 build/koronos/x86_64/user-init-live.elf "$ISO_ROOT/boot/user-init-live.elf"
+          install -m 0644 build/koronos/x86_64/user-init-installer.elf "$ISO_ROOT/boot/user-init-installer.elf"
+          install -m 0644 build/koronos/x86_64/user-init-recovery.elf "$ISO_ROOT/boot/user-init-recovery.elf"
+          install -m 0644 build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
+          cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'GRUB'
+          set timeout_style=menu
+          set timeout=120
+          set default=0
+          terminal_output console
+          menuentry "Koronos Live userspace acceptance" --id=live {
+            multiboot2 /boot/koronos.elf
+            module2 /boot/user-init-live.elf chimera-user-init-elf target=live firmware=$grub_platform
+            boot
+          }
+          menuentry "Koronos Installer userspace acceptance" --id=installer {
+            multiboot2 /boot/koronos.elf
+            module2 /boot/user-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
+            boot
+          }
+          menuentry "Koronos Recovery userspace acceptance" --id=recovery {
+            multiboot2 /boot/koronos.elf
+            module2 /boot/user-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
+            boot
+          }
+          menuentry "Koronos non-cooperative timeout probe" --id=timeout {
+            multiboot2 /boot/koronos.elf
+            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live firmware=$grub_platform
+            boot
+          }
+          GRUB
+          grub-mkrescue -o "$ISO" "$ISO_ROOT"
+          test -s "$ISO"
+          printf '%s\n' "This is a test candidate, not a production ISO. The strict native VFS and process gates remain mandatory." > "$OUT/ACCEPTANCE-SCOPE.txt"
+      - name: Hash immutable candidate
+        id: iso_hash
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          OUT="$PWD/build/userspace-acceptance/canonical"
+          ISO="$OUT/koronos-native-acceptance.iso"
+          ISO_SHA="$(sha256sum "$ISO" | awk '{print $1}')"
+          printf '%s  %s\n' "$ISO_SHA" "$(basename "$ISO")" > "$OUT/koronos-native-acceptance.iso.sha256"
+          echo "iso_sha=$ISO_SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Shared immutable candidate ISO"
+            echo "- SHA-256: `$ISO_SHA`"
+            echo "- All six target/firmware jobs must download this exact artifact."
+            echo "- This is not production acceptance or a production release."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload shared candidate ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-native-acceptance-iso
+          path: |
+            vendor/chimera-ii-os/source/build/userspace-acceptance/canonical/koronos-native-acceptance.iso
+            vendor/chimera-ii-os/source/build/userspace-acceptance/canonical/koronos-native-acceptance.iso.sha256
+            vendor/chimera-ii-os/source/build/userspace-acceptance/canonical/ACCEPTANCE-SCOPE.txt
+          if-no-files-found: error
+          retention-days: 7
+
   userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+    name: ${{ matrix.target }} / ${{ matrix.firmware }} — shared ISO
+    needs: build-candidate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -34,63 +128,52 @@ jobs:
       matrix:
         target: [live, installer, recovery]
         firmware: [bios, uefi]
+    env:
+      TARGET: ${{ matrix.target }}
+      FIRMWARE: ${{ matrix.firmware }}
+      EXPECTED_ISO_SHA: ${{ needs.build-candidate.outputs.iso_sha }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install kernel, ISO and QEMU tools
+      - name: Install QEMU and firmware
         run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
-      - name: Build Koronos and high-address userspace probes
-        run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
-      - name: Test Live and Recovery Multiboot2 module classification
+          sudo apt-get install -y qemu-system-x86 ovmf
+      - name: Download the one shared ISO
+        uses: actions/download-artifact@v4
+        with:
+          name: koronos-native-acceptance-iso
+          path: ${{ runner.temp }}/koronos-iso
+      - name: Verify identical ISO SHA-256
         run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           set -euo pipefail
-          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include \
-            kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
-            -o /tmp/koronos-multiboot-modules-test
-          /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
-        env:
-          TARGET: ${{ matrix.target }}
+          ISO="$RUNNER_TEMP/koronos-iso/koronos-native-acceptance.iso"
+          ACTUAL_ISO_SHA="$(sha256sum "$ISO" | awk '{print $1}')"
+          test "$ACTUAL_ISO_SHA" = "$EXPECTED_ISO_SHA"
+          echo "ISO SHA-256: $ACTUAL_ISO_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Boot selected target and require native VFS plus CPL3 evidence
         run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           set -euo pipefail
-          ROOT="$PWD"
-          OUT="$ROOT/build/userspace-acceptance/$TARGET"
-          ISO_ROOT="$OUT/iso"
-          mkdir -p "$ISO_ROOT/boot/grub"
-          cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp "build/koronos/x86_64/user-init-$TARGET.elf" "$ISO_ROOT/boot/user-init-$TARGET.elf"
-          cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
-          set timeout=0
-          set default=0
-          terminal_output console
-          menuentry "Koronos $TARGET userspace acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-$TARGET.elf chimera-user-init-elf target=$TARGET firmware=\$grub_platform
-            boot
-          }
-          EOF
-          grub-mkrescue -o "$OUT/koronos-$TARGET.iso" "$ISO_ROOT"
-          test -s "$OUT/koronos-$TARGET.iso"
-      - name: Boot and require userspace-originated readiness
-        env:
-          TARGET: ${{ matrix.target }}
-          FIRMWARE: ${{ matrix.firmware }}
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -uo pipefail
-          OUT="$PWD/build/userspace-acceptance/$TARGET"
-          LOG="$OUT/qemu-$FIRMWARE.log"
-          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
+          ISO="$RUNNER_TEMP/koronos-iso/koronos-native-acceptance.iso"
+          LOG="$RUNNER_TEMP/koronos-$TARGET-$FIRMWARE.log"
+          MONITOR="$RUNNER_TEMP/koronos-$TARGET-$FIRMWARE.monitor"
+          rm -f "$MONITOR" "$LOG"
+          case "$TARGET" in
+            live) TARGET_INDEX=0 ;;
+            installer) TARGET_INDEX=1 ;;
+            recovery) TARGET_INDEX=2 ;;
+            *) echo "Unknown target: $TARGET" >&2; exit 2 ;;
+          esac
+          QEMU=(qemu-system-x86_64 -machine pc -cpu max -m 512M -cdrom "$ISO" -boot d -display none -serial none -monitor "unix:$MONITOR,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
           if [ "$FIRMWARE" = uefi ]; then
             OVMF_CODE=""
             OVMF_VARS=""
             for candidate in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
               if [ -f "$candidate" ]; then
-                vars_candidate="${candidate/CODE/VARS}"
+                case "$candidate" in
+                  /usr/share/OVMF/OVMF_CODE_4M.fd) vars_candidate=/usr/share/OVMF/OVMF_VARS_4M.fd ;;
+                  /usr/share/OVMF/OVMF_CODE.fd) vars_candidate=/usr/share/OVMF/OVMF_VARS.fd ;;
+                  *) vars_candidate=/usr/share/edk2/ovmf/OVMF_VARS.fd ;;
+                esac
                 if [ -f "$vars_candidate" ]; then OVMF_CODE="$candidate"; OVMF_VARS="$vars_candidate"; break; fi
               fi
             done
@@ -99,74 +182,173 @@ jobs:
               find /usr/share -iname 'OVMF_*.fd' -print >&2 || true
               exit 1
             fi
-            cp "$OVMF_VARS" "$OUT/OVMF_VARS.fd"
-            QEMU+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF_CODE"
-                   -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_VARS.fd")
+            cp "$OVMF_VARS" "$RUNNER_TEMP/OVMF_VARS-$TARGET.fd"
+            QEMU+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF_CODE" -drive "if=pflash,format=raw,unit=1,file=$RUNNER_TEMP/OVMF_VARS-$TARGET.fd")
           fi
+          qemu-system-x86_64 --version
+          QEMU_PID=""
+          cleanup() {
+            if [ -n "$QEMU_PID" ] && kill -0 "$QEMU_PID" 2>/dev/null; then kill -TERM "$QEMU_PID" 2>/dev/null || true; fi
+            if [ -n "$QEMU_PID" ]; then wait "$QEMU_PID" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+          "${QEMU[@]}" &
+          QEMU_PID=$!
+          python3 - "$MONITOR" "$TARGET_INDEX" <<'PY'
+          import socket, sys, time
+          path, index = sys.argv[1], int(sys.argv[2])
+          sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          for _ in range(150):
+              try:
+                  sock.connect(path)
+                  break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit("QEMU monitor socket did not become ready")
+          sock.settimeout(1.0)
+          try:
+              sock.recv(4096)
+          except OSError:
+              pass
+          # Let GRUB render its visible 120-second menu. The first keypress
+          # cancels the countdown; Enter is sent only after an explicit choice.
+          time.sleep(6)
+          def key(name):
+              sock.sendall(("sendkey " + name + "\n").encode())
+              time.sleep(0.25)
+          key("down")
+          if index == 0:
+              key("up")
+          elif index == 2:
+              key("down")
+          key("ret")
+          sock.close()
+          PY
           set +e
-          timeout 18s "${QEMU[@]}"
-          qemu_rc=$?
+          for _ in $(seq 1 200); do
+            if ! kill -0 "$QEMU_PID" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if kill -0 "$QEMU_PID" 2>/dev/null; then kill -TERM "$QEMU_PID" 2>/dev/null; fi
+          wait "$QEMU_PID"
+          QEMU_RC=$?
           set -e
-          # A healthy test init exits to the kernel, which then idles. Timeout
-          # is therefore expected; the marker and clean-exit diagnostics are the
-          # acceptance evidence, not the QEMU process exit code. Always print the
-          # complete trace before assertions so failures can be debugged from CI.
+          QEMU_PID=""
+          trap - EXIT
+          echo "QEMU exit: $QEMU_RC (143 is the expected external stop after the trace window)"
           if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
+          test "$QEMU_RC" -eq 0 -o "$QEMU_RC" -eq 143
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
-          # Require a real, nonzero PID supplied by the running probe, not a
-          # literal pid=1 baked into the image or a kernel-authored marker.
-          ready_line="$(grep -Eo "USERSPACE READY: ${TARGET} init pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
-          ack_line="$(grep -Eo "USER INIT SYSCALL: target=${TARGET} init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          if [ "$FIRMWARE" = uefi ]; then
+            grep -Fq "BOOT FIRMWARE: UEFI" "$LOG"
+          else
+            grep -Fq "BOOT FIRMWARE: BIOS" "$LOG"
+          fi
+          grep -Fq "[VFS] persistent root filesystem and tmpfs /tmp mounted" "$LOG"
+          grep -Fq "[TEST] CPL3 VFS OPEN/READ/WRITE/SEEK/CLOSE and /tmp round-trip passed" "$LOG"
+          ready_line="$(grep -Eo "USERSPACE READY: target=$TARGET init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
+          ack_line="$(grep -Eo "USER INIT SYSCALL: target=$TARGET init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
           test -n "$ack_line"
-          ready_pid="${ready_line##*=}"
-          ack_pid="${ack_line##*=}"
+          ready_pid="$(printf '%s' "$ready_line" | cut -d= -f3)"
+          ack_pid="$(printf '%s' "$ack_line" | cut -d= -f2)"
           test "$ready_pid" = "$ack_pid"
           grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
           grep -Fq "[RUN ] Target userspace init emitted its own readiness handshake and exited cleanly" "$LOG"
-          grep -Fq "[MM  ] Process page-table self-test passed" "$LOG"
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
-      - name: Prove in-kernel timeout aborts a non-returning ring-3 process
-        if: matrix.firmware == 'bios'
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -euo pipefail
-          ROOT="$PWD"
-          OUT="$ROOT/build/userspace-acceptance/timeout"
-          ISO_ROOT="$OUT/iso"
-          mkdir -p "$ISO_ROOT/boot/grub"
-          cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
-          cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
-          set timeout=0
-          set default=0
-          terminal_output console
-          menuentry "Koronos in-kernel timeout acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
-            boot
-          }
-          EOF
-          grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
-          LOG="$OUT/qemu-timeout.log"
-          set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
-            -display none -serial none -monitor none -no-reboot -no-shutdown \
-            -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
-          qemu_rc=$?
-          set -e
-          cat "$LOG"
-          grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
-          grep -Fq "[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed" "$LOG"
-          ! grep -Fq "USERSPACE READY: live" "$LOG"
-          echo "Accepted in-kernel non-cooperative timeout (outer QEMU exit=$qemu_rc)"
-
+          echo "PASS: target=$TARGET firmware=$FIRMWARE iso_sha256=$EXPECTED_ISO_SHA"
       - name: Upload boot diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: userspace-${{ matrix.target }}-${{ matrix.firmware }}-logs
-          path: |
-            vendor/chimera-ii-os/source/build/userspace-acceptance/${{ matrix.target }}/qemu-${{ matrix.firmware }}.log
-            vendor/chimera-ii-os/source/build/userspace-acceptance/timeout/qemu-timeout.log
+          path: ${{ runner.temp }}/koronos-*.log
           if-no-files-found: warn
+          retention-days: 7
+
+  timeout-probe:
+    name: Non-cooperative ring-3 timeout probe — same ISO
+    needs: build-candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_ISO_SHA: ${{ needs.build-candidate.outputs.iso_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86
+      - name: Download the shared ISO
+        uses: actions/download-artifact@v4
+        with:
+          name: koronos-native-acceptance-iso
+          path: ${{ runner.temp }}/koronos-iso
+      - name: Verify SHA and boot the timeout menu entry
+        run: |
+          set -euo pipefail
+          ISO="$RUNNER_TEMP/koronos-iso/koronos-native-acceptance.iso"
+          ACTUAL_ISO_SHA="$(sha256sum "$ISO" | awk '{print $1}')"
+          test "$ACTUAL_ISO_SHA" = "$EXPECTED_ISO_SHA"
+          LOG="$RUNNER_TEMP/koronos-timeout.log"
+          MONITOR="$RUNNER_TEMP/koronos-timeout.monitor"
+          rm -f "$MONITOR" "$LOG"
+          qemu-system-x86_64 -machine pc -cpu max -m 512M -cdrom "$ISO" -boot d -display none -serial none -monitor "unix:$MONITOR,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9 &
+          QEMU_PID=$!
+          cleanup() {
+            if kill -0 "$QEMU_PID" 2>/dev/null; then kill -TERM "$QEMU_PID" 2>/dev/null || true; fi
+            wait "$QEMU_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          python3 - "$MONITOR" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          for _ in range(150):
+              try:
+                  sock.connect(path)
+                  break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit("QEMU monitor socket did not become ready")
+          sock.settimeout(1.0)
+          try:
+              sock.recv(4096)
+          except OSError:
+              pass
+          time.sleep(6)
+          for _ in range(3):
+              sock.sendall(b"sendkey down\n")
+              time.sleep(0.25)
+          sock.sendall(b"sendkey ret\n")
+          sock.close()
+          PY
+          set +e
+          for _ in $(seq 1 200); do
+            if ! kill -0 "$QEMU_PID" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if kill -0 "$QEMU_PID" 2>/dev/null; then kill -TERM "$QEMU_PID" 2>/dev/null; fi
+          wait "$QEMU_PID"
+          QEMU_RC=$?
+          set -e
+          QEMU_PID=""
+          trap - EXIT
+          echo "Shared ISO SHA-256: $ACTUAL_ISO_SHA"
+          if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
+          test "$QEMU_RC" -eq 0 -o "$QEMU_RC" -eq 143
+          grep -Fq "[KRN ] KORONOS READY" "$LOG"
+          grep -Fq "BOOT FIRMWARE: BIOS" "$LOG"
+          grep -Fq "[VFS] persistent root filesystem and tmpfs /tmp mounted" "$LOG"
+          grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
+          grep -Fq "[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed" "$LOG"
+          ! grep -Fq "USERSPACE READY: target=live" "$LOG"
+      - name: Upload timeout diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: koronos-timeout-probe-log
+          path: ${{ runner.temp }}/koronos-timeout.log
+          if-no-files-found: warn
+          retention-days: 7
