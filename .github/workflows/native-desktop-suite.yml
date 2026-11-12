@@ -26,6 +26,10 @@ on:
   pull_request:
     paths:
       - 'desktop/**'
+      - 'live-image/build.sh'
+      - 'desktop/sessions/**'
+      - 'vendor/chimera-ii-os/source/tools/desktop/**'
+      - 'tests/desktop/**'
       - 'userspace/bin/octavian-map-windows-drives'
       - 'userspace/tests/test_wsl_drive_aliases.sh'
       - 'userspace/systemd/octavian-wsl-drive-aliases.service'
