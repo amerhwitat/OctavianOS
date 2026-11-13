@@ -23,6 +23,12 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'", section)
         self.assertIn("Published only after Live, Installer, and Recovery userspace handoff gates pass.", section)
 
+    def test_bios_uefi_matrix_requires_persistent_pid1_not_clean_exit(self):
+        acceptance = (ROOT / ".github/workflows/koronos-userspace-acceptance.yml").read_text(encoding="utf-8")
+        self.assertIn("python3 ../../../tests/migration/verify-userspace-handoff.py \"$TARGET\" \"$LOG\"", acceptance)
+        self.assertIn("KORONOS PID1 ACTIVE: target=$TARGET", acceptance)
+        self.assertIn("! grep -Fq \"[SYSC] userspace exit syscall received\" \"$LOG\"", acceptance)
+
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]
         section = section.split("      - name:", 1)[0]
