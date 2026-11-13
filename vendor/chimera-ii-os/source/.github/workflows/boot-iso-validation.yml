@@ -54,6 +54,25 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-pc-bin grub-common xorriso librsvg2-bin python3-pytest
+      - name: Require five-minute input grace for Jasper, Gates and GRUB menus
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in boot/iso/grub.cfg boot/loader-menu.cfg boot/jasper/*.cfg boot/spitfire/*.cfg boot/installation/*.cfg; do
+            [[ -f "$file" ]] || continue
+            grep -Eq '^set timeout=300$' "$file" || { echo "::error::$file must wait 300 seconds before selecting the default"; exit 1; }
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          gates = json.loads(Path("desktop/aurora/gates_menu.json").read_text())
+          contract = json.loads(Path("boot/boot-menu-contract.json").read_text())
+          assert gates["boot_contract"]["input_grace_seconds"] == 300
+          assert gates["boot_contract"]["auto_boot_default_after_seconds"] == 300
+          assert contract["menu_input_grace_seconds"] == 300
+          assert contract["auto_select_default_after_seconds"] == 300
+          print("Jasper/Gates/GRUB five-minute input grace: PASS")
+          PY
       - name: Shell syntax and regression tests
         run: |
           bash -n build-chimera-iso.sh
