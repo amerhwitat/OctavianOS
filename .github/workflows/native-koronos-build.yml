@@ -506,6 +506,7 @@ jobs:
           name: octavianos-full-iso-qemu-trace
           path: trace
       - name: Require actual user-mode init acknowledgement for every target
+        working-directory: vendor/chimera-ii-os/source
         run: |
           set -uo pipefail
           result=0
