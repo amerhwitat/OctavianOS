@@ -415,25 +415,36 @@ jobs:
           set +e
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
           qemu_pid=$!
-          python3 - "$monitor" <<'PY'
+          python3 - "$monitor" "$smoke/full-iso-debugcon.log" <<'PY'
           import os, socket, sys, time
-          path = sys.argv[1]
+          monitor_path, trace_path = sys.argv[1:3]
           deadline = time.monotonic() + 10
           client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
           while True:
               try:
-                  client.connect(path)
+                  client.connect(monitor_path)
                   break
               except (FileNotFoundError, ConnectionRefusedError):
                   if time.monotonic() >= deadline:
                       raise SystemExit("QEMU monitor socket did not become available")
                   time.sleep(0.1)
-          client.settimeout(2)
+          client.settimeout(1)
           try:
               client.recv(4096)  # QEMU monitor greeting
           except socket.timeout:
               pass
-          client.sendall(b"sendkey ret\n")
+          # The monitor socket appears before firmware has necessarily reached
+          # GRUB. An immediate keypress can be consumed by SeaBIOS and lost.
+          time.sleep(3)
+          for attempt in range(4):
+              client.sendall(b"sendkey ret 1000\n")
+              time.sleep(2)
+              try:
+                  with open(trace_path, encoding="utf-8", errors="replace") as trace:
+                      if "[KRN ] KORONOS READY" in trace.read():
+                          break
+              except FileNotFoundError:
+                  pass
           client.close()
           PY
           monitor_status=$?
