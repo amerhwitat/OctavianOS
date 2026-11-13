@@ -107,7 +107,7 @@ jobs:
           echo "iso_sha=$ISO_SHA" >> "$GITHUB_OUTPUT"
           {
             echo "### Shared immutable candidate ISO"
-            echo "- SHA-256: `$ISO_SHA`"
+            printf '%s\n' "- SHA-256: \`$ISO_SHA\`"
             echo "- All six target/firmware jobs must download this exact artifact."
             echo "- This is not production acceptance or a production release."
           } >> "$GITHUB_STEP_SUMMARY"
