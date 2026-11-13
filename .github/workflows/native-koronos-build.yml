@@ -421,7 +421,7 @@ jobs:
           rm -f "$monitor" "$smoke/full-iso-debugcon.log"
           timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server,nowait" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
           qemu_pid=$!
-          python3 - "$monitor" <<'PY'
+          python3 - "$monitor" "$smoke/full-iso-debugcon.log" <<'PY'
           import socket, sys, time
           path = sys.argv[1]
           deadline = time.monotonic() + 8
@@ -435,11 +435,34 @@ jobs:
                       raise SystemExit("QEMU monitor socket did not become ready")
                   time.sleep(0.1)
           client.settimeout(1)
-          try:
-              client.recv(4096)  # consume the QEMU monitor greeting/prompt
-          except TimeoutError:
-              pass
-          client.sendall(b"sendkey ret\n")
+          # Wait for an actual HMP prompt; do not race QEMU startup.
+          greeting = b""
+          prompt_deadline = time.monotonic() + 5
+          while b"(qemu)" not in greeting and time.monotonic() < prompt_deadline:
+              try:
+                  chunk = client.recv(4096)
+                  if not chunk:
+                      break
+                  greeting += chunk
+              except TimeoutError:
+                  continue
+          if b"(qemu)" not in greeting:
+              raise SystemExit("QEMU monitor prompt was not observed")
+          # Retry Enter only while the guest has produced no kernel trace.
+          # The production GRUB timeout remains 300 seconds.
+          trace = sys.argv[2]
+          for attempt in range(4):
+              client.sendall(b"sendkey ret\n")
+              deadline = time.monotonic() + 2
+              while time.monotonic() < deadline:
+                  try:
+                      with open(trace, "rb") as stream:
+                          if stream.read(1):
+                              client.close()
+                              raise SystemExit(0)
+                  except FileNotFoundError:
+                      pass
+                  time.sleep(0.1)
           client.close()
           PY
           set +e
