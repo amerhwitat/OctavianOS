@@ -1,6 +1,6 @@
 # Production userspace handoff — acceptance and integration contract
 
-**Status: BLOCKED — 0/6 production target/firmware cases passed.** Latest verified run: [OctavianOS Actions run 39209603140](https://github.com/amerhwitat/OctavianOS/actions/runs/39209603140). Koronos build and ISO-candidate checks passed, but Live, Installer, and Recovery × BIOS/UEFI all failed the unchanged production verifier because the traces lack a genuine CPL3-originated init syscall acknowledgement and a matching nonzero kernel-owned PID readiness marker. Production prerelease was skipped. Passing routing-contract and source-integration checks are not userspace acceptance.
+**Handoff gate: PASS — 6/6 target/firmware cases. Production release: BLOCKED.** Latest verified six-case run: [#43412390841](https://github.com/amerhwitat/OctavianOS/actions/runs/43412390841). The native build and full-ISO QEMU boot plus full-ISO handoff verification passed in [#43412390877](https://github.com/amerhwitat/OctavianOS/actions/runs/43412390877). The corrected candidate keeps each target init resident as PID 1 and proves ordered kernel-ready → CPL3 syscall acknowledgement → user-authored readiness → kernel-verified PID1 ACTIVE markers. This verifies the persistent PID 1 handoff contract only; production VFS/root activation, service supervision, graphical Live desktop, disk-writing Installer, filesystem-repair Recovery and SMP remain unverified. Prerelease publication was skipped because this was a pull-request candidate.
 
 ## What the evidence means
 
@@ -10,18 +10,18 @@ The acceptance job ran the existing verifier unchanged against these traces:
 - `trace/installer-debugcon.log` for Installer
 - `trace/recovery-debugcon.log` for Recovery
 
-All six target/firmware attempts failed because they lack both a user-originated init syscall acknowledgement proving CPL 3 and a subsequent target-specific readiness marker carrying the same real, nonzero init PID. The verifier is intentionally fail-closed; do not weaken it or manufacture these markers from kernel code.
+All six target/firmware attempts now pass the unchanged verifier with a genuine CPL3-originated syscall acknowledgement, a target-specific readiness marker carrying the same nonzero PID, and a subsequent kernel-owned persistent PID1 ACTIVE marker. The verifier remains fail-closed; do not weaken it or manufacture these markers from kernel code.
 
 ## Source-level integration gaps
 
 The current vendored path and the upstream candidate must be treated as separate layers:
 
-1. `process_loader.cpp` validates ELF load segments and maps/initializes memory through callbacks; this alone does not schedule or enter the image.
-2. `process.cpp` records ELF metadata/PID admission. Admission is not proof that an instruction executed in ring 3.
-3. `interrupt.cpp` installs DPL-0 IDT gates and explicitly defers ring-3 exposure until TSS, stack, and address-space setup are complete.
-4. The compatibility `syscall.cpp` dispatcher is not itself a hardware syscall entry/return path; its current GETPID/EXIT semantics are insufficient evidence of process-owned PID and teardown.
-5. Multiboot module classification recognizes a possible `CHIMERA_MODULE_USER_INIT_ELF`, but classification is not proof that the ISO build actually stages the target's production init ELF or that the launch path selects it.
-6. The current QEMU smoke gates prove kernel readiness and target routing only. They must not be renamed or documented as production userspace acceptance.
+1. The selected x86_64 target ELF is now admitted, loaded into a process-owned address space and entered through the native ring-3 path in the QEMU acceptance cases. Production initramfs-to-VFS extraction and root activation remain incomplete.
+2. `process.cpp` process admission is followed by verified CPL3 execution and a kernel-owned RUNNING-state PID1 marker in the current candidate. Full scheduler-managed process lifecycle and child supervision remain incomplete.
+3. The native privilege transition, TSS/RSP0 setup and DPL3 INT 0x80 acknowledgement are exercised by the six passing QEMU cases; broader interrupt/device and SMP runtime coverage remains open.
+4. The compatibility `syscall.cpp` dispatcher remains distinct from the native hardware syscall entry. The native path now proves process-owned GETPID, validated WRITE/readiness and persistent PID1; general EXIT/wait/reap and full Linux syscall coverage remain incomplete.
+5. The full ISO QEMU run now proves the selected target init module is staged, routed and executed for Live, Installer and Recovery. This is still a small target bootstrap ELF, not a complete initramfs `/init` userspace.
+6. The current full-ISO QEMU smoke plus six-case verifier proves persistent target PID1 handoff, not production service readiness or desktop/installer/recovery completion. Keep those claims separate.
 
 Upstream [ChimeraIIOS PR #125](https://github.com/amerhwitat/ChimeraIIOS/pull/125) contains a candidate ring-3 probe path and passed its standalone acceptance workflow. It does **not** by itself prove that the real init executable is extracted from the production Live/Installer/Recovery payload and launched in the final ISO. Do not blindly copy it over OctavianOS-specific source.
 
@@ -41,22 +41,22 @@ Upstream [ChimeraIIOS PR #125](https://github.com/amerhwitat/ChimeraIIOS/pull/12
 
 | Production case | Status |
 | --- | --- |
-| Live / BIOS | NOT VERIFIED — current aggregate Live trace fails |
-| Installer / BIOS | NOT VERIFIED — current Installer trace fails |
-| Recovery / BIOS | NOT VERIFIED — current Recovery trace fails |
-| Live / UEFI | NOT VERIFIED |
-| Installer / UEFI | NOT VERIFIED |
-| Recovery / UEFI | NOT VERIFIED |
+| Live / BIOS | PASS — persistent PID 1 (candidate 2026-11-13) |
+| Installer / BIOS | PASS — persistent PID 1 (dry-run only) |
+| Recovery / BIOS | PASS — persistent PID 1 (diagnostics only) |
+| Live / UEFI | PASS — persistent PID 1 |
+| Installer / UEFI | PASS — persistent PID 1 (dry-run only) |
+| Recovery / UEFI | PASS — persistent PID 1 (diagnostics only) |
 | Aurora after actual Live init | NOT VERIFIED |
 | Installer completion + installed boot | NOT VERIFIED |
 | Recovery action | NOT VERIFIED |
 | Production release | BLOCKED |
 
-The existing aggregate run demonstrates that all three target traces fail; it does not establish six independent BIOS/UEFI outcomes. Record each case separately once the workflow runs them separately.
+The six target/firmware handoff cases are now recorded independently and passed. The following production follow-up rows remain separate release gates.
 
 ## Completion evidence
 
-A source change is not complete until CI demonstrates: successful native build; ELF/module contract tests; production payload extraction tests; six target/firmware QEMU runs; verifier PASS for every trace without modifying the verifier; preserved debug traces; and Aurora/installer/recovery follow-up evidence. Until then, report the gate as BLOCKED rather than inferring success from a kernel-ready marker.
+The persistent handoff fix is verified by a successful native build, full ISO QEMU boot, six target/firmware QEMU runs, unchanged verifier PASS results and retained debug traces. The overall production release remains blocked until production payload extraction/root VFS, service startup, Aurora/compositor readiness, disposable-disk installation plus reboot, a real Recovery repair postcondition, and SMP follow-up evidence are implemented and tested.
 
 
 ## Production acceptance status update — 2026-10-19
