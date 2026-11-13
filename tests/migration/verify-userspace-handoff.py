@@ -13,15 +13,15 @@ import sys
 TARGETS = {"live", "installer", "recovery"}
 KERNEL_MARKER = "[KRN ] KORONOS READY"
 ENTRY_RE = re.compile(
-    r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b"
+    r"USER INIT SYSCALL: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
 READY_RE = re.compile(
-    r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b"
+    r"USERSPACE READY: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
 # This line must be emitted by the kernel only after it has verified that the
 # same target PID remains RUNNING after the target's service-init phase.
 ACTIVE_RE = re.compile(
-    r"KORONOS PID1 ACTIVE: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\\b"
+    r"KORONOS PID1 ACTIVE: target=(live|installer|recovery) init_pid=([1-9][0-9]*)\b"
 )
 TERMINAL_RE = re.compile(
     r"(?:Target userspace init emitted its own readiness handshake and exited cleanly|"
