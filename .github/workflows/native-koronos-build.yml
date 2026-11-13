@@ -423,7 +423,7 @@ jobs:
               client.recv(4096)  # QEMU monitor greeting
           except socket.timeout:
               pass
-          client.sendall(b"sendkey ret\\n")
+          client.sendall(b"sendkey ret\n")
           client.close()
           PY
           monitor_status=$?
