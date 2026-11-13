@@ -2,6 +2,10 @@ name: Native Koronos kernel build
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/native-koronos-build.yml'
   push:
     branches: [main]
     paths:
