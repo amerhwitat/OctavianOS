@@ -14,6 +14,7 @@ on:
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
+      - 'vendor/chimera-ii-os/source/tools/iso/**'
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/**'
@@ -50,6 +51,7 @@ on:
       - '.github/workflows/native-koronos-build.yml'
   pull_request:
     paths:
+      - '.github/workflows/native-koronos-build.yml'
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
@@ -58,6 +60,7 @@ on:
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
       - 'vendor/chimera-ii-os/source/tools/boot/**'
       - 'vendor/chimera-ii-os/source/tools/aurora/**'
+      - 'vendor/chimera-ii-os/source/tools/iso/**'
       - 'vendor/chimera-ii-os/source/tools/generate-aurora-media.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/build-iso.sh'
       - 'vendor/chimera-ii-os/source/boot/iso/**'
@@ -185,6 +188,13 @@ jobs:
           assert m["loss_first"] >= 0 and m["loss_last"] >= 0 and m["loss_last"] < m["loss_first"], "training loss did not improve"
           print("RNN model metadata validated:", {k:m[k] for k in ("training_sequences","command_rows","isa_rows","epochs","loss_first","loss_last","corpus_sha256")})
           PY
+      - name: Build and validate embedded AI knowledge database
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+          test -s config/ai/knowledge-db.json
       - name: Stage Octavian command and ISA learning runtime into native rootfs
         run: |
           set -euo pipefail
@@ -361,7 +371,7 @@ jobs:
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
           grep -Fq '[REC ] Recovery initramfs module recognized' "$smoke/recovery-debugcon.log" || { cat "$smoke/recovery-debugcon.log"; echo "::error::Recovery target module was not recognized"; exit 1; }
-          python3 tests/boot/verify-userspace-handoff.py recovery "$smoke/recovery-debugcon.log"
+          python3 ../../../tests/migration/verify-userspace-handoff.py recovery "$smoke/recovery-debugcon.log"
       - name: QEMU installer target routing smoke test (no disk writes)
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -390,19 +400,64 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
-          python3 tests/boot/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
+          grep -Fq '[INST] Installer target native init ELF recognized' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init module was not recognized"; exit 1; }
+          python3 ../../../tests/migration/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
         run: |
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
+          monitor="$smoke/full-iso-monitor.sock"
+          rm -f "$monitor" "$smoke/full-iso-debugcon.log"
+          # The Jasper/GRUB menu intentionally waits for user input. Attach a
+          # QEMU monitor and press Enter instead of timing out at the menu.
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server=on,wait=off" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
+          qemu_pid=$!
+          python3 - "$monitor" "$smoke/full-iso-debugcon.log" <<'PY'
+          import os, socket, sys, time
+          monitor_path, trace_path = sys.argv[1:3]
+          deadline = time.monotonic() + 10
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          while True:
+              try:
+                  client.connect(monitor_path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become available")
+                  time.sleep(0.1)
+          client.settimeout(1)
+          try:
+              client.recv(4096)  # QEMU monitor greeting
+          except socket.timeout:
+              pass
+          # The monitor socket appears before firmware has necessarily reached
+          # GRUB. An immediate keypress can be consumed by SeaBIOS and lost.
+          time.sleep(3)
+          for attempt in range(4):
+              client.sendall(b"sendkey ret 1000\n")
+              time.sleep(2)
+              try:
+                  with open(trace_path, encoding="utf-8", errors="replace") as trace:
+                      if "[KRN ] KORONOS READY" in trace.read():
+                          break
+              except FileNotFoundError:
+                  pass
+          client.close()
+          PY
+          monitor_status=$?
+          if [[ $monitor_status -ne 0 ]]; then
+            kill "$qemu_pid" 2>/dev/null || true
+            wait "$qemu_pid" 2>/dev/null || true
+            echo "::error::Could not select the default GRUB entry through the QEMU monitor"
+            exit "$monitor_status"
+          fi
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace after GRUB selection (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload Live, Installer, and Recovery QEMU traces
@@ -449,14 +504,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: octavianos-full-iso-qemu-trace
-          path: trace
+          path: vendor/chimera-ii-os/source/trace
       - name: Require actual user-mode init acknowledgement for every target
+        working-directory: vendor/chimera-ii-os/source
         run: |
           set -uo pipefail
           result=0
-          python3 tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
-          python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
-          python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          python3 ../../../tests/migration/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
+          python3 ../../../tests/migration/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
+          python3 ../../../tests/migration/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
           exit "$result"
 
   publish-native-iso:
