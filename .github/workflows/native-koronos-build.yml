@@ -439,7 +439,7 @@ jobs:
               client.recv(4096)  # consume the QEMU monitor greeting/prompt
           except TimeoutError:
               pass
-          client.sendall(b"sendkey ret\\n")
+          client.sendall(b"sendkey ret\n")
           client.close()
           PY
           set +e
