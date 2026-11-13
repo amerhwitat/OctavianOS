@@ -37,6 +37,13 @@ class PersistentTargetPid1SourceTests(unittest.TestCase):
         self.assertIn("koronos_user_timeout_disarm();", source)
         self.assertIn("log_pid1_active(static_cast<Target>(active_target), active_pid);", source)
 
+    def test_user_readiness_is_logged_before_kernel_pid1_active_record(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "vendor/chimera-ii-os/source/kernel/core/koronos.cpp").read_text(encoding="utf-8")
+        user_bytes = source.index("for (uint64_t i = 0; i < length; ++i) debugcon_write8(bytes[i]);")
+        active_check = source.index("koronos_target_note_user_write(reinterpret_cast<const char *>(bytes), length)")
+        self.assertLess(user_bytes, active_check)
+
 class UserspaceHandoffVerifierTests(unittest.TestCase):
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
