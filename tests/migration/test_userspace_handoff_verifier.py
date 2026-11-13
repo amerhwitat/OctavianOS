@@ -19,6 +19,24 @@ def run(target, trace):
         return subprocess.run([sys.executable, str(SCRIPT), target, str(log)], capture_output=True, text=True)
 
 
+class PersistentTargetPid1SourceTests(unittest.TestCase):
+    def test_all_three_target_inits_remain_resident_after_readiness(self):
+        root = Path(__file__).resolve().parents[2]
+        targets = ("live", "installer", "recovery")
+        for target in targets:
+            with self.subTest(target=target):
+                source = (root / "vendor/chimera-ii-os/source/kernel/targets"
+                          / f"{target}_init.c").read_text(encoding="utf-8")
+                self.assertIn("init_pid1_wait();", source)
+                self.assertNotIn("init_exit(0);", source)
+
+    def test_kernel_active_marker_requires_running_process_and_disarms_startup_deadline(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "vendor/chimera-ii-os/source/kernel/core/target_launch.cpp").read_text(encoding="utf-8")
+        self.assertIn("current.state != CHIMERA_PROCESS_RUNNING", source)
+        self.assertIn("koronos_user_timeout_disarm();", source)
+        self.assertIn("log_pid1_active(static_cast<Target>(active_target), active_pid);", source)
+
 class UserspaceHandoffVerifierTests(unittest.TestCase):
     def test_kernel_ready_alone_is_not_userspace_ready(self):
         result = run("live", KERNEL)
