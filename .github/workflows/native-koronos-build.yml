@@ -7,8 +7,12 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tools/isa/**'
+      - 'vendor/chimera-ii-os/source/tools/iso/**'
+      - 'vendor/chimera-ii-os/source/tools/ai/**'
       - 'vendor/chimera-ii-os/source/tests/isa/**'
       - 'vendor/chimera-ii-os/source/tools/cognition/**'
+      - 'vendor/chimera-ii-os/source/tools/iso/**'
+      - 'vendor/chimera-ii-os/source/tools/ai/**'
       - 'vendor/chimera-ii-os/source/data/isa/**'
       - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
       - 'vendor/chimera-ii-os/source/tools/build-boot-artifacts.sh'
@@ -64,6 +68,7 @@ on:
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/boot/installation/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - 'tools/boot/**'
       - 'desktop/aurora/assets/**'
       - 'vendor/chimera-ii-os/source/boot/iso/prepare-layout.sh'
@@ -102,6 +107,17 @@ jobs:
       - name: Test cross-platform binary header inspector
         working-directory: vendor/chimera-ii-os/source
         run: python3 tests/tools/test_inspect_binary_headers.py
+      - name: Build and stage Octavian knowledge database for vendored Koronos
+        run: |
+          set -euo pipefail
+          python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+          install -D -m 0644 config/ai/knowledge-db.json vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          # The vendored ISO staging path invokes this helper from inside the
+          # source tree; ship the matching generator there as well as its DB.
+          install -D -m 0755 tools/ai/knowledge_db.py vendor/chimera-ii-os/source/tools/ai/knowledge_db.py
+          test -s vendor/chimera-ii-os/source/config/ai/knowledge-db.json
+          test -s vendor/chimera-ii-os/source/tools/ai/knowledge_db.py
       - name: Build freestanding Koronos x86_64 ELF
         working-directory: vendor/chimera-ii-os/source
         run: |
@@ -390,7 +406,7 @@ jobs:
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
+          grep -Fq '[INST] Installer target native init ELF recognized' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init ELF was not recognized"; exit 1; }
           python3 tests/boot/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
@@ -398,11 +414,62 @@ jobs:
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
+          # The production GRUB menu deliberately waits 300 seconds for user input.
+          # Drive the default Live entry through QEMU's monitor instead of
+          # shortening the real boot-menu timeout just to satisfy CI.
+          monitor="$smoke/full-iso-monitor.sock"
+          rm -f "$monitor" "$smoke/full-iso-debugcon.log"
+          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor "unix:$monitor,server,nowait" -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9 &
+          qemu_pid=$!
+          python3 - "$monitor" "$smoke/full-iso-debugcon.log" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          deadline = time.monotonic() + 8
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          while True:
+              try:
+                  client.connect(path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become ready")
+                  time.sleep(0.1)
+          client.settimeout(1)
+          # Wait for an actual HMP prompt; do not race QEMU startup.
+          greeting = b""
+          prompt_deadline = time.monotonic() + 5
+          while b"(qemu)" not in greeting and time.monotonic() < prompt_deadline:
+              try:
+                  chunk = client.recv(4096)
+                  if not chunk:
+                      break
+                  greeting += chunk
+              except TimeoutError:
+                  continue
+          if b"(qemu)" not in greeting:
+              raise SystemExit("QEMU monitor prompt was not observed")
+          # Retry Enter only while the guest has produced no kernel trace.
+          # The production GRUB timeout remains 300 seconds.
+          trace = sys.argv[2]
+          for attempt in range(4):
+              client.sendall(b"sendkey ret\n")
+              deadline = time.monotonic() + 2
+              while time.monotonic() < deadline:
+                  try:
+                      with open(trace, "rb") as stream:
+                          if stream.read(1):
+                              client.close()
+                              raise SystemExit(0)
+                  except FileNotFoundError:
+                      pass
+                  time.sleep(0.1)
+          client.close()
+          PY
           set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
+          wait "$qemu_pid"
           qemu_status=$?
           set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
+          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace after selecting the default GRUB entry (QEMU exit $qemu_status)"; exit 1; }
           cat "$smoke/full-iso-debugcon.log"
           grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
       - name: Upload Live, Installer, and Recovery QEMU traces
