@@ -86,6 +86,38 @@ html[data-profile="marine"] {
   --radius-l: 6px;
 }
 
+/* ---------- profile: Windows XP-inspired FreeXP ---------- */
+html[data-profile="freexp"] {
+  --font-ui: Tahoma, "MS Sans Serif", "DejaVu Sans", sans-serif;
+  --accent: #245edb;
+  --accent-2: #7db4ff;
+  --glass: linear-gradient(180deg, rgba(64, 133, 226, .98), rgba(20, 75, 166, .98));
+  --glass-strong: rgba(12, 44, 105, .98);
+  --surface: rgba(238, 244, 255, .98);
+  --surface-2: rgba(220, 232, 250, .98);
+  --text: #10233b;
+  --text-dim: #405a7c;
+  --radius-s: 2px;
+  --radius-m: 3px;
+  --radius-l: 4px;
+  --taskbar-h: 46px;
+}
+
+/* ---------- profile: Windows 11-inspired FreeWin11 ---------- */
+html[data-profile="freewin11"] {
+  --font-ui: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+  --accent: #4f8cff;
+  --accent-2: #8ab4ff;
+  --glass: rgba(20, 30, 48, .78);
+  --glass-strong: rgba(14, 22, 36, .96);
+  --surface: rgba(30, 42, 62, .94);
+  --surface-2: rgba(40, 54, 78, .97);
+  --radius-s: 7px;
+  --radius-m: 12px;
+  --radius-l: 18px;
+  --taskbar-h: 58px;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -138,7 +170,9 @@ html[data-profile="aurora"] #menubar .mb-right .pill { background: rgba(255, 255
   position: absolute; inset: var(--menubar-h) 0 var(--taskbar-h) 0;
   padding: 18px;
 }
-html[data-profile="jasper"] #desktop { inset: 0 0 var(--taskbar-h) 0; }
+html[data-profile="jasper"] #desktop,
+html[data-profile="freexp"] #desktop,
+html[data-profile="freewin11"] #desktop { inset: 0 0 var(--taskbar-h) 0; }
 html[data-profile="gates"] #desktop { inset: var(--menubar-h) 0 0 0; }
 
 #desktopIcons {
@@ -186,8 +220,12 @@ html[data-profile="jasper"] .icon.selected { background: rgba(15, 108, 189, .18)
   border-top: 1px solid var(--stroke); z-index: 900;
 }
 html[data-profile="jasper"] #taskbar,
-html[data-profile="marine"] #taskbar { display: flex; }
-html[data-profile="jasper"] #taskbar { justify-content: center; }
+html[data-profile="marine"] #taskbar,
+html[data-profile="freexp"] #taskbar,
+html[data-profile="freewin11"] #taskbar { display: flex; }
+html[data-profile="jasper"] #taskbar,
+html[data-profile="freewin11"] #taskbar { justify-content: center; }
+html[data-profile="freexp"] #taskbar { justify-content: flex-start; }
 #taskbar .tb-group { display: flex; align-items: center; gap: 6px; }
 html[data-profile="jasper"] #taskbar .tb-left { position: absolute; left: 12px; }
 html[data-profile="jasper"] #taskbar .tb-right { position: absolute; right: 12px; }
