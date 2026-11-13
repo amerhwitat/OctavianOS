@@ -12,6 +12,7 @@ on:
       - 'applications/**'
       - 'appcenter/**'
       - 'iso/manifests/**'
+      - 'userspace/bin/aurora-session'
       - '.github/workflows/live-image-build.yml'
   pull_request:
     paths:
@@ -23,6 +24,7 @@ on:
       - 'applications/**'
       - 'appcenter/**'
       - 'iso/manifests/**'
+      - 'userspace/bin/aurora-session'
       - '.github/workflows/live-image-build.yml'
   workflow_dispatch:
     inputs:
