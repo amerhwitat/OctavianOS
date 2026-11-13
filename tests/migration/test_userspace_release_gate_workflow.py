@@ -10,6 +10,10 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = WORKFLOW.read_text(encoding="utf-8")
 
+    def test_migration_verifier_changes_trigger_native_build_on_pull_requests(self):
+        pull_request = self.text.split("  pull_request:", 1)[1].split("\\npermissions:", 1)[0]
+        self.assertIn("'tests/migration/**'", pull_request)
+
     def test_userspace_gate_is_a_separate_job_after_iso_build(self):
         self.assertIn("  verify-userspace-handoff:", self.text)
         self.assertIn("needs: build-koronos", self.text)
