@@ -19,7 +19,7 @@ if [ -z "$profile" ]; then
   profile="$(sed -n 's/.*aurora\.profile=\([a-zA-Z0-9_-]*\).*/\1/p' /proc/cmdline 2>/dev/null | head -n1)"
 fi
 case "${profile:-}" in
-  jasper|gates|aurora|marine) ;;
+  jasper|gates|aurora|marine|freexp|freewin11) ;;
   *) profile="aurora" ;;
 esac
 mkdir -p /run/aurora 2>/dev/null || true
