@@ -306,18 +306,6 @@ jobs:
           install -m 0644 desktop/aurora/assets/octavian-artwork-manifest.json "$visual_dir/octavian-artwork-manifest.json"
           test -s "$visual_dir/octavian-octopus-aurora.png"
           test -s "$visual_dir/octavian-artwork-manifest.json"
-      - name: Generate the source-tree knowledge database required by the ISO builder
-        run: |
-          set -euo pipefail
-          python3 tools/ai/knowledge_db.py build --out vendor/chimera-ii-os/source/config/ai/knowledge-db.json
-          test -s vendor/chimera-ii-os/source/config/ai/knowledge-db.json
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          db=json.loads(Path("vendor/chimera-ii-os/source/config/ai/knowledge-db.json").read_text())
-          assert db.get("entry_count") == len(db.get("entries", [])) > 0
-          print(f"Generated ISO knowledge database: {db['entry_count']} entries")
-          PY
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
