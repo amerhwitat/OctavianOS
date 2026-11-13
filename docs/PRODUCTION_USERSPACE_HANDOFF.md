@@ -151,3 +151,50 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+## Linux kernel-to-userspace reference and persistent PID 1 fix — 2026-11-13
+
+Linux is used as a behavioral reference, not as code to copy blindly. The relevant Linux boot contract is:
+
+1. The bootloader passes the kernel its boot parameters and initramfs.
+2. The kernel unpacks initramfs into the initial root filesystem and prepares the root namespace.
+3. The kernel locates and executes the selected init program (normally /init from initramfs, or a configured init path).
+4. PID 1 remains alive as the first userspace process, mounts/activates required filesystems, starts and supervises services, and coordinates the transition from early userspace to the real root where applicable.
+5. The system is not considered userspace-ready merely because the kernel entered an ELF or a one-shot program printed a banner and exited.
+
+Koronos target equivalent and current implementation boundary:
+
+| Linux reference phase | Koronos target phase | Current status |
+|---|---|---|
+| Boot parameters + initramfs handoff | Multiboot2 target module + target=live/installer/recovery | Module classification and target identity checks exist |
+| Unpack initramfs into rootfs/VFS | Bounded CPIO extraction, VFS publication, mount /, /dev, /proc, writable /tmp | NOT IMPLEMENTED / NOT VERIFIED |
+| Execute selected /init as PID 1 | Validate exact target ELF, create address space, load ELF, enter CPL3 | Native x86_64 path exists; production rootfs-to-init binding still incomplete |
+| PID 1 service bootstrap | Kernel confirms the same process remains RUNNING after its user-originated readiness write | Candidate fix on this branch: target inits stay resident; kernel disarms the startup deadline only after validating readiness and process state, then emits the kernel-owned PID1-active record |
+| Service supervision / restart / wait | Kore service manager, process wait/reap, restart policy, health checks | NOT IMPLEMENTED / NOT VERIFIED |
+| Live session startup | PID 1 starts display server/compositor, input and selected desktop | Text console probe only; no native compositor/X server |
+| Installer | PID 1 starts storage discovery, partition/filesystem operations, install, bootloader setup and reboot verification | Dry-run only; no block-device writer |
+| Recovery | PID 1 starts filesystem checks/repair and validates postconditions | Diagnostics only; no repair backend |
+
+### Candidate handoff correction
+
+The latest failed native build [run #43409174831](https://github.com/amerhwitat/OctavianOS/actions/runs/43409174831) produced the three target readiness markers but no kernel-verified persistent PID 1 active marker. The underlying defect was concrete: each target init called init_exit(0) after printing readiness, and koronos_launch_selected_userspace() then reclaimed its address space. A clean exit was being mistaken for a running PID 1.
+
+The candidate branch now changes this lifecycle:
+- Live, Installer and Recovery call a shared non-returning init_pid1_wait() after readiness instead of exiting.
+- The kernel checks that the same admitted PID is still CHIMERA_PROCESS_RUNNING when its validated user write contains the target/PID readiness line.
+- Only after that check does the kernel disarm the startup-only PIT deadline and emit KORONOS PID1 ACTIVE with the same PID.
+- The verifier remains fail-closed; it still rejects absent/mismatched active markers and any subsequent process-exit/timeout evidence.
+- Source-contract unit tests cover all three target init binaries and the kernel-owned active-marker gate.
+
+This corrects the immediate one-shot-probe-versus-PID1 lifecycle mismatch. It does not yet provide a complete initramfs VFS, service manager, graphical Live session, disk-writing installer or filesystem repair implementation. The candidate must pass a fresh native build and all six BIOS/UEFI target cases before it can be called verified.
+
+### Linux source references
+
+Use the Linux kernel source as the semantic reference for the lifecycle above:
+- init/initramfs.c and init/do_mounts_initrd.c: initramfs unpacking and early root preparation.
+- init/main.c: kernel initialization and transition to userspace init.
+- kernel/fork.c, kernel/exit.c, kernel/pid.c: process creation, PID lifecycle and exit semantics.
+- fs/ and fs/proc/: VFS, filesystems and process observability.
+- kernel/sched/: runnable task lifecycle, scheduling and wait/wakeup behavior.
+
+For Koronos, implement equivalent contracts behind Koronos-owned APIs and architecture code. Do not claim Linux ABI or full Linux userspace compatibility until the corresponding syscalls, VFS, process model and userspace runtime are implemented and tested.
