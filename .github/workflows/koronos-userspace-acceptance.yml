@@ -102,17 +102,15 @@ jobs:
           timeout 18s "${QEMU[@]}"
           qemu_rc=$?
           set -e
-          # A healthy test init exits to the kernel, which then idles. Timeout
-          # is therefore expected; the marker and clean-exit diagnostics are the
-          # acceptance evidence, not the QEMU process exit code. Always print the
-          # complete trace before assertions so failures can be debugged from CI.
+          # A persistent PID 1 must survive the observation window. A short-lived
+          # ELF probe that prints readiness and exits is not a running userspace.
+          # Always print the full trace so failures remain diagnosable.
           if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
-          # The target ELF must itself originate the syscall and readiness markers.
-          python3 tests/boot/verify-userspace-handoff.py "$TARGET" "$LOG"
-          grep -Fq "[SYSC] WRITE completed" "$LOG"
-          grep -Fq "[SYSC] userspace exit syscall received" "$LOG"
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
+          python3 ../../../tests/migration/verify-userspace-handoff.py "$TARGET" "$LOG"
+          grep -Fq "KORONOS PID1 ACTIVE: target=$TARGET" "$LOG"
+          ! grep -Fq "[SYSC] userspace exit syscall received" "$LOG"
+          echo "Persistent PID 1 acceptance passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc"
       - name: Prove in-kernel timeout aborts a non-returning ring-3 process
         if: matrix.firmware == 'bios'
         run: |
