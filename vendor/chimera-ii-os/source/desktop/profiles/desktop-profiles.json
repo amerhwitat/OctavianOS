@@ -346,6 +346,7 @@
         "mako"
       ],
       "theme": "marine-blue",
+      "launcher": "desktop/x11/start-session.sh",
       "status": "native-shell-preview",
       "user_selectable": true,
       "default_candidate": true,
@@ -363,6 +364,7 @@
         "mako"
       ],
       "theme": "fluent-blue",
+      "launcher": "desktop/x11/start-session.sh",
       "status": "native-shell-preview",
       "user_selectable": true,
       "default_candidate": true,
@@ -378,6 +380,7 @@
       "marine",
       "freexp",
       "freewin11"
-    ]
+    ],
+    "persisted_preference": "CHIMERA_DEFAULT_DESKTOP"
   }
 }
