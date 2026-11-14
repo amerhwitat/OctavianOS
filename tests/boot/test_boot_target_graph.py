@@ -75,7 +75,7 @@ def main():
 
     sessions = json.loads(read(ROOT / "boot/live/desktop-sessions.json"))
     session_ids = {s["id"] for s in sessions["sessions"]}
-    require(session_ids == {"aurora", "marine"}, "desktop selection contract must define exactly Aurora and Marine")
+    require(session_ids == {"aurora", "marine", "freexp", "freewin11"}, "desktop selection contract must define all four selectable desktop profiles")
     require(sessions["status"] == "selection-contract-only", "desktop manifest must not claim native launch readiness")
 
     print(f"boot target graph static contract: PASS ({len(configs)} configs, {len(set(targets))} configfile edges)")
