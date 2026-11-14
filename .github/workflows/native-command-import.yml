@@ -100,8 +100,11 @@ jobs:
           git add runtime/commands/native-command-candidates.json runtime/isa/riscv-opcodes.json runtime/isa/universal-instruction-catalog.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(runtime): persist imported command candidates [catalog-bot]"
-            test -n "${GITHUB_REF_NAME:-}"
-            git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+            if [[ "${GITHUB_REF:-}" == refs/heads/* ]]; then
+              git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+            else
+              echo "Skipping catalog persistence for non-branch ref: ${GITHUB_REF:-unknown}"
+            fi
           else
             echo "Octavian command registry is already current."
           fi
