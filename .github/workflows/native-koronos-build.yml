@@ -298,6 +298,14 @@ jobs:
           install -m 0644 desktop/aurora/assets/octavian-artwork-manifest.json "$visual_dir/octavian-artwork-manifest.json"
           test -s "$visual_dir/octavian-octopus-aurora.png"
           test -s "$visual_dir/octavian-artwork-manifest.json"
+      - name: Generate and validate ISO knowledge database
+        working-directory: vendor/chimera-ii-os/source
+        run: |
+          set -euo pipefail
+          python3 tools/ai/knowledge_db.py build --out config/ai/knowledge-db.json
+          test -s config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+
       - name: Build native BIOS/UEFI ISO candidate from source
         working-directory: vendor/chimera-ii-os/source
         run: |
