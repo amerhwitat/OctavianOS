@@ -113,6 +113,9 @@ jobs:
           python3 -m json.tool toolchains/cpp/ides.json >/dev/null
           python3 -m json.tool toolchains/cpp/debuggers.json >/dev/null
           for p in mobile/device-profiles/*.json; do python3 mobile/build/validate-profile.py "$p"; done
+      - name: Test target-specific native init routing and release gate
+        run: python3 -m pytest -q tests/boot/test_iso_target_routing_artwork.py tests/boot/test_chimera_iso_release_gate.py
+
       - name: Configure Java 25 for portfolio Maven projects
         uses: actions/setup-java@v4
         with:
@@ -213,3 +216,35 @@ jobs:
             test -s "boot/iso/dist/iso/boot/visual/$visual"
           done
           test -s boot/iso/dist/iso/boot/visual/aurora-media/manifest.json
+      - name: Verify Live, Installer and Recovery init ELFs inside ISO
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in live installer recovery; do
+            built="build/koronos/x86_64/target-init-${target}.elf"
+            staged="boot/iso/dist/iso/boot/targets/target-init-${target}.elf"
+            test -s "$built"
+            test -s "$staged"
+            readelf -h "$staged" | grep -Eq 'Type:[[:space:]]+EXEC'
+            cmp -s "$built" "$staged"
+            grep -Fq "target-init-${target}.elf chimera-user-init-elf target=${target}" boot/iso/dist/iso/boot/grub.cfg
+          done
+          grep -Fq "target-init-live.elf chimera-user-init-elf target=live" boot/iso/dist/iso/boot/loader-menu.cfg
+          grep -Fq "target-init-recovery.elf chimera-user-init-elf target=recovery" boot/iso/dist/iso/boot/loader-menu.cfg
+      - name: Upload structured ISO and native boot payloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-structured-iso-${{ github.sha }}
+          path: |
+            boot/iso/dist/output.iso
+            boot/iso/dist/output.iso.sha256
+            boot/iso/dist/ISO-BOOT-REPORT.txt
+            build/koronos/x86_64/koronos.elf
+            build/koronos/x86_64/target-init-live.elf
+            build/koronos/x86_64/target-init-installer.elf
+            build/koronos/x86_64/target-init-recovery.elf
+            build/boot-artifacts/**
+            build/live-boot/**
+            build/aurora-media/**
+          if-no-files-found: error
+          retention-days: 90
