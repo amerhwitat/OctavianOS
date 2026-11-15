@@ -1,0 +1,141 @@
+name: Native Desktop Suite Build
+
+on:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'desktop/native/**'
+      - 'desktop/sessions/**'
+      - 'tools/desktop/**'
+      - 'tests/desktop/**'
+      - 'tools/build-desktop-binaries.sh'
+      - 'tools/binary/inspect_binary.py'
+      - 'tools/ide/install-vscodium.py'
+      - 'tests/ide/test_install_vscodium.py'
+      - '.github/workflows/native-desktop-suite.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'desktop/native/**'
+      - 'tools/desktop/**'
+      - 'tests/desktop/**'
+      - 'tools/build-desktop-binaries.sh'
+      - '.github/workflows/native-desktop-suite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-native-components:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test user-selectable default desktop profile
+        run: bash tests/desktop/test_default_desktop_selector.sh
+      - name: Validate desktop session launcher syntax
+        run: bash -n desktop/x11/start-session.sh tools/desktop/set-default-desktop.sh
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install --yes build-essential cmake python3 libgtk-4-dev librsvg2-common xvfb libgl1-mesa-dev libglfw3-dev libopencv-dev mesa-utils pkg-config
+      - name: Compile Aurora native desktop components
+        env:
+          CHIMERA_DESKTOP_BUILD_DIR: ${{ runner.temp }}/chimera-desktop
+        run: |
+          set -euo pipefail
+          bash tools/build-desktop-binaries.sh
+          out="$CHIMERA_DESKTOP_BUILD_DIR"
+          test -s "$out/bin/chm-utf8"
+          test -x "$out/bin/chm-utf8"
+          test -s "$out/bin/aurora-utf-selftest"
+          test -x "$out/bin/aurora-utf-selftest"
+          test -s "$out/aurora_input.o"
+          test -s "$out/aurora_input_router.o"
+          test -s "$out/aurora_locale.o"
+          test -s "$out/aurora_utf.o"
+          test -s "$out/aurora_emoji.o"
+          test -s "$out/chimera_icons.o"
+          test -s "$out/icons/icon-index.json"
+          test -s "$out/icons/aurora-files.svg"
+          test -s "$out/icons/chromium.svg"
+          test -s "$out/icons/terminal.svg"
+          test -s "$out/icons/settings.svg"
+          "$out/bin/aurora-utf-selftest"
+          python3 -m json.tool "$out/manifests/desktop-build-manifest.json" >/dev/null
+      - name: Validate selectable desktop profiles and session manifests
+        run: |
+          set -euo pipefail
+          for profile in aurora marine freexp freewin11; do
+            python3 -m json.tool "desktop/sessions/$profile.json" >/dev/null
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("desktop/profiles/desktop-profiles.json").read_text())
+          candidates = {p["id"] for p in data["profiles"] if p.get("default_candidate")}
+          assert candidates == {"aurora", "marine", "freexp", "freewin11"}, candidates
+          catalog = json.loads(Path("desktop/applications/desktop-app-catalog.json").read_text())
+          assert len(catalog["applications"]) >= 20
+          PY
+      - name: Compile shell and desktop application targets
+        run: |
+          set -euo pipefail
+          cmake -S . -B "${{ runner.temp }}/chimera-cmake" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "${{ runner.temp }}/chimera-cmake" --target aurora-settings chimera-shell chmctl chm-diagnostics chmhelp chm-utf8 chm-opengl-smoke chm-image-inspect -j2
+
+      - name: Runtime-test and package OpenGL and OpenCV utilities
+        env:
+          CHIMERA_DESKTOP_BUILD_DIR: ${{ runner.temp }}/chimera-desktop
+        run: |
+          set -euo pipefail
+          opengl="${{ runner.temp }}/chimera-cmake/desktop/native/chm-opengl-smoke"
+          opencv="${{ runner.temp }}/chimera-cmake/desktop/native/chm-image-inspect"
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$opengl" --self-test
+          "$opencv" --self-test
+          mkdir -p "$CHIMERA_DESKTOP_BUILD_DIR/bin"
+          install -m 0755 "$opengl" "$CHIMERA_DESKTOP_BUILD_DIR/bin/"
+          install -m 0755 "$opencv" "$CHIMERA_DESKTOP_BUILD_DIR/bin/"
+          install -m 0644 man/chm-opengl-smoke.1 man/chm-image-inspect.1 "$CHIMERA_DESKTOP_BUILD_DIR/"
+          ldd "$opengl" > "$CHIMERA_DESKTOP_BUILD_DIR/opengl-runtime-dependencies.txt"
+          ldd "$opencv" > "$CHIMERA_DESKTOP_BUILD_DIR/opencv-runtime-dependencies.txt"
+
+      - name: Build and headlessly smoke-test native Aurora and Marine GTK shells
+        env:
+          CHIMERA_DESKTOP_BUILD_DIR: ${{ runner.temp }}/chimera-desktop
+          CHIMERA_ICON_DIR: ${{ runner.temp }}/chimera-desktop/icons
+          GTK_A11Y: none
+          GSK_RENDERER: cairo
+        run: |
+          set -euo pipefail
+          mkdir -p "$CHIMERA_DESKTOP_BUILD_DIR/bin"
+          c++ -std=c++20 -O2 -Wall -Wextra \
+            $(pkg-config --cflags gtk4) desktop/native/chimera-desktop-shell.cpp \
+            $(pkg-config --libs gtk4) -o "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell"
+          xvfb-run -a "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=aurora --self-test
+          xvfb-run -a "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=marine --self-test
+          xvfb-run -a "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=freexp --self-test
+          xvfb-run -a "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=freexp --self-test
+          xvfb-run -a "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=freewin11 --self-test
+          if "$CHIMERA_DESKTOP_BUILD_DIR/bin/chimera-desktop-shell" --desktop=invalid --self-test; then
+            echo "invalid desktop profile was accepted" >&2
+            exit 1
+          fi
+
+      - name: Record binary headers and verify portable artifact contents
+        env:
+          CHIMERA_DESKTOP_BUILD_DIR: ${{ runner.temp }}/chimera-desktop
+        run: |
+          set -euo pipefail
+          out="$CHIMERA_DESKTOP_BUILD_DIR"
+          python3 tools/binary/inspect_binary.py --json "$out"/bin/* > "$out/manifests/binary-headers.json"
+          python3 -m json.tool "$out/manifests/binary-headers.json" >/dev/null
+          python3 -m json.tool "$out/manifests/runtime-requirements.json" >/dev/null
+          ! find "$out/aurora-source" -type d -name __pycache__ | grep .
+          ! find "$out/aurora-source" -type f \\( -name '*.pyc' -o -name '*.pyo' \\) | grep .
+      - name: Publish compiled desktop component bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-native-desktop-components
+          path: ${{ runner.temp }}/chimera-desktop/
+          if-no-files-found: error
+          retention-days: 90
