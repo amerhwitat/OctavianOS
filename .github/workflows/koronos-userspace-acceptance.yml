@@ -350,7 +350,7 @@ jobs:
           grep -Fq "[KRN ] KORONOS READY" "$LOG"
           grep -Fq "BOOT FIRMWARE: BIOS" "$LOG"
           if grep -Fq "[VFS] bootstrap store and tmpfs active; persistent block-backed root filesystem is NOT mounted" "$LOG" && \
-             grep -Fq "[RUN ] ERROR: native root/tmpfs mount failed" "$LOG"; then
+             grep -Fq "[RUN ] ERROR: persistent root filesystem unavailable; refusing native userspace dispatch" "$LOG"; then
             ! grep -Fq "USERSPACE READY: target=live" "$LOG"
             ! grep -Fq "USER INIT SYSCALL: target=live" "$LOG"
             ! grep -Fq "PIT deadline expired" "$LOG"
