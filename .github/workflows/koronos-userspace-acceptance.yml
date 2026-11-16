@@ -17,6 +17,7 @@ on:
       - docs/cpu-architecture-matrix-20261104
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
       - '.github/workflows/koronos-userspace-acceptance.yml'
