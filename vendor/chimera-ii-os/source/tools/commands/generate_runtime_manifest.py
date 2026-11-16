@@ -30,6 +30,13 @@ def main():
             norm=name.casefold()
             row=rows.setdefault(norm,{"name":name,"platforms":[],"source_urls":[]})
             if platform not in row["platforms"]: row["platforms"].append(platform)
+    # The native multicall contract is authoritative even when a catalog is
+    # incomplete or a refresh temporarily drops one of these entries.
+    for name in sorted(NATIVE):
+        norm=name.casefold()
+        row=rows.setdefault(norm,{"name":name,"platforms":[],"source_urls":[]})
+        if "chimera_native" not in row["platforms"]:
+            row["platforms"].append("chimera_native")
     if SS64.exists():
         try:
             ss64=json.loads(SS64.read_text(encoding="utf-8"))
@@ -76,7 +83,10 @@ def main():
         elif key in SHELL: mode="shell-builtin"; provider="chimera-shell"
         elif key in registry_modes:
             declared, runtime=registry_modes[key]
-            mode="native-provider-required" if declared=="native-when-present" else declared
+            # Only entries in NATIVE above are implemented by the compiled multicall.
+            # Registry declarations describe a provider capability; they must not
+            # silently promote dispatcher tools to native built-ins.
+            mode="native-provider-required" if declared in ("native", "native-when-present") else declared
             provider=runtime
         else:
             mode="compatibility-provider-required"
