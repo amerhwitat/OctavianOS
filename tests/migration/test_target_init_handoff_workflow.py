@@ -31,8 +31,11 @@ class TargetInitHandoffWorkflowTests(unittest.TestCase):
         )
 
     def test_acceptance_workflow_triggers_for_boot_graph_contract_changes(self):
-        pull_request_paths = self.acceptance_workflow.split("\\n  pull_request:\\n", 1)[1].split("\\n  push:\\n", 1)[0]
-        push_paths = self.acceptance_workflow.split("\\n  push:\\n", 1)[1].split("\\npermissions:\\n", 1)[0]
+        pull_request_start = self.acceptance_workflow.index("  pull_request:")
+        push_start = self.acceptance_workflow.index("  push:", pull_request_start)
+        permissions_start = self.acceptance_workflow.index("permissions:", push_start)
+        pull_request_paths = self.acceptance_workflow[pull_request_start:push_start]
+        push_paths = self.acceptance_workflow[push_start:permissions_start]
         self.assertIn("- 'tests/boot/**'", pull_request_paths)
         self.assertIn("- 'tests/boot/**'", push_paths)
 
