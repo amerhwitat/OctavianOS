@@ -94,15 +94,45 @@ jobs:
 
       - name: QEMU kernel boot smoke (not userspace acceptance)
         run: |
-          set +e
-          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 35s qemu-system-x86_64 \
+          set -euo pipefail
+          monitor="$RUNNER_TEMP/octavian-qemu-monitor.sock"
+          rm -f "$monitor" build/native-iso/qemu-debugcon.log
+          timeout 35s qemu-system-x86_64 \
             -machine pc -m 1024 -smp 1 -accel tcg \
-            -display none -serial none -monitor stdio \
+            -display none -serial none -monitor "unix:$monitor,server,nowait" \
             -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
             -debugcon file:build/native-iso/qemu-debugcon.log \
-            -global isa-debugcon.iobase=0xe9 >build/native-iso/qemu.log 2>&1
-          rc=$?
-          set -e
+            -global isa-debugcon.iobase=0xe9 >build/native-iso/qemu.log 2>&1 &
+          qemu_pid=$!
+          cleanup() { kill "$qemu_pid" 2>/dev/null || true; wait "$qemu_pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          python3 - "$monitor" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          deadline = time.monotonic() + 15
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          while True:
+              try:
+                  client.connect(path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become ready")
+                  time.sleep(0.1)
+          client.settimeout(2)
+          try:
+              client.recv(4096)
+          except TimeoutError:
+              pass
+          client.sendall(b"sendkey ret\n")
+          time.sleep(2)
+          client.sendall(b"quit\n")
+          client.close()
+          PY
+          for _ in $(seq 1 20); do
+            test -s build/native-iso/qemu-debugcon.log && break
+            sleep 0.25
+          done
           test -s build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; exit 1; }
           grep -aq "ELBC" build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; echo "Koronos boot markers were not observed" >&2; exit 1; }
           echo "QEMU reached the Koronos boot marker sequence; this is not a target userspace pass."
