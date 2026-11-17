@@ -124,7 +124,12 @@ jobs:
               client.recv(4096)
           except TimeoutError:
               pass
-          client.sendall(b"sendkey ret\n")
+          # The firmware can take several seconds to reach GRUB. A key sent
+          # immediately after the monitor socket appears can be lost, so retry
+          # the explicit menu selection while the firmware/bootloader starts.
+          for _ in range(8):
+              client.sendall(b"sendkey ret\n")
+              time.sleep(1)
           client.close()
           PY
           # Keep QEMU alive while the firmware menu and kernel boot. TCG can
