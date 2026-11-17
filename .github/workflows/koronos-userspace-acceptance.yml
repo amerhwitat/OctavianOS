@@ -43,7 +43,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
           sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools
-      - name: Build Koronos and target-specific userspace probes
+      - name: Build Koronos and production target init ELFs plus timeout probe
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           bash kernel/build-koronos.sh
@@ -63,9 +63,9 @@ jobs:
           rm -rf "$ISO_ROOT"
           mkdir -p "$ISO_ROOT/boot/grub"
           install -m 0644 build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          install -m 0644 build/koronos/x86_64/user-init-live.elf "$ISO_ROOT/boot/user-init-live.elf"
-          install -m 0644 build/koronos/x86_64/user-init-installer.elf "$ISO_ROOT/boot/user-init-installer.elf"
-          install -m 0644 build/koronos/x86_64/user-init-recovery.elf "$ISO_ROOT/boot/user-init-recovery.elf"
+          install -m 0644 build/koronos/x86_64/target-init-live.elf "$ISO_ROOT/boot/target-init-live.elf"
+          install -m 0644 build/koronos/x86_64/target-init-installer.elf "$ISO_ROOT/boot/target-init-installer.elf"
+          install -m 0644 build/koronos/x86_64/target-init-recovery.elf "$ISO_ROOT/boot/target-init-recovery.elf"
           install -m 0644 build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'GRUB'
           set timeout_style=menu
@@ -74,17 +74,17 @@ jobs:
           terminal_output console
           menuentry "Koronos Live userspace acceptance" --id=live {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-live.elf chimera-user-init-elf target=live firmware=$grub_platform
+            module2 /boot/target-init-live.elf chimera-user-init-elf target=live firmware=$grub_platform
             boot
           }
           menuentry "Koronos Installer userspace acceptance" --id=installer {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
+            module2 /boot/target-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform
             boot
           }
           menuentry "Koronos Recovery userspace acceptance" --id=recovery {
             multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
+            module2 /boot/target-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
             boot
           }
           menuentry "Koronos non-cooperative timeout probe" --id=timeout {
@@ -95,7 +95,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$ISO" "$ISO_ROOT"
           test -s "$ISO"
-          printf '%s\n' "This is a test candidate, not a production ISO. The strict native VFS and process gates remain mandatory." > "$OUT/ACCEPTANCE-SCOPE.txt"
+          printf '%s\n' "This is an acceptance harness, not a production ISO. The six target/firmware jobs boot production target-init ELFs from one shared immutable ISO; the strict native VFS and process gates remain mandatory." > "$OUT/ACCEPTANCE-SCOPE.txt"
       - name: Hash immutable candidate
         id: iso_hash
         run: |
@@ -251,7 +251,8 @@ jobs:
             grep -Fq "BOOT FIRMWARE: BIOS" "$LOG"
           fi
           grep -Fq "[VFS] persistent root filesystem and tmpfs /tmp mounted" "$LOG"
-          grep -Fq "[TEST] CPL3 VFS OPEN/READ/WRITE/SEEK/CLOSE and /tmp round-trip passed" "$LOG"
+          grep -Fq "VFS ACCEPTANCE: ROOT MOUNTED target=$TARGET path=/" "$LOG"
+          grep -Fq "VFS ACCEPTANCE: TMP WRITE-READ VERIFIED target=$TARGET path=/tmp" "$LOG"
           ready_line="$(grep -Eo "USERSPACE READY: target=$TARGET init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           ack_line="$(grep -Eo "USER INIT SYSCALL: target=$TARGET init_pid=[1-9][0-9]*" "$LOG" | tail -n 1)"
           test -n "$ready_line"
