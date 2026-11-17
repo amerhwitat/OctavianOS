@@ -361,8 +361,8 @@ jobs:
               echo "- Koronos correctly failed closed before process dispatch because no persistent block-backed root filesystem is mounted."
               echo "- PIT timeout delivery was not exercised; this job is not evidence that timeout handling passes."
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "::warning::PIT timeout probe blocked by the missing persistent native root filesystem."
-            exit 0
+            echo "::error::PIT timeout probe blocked by the missing persistent native root filesystem; no PIT deadline evidence was produced."
+            exit 78
           fi
           grep -Fq "[VFS] persistent root filesystem and tmpfs /tmp mounted" "$LOG"
           grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
