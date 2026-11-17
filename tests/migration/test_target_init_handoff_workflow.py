@@ -30,6 +30,12 @@ class TargetInitHandoffWorkflowTests(unittest.TestCase):
             self.acceptance_workflow,
         )
 
+    def test_acceptance_workflow_triggers_for_boot_graph_contract_changes(self):
+        pull_request_paths = self.acceptance_workflow.split("\\n  pull_request:\\n", 1)[1].split("\\n  push:\\n", 1)[0]
+        push_paths = self.acceptance_workflow.split("\\n  push:\\n", 1)[1].split("\\npermissions:\\n", 1)[0]
+        self.assertIn("- 'tests/boot/**'", pull_request_paths)
+        self.assertIn("- 'tests/boot/**'", push_paths)
+
     def test_workflow_requires_userspace_originated_evidence(self):
         self.assertIn("verify-userspace-handoff.py", self.workflow)
         self.assertIn("verify-userspace-handoff.py live", self.workflow)
