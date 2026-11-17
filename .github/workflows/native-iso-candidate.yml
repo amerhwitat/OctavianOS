@@ -95,16 +95,17 @@ jobs:
       - name: QEMU kernel boot smoke (not userspace acceptance)
         run: |
           set +e
-          timeout 35s qemu-system-x86_64 \
+          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 35s qemu-system-x86_64 \
             -machine pc -m 1024 -smp 1 -accel tcg \
-            -display none -serial none -monitor none \
+            -display none -serial none -monitor stdio \
             -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
             -debugcon file:build/native-iso/qemu-debugcon.log \
             -global isa-debugcon.iobase=0xe9 >build/native-iso/qemu.log 2>&1
           rc=$?
           set -e
           test -s build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; exit 1; }
-          echo "QEMU stopped with rc=$rc after kernel boot smoke; this is not a target userspace pass."
+          grep -aq "ELBC" build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; echo "Koronos boot markers were not observed" >&2; exit 1; }
+          echo "QEMU reached the Koronos boot marker sequence; this is not a target userspace pass."
 
       - name: Preserve fail-closed production release status
         if: always()
