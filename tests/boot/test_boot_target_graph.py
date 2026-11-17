@@ -74,7 +74,7 @@ def main():
     timeout_probe = acceptance.split("\n  timeout-probe:", 1)[1]
     require(
         re.search(
-            r'echo "::error::PIT timeout probe blocked by the missing persistent native root filesystem; no PIT deadline evidence was produced\."\\s*\\n\\s+exit 78',
+            r'echo "::error::PIT timeout probe blocked by the missing persistent native root filesystem; no PIT deadline evidence was produced\."\s*\n\s+exit 78',
             timeout_probe,
         ) is not None,
         "timeout probe must fail closed when persistent root is unavailable",
