@@ -6,6 +6,7 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
+      - 'tests/boot/**'
       - '.github/workflows/native-koronos-build.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
@@ -18,6 +19,7 @@ on:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
+      - 'tests/boot/**'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
       - '.github/workflows/koronos-userspace-acceptance.yml'
