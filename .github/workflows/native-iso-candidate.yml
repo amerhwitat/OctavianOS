@@ -98,7 +98,7 @@ jobs:
           monitor="$RUNNER_TEMP/octavian-qemu-monitor.sock"
           rm -f "$monitor" build/native-iso/qemu-debugcon.log
           timeout 35s qemu-system-x86_64 \
-            -machine pc -m 1024 -smp 1 -accel tcg -boot order=d,menu=on \\
+            -machine pc -m 1024 -smp 1 -accel tcg -boot order=d,menu=on \
             -display none -serial file:build/native-iso/qemu-serial.log -monitor "unix:$monitor,server,nowait" \
             -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
             -debugcon file:build/native-iso/qemu-debugcon.log \
@@ -124,7 +124,7 @@ jobs:
               client.recv(4096)
           except TimeoutError:
               pass
-          client.sendall(b"sendkey ret\\n")
+          client.sendall(b"sendkey ret\n")
           client.close()
           PY
           # Keep QEMU alive while the firmware menu and kernel boot. TCG can
@@ -155,7 +155,7 @@ jobs:
               s.recv(4096)
           except TimeoutError:
               pass
-          s.sendall(b"quit\\n")
+          s.sendall(b"quit\n")
           s.close()
           PY
           echo "QEMU reached KORONOS READY; this is a kernel boot smoke only, not target userspace acceptance."
