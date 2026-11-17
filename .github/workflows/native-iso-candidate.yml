@@ -98,8 +98,8 @@ jobs:
           monitor="$RUNNER_TEMP/octavian-qemu-monitor.sock"
           rm -f "$monitor" build/native-iso/qemu-debugcon.log
           timeout 35s qemu-system-x86_64 \
-            -machine pc -m 1024 -smp 1 -accel tcg \
-            -display none -serial none -monitor "unix:$monitor,server,nowait" \
+            -machine pc -m 1024 -smp 1 -accel tcg -boot order=d,menu=on \\
+            -display none -serial file:build/native-iso/qemu-serial.log -monitor "unix:$monitor,server,nowait" \
             -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
             -debugcon file:build/native-iso/qemu-debugcon.log \
             -global isa-debugcon.iobase=0xe9 >build/native-iso/qemu.log 2>&1 &
@@ -184,6 +184,7 @@ jobs:
             build/native-iso/iso-boot-report.txt
             build/native-iso/qemu-debugcon.log
             build/native-iso/qemu.log
+            build/native-iso/qemu-serial.log
             build/native-iso/RELEASE-STATUS.txt
             build/native-iso/kernel-build.log
             build/native-iso/live-boot-build.log
