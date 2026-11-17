@@ -7,6 +7,7 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - '.github/workflows/native-koronos-build.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
@@ -20,6 +21,7 @@ on:
       - 'vendor/chimera-ii-os/source/kernel/**'
       - 'vendor/chimera-ii-os/source/tests/kernel/**'
       - 'tests/boot/**'
+      - 'tests/migration/**'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-kernel.yml'
       - 'vendor/chimera-ii-os/source/.github/workflows/koronos-boot-matrix.yml'
       - '.github/workflows/koronos-userspace-acceptance.yml'
@@ -40,6 +42,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE"
           python3 tests/boot/test_boot_target_graph.py
+          python3 -m unittest discover -s tests/migration -p 'test_target_init_handoff_workflow.py' -v
       - name: Install kernel and ISO tools
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
