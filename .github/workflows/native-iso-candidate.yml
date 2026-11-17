@@ -124,17 +124,40 @@ jobs:
               client.recv(4096)
           except TimeoutError:
               pass
-          client.sendall(b"sendkey ret\n")
-          time.sleep(2)
-          client.sendall(b"quit\n")
+          client.sendall(b"sendkey ret\\n")
           client.close()
           PY
-          for _ in $(seq 1 20); do
-            test -s build/native-iso/qemu-debugcon.log && break
+          # Keep QEMU alive while the firmware menu and kernel boot. TCG can
+          # take several seconds; quitting after a fixed two-second delay raced
+          # the boot sequence and produced false negatives.
+          booted=false
+          for _ in $(seq 1 120); do
+            if grep -Fq "[KRN ] KORONOS READY" build/native-iso/qemu-debugcon.log 2>/dev/null; then
+              booted=true
+              break
+            fi
+            if ! kill -0 "$qemu_pid" 2>/dev/null; then
+              break
+            fi
             sleep 0.25
           done
-          test -s build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; exit 1; }
-          grep -Fq "[KRN ] KORONOS READY" build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu-debugcon.log; cat build/native-iso/qemu.log; echo "Koronos kernel-ready marker was not observed" >&2; exit 1; }
+          if [[ "$booted" != true ]]; then
+            cat build/native-iso/qemu-debugcon.log 2>/dev/null || true
+            cat build/native-iso/qemu.log
+            echo "Koronos kernel-ready marker was not observed before QEMU exited or timed out" >&2
+            exit 1
+          fi
+          python3 - "$monitor" <<'PY'
+          import socket, sys
+          s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          s.connect(sys.argv[1])
+          try:
+              s.recv(4096)
+          except TimeoutError:
+              pass
+          s.sendall(b"quit\\n")
+          s.close()
+          PY
           echo "QEMU reached KORONOS READY; this is a kernel boot smoke only, not target userspace acceptance."
 
       - name: Preserve fail-closed production release status
