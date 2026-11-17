@@ -95,7 +95,7 @@ jobs:
       - name: QEMU kernel boot smoke (not userspace acceptance)
         run: |
           set +e
-          ( sleep 5; printf '%s\\n' 'sendkey ret'; sleep 1 ) | timeout 35s qemu-system-x86_64 \
+          ( sleep 5; printf '%s\n' 'sendkey ret'; sleep 1 ) | timeout 35s qemu-system-x86_64 \
             -machine pc -m 1024 -smp 1 -accel tcg \
             -display none -serial none -monitor stdio \
             -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
