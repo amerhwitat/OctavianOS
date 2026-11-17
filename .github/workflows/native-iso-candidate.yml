@@ -134,8 +134,8 @@ jobs:
             sleep 0.25
           done
           test -s build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; exit 1; }
-          grep -aq "ELBC" build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu.log; echo "Koronos boot markers were not observed" >&2; exit 1; }
-          echo "QEMU reached the Koronos boot marker sequence; this is not a target userspace pass."
+          grep -Fq "[KRN ] KORONOS READY" build/native-iso/qemu-debugcon.log || { cat build/native-iso/qemu-debugcon.log; cat build/native-iso/qemu.log; echo "Koronos kernel-ready marker was not observed" >&2; exit 1; }
+          echo "QEMU reached KORONOS READY; this is a kernel boot smoke only, not target userspace acceptance."
 
       - name: Preserve fail-closed production release status
         if: always()
