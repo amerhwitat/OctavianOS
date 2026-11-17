@@ -71,6 +71,15 @@ def main():
         'ack_pid="$(printf \'%s\' "$ack_line" | cut -d= -f3)"' in acceptance,
         "syscall acknowledgement PID must be extracted from the init_pid field",
     )
+    timeout_probe = acceptance.split("\n  timeout-probe:", 1)[1]
+    require(
+        re.search(
+            r'echo "::error::PIT timeout probe blocked by the missing persistent native root filesystem; no PIT deadline evidence was produced\."\\s*\\n\\s+exit 78',
+            timeout_probe,
+        ) is not None,
+        "timeout probe must fail closed when persistent root is unavailable",
+    )
+
     ready_sample = "USERSPACE READY: target=live init_pid=17"
     ack_sample = "USER INIT SYSCALL: target=live init_pid=17"
     require(
