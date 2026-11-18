@@ -54,7 +54,7 @@ def main():
     ap.add_argument("query")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--catalog", type=Path, default=CATALOG)
-    ap.add_argument("--queue", type=Path, default=Path.home()/".local/state/octavian/command-candidates.jsonl")
+    ap.add_argument("--queue", type=Path, default=Path.home()/".local/state/chimera/command-candidates.jsonl")
     ap.add_argument("--llm", action="store_true", help="use a separately configured loopback local LLM to rerank candidates")
     ap.add_argument("--rnn-model", type=Path, help="optional trained character-RNN JSON model for candidate ranking")
     a=ap.parse_args()
@@ -78,7 +78,7 @@ def main():
     else:
         results=results[:a.limit]
     queued=queue_unresolved(a.query, catalog, a.queue)
-    print(json.dumps({"schema":"OCTAVIAN-RNN-COMMAND-ROUTER-1",
+    print(json.dumps({"schema":"CHM-RNN-COMMAND-ROUTER-1",
       "engine":"deterministic recurrent-state retrieval"+(" with constrained local LLM reranking" if a.llm else "")+(" with trained character-RNN scoring" if a.rnn_model else ""), "llm":llm_meta,
       "query":a.query,"results":results,
       "unresolved_count":catalog.get("counts",{}).get("candidate_only",0),"queued_for_later":bool(queued),"queue_file":queued,
