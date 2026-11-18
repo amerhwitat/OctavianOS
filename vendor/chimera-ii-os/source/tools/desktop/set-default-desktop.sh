@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 desktop="${1:-}"
-case "$desktop" in aurora|marine|freexp|freewin11) ;; *) echo "Usage: $0 {aurora|marine|freexp|freewin11}" >&2; exit 64 ;; esac
+case "$desktop" in
+  aurora|marine|freexp|freewin11) ;;
+  *)
+    echo "Usage: $0 {aurora|marine|freexp|freewin11}" >&2
+    exit 64
+    ;;
+esac
 config_root="${XDG_CONFIG_HOME:-${HOME:?HOME must be set}/.config}"
 config_dir="$config_root/chimera"
 mkdir -p "$config_dir"
