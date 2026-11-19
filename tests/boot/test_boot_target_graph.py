@@ -159,7 +159,11 @@ def main():
         "boot/installation/menu.cfg",
         "boot/spitfire/spitfire-menu.cfg",
     )
-    for relative in vendor_menu_paths:
+    vendor_policy_menu_paths = vendor_menu_paths + (
+        "boot/installation/services.cfg",
+        "boot/loader-menu.cfg",
+    )
+    for relative in vendor_policy_menu_paths:
         menu = vendor_root / relative
         require(menu.is_file(), f"vendored native menu is missing: {relative}")
         menu_text = read(menu)
@@ -167,6 +171,12 @@ def main():
         styles = re.findall(r"^\s*set\s+timeout_style\s*=\s*([^\s#]+)", menu_text, re.MULTILINE)
         require(timeouts == ["120"], f"vendored {relative} must have exactly one 120-second timeout")
         require(styles == ["menu"], f"vendored {relative} must keep its menu visible")
+
+    # Only the native target menus below are required to stage a target-init
+    # ELF. The universal loader and enterprise service selector are menus,
+    # but they use their own documented handoff payloads.
+    for relative in vendor_menu_paths:
+        menu_text = read(vendor_root / relative)
         for block in re.split(r"(?m)(?=^menuentry\b)", menu_text):
             if "multiboot2 " not in block:
                 continue
