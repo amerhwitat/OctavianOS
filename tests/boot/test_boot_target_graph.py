@@ -80,12 +80,12 @@ def main():
     # production verifier and configured approval are wired into this path.
     release_workflow = read(ROOT / ".github/workflows/release-artifacts.yml")
     publish_match = re.search(
-        r"(?ms)^  publish:\\s*\\n(.*?)(?=^  [A-Za-z0-9_-]+:\\s*$|\\Z)",
+        r"(?ms)^  publish:\s*\n(.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\Z)",
         release_workflow,
     )
     require(publish_match is not None, "release workflow must define an explicit publish job")
     require(
-        re.search(r"(?m)^\\s+if:\\s*false\\s*$", publish_match.group(1)) is not None,
+        re.search(r"(?m)^\s+if:\s*false\s*$", publish_match.group(1)) is not None,
         "release publication must remain disabled until native acceptance and approval are implemented",
     )
 
