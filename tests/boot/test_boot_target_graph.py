@@ -193,6 +193,40 @@ def main():
             "vendored full-ISO builder must stage the canonical GRUB menu")
     require('cp -f "$ROOT/boot/loader-menu.cfg" "$STAGE/boot/loader-menu.cfg"' in full_builder,
             "vendored full-ISO builder must stage the universal loader menu")
+    install_menu = read(vendor_root / "boot/installation/menu.cfg")
+    service_menu = read(vendor_root / "boot/installation/services.cfg")
+    prepare_layout = read(vendor_root / "boot/iso/prepare-layout.sh")
+    live_builder = read(vendor_root / "iso/chimera-live-iso.sh")
+    require("configfile /boot/installation/services.cfg" in install_menu,
+            "nested installation menu must expose the service contract submenu")
+    require("module2 /boot/targets/target-init-installer.elf chimera-user-init-elf target=installer firmware=$grub_platform" in service_menu,
+            "service contract submenu must dispatch the native installer init")
+    require("module2 /install/installer/services/service-selection.json chimera-installer-services-contract" in service_menu,
+            "service contract submenu must pass the staged service-selection contract")
+    require((vendor_root / "installer/services/service-selection.json").is_file(),
+            "installer service-selection contract is missing from the vendor source")
+    require('cp "$ROOT/boot/installation/services.cfg" "$DIST/boot/installation/services.cfg"' in prepare_layout,
+            "vendor prepare-layout must stage the service submenu")
+    require('cp -a "$ROOT/boot/installation/services.cfg" "$STAGE/boot/installation/"' in full_builder,
+            "vendor full-ISO builder must stage the service submenu")
+    require('cp -a "$ROOT/boot/installation/services.cfg" "$STAGE/boot/installation/"' in live_builder,
+            "vendor live-ISO builder must stage the service submenu")
+    require('cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/boot/jasper/recovery.cfg"' in prepare_layout and
+            'cat > "$DIST/boot/jasper/recovery.cfg"' not in prepare_layout and
+            "set timeout=5" not in prepare_layout,
+            "vendor prepare-layout must preserve the canonical visible recovery menu")
+    vendor_grub = read(vendor_root / "boot/iso/grub.cfg")
+    firmware_branch = vendor_grub.rindex('if [ "$grub_platform" = efi ]; then')
+    for entry in (
+        'menuentry "Chimera II OS — Jasper Boot Manager / All Modes"',
+        'menuentry "Chimera II OS — Installation Menu"',
+        'menuentry "Chimera II OS — Recovery Menu"',
+        'menuentry "Chimera II OS — Diagnostics Menu"',
+        'menuentry "Chimera II OS — Retro / Emulator Center"',
+        'menuentry "Chimera II OS — Spit Fire Native Menu"',
+    ):
+        require(vendor_grub.index(entry) < firmware_branch,
+                "nested boot menu must be available in BIOS and UEFI: " + entry)
     vendor_menu_paths = (
         "boot/iso/grub.cfg",
         "boot/jasper/jasper.cfg",
@@ -204,12 +238,10 @@ def main():
         "boot/jasper/safe-mode.cfg",
         "boot/jasper/last-known-good.cfg",
         "boot/installation/menu.cfg",
+        "boot/installation/services.cfg",
         "boot/spitfire/spitfire-menu.cfg",
     )
-    vendor_policy_menu_paths = vendor_menu_paths + (
-        "boot/installation/services.cfg",
-        "boot/loader-menu.cfg",
-    )
+    vendor_policy_menu_paths = vendor_menu_paths + ("boot/loader-menu.cfg",)
     for relative in vendor_policy_menu_paths:
         menu = vendor_root / relative
         require(menu.is_file(), f"vendored native menu is missing: {relative}")
@@ -219,9 +251,9 @@ def main():
         require(timeouts == ["120"], f"vendored {relative} must have exactly one 120-second timeout")
         require(styles == ["menu"], f"vendored {relative} must keep its menu visible")
 
-    # Only the native target menus below are required to stage a target-init
-    # ELF. The universal loader and enterprise service selector are menus,
-    # but they use their own documented handoff payloads.
+    # Every native Multiboot2 target menu, including the installer service
+    # contract preview, must pass exactly one target-specific init ELF. The
+    # universal loader remains a separate boot-stage contract.
     for relative in vendor_menu_paths:
         menu_text = read(vendor_root / relative)
         for block in re.split(r"(?m)(?=^menuentry\b)", menu_text):
