@@ -207,6 +207,8 @@ def main():
             "installer service-selection contract is missing from the vendor source")
     require('cp "$ROOT/boot/installation/services.cfg" "$DIST/boot/installation/services.cfg"' in prepare_layout,
             "vendor prepare-layout must stage the service submenu")
+    require('cp "$ROOT/boot/jasper/retro.cfg" "$DIST/boot/jasper/retro.cfg"' in prepare_layout,
+            "vendor prepare-layout must stage the Jasper retro submenu")
     require('cp -a "$ROOT/boot/installation/services.cfg" "$STAGE/boot/installation/"' in full_builder,
             "vendor full-ISO builder must stage the service submenu")
     require('cp -a "$ROOT/boot/installation/services.cfg" "$STAGE/boot/installation/"' in live_builder,
