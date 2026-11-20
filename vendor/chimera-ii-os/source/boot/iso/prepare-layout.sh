@@ -186,6 +186,7 @@ if [[ -s "$BOOT_ART/grub/grub-core.img" ]]; then cp "$BOOT_ART/grub/grub-core.im
 cp "$ROOT/boot/jasper/live.cfg" "$DIST/boot/jasper/live.cfg"
 cp "$ROOT/boot/jasper/install.cfg" "$DIST/boot/jasper/install.cfg"
 cp "$ROOT/boot/jasper/diagnostics.cfg" "$DIST/boot/jasper/diagnostics.cfg"
+cp "$ROOT/boot/jasper/retro.cfg" "$DIST/boot/jasper/retro.cfg"
 cp "$ROOT/boot/spitfire/spitfire-menu.cfg" "$DIST/boot/spitfire/spitfire-menu.cfg"
 mkdir -p "$DIST/boot/installation" "$DIST/boot/recovery" "$DIST/boot/diagnostics"
 cp "$ROOT/boot/installation/menu.cfg" "$DIST/boot/installation/menu.cfg"
@@ -196,7 +197,8 @@ cp "$ROOT/boot/boot-menu-contract.json" "$DIST/boot/boot-menu-contract.json"
 cp "$ROOT/boot/livecd/live-manifest.json" "$DIST/boot/live-manifest.json"
 if [[ -d "$ROOT/build/live-boot/boot/live" ]]; then cp -a "$ROOT/build/live-boot/boot/live" "$DIST/boot/"; fi
 
-# Preserve the canonical Jasper recovery menu. Never replace it with a short countdown.
+# Preserve the canonical Jasper recovery menu staged above. Do not
+# replace it with a short countdown or a hidden menu.
 cp -f "$ROOT/boot/jasper/recovery.cfg" "$DIST/boot/jasper/recovery.cfg"
 
 [[ -f "$ROOT/boot/boot-artwork-manifest.json" ]] && cp "$ROOT/boot/boot-artwork-manifest.json" "$DIST/boot/"
