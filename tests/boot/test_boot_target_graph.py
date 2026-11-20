@@ -146,6 +146,23 @@ def main():
     # not merely an inventory snapshot. Require matching CPL3 init payloads for
     # every Multiboot2 entry and preserve the same visible-menu policy upstream.
     vendor_root = ROOT / "vendor/chimera-ii-os/source"
+
+    # The alternate full-ISO builder must stage the same real target init
+    # modules and canonical menus as the native ISO path. A GRUB entry without
+    # its matching module would otherwise fail only after firmware handoff.
+    full_builder = read(vendor_root / "tools/build-full-iso.sh")
+    require('TARGET_INIT_DIR="$ROOT/build/koronos/x86_64"' in full_builder,
+            "vendored full-ISO builder must use the x86-64 native target output")
+    require("for target in live installer recovery; do" in full_builder,
+            "vendored full-ISO builder must stage all three production target modules")
+    require('test -s "$target_elf"' in full_builder and "readelf -h" in full_builder,
+            "vendored full-ISO builder must fail closed on missing/non-executable target modules")
+    require('cp -f "$target_elf" "$STAGE/boot/targets/"' in full_builder,
+            "vendored full-ISO builder must copy target init ELFs into /boot/targets")
+    require('cp -f "$ROOT/boot/iso/grub.cfg" "$STAGE/boot/grub/grub.cfg"' in full_builder,
+            "vendored full-ISO builder must stage the canonical GRUB menu")
+    require('cp -f "$ROOT/boot/loader-menu.cfg" "$STAGE/boot/loader-menu.cfg"' in full_builder,
+            "vendored full-ISO builder must stage the universal loader menu")
     vendor_menu_paths = (
         "boot/iso/grub.cfg",
         "boot/jasper/jasper.cfg",
