@@ -5,7 +5,18 @@ import json
 import re
 
 ROOT = Path(__file__).resolve().parents[2]
-CONFIG_ROOTS = [ROOT / "boot/iso", ROOT / "boot/jasper", ROOT / "boot/spitfire", ROOT / "boot/installation"]
+CONFIG_ROOTS = [
+    ROOT / "boot/iso",
+    ROOT / "boot/jasper",
+    ROOT / "boot/spitfire",
+    ROOT / "boot/installation",
+]
+VENDORED_CONFIG_ROOTS = [
+    ROOT / "vendor/chimera-ii-os/source/boot/iso",
+    ROOT / "vendor/chimera-ii-os/source/boot/jasper",
+    ROOT / "vendor/chimera-ii-os/source/boot/spitfire",
+    ROOT / "vendor/chimera-ii-os/source/boot/installation",
+]
 
 
 def require(condition, message):
@@ -19,13 +30,18 @@ def read(path):
 
 def main():
     configs = sorted(p for root in CONFIG_ROOTS if root.exists() for p in root.rglob("*.cfg"))
+    vendored_configs = sorted(
+        p for root in VENDORED_CONFIG_ROOTS if root.exists() for p in root.rglob("*.cfg")
+    )
     require(configs, "no boot configuration files found")
+    require(vendored_configs, "no vendored Chimera boot configuration files found")
     all_text = "\n".join(read(p) for p in configs)
 
     # Keep every source menu visible. GRUB's menu timeout is cancelled by a
     # keypress; timeout_style=menu leaves selection to the user instead of
-    # hiding the menu behind a countdown.
-    for menu in configs:
+    # hiding the menu behind a countdown. Check imported Chimera menus
+    # separately so their configfile edges are not resolved against Octavian.
+    for menu in configs + vendored_configs:
         menu_text = read(menu)
         timeouts = re.findall(
             r"^\s*set\s+timeout\s*=\s*([^\s#]+)",
