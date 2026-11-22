@@ -83,8 +83,86 @@ be safely corrected in code.
 
 ## Follow-up implementation and acceptance gate (2026-10-18)
 
-- Kernel diagnostics now explicitly withhold userspace-ready status while process admission remains load-plan-only. Live and Installer paths report an unverified handoff rather than equating a queued module with an executing process.
-- Multiboot2 parsing now recognizes Recovery initramfs and manifest module kinds, and CI compiles a host regression test for Live/Recovery/Installer module classification.
-- The GRUB Install menu routes through Jasper's installer contract checks instead of selecting the Live initramfs under an Install label.
-- Native ISO CI requires the exact `USERSPACE READY: target=live init_pid=` marker before release publication. The current kernel intentionally does not emit it: a real address-space, saved-context, and ring-3 entry acknowledgement is still missing. A built ISO can remain a review artifact, but it must not be published as an accepted userspace release until this gate passes.
-- Next implementation remains page-table/address-space integration, PT_LOAD mapping/BSS, user stack, GDT/TSS and saved context, architecture-controlled ring-3 entry, and a real init acknowledgement. Installer and Recovery then need independent executed-userspace tests, including a real repair operation.
+- The kernel now explicitly logs that userspace readiness is withheld while the process API is still in load-plan mode. Live and Installer paths report `USERSPACE HANDOFF NOT VERIFIED` instead of implying that a queued handoff is an executing process.
+- Multiboot2 module classification now distinguishes the Jasper Recovery initramfs and recovery manifest from Live modules. A host-side regression test covers Live/Recovery/Installer module kinds, and CI compiles it with warnings as errors.
+- The GRUB Install menu now routes through Jasper's installer contract checks instead of booting the Live initramfs under an Install label.
+- Octavian's full-ISO release workflow requires an explicit `USERSPACE READY: target=live init_pid=` marker. The current kernel does not emit that marker because no verified ring-3 entry acknowledgement is wired up. Consequently, the ISO may be built and retained as a review artifact, but release publication is blocked until the real loader/context-switch path exists and the marker is produced by the executing init process.
+- This is deliberately a fail-closed acceptance gate, not a claim that the user process loader has been completed. The next implementation step remains page-table/address-space integration, mapped ELF PT_LOAD segments and BSS, user stack, GDT/TSS and saved context, architecture-controlled ring-3 entry, then a real init process acknowledgement. Installer and Recovery need their own executed userspace/repair tests after that handoff exists.
+
+
+## Stricter runtime proof contract (2026-10-18)
+
+The host-side verifier now requires three ordered events for the same target and
+same nonzero PID:
+
+1. `[KRN ] KORONOS READY`.
+2. `USER INIT SYSCALL: target=<target> init_pid=<pid>`, emitted by the syscall
+   or exception entry path only after it has established that the originating
+   context was at CPL 3. It must not be printed by the pre-transition launch
+   code.
+3. `USERSPACE READY: target=<target> init_pid=<pid>`, emitted only after init's
+   own readiness handshake succeeds.
+
+The stricter verifier and unit tests are an acceptance gate, not proof that the
+kernel currently performs the transition. Until the actual architecture entry
+path emits the first-user-syscall acknowledgement and QEMU traces pass for each
+target, the handoff remains NOT VERIFIED. Never manufacture these markers in a
+host test or kernel-side pre-transition code to satisfy CI.
+
+
+## Architecture source audit — publication gate remains blocked (2026-10-18)
+
+The latest review of the x86-64 source separates acceptance tests from actual execution:
+
+- The ELF loader's callbacks are an interface, not proof that hardware page tables enforce user/supervisor, writable, NX, and W^X permissions.
+- Process admission/load-plan metadata does not by itself own a saved CPU context, runnable process, or cleanup-capable address space.
+- The current entry/GDT and interrupt path do not establish a complete user-selector + TSS/RSP0 setup, a validated ring-3 return frame, or a syscall path that dispatches a verified CPL-3-originated request.
+- A hard-coded GETPID result and an EXIT handler without process teardown are placeholders, not successful process semantics.
+- Cooperative callback scheduling is not architecture context switching or genuine SMP.
+
+The latest repository validation is green, but it is not a QEMU proof: https://github.com/amerhwitat/ChimeraIIOS/actions/runs/39126421943
+
+Do not publish a release or report userspace-ready until a freestanding Koronos build and independent QEMU Live, Installer, and Recovery traces prove the real user-mode entry, first syscall, same kernel-owned nonzero PID, readiness handshake, and target behavior. Keep the PR draft while these conditions are unmet.
+
+
+## Updated source audit and ISO integration fix (2026-11-14)
+
+This section supersedes older statements above where the x86-64 implementation has since advanced. It records source-level findings only; no new ISO or QEMU run is claimed here.
+
+### Linux reference sequence
+
+The current upstream Linux reference is [init/main.c](https://github.com/torvalds/linux/blob/master/init/main.c):
+
+1. rest_init() creates the init task first so it receives PID 1, then creates kthreadd and starts the scheduler.
+2. kernel_init() waits for kthreadd, completes kernel initialization, and enters kernel_init_freeable().
+3. kernel_init_freeable() prepares SMP and core services, waits for initramfs, opens the initial console when available, and prepares the real root namespace when an early /init is not executable from the initramfs.
+4. kernel_init() executes the selected init process (/init first for initramfs, then configured/default init paths). PID 1 remains an ordinary userspace process; it is not a short-lived kernel callback.
+
+Koronos should preserve the same separation: discover/validate boot modules, make a root filesystem available, create a kernel-owned process with an address space and user stack, enter CPL3, and keep PID 1 schedulable while services and the selected target run. A one-shot readiness probe is not a substitute for persistent PID 1.
+
+### Current Koronos source state
+
+- kernel/core/target_launch.cpp now performs target selection, ELF admission, PT_LOAD mapping through the address-space loader, CR3 setup, ring-3 entry, and validates a CPL3-origin syscall plus the target/PID readiness marker.
+- kernel/core/process.cpp remains a process admission/state table; the CHIMERA_PROCESS_LOAD_PLAN_ONLY marker remains in the public process header. The bootstrap launcher still enters one user process synchronously and returns to the kernel on exit or its PIT deadline. It is not yet a general process-aware preemptive scheduler with persistent PID 1, child lifecycle, wait/reap, and signals.
+- kernel/targets/live_init.c, installer_init.c, and recovery_init.c are explicitly ring-3 readiness probes. They emit the handshake, exercise basic syscalls, and exit. Live is not a graphical desktop, Installer is a storage dry run, and Recovery is diagnostics-only.
+- The Multiboot2 initramfs modules are still passed as payload data. The native Koronos path does not yet unpack them into a mounted rootfs with working /dev, /proc, /sys, writable /tmp, and VFS-backed open/read/write/exec.
+- The installer still lacks a production block-device writer and persistence verification; Recovery still lacks filesystem/boot repair execution; Aurora still lacks a native compositor/X server session on the freestanding path.
+
+### Comprehensive builder correction
+
+build-chimera-iso.sh previously built the Koronos target-init ELFs through kernel/build-koronos.sh but did not copy them into its own ISO staging tree, even though the GRUB entries referenced /boot/targets/target-init-*.elf. It also did not stage the /boot/ai/knowledge-db.json module referenced by those entries. The builder now:
+
+- copies Live, Installer, and Recovery target-init ELFs to /boot/targets/;
+- generates and stages per-target SHA-256/ELF manifests while retaining payload_kind=ring3-readiness-probe and production_ready=false;
+- builds and validates the knowledge database in the selected build workspace, then stages it and its checksum under /boot/ai/;
+- requires these files during ISO structural verification.
+
+Regression coverage was added to tests/boot/test_iso_target_routing_artwork.py. These changes fix dangling module references in the comprehensive builder's staging path; they do not convert the probe ELFs into production target runtimes or prove a successful BIOS/UEFI boot.
+
+### Remaining acceptance work
+
+1. Implement initramfs unpack/rootfs activation and the minimum VFS/syscall contract needed by the target init.
+2. Replace the synchronous probe launcher with persistent PID 1 process scheduling, timer-safe context switching, exit/wait/reap, and signals.
+3. Make Live start a real shell/session and Aurora compositor; make Installer perform safe, confirmed disk writes and prove reboot persistence; make Recovery perform and verify real repair operations.
+4. Run the unchanged six-case Live/Installer/Recovery × BIOS/UEFI QEMU gate, inspect each trace, and require the same immutable ISO SHA-256 for all cases.
+5. Only then treat the native ISO as a release candidate. Packaging success, an ELF header check, or a probe readiness marker alone is insufficient.
