@@ -26,9 +26,9 @@ static void build_elf(uint8_t *b, size_t n) {
     put16(b + 52, 64);
     put16(b + 54, 56);
     put16(b + 56, 1);
-    put32(b + 64, 1);
-    put32(b + 68, 5);
-    put64(b + 72, 0x100);
+    put32(b + 64, 1);       // PT_LOAD
+    put32(b + 68, 5);       // PF_R | PF_X
+    put64(b + 72, 0x100);   // file offset
     put64(b + 80, 0x100400100);
     put64(b + 96, 4);
     put64(b + 104, 4096);
@@ -48,9 +48,11 @@ int main() {
     assert(koronos_elf64_validate(elf, sizeof(elf), KORONOS_EM_X86_64) == 0);
 
     // Attacker-controlled offsets and counts must never wrap the bounds check.
+    // A large advertised image size exercises addition overflow without
+    // requiring an allocation anywhere near UINT64_MAX.
     build_elf(elf, sizeof(elf));
     put64(elf + 32, UINT64_MAX - 7);
-    assert(koronos_elf64_validate(elf, sizeof(elf), KORONOS_EM_X86_64) == 0);
+    assert(koronos_elf64_validate(elf, UINT64_MAX, KORONOS_EM_X86_64) == 0);
     build_elf(elf, sizeof(elf));
     put16(elf + 56, UINT16_MAX);
     assert(koronos_elf64_validate(elf, sizeof(elf), KORONOS_EM_X86_64) == 0);
@@ -63,9 +65,17 @@ int main() {
     assert(pid > 0 && admitted.pid == static_cast<uint32_t>(pid));
     assert(admitted.state == CHIMERA_PROCESS_ADMITTED);
     assert(admitted.segment_count == 1 && admitted.entry == 0x100400100);
+    assert(chimera_process_count() == 1);
+    assert(chimera_process_reap(static_cast<uint32_t>(pid), nullptr) == -3);
+    assert(chimera_process_set_state(static_cast<uint32_t>(pid), CHIMERA_PROCESS_EXITED) == 0);
+    chimera_process_image reaped{};
+    assert(chimera_process_reap(static_cast<uint32_t>(pid), &reaped) == 0);
+    assert(reaped.pid == static_cast<uint32_t>(pid) && reaped.state == CHIMERA_PROCESS_EXITED);
+    assert(chimera_process_count() == 0);
+    assert(chimera_process_get(static_cast<uint32_t>(pid), &reaped) == -2);
 
     // An entry point in a non-executable PT_LOAD is not a runnable ELF image.
-    put32(elf + 68, 6);
+    put32(elf + 68, 6); // PF_R | PF_W
     chimera_process_image rejected{};
     assert(chimera_process_admit_elf(elf, sizeof(elf), KORONOS_EM_X86_64,
                                      0x100700000, &rejected) < 0);
