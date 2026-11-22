@@ -52,6 +52,20 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           bash kernel/build-koronos.sh
+      - name: Run ELF64 admission and process-loader regressions
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Ikernel/include \
+            tests/kernel/elf64_admission_test.cpp \
+            kernel/core/elf64.cpp kernel/core/process.cpp \
+            kernel/core/process_fd.cpp kernel/core/vfs.cpp \
+            -o /tmp/koronos-elf64-admission-test
+          /tmp/koronos-elf64-admission-test
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Ikernel/include \
+            kernel/tests/process_loader_test.cpp kernel/core/process_loader.cpp \
+            -o /tmp/koronos-process-loader-test
+          /tmp/koronos-process-loader-test
       - name: Test Multiboot2 module classification
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
