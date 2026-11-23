@@ -154,7 +154,13 @@ fi
 LIVE_BOOT="$ROOT/build/live-boot"
 for required in \
   "$LIVE_BOOT/boot/live/chimera-live-initramfs.img" \
+  "$LIVE_BOOT/boot/live/chimera-live-initramfs.cpio" \
+  "$LIVE_BOOT/boot/live/chimera-live-initramfs.cpio.sha256" \
   "$LIVE_BOOT/boot/live/live-manifest.json" \
+  "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.cpio" \
+  "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.cpio.sha256" \
+  "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.img" \
+  "$LIVE_BOOT/boot/recovery/recovery-manifest.json" \
   "$LIVE_BOOT/boot/koronos/koronos.elf"; do
   [[ -s "$required" ]] || { echo "ERROR: missing live-boot artifact: $required" >&2; exit 2; }
 done
@@ -162,11 +168,18 @@ done
 # Stage the live artifacts explicitly at the paths consumed by Jasper/GRUB.
 mkdir -p "$STAGE/boot/live" "$STAGE/boot/koronos"
 cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.img" "$STAGE/boot/live/"
+cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.cpio" "$STAGE/boot/live/"
+cp -f "$LIVE_BOOT/boot/live/chimera-live-initramfs.cpio.sha256" "$STAGE/boot/live/"
 cp -f "$LIVE_BOOT/boot/live/live-manifest.json" "$STAGE/boot/live/"
+mkdir -p "$STAGE/boot/recovery"
+cp -f "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.cpio" "$STAGE/boot/recovery/"
+cp -f "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.cpio.sha256" "$STAGE/boot/recovery/"
+cp -f "$LIVE_BOOT/boot/recovery/chimera-recovery-initramfs.img" "$STAGE/boot/recovery/"
+cp -f "$LIVE_BOOT/boot/recovery/recovery-manifest.json" "$STAGE/boot/recovery/"
     chimera_copy_if_distinct "$LIVE_BOOT/boot/koronos/koronos.elf" "$STAGE/boot/koronos/koronos.elf"
 
-# Ensure the three ring-3 target payloads are built and attached as Multiboot2
-# modules. Staging only initramfs/installer metadata leaves the kernel with
+# Ensure the three ring-3 target handshake probes are built and attached as Multiboot2
+# modules; stage explicit ELF manifests that mark their current probe-only scope. Staging only initramfs/installer metadata leaves the kernel with
 # nothing executable to hand off to, even though the target menu appears.
 TARGET_INIT_DIR="$ROOT/build/koronos/x86_64"
 if [[ ! -s "$TARGET_INIT_DIR/target-init-live.elf" ||
@@ -183,6 +196,9 @@ for target in live installer recovery; do
     echo "ERROR: target init is not an executable ELF: $target_elf" >&2; exit 2;
   }
   cp -f "$target_elf" "$STAGE/boot/targets/"
+  python3 "$ROOT/tools/boot/generate-target-init-manifest.py" \
+    --target "$target" --elf "$target_elf" \
+    --output "$STAGE/boot/targets/target-init-$target.manifest.json"
 done
 cp -f "$ROOT/boot/loader-menu.cfg" "$STAGE/boot/loader-menu.cfg"
 
@@ -194,6 +210,7 @@ fi
 bash "$ROOT/tools/chimera-stage-installer-media.sh" "$STAGE"
 for required in \
   "$STAGE/install/installer/installation.img" \
+  "$STAGE/install/installer/installation.cpio" \
   "$STAGE/install/installer/installation-manifest.json" \
   "$STAGE/install/installer/installer-contract.json" \
   "$STAGE/install/installer/installation_phases.json" \
