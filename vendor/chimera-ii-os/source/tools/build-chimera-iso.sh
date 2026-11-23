@@ -19,6 +19,21 @@ CHIMERA_HELP
 fi
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
+
+# Public system block-size contract for the primary ISO builder.
+# Default to 4096 bytes (4 KiB), accept the legacy alias, validate once,
+# then export both names to every downstream build stage.
+if [[ -z "${CHIMERA_SYSTEM_BLOCK_SIZE:-}" && -z "${SYSTEM_BLOCK_SIZE:-}" ]]; then
+  printf '[INFO] No system block size supplied; defaulting to 4096 bytes (4 KiB).\n'
+fi
+CHIMERA_SYSTEM_BLOCK_SIZE="${CHIMERA_SYSTEM_BLOCK_SIZE:-${SYSTEM_BLOCK_SIZE:-4096}}"
+[[ "$CHIMERA_SYSTEM_BLOCK_SIZE" =~ ^[1-9][0-9]*$ ]] || {
+  printf '[ERROR] CHIMERA_SYSTEM_BLOCK_SIZE must be a positive integer (got: %s)\n' "$CHIMERA_SYSTEM_BLOCK_SIZE" >&2
+  exit 2
+}
+SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE"
+export CHIMERA_SYSTEM_BLOCK_SIZE SYSTEM_BLOCK_SIZE
+printf '[INFO] ISO build system block size: %s bytes\n' "$CHIMERA_SYSTEM_BLOCK_SIZE"
 LOG_DIR="$ROOT/build/logs"
 mkdir -p "$LOG_DIR"
 LOG="$LOG_DIR/chimera-iso-build.log"
@@ -89,11 +104,9 @@ if [ "$SKIP_TESTS" != "1" ]; then
   fi
 fi
 say BUILD "Building network, toolchain, drivers, compatibility, mobile, desktop and live artifacts"
-# Ensure the CPU profile command is executable in the rootfs overlay before ISO staging.
 if [[ -f "$ROOT/rootfs/usr/sbin/chimera-cpu-mode" ]]; then
   chmod +x "$ROOT/rootfs/usr/sbin/chimera-cpu-mode"
 fi
-
 for tool in build-network-toolkit.sh build-toolchain-bundle.sh fetch-driver-payloads.sh build-koronos-targets.sh fetch-foreign-runtimes.sh build-compatibility-binaries.sh build-mobile-edition.sh build-desktop-binaries.sh build-live-boot-binaries.sh; do
   chmod +x "$ROOT/tools/$tool"
 done
@@ -107,7 +120,7 @@ done
 "$ROOT/tools/build-desktop-binaries.sh"
 "$ROOT/tools/build-live-boot-binaries.sh"
 say ISO "Generating BIOS/UEFI ISO"
-"$ROOT/boot/iso/build-iso.sh"
+CHIMERA_SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" "$ROOT/boot/iso/build-iso.sh"
 FINAL="$ROOT/boot/iso/dist/output.iso"
 TARGET="$ROOT/build/iso/chimera-ii-os.iso"
 [ -s "$FINAL" ] || die "ISO not produced: $FINAL"
@@ -118,7 +131,8 @@ cp -f "$TARGET" "$ROOT/chimera-ii-os.iso"
 cp -f "$TARGET.sha256" "$ROOT/chimera-ii-os.iso.sha256"
 if command -v xorriso >/dev/null 2>&1; then xorriso -indev "$TARGET" -report_el_torito plain -report_system_area plain > "$ROOT/build/iso/ISO-BOOT-REPORT.txt" || true; fi
 say VERIFY "Validating final ISO"
-python3 "$ROOT/boot/iso/validate-iso.py" --tree "$ROOT/boot/iso/dist/iso" --write-manifest "$ROOT/build/iso/SHA256SUMS" || true
+# Fail closed: a malformed staged tree must stop the ISO build and prevent release publication.
+python3 "$ROOT/boot/iso/validate-iso.py" --tree "$ROOT/boot/iso/dist/iso" --write-manifest "$ROOT/build/iso/SHA256SUMS"
 [ -s "$ROOT/chimera-ii-os.iso" ] || die "Final ISO copy missing"
 echo "ISO: $ROOT/chimera-ii-os.iso"
 echo "SHA256: $ROOT/chimera-ii-os.iso.sha256"
