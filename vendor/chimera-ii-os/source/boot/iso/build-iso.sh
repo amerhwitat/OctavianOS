@@ -136,6 +136,12 @@ for f in   backgrounds/boot.png   backgrounds/desktop.png   menus/default.png   
   test -s "$MEDIA/$f" || { echo "ERROR: Aurora asset missing: $MEDIA/$f" >&2; exit 2; }
 done
 cp -f "$MEDIA/backgrounds/boot.png" "$VISUAL_OUT/aurora-boot.png"
+# If Octavian supplied its branded firmware artwork during prepare-layout,
+# make it the canonical boot image used by GRUB and every early boot stage.
+if [[ -s "$VISUAL_OUT/octavian-octopus-aurora.png" ]]; then
+  cp -f "$VISUAL_OUT/octavian-octopus-aurora.png" "$VISUAL_OUT/aurora-boot.png"
+  echo "[INFO] Octavian artwork selected as canonical Aurora boot image"
+fi
 cp -f "$MEDIA/backgrounds/desktop.png" "$VISUAL_OUT/aurora-desktop.png"
 cp -f "$MEDIA/menus/default.png" "$VISUAL_OUT/aurora-menu.png"
 cp -f "$MEDIA/splash/aurora-splash.png" "$VISUAL_OUT/aurora-splash.png"
@@ -153,7 +159,7 @@ cp -f "$MEDIA/Init.mp4" "$VISUAL_OUT/Init.mp4"
 for stage in spitfire jasper grub koronos; do
   mkdir -p "$DIST/iso/boot/$stage"
   cp -f "$MEDIA/Init.mp4" "$DIST/iso/boot/$stage/Init.mp4"
-  cp -f "$MEDIA/backgrounds/boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
+  cp -f "$VISUAL_OUT/aurora-boot.png" "$DIST/iso/boot/$stage/aurora-boot.png"
 done
 cp -f "$ROOT/boot/splash/spitfire_background.svg" "$DIST/iso/boot/spitfire/"
 cp -f "$ROOT/boot/splash/jasper_background.svg" "$DIST/iso/boot/jasper/"
