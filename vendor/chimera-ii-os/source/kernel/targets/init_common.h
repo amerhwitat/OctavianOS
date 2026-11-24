@@ -98,4 +98,8 @@ static void init_emit_readiness(long pid) {
     while (digits) message[used++] = reversed[--digits];
     message[used++] = '\n';
     (void)init_write(1, message, used);
+    /* This second user-originated write is an explicit proof that the first
+       syscall returned to CPL3; the workflow requires this marker from the
+       target ELF, not from the kernel dispatcher. */
+    init_writestr("USERSPACE SYSCALL RETURNED TO RING3\\n");
 }
