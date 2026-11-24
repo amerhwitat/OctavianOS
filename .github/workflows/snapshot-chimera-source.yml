@@ -61,9 +61,11 @@ jobs:
           mkdir -p "$dest"
           rsync -a --delete --exclude='.git/' chimera-source/ "$dest/"
           if [[ "$INCLUDE_MEDIA" != "true" ]]; then find "$dest" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.mp3' -o -iname '*.wav' \) -delete; fi
-          source_sha="$SOURCE_SHA"
+          # Keep committed bytes identical to the upstream tree: disable Git eol/text filters
+          # for the vendored source while leaving this metadata outside the parity root.
+          printf 'source/** -text\n' > vendor/chimera-ii-os/.gitattributes
           file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
-          SOURCE_SHA="$source_sha" FILE_COUNT="$file_count" python3 - <<'PY'
+          SOURCE_SHA="$SOURCE_SHA" FILE_COUNT="$file_count" python3 - <<'PY'
           import json, os
           from pathlib import Path
           manifest = {
@@ -92,37 +94,39 @@ jobs:
             --upstream-revision "$SOURCE_SHA" \
             --output reports/chimera-source-snapshot-inventory.json \
             --strict
-      - name: Upload strict snapshot inventory
+      - name: Commit exact snapshot and open pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="migration/chimera-source-snapshot-$(date +%s)"
+          git checkout -b "$branch"
+          git add -A -f vendor/chimera-ii-os reports/chimera-source-snapshot-inventory.json
+          git commit -m "chore(migration): snapshot ChimeraIIOS source with exact bytes"
+          rm -rf verify-committed && mkdir -p verify-committed
+          git archive HEAD vendor/chimera-ii-os/source | tar -x -C verify-committed
+          python3 tools/migration/chimera-source-inventory.py \
+            --upstream chimera-source \
+            --vendored verify-committed/vendor/chimera-ii-os/source \
+            --upstream-revision "$SOURCE_SHA" \
+            --output reports/chimera-source-committed-inventory.json \
+            --strict
+          git push origin "$branch"
+          cat > pr-body.md <<'EOF'
+          This PR snapshots exact upstream tree bytes from the selected public ChimeraIIOS ref under `vendor/chimera-ii-os/source/` and records the exact upstream commit in `SNAPSHOT-MANIFEST.json`.
+
+          Strict path and SHA-256 parity is enforced twice: once on the working tree and once on the committed tree via `git archive`. All vendored source is stored with text/EOL filters disabled so committed bytes match upstream bytes. This is not a completed port: the code is intentionally isolated from active OctavianOS runtime paths until each component has been reviewed, licensed, mapped, built, and tested. Git history is not included; use the separate history importer when preserving refs is required.
+          EOF
+          gh pr create --repo amerhwitat/OctavianOS --base main --head "$branch" \
+            --title 'Import ChimeraIIOS source snapshot for OctavianOS port' \
+            --body-file pr-body.md
+      - name: Upload strict snapshot inventories
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chimera-source-snapshot-inventory
-          path: reports/chimera-source-snapshot-inventory.json
+          name: chimera-source-snapshot-inventories
+          path: reports/chimera-source-*-inventory.json
           if-no-files-found: warn
-      - name: Require import token for pull-request creation
-        if: success()
-        env:
-          IMPORT_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "$IMPORT_TOKEN" ]; then
-            echo "::error::OCTAVIANOS_IMPORT_TOKEN is required to open the snapshot pull request."
-            exit 2
-          fi
-      - name: Open source snapshot pull request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
-          branch: migration/chimera-source-snapshot
-          branch-suffix: timestamp
-          base: main
-          delete-branch: false
-          title: 'Import ChimeraIIOS source snapshot for OctavianOS port'
-          commit-message: 'chore(migration): snapshot ChimeraIIOS source with provenance'
-          body: |
-            This PR snapshots exact upstream tree bytes from the selected public ChimeraIIOS ref under `vendor/chimera-ii-os/source/` and records the exact upstream commit in `SNAPSHOT-MANIFEST.json`.
-
-            Strict path and SHA-256 parity is enforced by `tools/migration/chimera-source-inventory.py --strict` before the pull request is opened. This is not a completed port: the code is intentionally isolated from active OctavianOS runtime paths until each component has been reviewed, licensed, mapped, built, and tested. Git history is not included; use the separate history importer when preserving refs is required.
-          add-paths: |
-            vendor/chimera-ii-os/**
-            reports/chimera-source-snapshot-inventory.json
