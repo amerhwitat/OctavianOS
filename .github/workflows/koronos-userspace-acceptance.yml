@@ -35,7 +35,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
+          sudo apt-get install -y nasm gcc g++ binutils cpio grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
       - name: Build Koronos and high-address userspace probes
         run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
       - name: Test Live and Recovery Multiboot2 module classification
@@ -58,6 +58,19 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
+          case "$TARGET" in
+            live) root_module="chimera-live-initramfs" ;;
+            installer) root_module="chimera-installation-image" ;;
+            recovery) root_module="chimera-recovery-initramfs" ;;
+            *) echo "ERROR: unknown target $TARGET" >&2; exit 1 ;;
+          esac
+          INITRD_ROOT="$OUT/initrd-root"
+          mkdir -p "$INITRD_ROOT"
+          printf '#!/bin/sh\n' > "$INITRD_ROOT/init"
+          chmod 0755 "$INITRD_ROOT/init"
+          ( cd "$INITRD_ROOT" && find . -print0 | cpio --null -o -H newc --quiet ) > "$OUT/target-initramfs.cpio"
+          cp "$OUT/target-initramfs.cpio" "$ISO_ROOT/boot/target-initramfs.cpio"
+          test -s "$ISO_ROOT/boot/target-initramfs.cpio"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
           set timeout=0
           set default=0
@@ -65,6 +78,7 @@ jobs:
           menuentry "Koronos $TARGET userspace acceptance" {
             multiboot2 /boot/koronos.elf
             module2 /boot/target-init-$TARGET.elf chimera-user-init-elf target=$TARGET
+            module2 /boot/target-initramfs.cpio $root_module
             boot
           }
           EOF
@@ -123,6 +137,13 @@ jobs:
           mkdir -p "$ISO_ROOT/boot/grub"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
+          INITRD_ROOT="$OUT/initrd-root"
+          mkdir -p "$INITRD_ROOT"
+          printf '#!/bin/sh\n' > "$INITRD_ROOT/init"
+          chmod 0755 "$INITRD_ROOT/init"
+          ( cd "$INITRD_ROOT" && find . -print0 | cpio --null -o -H newc --quiet ) > "$OUT/target-initramfs.cpio"
+          cp "$OUT/target-initramfs.cpio" "$ISO_ROOT/boot/target-initramfs.cpio"
+          test -s "$ISO_ROOT/boot/target-initramfs.cpio"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
           set timeout=0
           set default=0
@@ -130,6 +151,7 @@ jobs:
           menuentry "Koronos in-kernel timeout acceptance" {
             multiboot2 /boot/koronos.elf
             module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
+            module2 /boot/target-initramfs.cpio chimera-live-initramfs
             boot
           }
           EOF
