@@ -64,6 +64,7 @@ jobs:
           # Keep committed bytes identical to the upstream tree: disable Git eol/text filters
           # for the vendored source while leaving this metadata outside the parity root.
           printf 'source/** -text\n' > vendor/chimera-ii-os/.gitattributes
+          source_sha="$SOURCE_SHA"
           file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
           SOURCE_SHA="$SOURCE_SHA" FILE_COUNT="$file_count" python3 - <<'PY'
           import json, os
