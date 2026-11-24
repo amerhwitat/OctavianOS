@@ -10,8 +10,12 @@ Usage:
 
 Options:
   -h, --help    Show this help and exit successfully.
-  --refresh-online-catalogs  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
+  --refresh-online-catalogs, --refresh-isa-catalog  Refresh ISA/OS indexes and discover legacy DOS applications/games online.
   --sync-dos-payloads         Download only license-reviewed, hash-pinned, smoke-tested DOS packages for ISO staging.
+  --clean-state              Remove build-owned intermediate state before rebuilding.
+  --storage-auto              Automatically select a writable build-storage location when needed.
+  --storage PATH              Place build intermediates and ISO output under PATH.
+  --full                      Clean state, disable resume, refresh catalogs, and rebuild Docker without cache.
   --skip-native-iso           Skip the additional boot/iso/build-iso.sh native ISO pipeline.
   --install-build-deps        Opt in to host build-tool installation; tries alternate available package managers if one fails.
 
@@ -22,6 +26,21 @@ CHIMERA_HELP
   exit 0
 fi
 set -Eeuo pipefail
+
+# Canonical system block-size contract shared by every boot and ISO stage.
+# Default to 4096 bytes (4 KiB); honor an explicit canonical value or legacy
+# alias only when the caller supplies one.
+if [[ -z "${CHIMERA_SYSTEM_BLOCK_SIZE:-}" && -z "${SYSTEM_BLOCK_SIZE:-}" ]]; then
+  printf '[INFO] No system block size supplied; defaulting to 4096 bytes (4 KiB).\n'
+fi
+CHIMERA_SYSTEM_BLOCK_SIZE="${CHIMERA_SYSTEM_BLOCK_SIZE:-${SYSTEM_BLOCK_SIZE:-4096}}"
+if [[ ! "$CHIMERA_SYSTEM_BLOCK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+  printf '[ERROR] CHIMERA_SYSTEM_BLOCK_SIZE must be a positive integer (got: %s)\n' "$CHIMERA_SYSTEM_BLOCK_SIZE" >&2
+  exit 2
+fi
+# Export both names so all downstream scripts and legacy contract checks agree.
+SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE"
+export CHIMERA_SYSTEM_BLOCK_SIZE SYSTEM_BLOCK_SIZE
 
 # CHIMERA_ROOTFS_EXPORT_V3
 chimera_export_docker_rootfs() {
@@ -103,6 +122,8 @@ ISO_DIR="$BUILD_DIR/iso"
 ROOTFS_DIR="${CHIMERA_ROOTFS_DIR:-$ISO_DIR/rootfs}"
 ISO_OUTPUT_DIR="${CHIMERA_ISO_OUTPUT_DIR:-$SCRIPT_DIR}"
 ISO_TMP_DIR="${CHIMERA_ISO_TMPDIR:-$BUILD_DIR/logs/chimera-iso-build}"
+# Compiler/linker scratch files belong on WSL's Linux filesystem, not /mnt/<drive> (DrvFs).
+HOST_TMP_DIR="${CHIMERA_HOST_TMPDIR:-/var/tmp/chimera-host-tmp-${UID:-$(id -u)}}"
 LOG_DIR="$BUILD_DIR/logs"
 LOG_FALLBACK_DIR="${CHIMERA_LOG_FALLBACK_DIR:-${TMPDIR:-/tmp}/chimera-build-logs-${UID:-$(id -u)}}"
 WATCHDOG_PID=""
@@ -110,11 +131,12 @@ STATE_FILE="${CHIMERA_BUILD_STATE_FILE:-$BUILD_DIR/.chimera-build-state}"
 FAILED_FILE="${CHIMERA_FAILED_STAGE_FILE:-$BUILD_DIR/.chimera-failed-stage}"
 RESUME_BUILD=0
 CLEAN_STATE=0
+FULL_BUILD=0
 STORAGE_AUTO="${CHIMERA_STORAGE_AUTO:-0}"
 STORAGE_PROMPT="${CHIMERA_STORAGE_PROMPT:-1}"
 CURRENT_STAGE=""
 BUILD_SUCCEEDED=0
-CHIMERA_PUSH="${CHIMERA_PUSH:-1}"
+CHIMERA_PUSH="${CHIMERA_PUSH:-0}"
 BUILD_DOCKER=1
 BUILD_ISO=1
 
@@ -145,7 +167,11 @@ if [[ "$TARGET_ARCH" != "x86_64" ]]; then
 fi
 export CHIMERA_TARGET_ARCH="$TARGET_ARCH" CHIMERA_HOST_ARCH="$HOST_ARCH" CHIMERA_MEDIA_FS_PROFILE="$MEDIA_FS_PROFILE"
 
-mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR" 2>/dev/null || true
+mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ROOTFS_DIR" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR" "$HOST_TMP_DIR" 2>/dev/null || true
+host_tmp_fstype="$(findmnt -T "$HOST_TMP_DIR" -n -o FSTYPE 2>/dev/null || stat -f -c %T "$HOST_TMP_DIR" 2>/dev/null || true)"
+case "$host_tmp_fstype" in 9p|drvfs|fuseblk|ntfs|ntfs3) log_error "Compiler temporary directory is on a Windows-mounted filesystem ($host_tmp_fstype): $HOST_TMP_DIR"; exit 2;; esac
+host_tmp_probe="$(mktemp "$HOST_TMP_DIR/.chimera-write-test.XXXXXX")" || { log_error "Compiler temporary directory is not writable: $HOST_TMP_DIR"; exit 2; }
+rm -f -- "$host_tmp_probe"
 
 # WSL/DrvFs can expose a drive as read-only even when it reports ample free space.
 # Never let logging/state writes turn the real Docker error into a secondary failure.
@@ -157,7 +183,7 @@ ensure_log_dir(){
   fi
 }
 ensure_log_dir
-export TMPDIR="$ISO_TMP_DIR" MTOOLS_SKIP_CHECK=1
+export TMPDIR="$HOST_TMP_DIR" CHIMERA_HOST_TMPDIR="$HOST_TMP_DIR" MTOOLS_SKIP_CHECK=1
 
 log_info(){ echo -e "${BLUE}[INFO]${NC} $*"; }
 log_success(){ echo -e "${GREEN}[SUCCESS]${NC} $*"; }
@@ -200,12 +226,13 @@ DOS_FETCH_ON_BUILD="${CHIMERA_DOS_FETCH_ON_BUILD:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh-online-catalogs) REFRESH_ONLINE_CATALOGS=1; shift;;
+    --refresh-online-catalogs|--refresh-isa-catalog) REFRESH_ONLINE_CATALOGS=1; shift;;
     --sync-dos-payloads) DOS_FETCH_ON_BUILD=1; shift;;
     --docker-only) BUILD_ISO=0; shift;;
     --iso-only) BUILD_DOCKER=0; shift;;
     --resume) RESUME_BUILD=1; shift;;
     --clean-state) CLEAN_STATE=1; shift;;
+    --full) FULL_BUILD=1; shift;;
     --storage-auto) STORAGE_AUTO=1; shift;;
     --no-storage-prompt) STORAGE_PROMPT=0; shift;;
     --storage) [[ -n "${2:-}" ]] || { log_error '--storage requires a path'; exit 2; }; export CHIMERA_BUILD_STORAGE_ROOT="$2"; shift 2;;
@@ -222,11 +249,24 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Apply full-build invariants after parsing so option order cannot re-enable resume.
+if [[ "$FULL_BUILD" == 1 ]]; then
+  CLEAN_STATE=1
+  RESUME_BUILD=0
+  REFRESH_ONLINE_CATALOGS=1
+  DOS_FETCH_ON_BUILD=1
+  export CHIMERA_DOCKER_NO_CACHE=1
+  export CHIMERA_STRICT_COMMAND_PROVIDERS=1
+  export CHIMERA_STRICT_ISA_SMOKES=1
+  export CHIMERA_STRICT_DOS_PAYLOADS=1
+fi
+
 if [[ -n "${CHIMERA_BUILD_STORAGE_ROOT:-}" ]]; then
   root="${CHIMERA_BUILD_STORAGE_ROOT%/}"
   BUILD_DIR="$root/chimera-build"; ISO_DIR="$BUILD_DIR/iso"; ROOTFS_DIR="$BUILD_DIR/rootfs"; ISO_OUTPUT_DIR="$root/chimera-output"; ISO_TMP_DIR="$BUILD_DIR/logs/chimera-iso-build"; STATE_FILE="$BUILD_DIR/.chimera-build-state"; FAILED_FILE="$BUILD_DIR/.chimera-failed-stage"
-  mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR"
-  export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$ISO_TMP_DIR"
+  mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ROOTFS_DIR" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR"
+  LOG_DIR="$BUILD_DIR/logs"; ensure_log_dir || true
+  export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$HOST_TMP_DIR"
 fi
 
 free_bytes(){
@@ -263,7 +303,8 @@ cleanup_generated_build_artifacts(){
     -delete 2>/dev/null || true
   # Remove empty build-owned directories left after the sweep.
   find "$ISO_DIR" -depth -type d -empty -delete 2>/dev/null || true
-  docker container prune -f >/dev/null 2>&1 || true
+  # Do not prune global Docker state: stopped containers may belong to other projects.
+  # Build-owned export containers are removed by their explicit labels/lifecycle.
 }
 cleanup_final_success_artifacts(){
   [[ "$BUILD_SUCCEEDED" == 1 ]] || return 0
@@ -294,6 +335,37 @@ cleanup_generated_docker_image(){
   else
     log_success "Unused generated Docker image removed: $image_id"
   fi
+}
+
+# Docker storage cleanup is intentionally global for stopped containers,
+# unused images, and build cache: these are precisely the objects requested
+# for reclamation. Running containers and images referenced by any container
+# are retained by Docker. Volumes are never pruned.
+docker_cleanup_unused(){
+  local reason="${1:-between build stages}"
+  [[ "${CHIMERA_DOCKER_CLEANUP:-1}" == 1 ]] || {
+    log_info "Docker storage cleanup disabled by CHIMERA_DOCKER_CLEANUP=0 ($reason)"
+    return 0
+  }
+  command -v docker >/dev/null 2>&1 || { log_warning "Docker CLI unavailable; cannot reclaim Docker storage ($reason)"; return 0; }
+  docker info >/dev/null 2>&1 || { log_warning "Docker daemon unavailable; cannot reclaim Docker storage ($reason)"; return 0; }
+  log_info "Reclaiming unused Docker storage ($reason): stopped containers, unused images, and build cache"
+  docker system df 2>&1 | tee -a "$LOG_DIR/docker-cleanup.log" || true
+  docker container prune --force 2>&1 | tee -a "$LOG_DIR/docker-cleanup.log" || true
+  docker image prune --all --force 2>&1 | tee -a "$LOG_DIR/docker-cleanup.log" || true
+  docker builder prune --all --force 2>&1 | tee -a "$LOG_DIR/docker-cleanup.log" || true
+  docker system df 2>&1 | tee -a "$LOG_DIR/docker-cleanup.log" || true
+}
+
+cleanup_docker_after_rootfs(){
+  [[ "${CHIMERA_DOCKER_CLEANUP:-1}" == 1 ]] || return 0
+  # Rootfs has now been exported and the optional registry push has completed;
+  # the local build image is no longer needed by subsequent ISO stages.
+  local ref
+  for ref in "$DOCKER_IMAGE:$DOCKER_TAG" "$DOCKER_IMAGE:latest"; do
+    docker image rm "$ref" >/dev/null 2>&1 || true
+  done
+  docker_cleanup_unused "after rootfs export and Docker publish"
 }
 push_docker_image(){
   [[ "${CHIMERA_PUSH:-0}" == 1 ]] || return 0
@@ -358,10 +430,10 @@ choose_storage(){
   fi
   [[ -n "$best" ]] || return 1
   BUILD_DIR="$best/chimera-build"; ISO_DIR="$BUILD_DIR/iso"; ROOTFS_DIR="$BUILD_DIR/rootfs"; ISO_OUTPUT_DIR="$best/chimera-output"; ISO_TMP_DIR="$BUILD_DIR/logs/chimera-iso-build"; STATE_FILE="$BUILD_DIR/.chimera-build-state"; FAILED_FILE="$BUILD_DIR/.chimera-failed-stage"
-  mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR" || return 1
+  mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ROOTFS_DIR" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR" || return 1
   LOG_DIR="$BUILD_DIR/logs"
   ensure_log_dir || return 1
-  export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$ISO_TMP_DIR"
+  export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$HOST_TMP_DIR"
   log_success "Build storage switched to $best"
 }
 preflight(){
@@ -380,7 +452,7 @@ preflight(){
     elif [[ "$STORAGE_PROMPT" == 1 && -t 0 ]]; then
       read -r -p 'Storage path for large Chimera build: ' p
       [[ -d "$p" ]] || { log_error 'No storage selected'; exit 1; }
-      export CHIMERA_BUILD_STORAGE_ROOT="$p"; root="${p%/}"; BUILD_DIR="$root/chimera-build"; ISO_DIR="$BUILD_DIR/iso"; ROOTFS_DIR="$BUILD_DIR/rootfs"; ISO_OUTPUT_DIR="$root/chimera-output"; ISO_TMP_DIR="$BUILD_DIR/logs/chimera-iso-build"; STATE_FILE="$BUILD_DIR/.chimera-build-state"; FAILED_FILE="$BUILD_DIR/.chimera-failed-stage"; mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR"; export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$ISO_TMP_DIR"
+      export CHIMERA_BUILD_STORAGE_ROOT="$p"; root="${p%/}"; BUILD_DIR="$root/chimera-build"; ISO_DIR="$BUILD_DIR/iso"; ROOTFS_DIR="$BUILD_DIR/rootfs"; ISO_OUTPUT_DIR="$root/chimera-output"; ISO_TMP_DIR="$BUILD_DIR/logs/chimera-iso-build"; STATE_FILE="$BUILD_DIR/.chimera-build-state"; FAILED_FILE="$BUILD_DIR/.chimera-failed-stage"; mkdir -p "$BUILD_DIR" "$ISO_DIR/live" "$ISO_DIR/boot" "$ISO_DIR/boot/live" "$ROOTFS_DIR" "$ISO_OUTPUT_DIR" "$ISO_TMP_DIR"; export CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" TMPDIR="$HOST_TMP_DIR"
     else log_error 'Insufficient storage; use --storage /mnt/d or --storage-auto'; exit 1; fi
   fi
   # Architecture/ISA discovery is metadata-only and defaults to offline mode.
@@ -397,12 +469,18 @@ preflight(){
   fi
   command -v mksquashfs >/dev/null || { log_error 'mksquashfs is required'; exit 2; }
 }
-state_get(){ [[ -f "$STATE_FILE" ]] && sed -n 's/^completed=//p' "$STATE_FILE" | tail -1 || true; }
-state_mark(){ printf 'schema=2\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE" 2>/dev/null || log_warning "Build state could not be written to $STATE_FILE; continuing without persistent resume state."; }
+state_get(){
+  [[ -f "$STATE_FILE" ]] || return 0
+  # Stage order changed when Docker publish moved directly after rootfs
+  # export; do not interpret old checkpoints using the new stage sequence.
+  grep -qx 'schema=3' "$STATE_FILE" || return 0
+  sed -n 's/^completed=//p' "$STATE_FILE" | tail -1
+}
+state_mark(){ printf 'schema=3\ncompleted=%s\nupdated=%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE" 2>/dev/null || log_warning "Build state could not be written to $STATE_FILE; continuing without persistent resume state."; }
 state_reset(){ rm -f "$STATE_FILE" "$FAILED_FILE" 2>/dev/null || true; }
 state_done(){
   local c="$1" t="$2"; [[ -n "$c" ]] || return 1
-  local order='docker rootfs commands docker-publish boot installer branding apache features package-managers games squashfs iso verify native-iso report'; local ci ti
+  local order='docker rootfs docker-publish commands terminals-shells boot installer branding apache features package-managers games sdk squashfs iso verify native-iso report'; local ci ti
   ci=$(printf '%s\n' "$order" | awk -v x="$c" '{for(i=1;i<=NF;i++)if($i==x)print i}'); ti=$(printf '%s\n' "$order" | awk -v x="$t" '{for(i=1;i<=NF;i++)if($i==x)print i}')
   [[ -n "$ci" && -n "$ti" && "$ci" -ge "$ti" ]]
 }
@@ -477,8 +555,13 @@ check_deps(){
 build_docker(){
   header 'STEP 1: BUILD DOCKER IMAGE'
   [[ -f "$SCRIPT_DIR/Dockerfile.comprehensive" ]] || { log_error 'Dockerfile.comprehensive not found'; exit 1; }
+  # Reclaim stale Docker storage before allocating space for a fresh image.
+  docker_cleanup_unused "before Docker image build"
   start_watchdog "Docker BuildKit image build"; set +e
-  BUILDKIT_PROGRESS=plain docker build --progress=plain -f "$SCRIPT_DIR/Dockerfile.comprehensive" -t "$DOCKER_IMAGE:$DOCKER_TAG" -t "$DOCKER_IMAGE:latest" "$SCRIPT_DIR" 2>&1 | tee "$LOG_DIR/docker-build.log"
+  local build_opts=()
+  docker buildx version >/dev/null 2>&1 && build_opts=(--progress=plain)
+  [[ "${CHIMERA_DOCKER_NO_CACHE:-0}" == 1 ]] && build_opts+=(--no-cache)
+  BUILDKIT_PROGRESS=plain docker build "${build_opts[@]}" --build-arg "CHIMERA_STRICT_COMMAND_PROVIDERS=${CHIMERA_STRICT_COMMAND_PROVIDERS:-0}" --build-arg "CHIMERA_STRICT_ISA_SMOKES=${CHIMERA_STRICT_ISA_SMOKES:-0}" -f "$SCRIPT_DIR/Dockerfile.comprehensive" -t "$DOCKER_IMAGE:$DOCKER_TAG" -t "$DOCKER_IMAGE:latest" "$SCRIPT_DIR" 2>&1 | tee "$LOG_DIR/docker-build.log"
   local rc="${PIPESTATUS[0]}"; set -e; stop_watchdog; ((rc==0)) || { log_error "Docker build failed; full log: $LOG_DIR/docker-build.log"; exit "$rc"; }
 }
 
@@ -583,19 +666,52 @@ create_boot_menu(){
   else
     log_info "ISA research refresh skipped by CHIMERA_ISA_RESEARCH=0."
   fi
-  "$SCRIPT_DIR/kernel/build-koronos.sh"
+  CHIMERA_SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" SYSTEM_BLOCK_SIZE="$CHIMERA_SYSTEM_BLOCK_SIZE" bash "$SCRIPT_DIR/kernel/build-koronos.sh"
   local k="$SCRIPT_DIR/build/koronos/x86_64/koronos.elf"; [[ -s "$k" ]] || { log_error 'Koronos ELF missing'; exit 1; }
   mkdir -p "$ISO_DIR/boot/koronos" "$ISO_DIR/boot/jasper" "$ISO_DIR/boot/spitfire" "$ISO_DIR/boot/grub" "$ISO_DIR/boot/live" "$ISO_DIR/EFI/BOOT"
   chimera_copy_if_distinct "$k" "$ISO_DIR/boot/kernel.bin"; chimera_copy_if_distinct "$k" "$ISO_DIR/boot/koronos/koronos.elf"
+
+  # Stage the exact target-specific ring-3 init ELFs referenced by the GRUB
+  # menus. The kernel build produces these probes, but the comprehensive ISO
+  # path previously copied only Koronos + initramfs, leaving GRUB module2
+  # references dangling and causing Koronos to withhold target handoff.
+  # Manifests explicitly preserve their probe-only scope; this is not a
+  # production Live/Installer/Recovery readiness claim.
+  local target_init_dir="$SCRIPT_DIR/build/koronos/x86_64"
+  mkdir -p "$ISO_DIR/boot/targets"
+  for target in live installer recovery; do
+    local target_elf="$target_init_dir/target-init-$target.elf"
+    [[ -s "$target_elf" ]] || { log_error "Missing $target ring-3 target-init ELF: $target_elf"; exit 1; }
+    readelf -h "$target_elf" | grep -Eq 'Type:[[:space:]]+EXEC' || { log_error "$target_elf is not ET_EXEC"; exit 1; }
+    chimera_copy_if_distinct "$target_elf" "$ISO_DIR/boot/targets/target-init-$target.elf"
+    python3 "$SCRIPT_DIR/tools/boot/generate-target-init-manifest.py" \
+      --target "$target" \
+      --elf "$ISO_DIR/boot/targets/target-init-$target.elf" \
+      --output "$ISO_DIR/boot/targets/target-init-$target.manifest.json"
+    [[ -s "$ISO_DIR/boot/targets/target-init-$target.manifest.json" ]] || { log_error "$target target-init manifest was not generated"; exit 1; }
+  done
+  # GRUB attaches this database to every native boot entry. Build it in the
+  # selected build workspace (not in the source tree), validate it, and stage
+  # it as a named Multiboot2 module so the kernel's AI registry sees real data.
+  local knowledge_db="$BUILD_DIR/knowledge-db.json"
+  python3 "$SCRIPT_DIR/tools/ai/knowledge_db.py" build --out "$knowledge_db"
+  python3 "$SCRIPT_DIR/tools/ai/knowledge_db.py" validate --db "$knowledge_db"
+  mkdir -p "$ISO_DIR/boot/ai"
+  cp -f "$knowledge_db" "$ISO_DIR/boot/ai/knowledge-db.json"
+  sha256sum "$ISO_DIR/boot/ai/knowledge-db.json" > "$ISO_DIR/boot/ai/knowledge-db.json.sha256"
   bash "$SCRIPT_DIR/tools/build-boot-artifacts.sh"
   local b="$BUILD_DIR/boot-artifacts"; [[ -s "$b/jasper/jasper.elf" ]] || { log_error 'Jasper ELF missing'; exit 1; }
   cp "$b/jasper/jasper.elf" "$ISO_DIR/boot/jasper/"
   for f in spitfire-sf0-mbr.bin spitfire-stage2.bin spitfire-sf1-longmode.o spitfire-sf2-loader.o; do [[ -s "$b/spitfire/$f" ]] || { log_error "Missing Spit Fire artifact: $f"; exit 1; }; cp "$b/spitfire/$f" "$ISO_DIR/boot/spitfire/"; done
   bash "$SCRIPT_DIR/tools/build-live-boot-binaries.sh"
   chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/live/chimera-live-initramfs.img" "$ISO_DIR/boot/live/chimera-live-initramfs.img"
+  chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/live/chimera-live-initramfs.cpio" "$ISO_DIR/boot/live/chimera-live-initramfs.cpio"
+  chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/live/chimera-live-initramfs.cpio.sha256" "$ISO_DIR/boot/live/chimera-live-initramfs.cpio.sha256"
   chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/live/live-manifest.json" "$ISO_DIR/boot/live/live-manifest.json"
   mkdir -p "$ISO_DIR/boot/recovery" "$ISO_DIR/recovery"
   chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/recovery/chimera-recovery-initramfs.img" "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.img"
+  chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/recovery/chimera-recovery-initramfs.cpio" "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.cpio"
+  chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/recovery/chimera-recovery-initramfs.cpio.sha256" "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.cpio.sha256"
   chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/recovery/chimera-recovery-initramfs.img.sha256" "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.img.sha256"
   chimera_copy_if_distinct "$BUILD_DIR/live-boot/boot/recovery/recovery-manifest.json" "$ISO_DIR/boot/recovery/recovery-manifest.json"
   cp "$SCRIPT_DIR/config/recovery/chimera-recovery-targets.json" "$ISO_DIR/recovery/"
@@ -621,7 +737,9 @@ create_boot_menu(){
   [[ -f "$SCRIPT_DIR/boot/boot-artwork-manifest.json" ]] && cp -f "$SCRIPT_DIR/boot/boot-artwork-manifest.json" "$ISO_DIR/boot/boot-artwork-manifest.json"
   [[ -f "$SCRIPT_DIR/boot/iso/grub.cfg" ]] || { log_error 'GRUB configuration missing'; exit 1; }
   [[ -s "$ISO_DIR/boot/grub/grub.cfg" ]] || { log_error 'Staged GRUB configuration is empty'; exit 1; }
+  [[ -s "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.cpio" ]] || { log_error "Recovery raw initramfs module missing"; exit 1; }
   [[ -s "$ISO_DIR/boot/recovery/chimera-recovery-initramfs.img" ]] || { log_error 'Recovery initramfs missing'; exit 1; }
+  [[ -s "$ISO_DIR/boot/live/chimera-live-initramfs.cpio" ]] || { log_error "Live raw initramfs module missing"; exit 1; }
   [[ -s "$ISO_DIR/boot/live/chimera-live-initramfs.img" ]] || { log_error 'Live initramfs missing'; exit 1; }
 }
 
@@ -633,12 +751,137 @@ prepare_branding(){
            "$ISO_DIR/boot/visual" \
            "$ISO_DIR/boot/grub"
 
-  # Build the complete deterministic Aurora visual set. Supplied Library artwork
-  # wins; generated SVG artwork remains the offline fallback.
+  # Discover and stage repository artwork recursively. Do not assume that
+  # user-supplied artwork lives in one hard-coded directory: repositories often
+  # contain artwork under desktop, assets, docs, mobile, themes, and app folders.
+  # Keep original filenames/relative paths, exclude VCS/build/vendor caches, and
+  # prefer the named original session wallpaper when present. If it is absent,
+  # keep the generated offline artwork rather than failing on a stale filename.
+  local artwork_stage="$BUILD_DIR/aurora-artwork-library"
+  local artwork_manifest="$artwork_stage/artwork-index.txt"
+  local preferred_wallpaper=""
+  rm -rf -- "$artwork_stage"
+  mkdir -p "$artwork_stage"
+  : > "$artwork_manifest"
+  while IFS= read -r -d '' asset; do
+    local rel dest
+    rel="${asset#"$SCRIPT_DIR"/}"
+    dest="$artwork_stage/$rel"
+    mkdir -p "$(dirname "$dest")"
+    if cp -p -- "$asset" "$dest"; then
+      printf '%s\n' "$rel" >> "$artwork_manifest"
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        duck-ai-image-2026-10-18-06-36.jpeg)
+          preferred_wallpaper="$dest"
+          ;;
+      esac
+    fi
+  done < <(find "$SCRIPT_DIR" \
+    \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+    \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  if [[ -s "$artwork_manifest" ]]; then
+    log_info "Discovered $(wc -l < "$artwork_manifest" | tr -d ' ') artwork files recursively."
+    mkdir -p "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork" \
+             "$ISO_DIR/desktop/aurora/assets/library/repository-artwork" \
+             "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library" \
+             "$ISO_DIR/desktop/aurora/branding/artwork-library" \
+             "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library" \
+             "$ISO_DIR/system/branding/artwork-library"
+    # Keep a complete offline copy in the desktop library AND the canonical
+    # branding namespace, so boot/installer/desktop consumers never need network
+    # access or a particular source-tree layout.
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/assets/library/repository-artwork/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/desktop/aurora/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ROOTFS_DIR/usr/share/chimera/branding/artwork-library/"
+    cp -a "$artwork_stage/." "$ISO_DIR/system/branding/artwork-library/"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/assets/library/repository-artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/desktop/aurora/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ROOTFS_DIR/usr/share/chimera/branding/artwork-index.txt"
+    cp -f "$artwork_manifest" "$ISO_DIR/system/branding/artwork-index.txt"
+    # Record hashes for reproducible offline auditing and detect damaged assets.
+    if command -v sha256sum >/dev/null 2>&1; then
+      (cd "$artwork_stage" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum) \
+        > "$ISO_DIR/system/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ROOTFS_DIR/usr/share/chimera/aurora/branding/artwork-sha256.txt"
+      cp -f "$ISO_DIR/system/branding/artwork-sha256.txt" \
+        "$ISO_DIR/desktop/aurora/branding/artwork-sha256.txt"
+    fi
+  else
+    log_warning "No raster/SVG artwork files found by recursive scan; generated Aurora artwork remains the fallback."
+  fi
+
+  # Resolve the default wallpaper without depending on a single legacy filename.
+  # Explicit CHIMERA_AURORA_ASSET has priority, then the original session image,
+  # then descriptive wallpaper/background names; generated assets remain fallback.
+  local discovered_wallpaper=""
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "${CHIMERA_AURORA_ASSET}" ]]; then
+    discovered_wallpaper="$CHIMERA_AURORA_ASSET"
+  elif [[ -n "$preferred_wallpaper" && -s "$preferred_wallpaper" ]]; then
+    discovered_wallpaper="$preferred_wallpaper"
+  else
+    while IFS= read -r -d '' asset; do
+      case "$(basename "$asset" | tr '[:upper:]' '[:lower:]')" in
+        *wallpaper*|*background*|*aurora*desktop*)
+          discovered_wallpaper="$asset"
+          break
+          ;;
+      esac
+    done < <(find "$SCRIPT_DIR" \
+      \( -type d \( -name .git -o -name .github -o -name node_modules -o -name vendor -o -name build -o -name dist -o -name target -o -name .venv -o -name __pycache__ \) -prune \) -o \
+      \( -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.svg' -o -iname '*.avif' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.jxl' -o -iname '*.ico' -o -iname '*.icns' \) -print0 \) 2>/dev/null)
+  fi
+  if [[ -n "$discovered_wallpaper" && -s "$discovered_wallpaper" ]]; then
+    export CHIMERA_AURORA_ASSET="$discovered_wallpaper"
+    log_info "Selected recursively discovered Aurora wallpaper: ${discovered_wallpaper#"$SCRIPT_DIR"/}"
+  fi
+
+  # Build the deterministic Aurora visual set, then actively apply the selected
+  # repository artwork to boot + desktop + showcase + menu surfaces. Discovery
+  # alone is not enough: each consumer needs a normalized raster image staged
+  # under the exact filename it loads at boot/runtime.
   local visual="$BUILD_DIR/aurora-media"
   rm -rf -- "$visual"
   if [[ -x "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" ]]; then
     bash "$SCRIPT_DIR/tools/aurora/build-visual-assets.sh" "$visual"
+  fi
+
+  if [[ -n "${CHIMERA_AURORA_ASSET:-}" && -s "$CHIMERA_AURORA_ASSET" ]]; then
+    local selected_art="$CHIMERA_AURORA_ASSET"
+    local applied_art="$BUILD_DIR/aurora-selected-artwork.png"
+    local png_magic
+    png_magic="$(head -c 8 "$selected_art" 2>/dev/null | od -An -tx1 | tr -d ' \\n')"
+    if [[ "$png_magic" == "89504e470d0a1a0a" ]]; then
+      cp -f -- "$selected_art" "$applied_art"
+    elif command -v convert >/dev/null 2>&1; then
+      if ! convert "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    elif command -v magick >/dev/null 2>&1; then
+      if ! magick "$selected_art" -resize 1920x1080^ -gravity center -extent 1920x1080 "PNG32:$applied_art" 2>"$LOG_DIR/aurora-selected-artwork-convert.log"; then
+        rm -f "$applied_art"
+      fi
+    fi
+
+    if [[ -s "$applied_art" ]] && [[ "$(head -c 8 "$applied_art" | od -An -tx1 | tr -d ' \\n')" == "89504e470d0a1a0a" ]]; then
+      for surface in \
+        "$visual/backgrounds/boot.png" \
+        "$visual/backgrounds/desktop.png" \
+        "$visual/backgrounds/showcase.png" \
+        "$visual/menus/default.png"; do
+        mkdir -p "$(dirname "$surface")"
+        cp -f "$applied_art" "$surface"
+      done
+      log_info "Applied discovered artwork to Aurora boot, desktop, showcase, and menu surfaces."
+    else
+      log_warning "Selected artwork could not be normalized to PNG; retaining generated Aurora surfaces."
+    fi
   fi
 
   # Stage every boot/menu screen explicitly. GRUB/Jasper/Spit Fire only consume
@@ -803,6 +1046,18 @@ EOF_INIT_VIDEO
   if [[ -f "$SCRIPT_DIR/desktop/aurora/assets/library-artwork-manifest.json" ]]; then
     cp -f "$SCRIPT_DIR/desktop/aurora/assets/library-artwork-manifest.json" \
       "$ROOTFS_DIR/usr/share/chimera/aurora/assets/"
+  fi
+
+  # Package the optional X.Org provider contract and guarded session launcher.
+  # The launcher remains fail-closed until Koronos X11/DRM/VT/Linux-ABI acceptance.
+  if [[ -d "$SCRIPT_DIR/desktop/x11" ]]; then
+    install -d -m 0755 "$ROOTFS_DIR/usr/share/chimera/desktop/x11" "$ISO_DIR/system/desktop/x11" "$ROOTFS_DIR/usr/local/bin"
+    install -m 0644 "$SCRIPT_DIR/desktop/x11/xorg-provider.json" "$ROOTFS_DIR/usr/share/chimera/desktop/x11/xorg-provider.json"
+    install -m 0644 "$SCRIPT_DIR/desktop/x11/README.md" "$ROOTFS_DIR/usr/share/chimera/desktop/x11/README.md"
+    install -m 0644 "$SCRIPT_DIR/desktop/x11/xorg-provider.json" "$ISO_DIR/system/desktop/x11/xorg-provider.json"
+    install -m 0644 "$SCRIPT_DIR/desktop/x11/README.md" "$ISO_DIR/system/desktop/x11/README.md"
+    install -m 0755 "$SCRIPT_DIR/desktop/x11/start-session.sh" "$ROOTFS_DIR/usr/local/bin/chimera-start-x11-session"
+    install -m 0644 "$SCRIPT_DIR/desktop/x11/start-session.sh" "$ISO_DIR/system/desktop/x11/start-session.sh"
   fi
 
   # Install the same visual aliases used by desktop, installer, recovery and
@@ -1003,7 +1258,15 @@ build_native_iso_pipeline(){
   local native_script="$SCRIPT_DIR/boot/iso/build-iso.sh"
   local native_iso="$SCRIPT_DIR/boot/iso/dist/output.iso"
   [[ -x "$native_script" || -f "$native_script" ]] || { log_error "Native ISO pipeline is missing: $native_script"; return 1; }
-  CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
+  # Forward the target system block size through the canonical native ISO boundary.
+  # 4096 bytes (4 KiB) is the default; callers may override it explicitly.
+  local system_block_size="${CHIMERA_SYSTEM_BLOCK_SIZE:-4096}"
+  [[ "$system_block_size" =~ ^[1-9][0-9]*$ ]] || { log_error "Invalid CHIMERA_SYSTEM_BLOCK_SIZE: $system_block_size"; return 2; }
+  # Pass both the canonical name and the compatibility alias explicitly: the
+  # native ISO builder and its contract verifier must see the same 4 KiB default.
+  CHIMERA_SYSTEM_BLOCK_SIZE="$system_block_size" \
+    SYSTEM_BLOCK_SIZE="$system_block_size" \
+    CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_BUILD_DIR="$BUILD_DIR" CHIMERA_ISO_OUTPUT_DIR="$ISO_OUTPUT_DIR" \
     bash "$native_script" 2>&1 | tee "$LOG_DIR/native-iso-pipeline.log"
   [[ -s "$native_iso" && -s "$native_iso.sha256" ]] || { log_error "Native ISO pipeline did not produce ISO and SHA-256 checksum"; return 1; }
   (cd "$(dirname "$native_iso")" && sha256sum -c "$(basename "$native_iso").sha256") || { log_error "Native ISO checksum verification failed"; return 1; }
@@ -1083,7 +1346,8 @@ EOF
   (
     cd "$p"
     find . -print0 | cpio --null --format=newc --create --quiet
-  ) | gzip -9 > "$ISO_DIR/install/installer/installation.img"
+  ) > "$ISO_DIR/install/installer/installation.cpio"
+  gzip -9 -c "$ISO_DIR/install/installer/installation.cpio" > "$ISO_DIR/install/installer/installation.img"
 
   cp -f "$SCRIPT_DIR/install/installation-manifest.json" "$ISO_DIR/install/installer/" 2>/dev/null || true
   cp -f "$SCRIPT_DIR/install/installer-contract.json" "$ISO_DIR/install/installer/" 2>/dev/null || true
@@ -1200,17 +1464,31 @@ verify_iso(){
   grep -qi 'BIOS' "$LOG_DIR/iso-el-torito.log" || { log_error 'ISO has no BIOS El Torito boot entry'; exit 1; }
   grep -qi 'UEFI' "$LOG_DIR/iso-el-torito.log" || { log_error 'ISO has no UEFI El Torito boot entry'; exit 1; }
   grep -q 'multiboot2 /boot/koronos/koronos.elf' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB does not load the staged Koronos ELF through Multiboot2'; exit 1; }
-  grep -q 'module2 /boot/live/chimera-live-initramfs.img' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB live handoff is missing the live initramfs module'; exit 1; }
+  grep -q 'module2 /boot/live/chimera-live-initramfs.cpio' "$ISO_DIR/boot/grub/grub.cfg" || { log_error 'GRUB live handoff is missing the live initramfs module'; exit 1; }
   xorriso -indev "$iso" -find /boot/grub/grub.cfg -type f | tee "$LOG_DIR/iso-grub-files.log"
   xorriso -indev "$iso" -find /boot/koronos/koronos.elf -type f | tee -a "$LOG_DIR/iso-grub-files.log"
-  xorriso -indev "$iso" -find /boot/recovery/chimera-recovery-initramfs.img -type f | tee -a "$LOG_DIR/iso-grub-files.log"
+  xorriso -indev "$iso" -find /boot/recovery/chimera-recovery-initramfs.cpio -type f | tee -a "$LOG_DIR/iso-grub-files.log"
 
   # Verify the complete graphical boot/installer contract, not only the kernel.
   local required_iso_paths=(
     /boot/grub/grub.cfg
     /boot/koronos/koronos.elf
+    /boot/ai/knowledge-db.json
+    /boot/ai/knowledge-db.json.sha256
+    /boot/targets/target-init-live.elf
+    /boot/targets/target-init-live.manifest.json
+    /boot/targets/target-init-installer.elf
+    /boot/targets/target-init-installer.manifest.json
+    /boot/targets/target-init-recovery.elf
+    /boot/targets/target-init-recovery.manifest.json
+    /boot/live/chimera-live-initramfs.cpio
+    /boot/live/chimera-live-initramfs.cpio.sha256
     /boot/live/chimera-live-initramfs.img
     /boot/live/live-manifest.json
+    /boot/recovery/chimera-recovery-initramfs.cpio
+    /boot/recovery/chimera-recovery-initramfs.cpio.sha256
+    /boot/recovery/chimera-recovery-initramfs.img
+    /boot/recovery/recovery-manifest.json
     /boot/grub/aurora-theme.txt
     /boot/visual/aurora-boot.png
     /boot/visual/aurora-menu.png
@@ -1225,6 +1503,7 @@ verify_iso(){
     /boot/installation/menu.cfg
     /boot/spitfire/spitfire-menu.cfg
     /EFI/BOOT/BOOTX64.EFI
+    /install/installer/installation.cpio
     /install/installer/installation.img
     /install/installer/installation-manifest.json
     /install/installer/installer-contract.json
@@ -1315,8 +1594,19 @@ rows=d.get("commands",[])
 names=[str(x.get("name","")).casefold() for x in rows]
 if not rows or len(names)!=len(set(names)): raise SystemExit("Command manifest empty or contains duplicate names")
 if any(not x.get("mode") or not x.get("provider") for x in rows): raise SystemExit("Command missing runtime/provider classification")
-if d.get("mode_counts",{}).get("native") != 15: raise SystemExit("Native command count differs from compiled multicall contract")
-print(f"[COMMANDS] catalogued={len(rows)} native={d['mode_counts'].get('native',0)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
+expected_native = {"pwd", "echo", "ls", "cp", "mv", "touch", "mkdir", "rm", "cat", "clear", "whoami", "hostname", "date", "true", "false"}
+actual_native = {str(x.get("name", "")).casefold() for x in rows if x.get("mode") == "native"}
+if actual_native != expected_native:
+    missing = sorted(expected_native - actual_native)
+    extra = sorted(actual_native - expected_native)
+    raise SystemExit(
+        "Native multicall contract mismatch: "
+        f"expected={len(expected_native)} actual={len(actual_native)} "
+        f"missing={missing} extra={extra}"
+    )
+if d.get("mode_counts",{}).get("native") != len(expected_native):
+    raise SystemExit("Native command mode_counts does not match the compiled multicall contract")
+print(f"[COMMANDS] catalogued={len(rows)} native={len(actual_native)} compatibility={d['mode_counts'].get('compatibility-provider-required',0)}")
 PYCOMMANDS
 }
 build_command_runtime(){
@@ -1326,12 +1616,22 @@ build_command_runtime(){
   log_info "Native command binary staged at $ROOTFS_DIR/usr/bin/chimera-cmd"
 }
 
+stage_terminal_shell_suite(){
+  log_info "Staging Aurora terminal and shell providers for target architecture ${CHIMERA_TARGET_ARCH:-$(uname -m)}"
+  CHIMERA_ROOTFS_DIR="$ROOTFS_DIR" CHIMERA_TARGET_ARCH="${CHIMERA_TARGET_ARCH:-$(uname -m)}" \
+    bash "$SCRIPT_DIR/scripts/chimera-iso-terminal-shell-hook.sh"
+  [[ -s "$ROOTFS_DIR/usr/share/chimera/aurora/terminals/registry.json" ]] || { log_error "Aurora terminal registry was not staged"; return 1; }
+  [[ -s "$ROOTFS_DIR/usr/share/chimera/aurora/shells/registry.json" ]] || { log_error "Aurora shell registry was not staged"; return 1; }
+  log_info "Terminal/shell catalogues staged; only architecture-verified providers are accepted"
+}
+
 main(){
   # --docker-only is a true Docker pipeline, not a full ISO build with a flag ignored.
   if [[ "$BUILD_ISO" == 0 ]]; then
     command -v docker >/dev/null 2>&1 || { log_error "Docker CLI is required for --docker-only"; return 2; }
     run_stage docker build_docker
     run_stage docker-publish push_docker_image
+    cleanup_docker_after_rootfs
     BUILD_SUCCEEDED=1
     log_success "Docker-only pipeline completed."
     return 0
@@ -1366,15 +1666,16 @@ main(){
   check_deps
   CURRENT_STAGE=""
   local completed="$(state_get)"
-  for stage in docker rootfs commands docker-publish boot installer branding apache features package-managers games squashfs iso verify native-iso report; do
+  for stage in docker rootfs docker-publish commands terminals-shells boot installer branding apache features package-managers games sdk squashfs iso verify native-iso report; do
     if [[ "$stage" == docker && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker build for --iso-only"; continue; fi
     if [[ "$stage" == docker-publish && "$BUILD_DOCKER" == 0 ]]; then log_info "Skipping Docker publish for --iso-only"; continue; fi
     if [[ "$RESUME_BUILD" == 1 && -n "$completed" ]] && state_done "$completed" "$stage"; then log_info "Skipping completed stage: $stage"; continue; fi
     case "$stage" in
       docker) run_stage docker build_docker;;
-      docker-publish) run_stage docker-publish push_docker_image;;
-      rootfs) run_stage rootfs export_rootfs;;
+      rootfs) run_stage rootfs export_rootfs; if [[ "$BUILD_DOCKER" == 0 ]]; then cleanup_docker_after_rootfs; fi;;
+      docker-publish) run_stage docker-publish push_docker_image; cleanup_docker_after_rootfs;;
       commands) run_stage commands build_command_runtime;;
+      terminals-shells) run_stage terminals-shells stage_terminal_shell_suite;;
       boot) run_stage boot create_boot_menu;;
       installer) run_stage installer create_installer;;
       branding) run_stage branding prepare_branding;;
@@ -1387,10 +1688,27 @@ main(){
       verify) run_stage verify verify_iso;;
       native-iso) run_stage native-iso build_native_iso_pipeline;;
       report) run_stage report report_build;;
+      sdk) run_stage sdk stage_sdks;;
     esac
     completed="$stage"
   done
   cleanup_final_success_artifacts
+}
+
+stage_sdks(){
+  header 'STEP: COMPILE ALL REPOSITORY SDKS'
+  # Compiles every build definition the host toolchains support (CMake, Cargo, Swift,
+  # Dart, Maven, Gradle, dotnet, npm, Go, Python) and stages an honest report in the
+  # ISO. Missing toolchains are reported as skipped, never as passed.
+  local report="$ISO_DIR/opt/chimera/reports/sdk-build-report.json"
+  mkdir -p "$(dirname "$report")"
+  if [[ -x "$SCRIPT_DIR/tools/build-sdks.sh" ]]; then
+    bash "$SCRIPT_DIR/tools/build-sdks.sh" --out "$report" --max "${CHIMERA_SDK_MAX:-12}" \
+      --timeout "${CHIMERA_SDK_TIMEOUT:-240}" || log_warning 'SDK compilation reported failures (see sdk-build-report.json)'
+    log_info "SDK report staged at $report"
+  else
+    log_warning 'tools/build-sdks.sh is missing; SDK stage skipped'
+  fi
 }
 
 trap 'rc=$?; stop_watchdog || true; if ((rc!=0)); then log_error "Build stopped during stage: ${CURRENT_STAGE:-unknown}"; printf "%s\n" "${CURRENT_STAGE:-unknown}" > "$FAILED_FILE" 2>/dev/null || log_warning "Could not persist failed-stage marker at $FAILED_FILE"; fi; exit "$rc"' EXIT
