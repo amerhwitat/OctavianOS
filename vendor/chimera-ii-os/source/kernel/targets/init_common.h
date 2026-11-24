@@ -101,5 +101,5 @@ static void init_emit_readiness(long pid) {
     /* This second user-originated write is an explicit proof that the first
        syscall returned to CPL3; the workflow requires this marker from the
        target ELF, not from the kernel dispatcher. */
-    init_writestr("USERSPACE SYSCALL RETURNED TO RING3\\n");
+    init_writestr("USERSPACE SYSCALL RETURNED TO RING3\n");
 }
