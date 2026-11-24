@@ -32,6 +32,17 @@ class TargetInitHandoffWorkflowTests(unittest.TestCase):
             )
             self.assertIn(module, self.acceptance_workflow)
 
+    def test_acceptance_harness_stages_live_and_recovery_initramfs(self):
+        self.assertIn("busybox-static cpio gzip", self.acceptance_workflow)
+        self.assertIn("bash tools/build-live-boot-binaries.sh", self.acceptance_workflow)
+        self.assertIn("module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs", self.acceptance_workflow)
+        self.assertIn("module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs", self.acceptance_workflow)
+        self.assertIn("module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest", self.acceptance_workflow)
+
+    def test_acceptance_harness_keeps_a_visible_explicit_selection_menu(self):
+        self.assertIn("set timeout_style=menu", self.acceptance_workflow)
+        self.assertIn("set timeout=120", self.acceptance_workflow)
+
     def test_acceptance_workflow_triggers_for_boot_graph_contract_changes(self):
         pull_request_start = self.acceptance_workflow.index("  pull_request:")
         push_start = self.acceptance_workflow.index("  push:", pull_request_start)
