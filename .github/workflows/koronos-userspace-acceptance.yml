@@ -47,11 +47,20 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools
+          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools busybox-static cpio gzip
       - name: Build Koronos and production target init ELFs plus timeout probe
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
           bash kernel/build-koronos.sh
+      - name: Build Live and Recovery initramfs modules
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          bash tools/build-live-boot-binaries.sh
+          test -s build/live-boot/boot/live/chimera-live-initramfs.img
+          test -s build/live-boot/boot/live/live-manifest.json
+          test -s build/live-boot/boot/recovery/chimera-recovery-initramfs.img
+          test -s build/live-boot/boot/recovery/recovery-manifest.json
       - name: Run ELF64 admission and process-loader regressions
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
@@ -86,6 +95,10 @@ jobs:
           install -m 0644 build/koronos/x86_64/target-init-installer.elf "$ISO_ROOT/boot/target-init-installer.elf"
           install -m 0644 build/koronos/x86_64/target-init-recovery.elf "$ISO_ROOT/boot/target-init-recovery.elf"
           install -m 0644 build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
+          install -D -m 0644 build/live-boot/boot/live/chimera-live-initramfs.img "$ISO_ROOT/boot/live/chimera-live-initramfs.img"
+          install -D -m 0644 build/live-boot/boot/live/live-manifest.json "$ISO_ROOT/boot/live/live-manifest.json"
+          install -D -m 0644 build/live-boot/boot/recovery/chimera-recovery-initramfs.img "$ISO_ROOT/boot/recovery/chimera-recovery-initramfs.img"
+          install -D -m 0644 build/live-boot/boot/recovery/recovery-manifest.json "$ISO_ROOT/boot/recovery/recovery-manifest.json"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'GRUB'
           set timeout_style=menu
           set timeout=120
@@ -94,6 +107,8 @@ jobs:
           menuentry "Koronos Live userspace acceptance" --id=live {
             multiboot2 /boot/koronos.elf
             module2 /boot/target-init-live.elf chimera-user-init-elf target=live firmware=$grub_platform
+            module2 /boot/live/chimera-live-initramfs.img chimera-live-initramfs
+            module2 /boot/live/live-manifest.json chimera-live-manifest
             boot
           }
           menuentry "Koronos Installer userspace acceptance" --id=installer {
@@ -104,6 +119,8 @@ jobs:
           menuentry "Koronos Recovery userspace acceptance" --id=recovery {
             multiboot2 /boot/koronos.elf
             module2 /boot/target-init-recovery.elf chimera-user-init-elf target=recovery firmware=$grub_platform
+            module2 /boot/recovery/chimera-recovery-initramfs.img chimera-recovery-initramfs
+            module2 /boot/recovery/recovery-manifest.json chimera-recovery-manifest
             boot
           }
           menuentry "Koronos non-cooperative timeout probe" --id=timeout {
