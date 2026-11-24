@@ -44,7 +44,7 @@ KERNELRELEASE := 1.0.0$(CONFIG_KORONOS_LOCALVERSION)
 KOR_INCLUDE := $(ROOT)/kernel/include
 KOR_CXXFLAGS := -ffreestanding -fno-builtin -fno-exceptions -fno-rtti \
 	-fno-stack-protector -fno-pic -fno-pie -mcmodel=kernel -mno-red-zone \
-	-mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -O2 \
+	-march=x86-64 -mtune=generic -mno-bmi -mno-bmi2 -mno-sse -mno-mmx -nostdinc++ -Wall -Wextra -O2 \
 	-I$(KOR_INCLUDE) -I$(BUILD)/include \
 	-DKORONOS_KERNEL=1 -DKORONOS_NBIT_WIDTH=$(CONFIG_KORONOS_NBIT_WIDTH) \
 	-DKORONOS_LOCALVERSION='"$(CONFIG_KORONOS_LOCALVERSION)"'
