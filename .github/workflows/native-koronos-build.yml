@@ -430,7 +430,7 @@ jobs:
           )
           try:
               time.sleep(5)
-              proc.stdin.write(b"sendkey ret\\n")
+              proc.stdin.write(b"sendkey ret\n")
               proc.stdin.flush()
               try:
                   proc.wait(timeout=25)
