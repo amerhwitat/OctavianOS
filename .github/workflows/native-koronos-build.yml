@@ -142,7 +142,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/koronos-smoke.iso" "$smoke/iso"
           set +e
-          timeout 20s qemu-system-x86_64 -machine q35 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9 -d int,cpu_reset,guest_errors -D "$smoke/qemu-debug.log"
+          timeout 20s qemu-system-x86_64 -machine q35 -cpu qemu64 -m 512M -cdrom "$smoke/koronos-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/debugcon.log" -global isa-debugcon.iobase=0xe9 -d int,cpu_reset,guest_errors -D "$smoke/qemu-debug.log"
           qemu_status=$?
           set -e
           # A running idle kernel is intentionally stopped by timeout (124).
