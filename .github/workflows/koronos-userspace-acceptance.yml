@@ -79,7 +79,7 @@ jobs:
           set -uo pipefail
           OUT="$PWD/build/userspace-acceptance/$TARGET"
           LOG="$OUT/qemu-$FIRMWARE.log"
-          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
+          QEMU=(qemu-system-x86_64 -cpu qemu64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
           if [ "$FIRMWARE" = uefi ]; then
             OVMF_CODE=""
             OVMF_VARS=""
@@ -136,7 +136,7 @@ jobs:
           grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
           LOG="$OUT/qemu-timeout.log"
           set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
+          timeout 15s qemu-system-x86_64 -machine pc -cpu qemu64 -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
             -display none -serial none -monitor none -no-reboot -no-shutdown \
             -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
           qemu_rc=$?
