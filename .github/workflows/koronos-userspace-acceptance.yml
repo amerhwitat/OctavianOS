@@ -81,6 +81,12 @@ jobs:
           set -euo pipefail
           g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp -o /tmp/koronos-multiboot-modules-test
           /tmp/koronos-multiboot-modules-test
+      - name: Test target readiness PID correlation
+        run: |
+          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          set -euo pipefail
+          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include kernel/tests/target_marker_test.cpp -o /tmp/koronos-target-marker-test
+          /tmp/koronos-target-marker-test
       - name: Assemble one BIOS/UEFI ISO with explicit target menu entries
         run: |
           cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
