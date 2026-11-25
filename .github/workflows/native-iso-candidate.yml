@@ -1,0 +1,197 @@
+name: Build OctavianOS native ISO candidate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "boot/**"
+      - "kernel/**"
+      - "vendor/chimera-ii-os/source/**"
+      - "desktop/**"
+      - "tools/iso/**"
+      - "tools/ai/**"
+      - "tests/migration/**"
+      - "boot/iso/build-iso.sh"
+      - ".github/workflows/native-iso-candidate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "boot/**"
+      - "kernel/**"
+      - "vendor/chimera-ii-os/source/**"
+      - "desktop/**"
+      - "tools/iso/**"
+      - "tools/ai/**"
+      - "tests/migration/**"
+      - "boot/iso/build-iso.sh"
+      - ".github/workflows/native-iso-candidate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: octavian-native-iso-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install native ISO and QEMU dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm gcc g++ binutils grub-pc-bin grub-efi-amd64-bin grub-common grub2-common xorriso mtools dosfstools cpio gzip python3 python3-cairosvg imagemagick qemu-system-x86
+
+      - name: Validate native ISO build inputs
+        run: |
+          set -euo pipefail
+          test -s boot/iso/grub.cfg
+          test -s vendor/chimera-ii-os/source/kernel/build-koronos.sh
+          test -s vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh
+          test -s config/ai/knowledge-db.json
+          python3 tools/ai/knowledge_db.py validate --db config/ai/knowledge-db.json
+          bash -n boot/iso/build-iso.sh
+
+      - name: Build BIOS and UEFI ISO candidate
+        run: |
+          set -euo pipefail
+          chmod +x boot/iso/build-iso.sh
+          boot/iso/build-iso.sh build/native-iso/octavian-os-native-amd64.iso
+          test -s build/native-iso/octavian-os-native-amd64.iso
+          test -s build/native-iso/octavian-os-native-amd64.iso.sha256
+          sha256sum -c build/native-iso/octavian-os-native-amd64.iso.sha256
+          file build/native-iso/octavian-os-native-amd64.iso
+
+      - name: Inspect ISO payload and boot catalogue
+        run: |
+          set -euo pipefail
+          iso=build/native-iso/octavian-os-native-amd64.iso
+          xorriso -indev "$iso" -ls /boot/koronos
+          xorriso -indev "$iso" -ls /boot/targets
+          xorriso -indev "$iso" -ls /boot/live
+          xorriso -indev "$iso" -ls /boot/recovery
+          xorriso -indev "$iso" -report_el_torito plain -report_system_area plain | tee build/native-iso/iso-boot-report.txt
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          for path in /boot/koronos/koronos.elf /boot/targets/target-init-live.elf /boot/targets/target-init-installer.elf /boot/targets/target-init-recovery.elf /boot/live/chimera-live-initramfs.img /boot/recovery/chimera-recovery-initramfs.img /boot/grub/grub.cfg /payload/MANIFEST.json; do
+            out="$tmp/$(basename "$path")"
+            xorriso -osirrox on -indev "$iso" -extract "$path" "$out" >/dev/null
+            test -s "$out"
+          done
+          python3 - "$tmp/MANIFEST.json" <<'PY'
+          import json, pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          data = json.loads(p.read_text())
+          assert data.get("schema") == 1
+          assert data.get("files", 0) > 0
+          print(f"ISO payload manifest: {data['files']} files, {data.get('bytes', 0)} bytes")
+          PY
+
+      - name: QEMU kernel boot smoke (not userspace acceptance)
+        run: |
+          set -euo pipefail
+          monitor="$RUNNER_TEMP/octavian-qemu-monitor.sock"
+          rm -f "$monitor" build/native-iso/qemu-debugcon.log
+          timeout 35s qemu-system-x86_64 \
+            -machine pc -m 1024 -smp 1 -accel tcg -boot order=d,menu=on \
+            -display none -serial file:build/native-iso/qemu-serial.log -monitor "unix:$monitor,server,nowait" \
+            -no-reboot -no-shutdown -cdrom build/native-iso/octavian-os-native-amd64.iso \
+            -debugcon file:build/native-iso/qemu-debugcon.log \
+            -global isa-debugcon.iobase=0xe9 >build/native-iso/qemu.log 2>&1 &
+          qemu_pid=$!
+          cleanup() { kill "$qemu_pid" 2>/dev/null || true; wait "$qemu_pid" 2>/dev/null || true; }
+          trap cleanup EXIT
+          python3 - "$monitor" <<'PY'
+          import socket, sys, time
+          path = sys.argv[1]
+          deadline = time.monotonic() + 15
+          client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          while True:
+              try:
+                  client.connect(path)
+                  break
+              except (FileNotFoundError, ConnectionRefusedError):
+                  if time.monotonic() >= deadline:
+                      raise SystemExit("QEMU monitor socket did not become ready")
+                  time.sleep(0.1)
+          client.settimeout(2)
+          try:
+              client.recv(4096)
+          except TimeoutError:
+              pass
+          # The firmware can take several seconds to reach GRUB. A key sent
+          # immediately after the monitor socket appears can be lost, so retry
+          # the explicit menu selection while the firmware/bootloader starts.
+          for _ in range(8):
+              client.sendall(b"sendkey ret\n")
+              time.sleep(1)
+          client.close()
+          PY
+          # Keep QEMU alive while the firmware menu and kernel boot. TCG can
+          # take several seconds; quitting after a fixed two-second delay raced
+          # the boot sequence and produced false negatives.
+          booted=false
+          for _ in $(seq 1 120); do
+            if grep -Fq "[KRN ] KORONOS READY" build/native-iso/qemu-debugcon.log 2>/dev/null; then
+              booted=true
+              break
+            fi
+            if ! kill -0 "$qemu_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+          if [[ "$booted" != true ]]; then
+            cat build/native-iso/qemu-debugcon.log 2>/dev/null || true
+            cat build/native-iso/qemu.log
+            echo "Koronos kernel-ready marker was not observed before QEMU exited or timed out" >&2
+            exit 1
+          fi
+          python3 - "$monitor" <<'PY'
+          import socket, sys
+          s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          s.connect(sys.argv[1])
+          try:
+              s.recv(4096)
+          except TimeoutError:
+              pass
+          s.sendall(b"quit\n")
+          s.close()
+          PY
+          echo "QEMU reached KORONOS READY; this is a kernel boot smoke only, not target userspace acceptance."
+
+      - name: Preserve fail-closed production release status
+        if: always()
+        run: |
+          cat > build/native-iso/RELEASE-STATUS.txt <<'EOF'
+          ISO candidate build and payload checks are not production release acceptance.
+          Production Live/Installer/Recovery userspace handoff remains BLOCKED until
+          six independent BIOS/UEFI traces pass tests/migration/verify-userspace-handoff.py
+          with real CPL3-originated syscall acknowledgement and matching nonzero PID.
+          Aurora startup, installer write/reboot, recovery operations and SMP are separate gates.
+          This workflow does not publish a GitHub Release.
+          EOF
+
+      - name: Upload ISO candidate, checksum, boot report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: octavian-native-iso-candidate-${{ github.sha }}
+          path: |
+            build/native-iso/octavian-os-native-amd64.iso
+            build/native-iso/octavian-os-native-amd64.iso.sha256
+            build/native-iso/octavian-os-native-amd64.iso.boot-report.txt
+            build/native-iso/iso-boot-report.txt
+            build/native-iso/qemu-debugcon.log
+            build/native-iso/qemu.log
+            build/native-iso/qemu-serial.log
+            build/native-iso/RELEASE-STATUS.txt
+            build/native-iso/kernel-build.log
+            build/native-iso/live-boot-build.log
+          if-no-files-found: warn
+          retention-days: 30
