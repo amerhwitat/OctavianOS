@@ -1,9 +1,9 @@
 {
   "upstream_root": "/home/runner/work/OctavianOS/OctavianOS/chimera-source",
   "vendored_root": "/home/runner/work/OctavianOS/OctavianOS/chimera-source",
-  "upstream_revision": "483c9dcd15528e26a7360f2dd0d9c4e6879eb741",
-  "upstream_file_count": 2963,
-  "vendored_file_count": 2963,
+  "upstream_revision": "ae1ad195bda244b758da6e25f01e42661168f963",
+  "upstream_file_count": 2979,
+  "vendored_file_count": 2979,
   "missing_from_vendor": [],
   "extra_in_vendor": [],
   "different_content": [],
