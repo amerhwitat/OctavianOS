@@ -149,3 +149,17 @@ other formats are not native Koronos drivers.
 **Production remains BLOCKED.** The latest build, six same-ISO BIOS/UEFI target
 traces, actual desktop sessions, installation/recovery postconditions, and
 measured AP-backed SMP must all pass before any production release.
+
+## CI trace smoke classification — 25 November 2026
+
+The corrected native workflows require kernel-verified `KORONOS PID1 ACTIVE` trace evidence for Live, Installer and Recovery. A passing trace check is smoke evidence only; it does not clear the following independent gates.
+
+| Gate | Status |
+| --- | --- |
+| Kernel-owned persistent PID 1 and process supervision | Outstanding |
+| Persistent VFS and storage | Outstanding |
+| Installer/recovery transactions | Outstanding |
+| Complete native desktop sessions | Outstanding |
+| Production ISO acceptance and publication | BLOCKED |
+
+The prerelease job remains gated on an explicit production-acceptance output that this smoke classifier always sets to `false`. No GitHub Release upload is authorized by these CI changes.

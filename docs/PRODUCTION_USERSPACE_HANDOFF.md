@@ -151,3 +151,17 @@ OctavianOS PR [#81](https://github.com/amerhwitat/OctavianOS/pull/81) was merged
 **Production acceptance: FAIL / release blocked.** The same native build run's unchanged production verifier failed for Live, Installer, and Recovery because the final production ISO traces still lack the user-originated CPL3 init syscall acknowledgement and matching actual init PID readiness marker. The prerelease job was skipped. The standalone probes are not the actual production shell-based initramfs payload.
 
 Remaining independent gates: stage/select and execute the actual target-specific production init, prove Live init → Aurora, complete installation and reboot to the installed system, perform a real Recovery action, and demonstrate AP-backed concurrent SMP. Keep tests/migration/verify-userspace-handoff.py fail-closed; never synthesize readiness markers or publish a production release before those gates pass.
+
+## CI trace smoke classification — 25 November 2026
+
+The corrected native workflows require kernel-verified `KORONOS PID1 ACTIVE` trace evidence for Live, Installer and Recovery. A passing trace check is smoke evidence only; it does not clear the following independent gates.
+
+| Gate | Status |
+| --- | --- |
+| Kernel-owned persistent PID 1 and process supervision | Outstanding |
+| Persistent VFS and storage | Outstanding |
+| Installer/recovery transactions | Outstanding |
+| Complete native desktop sessions | Outstanding |
+| Production ISO acceptance and publication | BLOCKED |
+
+The prerelease job remains gated on an explicit production-acceptance output that this smoke classifier always sets to `false`. No GitHub Release upload is authorized by these CI changes.
