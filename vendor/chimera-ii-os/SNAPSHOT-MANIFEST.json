@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "source_repository": "https://github.com/amerhwitat/ChimeraIIOS",
-  "source_ref": "feat/koronos-newc-initramfs-parser-20261119",
-  "source_commit": "483c9dcd15528e26a7360f2dd0d9c4e6879eb741",
-  "snapshot_file_count": 2963,
+  "source_ref": "main",
+  "source_commit": "ae1ad195bda244b758da6e25f01e42661168f963",
+  "snapshot_file_count": 2979,
   "includes_media": true,
   "scope": "source snapshot; not yet a compiled or runtime-integrated port",
   "history_preserved": false
