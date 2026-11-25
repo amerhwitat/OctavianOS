@@ -17,11 +17,18 @@ class UserspaceReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log", self.text)
         self.assertIn("python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log", self.text)
 
-    def test_release_depends_on_all_three_userspace_gates(self):
+    def test_release_gate_stays_blocked_without_production_acceptance(self):
         section = self.text.split("  publish-native-iso:", 1)[1]
         self.assertIn("needs: [build-koronos, verify-userspace-handoff]", section)
-        self.assertIn("if: github.event_name == 'push' && github.ref == 'refs/heads/main'", section)
+        self.assertIn("needs.verify-userspace-handoff.outputs.production_runtime_accepted == 'true'", section)
         self.assertIn("Published only after Live, Installer, and Recovery userspace handoff gates pass.", section)
+
+    def test_trace_evidence_job_cannot_authorize_release(self):
+        section = self.text.split("  verify-userspace-handoff:", 1)[1]
+        section = section.split("  publish-native-iso:", 1)[0]
+        self.assertIn("production acceptance Outstanding", section)
+        self.assertIn('echo "production_runtime_accepted=false" >> "$GITHUB_OUTPUT"', section)
+        self.assertIn("| Production release | BLOCKED |", section)
 
     def test_build_uploads_each_real_target_trace(self):
         section = self.text.split("      - name: Upload Live, Installer, and Recovery QEMU traces", 1)[1]

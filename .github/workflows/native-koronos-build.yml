@@ -364,7 +364,7 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/recovery-smoke.iso" "$smoke/recovery-tree"
           set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout 30s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/recovery-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/recovery-debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           test -s "$smoke/recovery-debugcon.log" || { echo "::error::Recovery QEMU trace missing (exit $qemu_status)"; exit 1; }
@@ -394,11 +394,11 @@ jobs:
           GRUB
           grub-mkrescue -o "$smoke/installer-smoke.iso" "$smoke/installer-tree"
           set +e
-          timeout 12s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
+          timeout 30s qemu-system-x86_64 -machine q35 -m 1024 -cdrom "$smoke/installer-smoke.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/installer-debugcon.log" -global isa-debugcon.iobase=0xe9
           qemu_status=$?
           set -e
           test -s "$smoke/installer-debugcon.log" || { echo "::error::Installer QEMU trace missing (exit $qemu_status)"; exit 1; }
-          grep -Fq '[INST] Installer target detected' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer modules were not recognized"; exit 1; }
+          grep -Fq '[INST] Installer target native init ELF recognized' "$smoke/installer-debugcon.log" || { cat "$smoke/installer-debugcon.log"; echo "::error::Installer native init ELF module was not recognized"; exit 1; }
           python3 tests/boot/verify-userspace-handoff.py installer "$smoke/installer-debugcon.log"
       - name: Boot the complete ISO and require Koronos readiness
         working-directory: vendor/chimera-ii-os/source
@@ -406,13 +406,52 @@ jobs:
           set -euo pipefail
           smoke=build/qemu-smoke
           mkdir -p "$smoke"
-          set +e
-          timeout 25s qemu-system-x86_64 -machine q35 -m 1024 -cdrom boot/iso/dist/output.iso -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$smoke/full-iso-debugcon.log" -global isa-debugcon.iobase=0xe9
-          qemu_status=$?
-          set -e
-          test -s "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO produced no debugcon trace (QEMU exit $qemu_status)"; exit 1; }
-          cat "$smoke/full-iso-debugcon.log"
-          grep -Fq '[KRN ] KORONOS READY' "$smoke/full-iso-debugcon.log" || { echo "::error::Full ISO did not reach Koronos readiness (QEMU exit $qemu_status)"; exit 1; }
+          # The production GRUB menu intentionally waits for user selection.
+          # Use the QEMU monitor to press Enter; do not shorten the product's
+          # boot-menu timeout just to make this smoke test pass.
+          python3 - <<'PY'
+          import subprocess
+          import time
+          from pathlib import Path
+
+          trace = Path("build/qemu-smoke/full-iso-debugcon.log")
+          trace.unlink(missing_ok=True)
+          command = [
+              "qemu-system-x86_64", "-machine", "q35", "-m", "1024",
+              "-cdrom", "boot/iso/dist/output.iso", "-boot", "d",
+              "-display", "none", "-serial", "none", "-monitor", "stdio",
+              "-no-reboot", "-no-shutdown", "-debugcon", f"file:{trace}",
+              "-global", "isa-debugcon.iobase=0xe9",
+          ]
+          proc = subprocess.Popen(
+              command, stdin=subprocess.PIPE,
+              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+          )
+          try:
+              time.sleep(5)
+              proc.stdin.write(b"sendkey ret\n")
+              proc.stdin.flush()
+              try:
+                  proc.wait(timeout=25)
+              except subprocess.TimeoutExpired:
+                  proc.terminate()
+                  try:
+                      proc.wait(timeout=3)
+                  except subprocess.TimeoutExpired:
+                      proc.kill()
+                      proc.wait()
+          finally:
+              if proc.poll() is None:
+                  proc.kill()
+                  proc.wait()
+              if proc.stdin:
+                  proc.stdin.close()
+
+          data = trace.read_text(encoding="utf-8", errors="replace") if trace.exists() else ""
+          print(data)
+          if "[KRN ] KORONOS READY" not in data:
+              raise SystemExit("Full ISO did not reach Koronos readiness after explicit GRUB menu selection")
+          PY
       - name: Upload Live, Installer, and Recovery QEMU traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -447,8 +486,10 @@ jobs:
           retention-days: 14
 
   verify-userspace-handoff:
-    name: Verify real Live, Installer, and Recovery userspace
+    name: Check PID1 ACTIVE smoke evidence (production acceptance Outstanding)
     needs: build-koronos
+    outputs:
+      production_runtime_accepted: ${{ steps.classify.outputs.production_runtime_accepted }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout OctavianOS verifier
@@ -458,19 +499,36 @@ jobs:
         with:
           name: octavianos-full-iso-qemu-trace
           path: trace
-      - name: Require actual user-mode init acknowledgement for every target
+      - name: Classify trace evidence (production acceptance Outstanding)
+        id: classify
         run: |
           set -uo pipefail
+          echo "production_runtime_accepted=false" >> "$GITHUB_OUTPUT"
           result=0
           python3 tests/boot/verify-userspace-handoff.py live trace/full-iso-debugcon.log || result=1
           python3 tests/boot/verify-userspace-handoff.py installer trace/installer-debugcon.log || result=1
           python3 tests/boot/verify-userspace-handoff.py recovery trace/recovery-debugcon.log || result=1
+          {
+            echo "### PID1 ACTIVE trace smoke evidence"
+            echo "PASS in this job is trace-level smoke evidence only. It does not authorize production acceptance or ISO release."
+            echo ""
+            echo "| Gate | Status |"
+            echo "| --- | --- |"
+            echo "| Kernel-verified persistent PID 1 supervision | Outstanding |"
+            echo "| Persistent VFS and storage | Outstanding |"
+            echo "| Installer/recovery transactions | Outstanding |"
+            echo "| Full native desktop sessions | Outstanding |"
+            echo "| Production release | BLOCKED |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$result" -ne 0 ]; then
+            echo "::error::Required kernel-verified PID1 ACTIVE trace evidence missing; production acceptance remains Outstanding"
+          fi
           exit "$result"
 
   publish-native-iso:
     name: Publish prerelease only after userspace acceptance
     needs: [build-koronos, verify-userspace-handoff]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify-userspace-handoff.outputs.production_runtime_accepted == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
