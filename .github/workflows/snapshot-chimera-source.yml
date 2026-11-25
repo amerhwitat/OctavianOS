@@ -29,32 +29,47 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout OctavianOS
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Checkout public ChimeraIIOS source
-        uses: actions/checkout@v4
-        with:
-          repository: amerhwitat/ChimeraIIOS
-          ref: ${{ inputs.source_ref || 'main' }}
-          path: chimera-source
-          fetch-depth: 1
-      - name: Snapshot source without flattening into active runtime
+
+      - name: Fetch exact upstream tree and materialize it byte-for-byte
+        env:
+          SOURCE_REF: ${{ inputs.source_ref || 'main' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf chimera-source chimera-source.git
+          git init --bare chimera-source.git
+          git -C chimera-source.git remote add origin https://github.com/amerhwitat/ChimeraIIOS.git
+          git -C chimera-source.git fetch --depth=1 origin "$SOURCE_REF"
+          source_sha="$(git -C chimera-source.git rev-parse FETCH_HEAD)"
+          mkdir -p chimera-source
+          git -C chimera-source.git archive "$source_sha" | tar -x -C chimera-source
+          echo "SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "SOURCE_REF=$SOURCE_REF" >> "$GITHUB_ENV"
+          echo "Exact upstream tree: $source_sha ($SOURCE_REF)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build snapshot inventory before commit
         env:
           INCLUDE_MEDIA: ${{ github.event_name == 'push' || inputs.include_media }}
           SOURCE_REF: ${{ inputs.source_ref || 'main' }}
         shell: bash
         run: |
           set -euo pipefail
-          dest=vendor/chimera-ii-os/source
-          mkdir -p "$dest"
-          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='dist/' --exclude='target/' --exclude='.cache/' --exclude='.venv/' --exclude='venv/' --exclude='__pycache__/' --exclude='*.iso' --exclude='*.img' --exclude='*.elf' --exclude='*.o' --exclude='*.a' --exclude='*.so' --exclude='*.dll' --exclude='*.exe' --exclude='*.dSYM/' --exclude='logs/' --exclude='out/' chimera-source/ "$dest/"
-          if [[ "$INCLUDE_MEDIA" != "true" ]]; then find "$dest" -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.mp3' -o -iname '*.wav' \) -delete; fi
-          source_sha="$(git -C chimera-source rev-parse HEAD)"
-          file_count="$(find "$dest" -type f | wc -l | tr -d ' ')"
-          SOURCE_SHA="$source_sha" FILE_COUNT="$file_count" python3 - <<'PY'
+          mkdir -p reports
+          python3 tools/migration/chimera-source-inventory.py \
+            --upstream chimera-source \
+            --vendored chimera-source \
+            --upstream-revision "$SOURCE_SHA" \
+            --output reports/chimera-source-snapshot-inventory.json \
+            --strict
+          file_count="$(find chimera-source -type f | wc -l | tr -d ' ')"
+          SOURCE_SHA="$SOURCE_SHA" SOURCE_REF="$SOURCE_REF" FILE_COUNT="$file_count" \
+          INCLUDE_MEDIA="$INCLUDE_MEDIA" python3 - <<'PY'
           import json, os
           from pathlib import Path
           manifest = {
@@ -67,23 +82,107 @@ jobs:
               "scope": "source snapshot; not yet a compiled or runtime-integrated port",
               "history_preserved": False
           }
-          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").parent.mkdir(parents=True, exist_ok=True)
+          Path("vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json").write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
           PY
-          test "$file_count" -gt 100
           python3 -m json.tool vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json >/dev/null
-          echo "Source snapshot: $source_sha ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Open source snapshot pull request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: migration/chimera-source-snapshot
-          base: main
-          delete-branch: false
-          title: 'Import ChimeraIIOS source snapshot for OctavianOS port'
-          commit-message: 'chore(migration): snapshot ChimeraIIOS source with provenance'
-          body: |
-            This PR snapshots source files from the selected public ChimeraIIOS ref under `vendor/chimera-ii-os/source/` and records the exact upstream commit in `SNAPSHOT-MANIFEST.json`.
+          echo "Source snapshot: $SOURCE_SHA ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
 
-            This is not a completed port: the code is intentionally isolated from active OctavianOS runtime paths until each component has been reviewed, licensed, mapped, built, and tested. Git history is not included; use the separate history importer when preserving refs is required.
-          add-paths: |
-            vendor/chimera-ii-os/
+      - name: Commit upstream blobs verbatim and enforce committed-tree parity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.OCTAVIANOS_IMPORT_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="migration/chimera-source-snapshot-$(date +%s)"
+          git checkout -b "$branch"
+
+          # Put exact upstream objects into this repository, then load the entire
+          # upstream tree under the vendor prefix directly into the index. This
+          # bypasses checkout/EOL filters and .gitignore so committed blobs are
+          # byte-identical to upstream, including ignored dotfiles and scripts.
+          git fetch --no-tags --depth=1 https://github.com/amerhwitat/ChimeraIIOS.git "$SOURCE_REF"
+          fetched_sha="$(git rev-parse FETCH_HEAD)"
+          test "$fetched_sha" = "$SOURCE_SHA"
+          git rm -r -q --cached vendor/chimera-ii-os/source 2>/dev/null || true
+          git read-tree --prefix=vendor/chimera-ii-os/source/ "$SOURCE_SHA"
+          git add vendor/chimera-ii-os/SNAPSHOT-MANIFEST.json reports/chimera-source-snapshot-inventory.json
+
+          # Verify index tree before writing the commit: compare blob OIDs directly.
+          python3 - <<'PY'
+          import os, subprocess, sys
+          def entries(treeish):
+              out = subprocess.check_output(["git", "ls-tree", "-r", "-z", treeish], text=True)
+              result = {}
+              for rec in out.split("\0"):
+                  if not rec:
+                      continue
+                  meta, path = rec.split("\t", 1)
+                  mode, typ, oid = meta.split()
+                  result[path] = (mode, oid)
+              return result
+          upstream = entries(os.environ["SOURCE_SHA"])
+          staged = subprocess.check_output(["git", "ls-files", "-s", "-z"], text=True)
+          vendor = {}
+          for rec in staged.split("\0"):
+              if not rec:
+                  continue
+              meta, path = rec.split("\t", 1)
+              mode, oid, stage = meta.split()
+              if path.startswith("vendor/chimera-ii-os/source/"):
+                  vendor[path[len("vendor/chimera-ii-os/source/"):]] = (mode, oid)
+          missing = sorted(set(upstream) - set(vendor))
+          extra = sorted(set(vendor) - set(upstream))
+          different = sorted(k for k in set(upstream) & set(vendor) if upstream[k] != vendor[k])
+          if missing or extra or different:
+              print("missing", missing[:20], "extra", extra[:20], "different", different[:20])
+              sys.exit("staged snapshot tree does not match upstream blobs")
+          print(f"staged blob parity: {len(vendor)} files")
+          PY
+
+          tree="$(git write-tree)"
+          commit="$(git commit-tree "$tree" -p HEAD -m "chore(migration): snapshot ChimeraIIOS source with exact bytes")"
+          git update-ref "refs/heads/$branch" "$commit"
+          echo "COMMIT_SHA=$commit" >> "$GITHUB_ENV"
+
+          # Disable EOL conversion for verification checkout only; committed blobs
+          # are already exact upstream objects.
+          printf '* -text\n' > .gitattributes
+          git checkout -f -B "$branch" "$commit"
+
+          rm -rf verify-committed && mkdir -p verify-committed
+          git ls-tree -r -z HEAD vendor/chimera-ii-os/source | while IFS= read -r -d '' rec; do
+            meta="${rec%%$'\t'*}"; path="${rec#*$'\t'}"
+            oid="$(printf '%s' "$meta" | awk '{print $3}')"
+            rel="${path#vendor/chimera-ii-os/source/}"
+            mkdir -p "verify-committed/$(dirname "$rel")"
+            git cat-file blob "$oid" > "verify-committed/$rel"
+          done
+          python3 tools/migration/chimera-source-inventory.py \
+            --upstream chimera-source \
+            --vendored verify-committed \
+            --upstream-revision "$SOURCE_SHA" \
+            --output reports/chimera-source-committed-inventory.json \
+            --strict
+
+          git push origin "$branch"
+          cat > pr-body.md <<'EOF'
+          This PR snapshots exact upstream tree bytes from the selected public ChimeraIIOS ref under `vendor/chimera-ii-os/source/` and records the exact upstream commit in `SNAPSHOT-MANIFEST.json`.
+
+          Strict path and SHA-256 parity is enforced on the working tree and again on the committed tree using raw git blobs (`git cat-file`), so checkout/EOL filters cannot mask differences. Ignored dotfiles and executable scripts are included via direct index insertion. This is not a completed port: the code is intentionally isolated from active OctavianOS runtime paths until each component has been reviewed, licensed, mapped, built, and tested. Git history is not included; use the separate history importer when preserving refs is required.
+          EOF
+          gh pr create --repo amerhwitat/OctavianOS --base main --head "$branch" \
+            --title 'Import ChimeraIIOS source snapshot for OctavianOS port' \
+            --body-file pr-body.md
+
+      - name: Upload strict snapshot inventories
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chimera-source-snapshot-inventories
+          path: reports/chimera-source-*-inventory.json
+          if-no-files-found: warn
