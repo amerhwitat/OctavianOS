@@ -61,7 +61,7 @@ jobs:
           echo "Verified exact upstream revision: $recorded"
           {
             echo "### ChimeraIIOS source snapshot"
-            echo "- Exact upstream commit: `$recorded`"
+            printf '%s\n' '- Exact upstream commit: `%s`' "$recorded"
             echo "- Snapshot inventory: strict SHA-256/path parity"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Set up Python
