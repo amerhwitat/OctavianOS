@@ -100,13 +100,22 @@ jobs:
         run: python tests/migration/test_chimera_source_inventory.py
       - name: Record upstream source revision
         run: echo "UPSTREAM_REVISION=$(git -C upstream-chimera rev-parse HEAD)" >> "$GITHUB_ENV"
-      - name: Compare upstream paths and file content hashes
+      - name: Require vendored revision to match current upstream
+        run: |
+          expected="$UPSTREAM_REVISION"
+          recorded="$(cat vendor/chimera-ii-os/UPSTREAM_REVISION)"
+          test "$recorded" = "$expected" || {
+            echo "::error::Vendored revision $recorded does not match current upstream $expected"
+            exit 1
+          }
+      - name: Compare upstream paths and file content hashes (strict)
         run: |
           python tools/migration/chimera-source-inventory.py \
             --upstream upstream-chimera \
             --vendored vendor/chimera-ii-os/source \
             --upstream-revision "$UPSTREAM_REVISION" \
-            --output reports/chimera-source-inventory.json
+            --output reports/chimera-source-inventory.json \
+            --strict
       - name: Publish inventory report
         if: always()
         uses: actions/upload-artifact@v4
