@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
-      iso_sha: \${{ steps.iso_hash.outputs.iso_sha }}
+      iso_sha: ${{ steps.iso_hash.outputs.iso_sha }}
     steps:
       - uses: actions/checkout@v4
       - name: Install kernel, ISO and initramfs tools
@@ -166,7 +166,7 @@ jobs:
           retention-days: 7
 
   userspace:
-    name: \${{ matrix.target }} / \${{ matrix.firmware }} — shared ISO
+    name: ${{ matrix.target }} / ${{ matrix.firmware }} — shared ISO
     needs: build-candidate
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -176,9 +176,9 @@ jobs:
         target: [live, installer, recovery]
         firmware: [bios, uefi]
     env:
-      TARGET: \${{ matrix.target }}
-      FIRMWARE: \${{ matrix.firmware }}
-      EXPECTED_ISO_SHA: \${{ needs.build-candidate.outputs.iso_sha }}
+      TARGET: ${{ matrix.target }}
+      FIRMWARE: ${{ matrix.firmware }}
+      EXPECTED_ISO_SHA: ${{ needs.build-candidate.outputs.iso_sha }}
     steps:
       - uses: actions/checkout@v4
       - name: Install QEMU and firmware
@@ -189,7 +189,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: koronos-native-acceptance-iso
-          path: \${{ runner.temp }}/koronos-iso
+          path: ${{ runner.temp }}/koronos-iso
       - name: Verify identical ISO SHA-256
         run: |
           set -euo pipefail
@@ -239,7 +239,7 @@ jobs:
             if [ -n "$QEMU_PID" ]; then wait "$QEMU_PID" 2>/dev/null || true; fi
           }
           trap cleanup EXIT
-          "\${QEMU[@]}" &
+          "${QEMU[@]}" &
           QEMU_PID=$!
           python3 - "$MONITOR" "$TARGET_INDEX" <<'PY'
           import socket, sys, time
@@ -321,8 +321,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: userspace-$\{{ matrix.target }}-$\{{ matrix.firmware }}-logs
-          path: \${{ runner.temp }}/koronos-*.log
+          name: userspace-${{ matrix.target }}-${{ matrix.firmware }}-logs
+          path: ${{ runner.temp }}/koronos-*.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -332,7 +332,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_ISO_SHA: \${{ needs.build-candidate.outputs.iso_sha }}
+      EXPECTED_ISO_SHA: ${{ needs.build-candidate.outputs.iso_sha }}
     steps:
       - uses: actions/checkout@v4
       - name: Install QEMU
@@ -343,7 +343,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: koronos-native-acceptance-iso
-          path: \${{ runner.temp }}/koronos-iso
+          path: ${{ runner.temp }}/koronos-iso
       - name: Select the visible timeout probe entry
         run: |
           set -euo pipefail
@@ -412,6 +412,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: koronos-timeout-probe-log
-          path: \${{ runner.temp }}/koronos-timeout.log
+          path: ${{ runner.temp }}/koronos-timeout.log
           if-no-files-found: warn
           retention-days: 7
