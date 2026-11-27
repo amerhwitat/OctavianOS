@@ -9,7 +9,7 @@ constexpr ArchitectureProfile kArch[]={{"x86_64","x86",false,true,64,"x86"},{"x8
 #undef F
 const FeatureDescriptor* feature_table(std::size_t& n) noexcept {n=sizeof(kFeatures)/sizeof(kFeatures[0]);return kFeatures;}
 const ArchitectureProfile* architecture_table(std::size_t& n) noexcept {n=sizeof(kArch)/sizeof(kArch[0]);return kArch;}
-bool supports(Feature) noexcept{return true;}
+bool supports(Feature) noexcept{return false;}
 std::string_view feature_name(Feature f) noexcept {std::size_t n=0;auto*t=feature_table(n);for(std::size_t i=0;i<n;++i)if(t[i].id==f)return t[i].name;return {};}
-CompatibilityReport identify() noexcept {std::size_t f=0,a=0;feature_table(f);architecture_table(a);return {1,f,f,a,true,true,true,true,true,true,true,true};}
+CompatibilityReport identify() noexcept {std::size_t f=0,a=0;feature_table(f);architecture_table(a);return {1,f,0,a,false,false,false,false,false,false,false,false};}
 }
