@@ -72,6 +72,16 @@ jobs:
           bash -n vendor/chimera-ii-os/source/tools/build/build-toolchains.sh
           bash -n vendor/chimera-ii-os/source/tools/build/build_all_editions.sh
           bash -n vendor/chimera-ii-os/source/tools/build/create-bootable-iso.sh
+      - name: Compile and run vendored Linux compatibility fail-closed test
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I vendor/chimera-ii-os/source/include \
+            vendor/chimera-ii-os/source/src/kernel/linux_compat.cpp \
+            vendor/chimera-ii-os/source/tests/unit/test_linux_compatibility.cpp \
+            -o build/chimera-linux-compatibility-test
+          build/chimera-linux-compatibility-test
       - name: Configure the vendored native toolchain
         run: cmake -S vendor/chimera-ii-os/source/tools/chimera-toolchain -B build/chimera-native-toolchain
       - name: Record scope boundary
