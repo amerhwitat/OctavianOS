@@ -8,6 +8,9 @@ on:
       - 'vendor/chimera-ii-os/source/boot/iso/**'
       - 'vendor/chimera-ii-os/source/boot/jasper/**'
       - 'vendor/chimera-ii-os/source/kernel/targets/**'
+      - 'vendor/chimera-ii-os/source/tools/build-live-boot-binaries.sh'
+      - 'vendor/chimera-ii-os/source/tools/chimera-stage-installer-media.sh'
+      - 'vendor/chimera-ii-os/source/tools/boot/**'
       - 'vendor/chimera-ii-os/source/tests/boot/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
   push:
@@ -66,7 +69,6 @@ jobs:
           cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
           cp build/live-boot/boot/live/chimera-live-initramfs.cpio "$ISO_ROOT/boot/live/"
           cp build/live-boot/boot/recovery/chimera-recovery-initramfs.cpio "$ISO_ROOT/boot/recovery/"
-          cp "$ISO_ROOT/install/installer/installation.cpio" "$ISO_ROOT/install/installer/installation.cpio"
           cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
           set timeout=0
           set default=0
