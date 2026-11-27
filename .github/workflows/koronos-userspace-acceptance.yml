@@ -138,7 +138,7 @@ jobs:
           ROOT="$PWD"
           OUT="$ROOT/build/userspace-acceptance/timeout"
           ISO_ROOT="$OUT/iso"
-          mkdir -p "$ISO_ROOT/boot/grub"
+          mkdir -p "$ISO_ROOT/boot/grub" "$ISO_ROOT/boot/live"
           cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
           cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
           cp build/live-boot/boot/live/chimera-live-initramfs.cpio "$ISO_ROOT/boot/live/chimera-live-initramfs.cpio"
