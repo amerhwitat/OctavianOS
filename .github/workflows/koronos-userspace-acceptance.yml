@@ -1,158 +1,329 @@
-name: Koronos Userspace Acceptance
+name: Koronos Immutable ISO Probe and SMP Gate
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - 'vendor/chimera-ii-os/source/kernel/**'
-      - 'vendor/chimera-ii-os/source/boot/iso/**'
-      - 'vendor/chimera-ii-os/source/boot/jasper/**'
-      - 'vendor/chimera-ii-os/source/kernel/targets/**'
-      - 'vendor/chimera-ii-os/source/tests/boot/**'
-      - '.github/workflows/koronos-userspace-acceptance.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'vendor/chimera-ii-os/source/kernel/**'
+      - 'vendor/chimera-ii-os/source/boot/**'
+      - 'vendor/chimera-ii-os/source/iso/**'
+      - 'vendor/chimera-ii-os/source/tools/**'
+      - 'vendor/chimera-ii-os/source/desktop/aurora/**'
       - '.github/workflows/koronos-userspace-acceptance.yml'
 
 permissions:
   contents: read
 
 jobs:
-  userspace:
-    name: ${{ matrix.target }} / ${{ matrix.firmware }}
+  immutable-iso:
+    name: One ISO / six BIOS-UEFI target boots / two-vCPU SMP
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [live, installer, recovery]
-        firmware: [bios, uefi]
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install kernel, ISO and QEMU tools
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          sudo apt-get update
-          sudo apt-get install -y nasm gcc g++ binutils grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools qemu-system-x86 ovmf
-      - name: Build Koronos and high-address userspace probes
-        run: cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source" && bash kernel/build-koronos.sh
-      - name: Test Live and Recovery Multiboot2 module classification
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -euo pipefail
-          g++ -std=c++17 -Wall -Wextra -Werror -Ikernel/include \
-            kernel/tests/multiboot_modules_test.cpp kernel/core/multiboot_modules.cpp \
-            -o /tmp/koronos-multiboot-modules-test
-          /tmp/koronos-multiboot-modules-test
-      - name: Build target-specific BIOS/UEFI ISO
-        env:
-          TARGET: ${{ matrix.target }}
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -euo pipefail
-          ROOT="$PWD"
-          OUT="$ROOT/build/userspace-acceptance/$TARGET"
-          ISO_ROOT="$OUT/iso"
-          mkdir -p "$ISO_ROOT/boot/grub"
-          cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp "build/koronos/x86_64/target-init-$TARGET.elf" "$ISO_ROOT/boot/target-init-$TARGET.elf"
-          cat > "$ISO_ROOT/boot/grub/grub.cfg" <<EOF
-          set timeout=0
-          set default=0
-          terminal_output console
-          menuentry "Koronos $TARGET userspace acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/target-init-$TARGET.elf chimera-user-init-elf target=$TARGET
-            boot
-          }
-          EOF
-          grub-mkrescue -o "$OUT/koronos-$TARGET.iso" "$ISO_ROOT"
-          test -s "$OUT/koronos-$TARGET.iso"
-      - name: Boot and require userspace-originated readiness
-        env:
-          TARGET: ${{ matrix.target }}
-          FIRMWARE: ${{ matrix.firmware }}
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -uo pipefail
-          OUT="$PWD/build/userspace-acceptance/$TARGET"
-          LOG="$OUT/qemu-$FIRMWARE.log"
-          QEMU=(qemu-system-x86_64 -m 512M -cdrom "$OUT/koronos-$TARGET.iso" -boot d -display none -serial none -monitor none -no-reboot -no-shutdown -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9)
-          if [ "$FIRMWARE" = uefi ]; then
-            OVMF_CODE=""
-            OVMF_VARS=""
-            for candidate in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
-              if [ -f "$candidate" ]; then
-                vars_candidate="${candidate/CODE/VARS}"
-                if [ -f "$vars_candidate" ]; then OVMF_CODE="$candidate"; OVMF_VARS="$vars_candidate"; break; fi
-              fi
-            done
-            if [ -z "$OVMF_CODE" ] || [ -z "$OVMF_VARS" ]; then
-              echo "ERROR: matching OVMF code/vars images were not installed" >&2
-              find /usr/share -iname 'OVMF_*.fd' -print >&2 || true
-              exit 1
-            fi
-            cp "$OVMF_VARS" "$OUT/OVMF_VARS.fd"
-            QEMU+=(-drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF_CODE"
-                   -drive "if=pflash,format=raw,unit=1,file=$OUT/OVMF_VARS.fd")
-          fi
-          set +e
-          timeout 18s "${QEMU[@]}"
-          qemu_rc=$?
-          set -e
-          # A healthy test init exits to the kernel, which then idles. Timeout
-          # is therefore expected; the marker and clean-exit diagnostics are the
-          # acceptance evidence, not the QEMU process exit code. Always print the
-          # complete trace before assertions so failures can be debugged from CI.
-          if [ -f "$LOG" ]; then cat "$LOG"; else echo "ERROR: no debugcon trace at $LOG"; fi
-          grep -Fq "[KRN ] KORONOS READY" "$LOG"
-          # The target ELF must itself originate the syscall and readiness markers.
-          python3 tests/boot/verify-userspace-handoff.py "$TARGET" "$LOG"
-          grep -Fq "USERSPACE SYSCALL RETURNED TO RING3" "$LOG"
-          echo "Candidate ring-3 launch smoke passed target=$TARGET firmware=$FIRMWARE qemu_exit=$qemu_rc (production payload acceptance remains separate)"
-      - name: Prove in-kernel timeout aborts a non-returning ring-3 process
-        if: matrix.firmware == 'bios'
-        run: |
-          cd "$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
-          set -euo pipefail
-          ROOT="$PWD"
-          OUT="$ROOT/build/userspace-acceptance/timeout"
-          ISO_ROOT="$OUT/iso"
-          mkdir -p "$ISO_ROOT/boot/grub"
-          cp build/koronos/x86_64/koronos.elf "$ISO_ROOT/boot/koronos.elf"
-          cp build/koronos/x86_64/user-init-timeout.elf "$ISO_ROOT/boot/user-init-timeout.elf"
-          cat > "$ISO_ROOT/boot/grub/grub.cfg" <<'EOF'
-          set timeout=0
-          set default=0
-          terminal_output console
-          menuentry "Koronos in-kernel timeout acceptance" {
-            multiboot2 /boot/koronos.elf
-            module2 /boot/user-init-timeout.elf chimera-user-init-elf target=live
-            boot
-          }
-          EOF
-          grub-mkrescue -o "$OUT/koronos-timeout.iso" "$ISO_ROOT"
-          LOG="$OUT/qemu-timeout.log"
-          set +e
-          timeout 15s qemu-system-x86_64 -machine pc -m 512M -cdrom "$OUT/koronos-timeout.iso" -boot d \
-            -display none -serial none -monitor none -no-reboot -no-shutdown \
-            -debugcon "file:$LOG" -global isa-debugcon.iobase=0xe9
-          qemu_rc=$?
-          set -e
-          cat "$LOG"
-          grep -Fq "[RUN ] Dispatching selected user init through CR3 + ring-3 entry with 10s kernel deadline" "$LOG"
-          grep -Fq "[RUN ] ERROR: in-kernel PIT deadline expired; user process aborted and address space will be reclaimed" "$LOG"
-          ! grep -Fq "USERSPACE READY: live" "$LOG"
-          echo "Accepted in-kernel non-cooperative timeout (outer QEMU exit=$qemu_rc)"
 
-      - name: Upload boot diagnostics
+      - name: Install native build, ISO, QEMU and firmware tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential nasm binutils \
+            grub-common grub-pc-bin grub-efi-amd64-bin xorriso mtools \
+            busybox cpio gzip qemu-system-x86 ovmf python3
+          OVMF_PATH=""
+          for candidate in /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF.fd /usr/share/qemu/OVMF.fd; do
+            if [[ -s "$candidate" ]]; then OVMF_PATH="$candidate"; break; fi
+          done
+          test -n "$OVMF_PATH"
+          echo "OVMF_PATH=$OVMF_PATH" >> "$GITHUB_ENV"
+          echo "OVMF_VERSION=$(dpkg-query -W -f='\${Version}' ovmf)" >> "$GITHUB_ENV"
+          qemu-system-x86_64 --version
+          QEMU_VERSION="$(qemu-system-x86_64 --version | awk 'NR == 1 { print $4 }')"
+          python3 - "$QEMU_VERSION" <<'PY'
+          import sys
+          version = tuple(int(part) for part in sys.argv[1].split(".")[:3])
+          if version < (10, 2, 1):
+              raise SystemExit(f"QEMU {sys.argv[1]} is too old for the x2APIC acceptance gate; require >=10.2.1")
+          print(f"QEMU_VERSION_GATE=PASS ({sys.argv[1]})")
+          PY
+
+      - name: Apply and verify downstream interactive boot-menu policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          python3 - "$ROOT" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          boot = root / "boot"
+          required = [
+              boot / "iso/grub.cfg",
+              boot / "loader-menu.cfg",
+              boot / "jasper/jasper.cfg",
+              boot / "spitfire/spitfire-menu.cfg",
+          ]
+          for path in required:
+              if not path.is_file():
+                  raise SystemExit(f"missing required boot menu: {path}")
+
+          candidates = sorted(p for p in boot.rglob("*.cfg") if p.is_file())
+          changed = []
+          for path in candidates:
+              original = path.read_text(encoding="utf-8")
+              if "menuentry" not in original and not re.search(r"(?m)^\s*set\s+timeout(?:_style)?\s*=", original):
+                  continue
+              body = [
+                  line for line in original.splitlines()
+                  if not re.match(r"^\s*set\s+timeout(?:_style)?\s*=", line)
+              ]
+              updated = (
+                  "# Octavian downstream acceptance policy: visible menu; key input cancels countdown.\n"
+                  "set timeout=120\n"
+                  "set timeout_style=menu\n"
+                  + "\n".join(body) + "\n"
+              )
+              path.write_text(updated, encoding="utf-8")
+              lines = updated.splitlines()
+              if lines.count("set timeout=120") != 1 or lines.count("set timeout_style=menu") != 1:
+                  raise SystemExit(f"menu policy did not normalize exactly once: {path}")
+              changed.append(path.relative_to(root).as_posix())
+
+          for path in required:
+              text = path.read_text(encoding="utf-8")
+              if "set timeout=120" not in text or "set timeout_style=menu" not in text:
+                  raise SystemExit(f"required menu policy missing after overlay: {path}")
+
+          contract_path = boot / "boot-menu-contract.json"
+          gates_path = root / "desktop/aurora/gates_menu.json"
+          contract = json.loads(contract_path.read_text(encoding="utf-8"))
+          gates = json.loads(gates_path.read_text(encoding="utf-8"))
+          contract["menu_input_grace_seconds"] = 300
+          contract["auto_select_default_after_seconds"] = None
+          contract["timeout_action"] = "return_to_open_menu"
+          contract["auto_activate_default"] = False
+          contract["selection_requires_explicit_confirmation"] = True
+          gates_contract = gates["boot_contract"]
+          gates_contract["input_grace_seconds"] = 300
+          gates_contract["auto_boot_default_after_seconds"] = None
+          gates_contract["timeout_action"] = "return_to_open_menu"
+          gates_contract["auto_activate_default"] = False
+          gates_contract["selection_requires_explicit_confirmation"] = True
+          contract_path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+          gates_path.write_text(json.dumps(gates, indent=2) + "\n", encoding="utf-8")
+
+          # The current vendor source has declarative Gates fields but no known
+          # executable consumer. Report that limitation; do not call this runtime proof.
+          consumers = []
+          for path in root.rglob("*"):
+              if not path.is_file() or path.suffix not in {".c", ".cc", ".cpp", ".h", ".hpp", ".py", ".js", ".ts"}:
+                  continue
+              try:
+                  if "auto_boot_default_after_seconds" in path.read_text(encoding="utf-8", errors="ignore"):
+                      consumers.append(path.relative_to(root).as_posix())
+              except OSError:
+                  pass
+          print(f"BOOT_MENU_FILES_NORMALIZED={len(changed)}")
+          print("BOOT_MENU_FILES=" + ",".join(changed))
+          print("GATES_INPUT_GRACE_SECONDS=300")
+          print("GATES_AUTO_ACTIVATE_DEFAULT=False")
+          print("GATES_TIMEOUT_ACTION=return_to_open_menu")
+          print("GATES_RUNTIME_CONSUMERS=" + (",".join(consumers) if consumers else "NONE_FOUND"))
+          if not consumers:
+              print("::warning::Gates policy is declarative only; no runtime consumer was found in the vendored source.")
+          PY
+
+      - name: Build Koronos and one hybrid BIOS-UEFI ISO
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          OUT="$GITHUB_WORKSPACE/build/koronos-release-matrix"
+          ISO="$OUT/chimera-candidate.iso"
+          mkdir -p "$OUT"
+          bash "$ROOT/kernel/build-koronos.sh"
+          CHIMERA_AUTO_INSTALL_DEPS=0 \
+          CHIMERA_KERNEL="$ROOT/build/koronos/x86_64/koronos.elf" \
+          CHIMERA_OUTPUT_ISO="$ISO" \
+            bash "$ROOT/iso/chimera-live-iso.sh"
+          test -s "$ISO"
+          sha256sum "$ISO" | tee "$OUT/iso.sha256"
+          for target in live installer recovery; do
+            manifest="$ROOT/build/live-boot/boot/targets/target-init-$target.manifest.json"
+            if [[ ! -s "$manifest" ]]; then
+              manifest="$ROOT/build/chimera-live/iso-root/boot/targets/target-init-$target.manifest.json"
+            fi
+            test -s "$manifest"
+            python3 - "$manifest" "$target" <<'PY'
+          import json, sys
+          from pathlib import Path
+          doc = json.loads(Path(sys.argv[1]).read_text())
+          target = sys.argv[2]
+          assert doc["target"] == target
+          assert doc["payload_kind"] == "ring3-readiness-probe"
+          assert doc["production_ready"] is False
+          print(f"{target}: CPL3 handoff artifact remains explicitly probe-only")
+          PY
+          done
+
+      - name: Run six cases against the same ISO with real two-vCPU QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/vendor/chimera-ii-os/source"
+          OUT="$GITHUB_WORKSPACE/build/koronos-release-matrix"
+          ISO="$OUT/chimera-candidate.iso"
+          MATRIX="$OUT/cases"
+          SOURCE_RUNNER="$ROOT/tools/runtime/check-release-firmware-matrix.py"
+          RUNNER="$OUT/check-release-firmware-matrix-smp.py"
+          test -s "$OVMF_PATH"
+          python3 - "$SOURCE_RUNNER" "$RUNNER" <<'PY'
+          import sys
+          from pathlib import Path
+
+          source = Path(sys.argv[1]).read_text(encoding="utf-8")
+          qemu_old = '            "-smp", "1",\n'
+          qemu_new = (
+              '            "-machine", "pc",\n'
+              '            "-cpu", "max",\n'
+              '            "-smp", "2",\n'
+          )
+          if source.count(qemu_old) != 1:
+              raise SystemExit("expected exactly one single-vCPU QEMU argument block")
+          source = source.replace(qemu_old, qemu_new, 1)
+
+          # The native-stack gate enumerates legacy virtio-blk PCI (0x1AF4:0x1001).
+          # The previous -hda fixture exposed IDE instead, so the kernel correctly
+          # reported "no virtio-blk device" while this workflow ignored that failure.
+          qemu_disk_old = '            "-hda", str(disk),\n'
+          qemu_disk_new = (
+              '            "-drive", f"file={disk},if=none,format=raw,id=koronos-disk",\n'
+              '            "-device", "virtio-blk-pci,drive=koronos-disk,disable-modern=on",\n'
+          )
+          if source.count(qemu_disk_old) != 1:
+              raise SystemExit("expected exactly one IDE disk fixture to replace with legacy virtio-blk")
+          source = source.replace(qemu_disk_old, qemu_disk_new, 1)
+
+          menu_old = '                wait_for(serial_trace, ["Live Aurora / Koronos"], 90)\n'
+          menu_new = (
+              menu_old
+              + '                time.sleep(2)\n'
+              + '                if "[KRN ] KORONOS READY" in read_text(kernel_trace):\n'
+              + '                    raise RuntimeError("kernel advanced before explicit menu selection")\n'
+          )
+          if source.count(menu_old) != 1:
+              raise SystemExit("expected exactly one interactive GRUB menu wait")
+          source = source.replace(menu_old, menu_new, 1)
+          Path(sys.argv[2]).write_text(source, encoding="utf-8")
+          compile(source, sys.argv[2], "exec")
+          print("QEMU policy: machine=pc cpu=max smp=2")
+          print("QEMU disk policy: legacy virtio-blk PCI; no IDE-only -hda fixture")
+          print("GRUB policy: wait for visible menu; send explicit QMP key before kernel boot")
+          PY
+
+          set +e
+          python3 "$RUNNER" \
+            --iso "$ISO" \
+            --ovmf "$OVMF_PATH" \
+            --work "$MATRIX" \
+            --verifier "$ROOT/tests/boot/verify-userspace-handoff.py" \
+            --ovmf-version "$OVMF_VERSION"
+          runner_rc=$?
+          set -e
+
+          python3 - "$MATRIX/summary.json" "$ISO" "$runner_rc" <<'PY'
+          import hashlib
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          summary_path, iso_path, runner_rc = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
+          if not summary_path.is_file():
+              raise SystemExit("six-case runner did not produce summary.json")
+          summary = json.loads(summary_path.read_text(encoding="utf-8"))
+          iso_sha = hashlib.sha256(iso_path.read_bytes()).hexdigest()
+          expected = {
+              "live-bios", "installer-bios", "recovery-bios",
+              "live-uefi", "installer-uefi", "recovery-uefi",
+          }
+          cases = {case["case"]: case for case in summary.get("cases", [])}
+          failures = []
+          if set(cases) != expected:
+              failures.append(f"case set mismatch: {sorted(cases)}")
+          if summary.get("iso_sha256") != iso_sha:
+              failures.append("summary ISO SHA does not match the built candidate")
+          for name in sorted(expected & set(cases)):
+              case = cases[name]
+              trace_path = Path(case["kernel_trace"])
+              trace = trace_path.read_text(encoding="utf-8", errors="replace") if trace_path.is_file() else ""
+              command = case.get("qemu_command", "")
+              if case.get("iso_sha256") != iso_sha:
+                  failures.append(f"{name}: ISO SHA differs")
+              for flag in ("-machine pc", "-cpu max", "-smp 2"):
+                  if flag not in command:
+                      failures.append(f"{name}: QEMU command missing {flag}")
+              if "-hda" in command or "virtio-blk-pci" not in command:
+                  failures.append(f"{name}: QEMU disk is not attached through legacy virtio-blk PCI")
+              required = [
+                  "[PMT ] SELFTEST PASS",
+                  "[SMP ] SELFTEST PASS",
+                  "[SMP ] Native x86_64 AP startup/two-CPU overlap gate passed",
+                  "[SMP ] ap_online=1",
+                  "[SMP ] overlap_samples=256",
+                  "[SMP ] ap_saw_bsp_rounds=256",
+                  "[SMP ] tsc_overlap=1",
+                  "[NST ] SELFTEST PASS",
+                  "[NST ] PERSIST WRITE PASS",
+                  "[NST ] PERSIST READ PASS",
+                  "[NST ] Native block/VFS/PID1 gate passed",
+                  f"USER INIT SYSCALL: target={case['target']}",
+                  f"USERSPACE READY: target={case['target']}",
+              ]
+              for token in required:
+                  if token not in trace:
+                      failures.append(f"{name}: missing {token}")
+              for token in ("[NST ] SELFTEST FAIL", "[NST ] Native block/VFS/PID1 gate FAILED"):
+                  if token in trace:
+                      failures.append(f"{name}: observed fail-closed native-stack failure: {token}")
+              verifier = case.get("handoff_verifier", {})
+              if verifier.get("returncode") != 0:
+                  failures.append(f"{name}: CPL3/PID handoff verifier failed")
+              if case.get("status") != "PASS":
+                  failures.append(f"{name}: handoff runner status={case.get('status')} ({case.get('failure')})")
+              match = re.search(r"(?m)^\[SMP \] overlap_samples=(\d+)$", trace)
+              if match and int(match.group(1)) != 256:
+                  failures.append(f"{name}: measured overlap={match.group(1)}, expected 256")
+              print(f"{name}: status={case.get('status')} iso_sha={case.get('iso_sha256')} "
+                    f"ap_overlap={'256' if '[SMP ] overlap_samples=256' in trace else 'MISSING'} "
+                    f"native_stack={'PASS' if '[NST ] SELFTEST PASS' in trace else 'MISSING'} "
+                    f"handoff_verifier={verifier.get('returncode')}")
+          print(f"IMMUTABLE_ISO_SHA256={iso_sha}")
+          print(f"RUNNER_EXIT={runner_rc}")
+          if runner_rc != 0:
+              failures.append(f"six-case handoff runner exited {runner_rc}")
+          if failures:
+              print("FAIL-CLOSED ACCEPTANCE:")
+              for failure in failures:
+                  print(" - " + failure)
+              raise SystemExit(1)
+          print("PASS: six BIOS/UEFI probe handoffs and AP-backed overlap on one immutable ISO")
+          print("NOTE: target ELFs are explicitly probe-only; this is not production certification.")
+          PY
+
+      - name: Upload candidate ISO and six-case diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: userspace-${{ matrix.target }}-${{ matrix.firmware }}-logs
+          name: koronos-one-iso-six-case-probe-acceptance
           path: |
-            vendor/chimera-ii-os/source/build/userspace-acceptance/${{ matrix.target }}/qemu-${{ matrix.firmware }}.log
-            vendor/chimera-ii-os/source/build/userspace-acceptance/timeout/qemu-timeout.log
+            build/koronos-release-matrix/chimera-candidate.iso
+            build/koronos-release-matrix/iso.sha256
+            build/koronos-release-matrix/cases/**
+            vendor/chimera-ii-os/source/build/koronos/**
+            vendor/chimera-ii-os/source/build/live-boot/boot/targets/**
           if-no-files-found: warn
+          retention-days: 30

@@ -51,14 +51,14 @@ jobs:
             echo "Checking $file"
             grub-script-check "$file"
           done < <(find boot -type f -name '*.cfg' -print | sort)
-      - name: Require five-minute input grace for boot menus
+      - name: Require visible 120-second interactive boot menus
         shell: bash
         run: |
           set -euo pipefail
-          for file in boot/iso/grub.cfg boot/jasper/*.cfg boot/spitfire/*.cfg boot/installation/*.cfg; do
-            [[ -f "$file" ]] || continue
-            grep -Eq '^set timeout=300$' "$file" || { echo "::error::$file must wait 300 seconds before selecting the default"; exit 1; }
-          done
+          while IFS= read -r file; do
+            grep -qx 'set timeout=120' "$file" || { echo "::error::$file must use a 120-second visible timeout"; exit 1; }
+            grep -qx 'set timeout_style=menu' "$file" || { echo "::error::$file must keep the menu visible"; exit 1; }
+          done < <(find boot -type f -name '*.cfg' -print | sort)
       - name: Validate complete configfile target graph
         run: python3 tests/boot/test_boot_target_graph.py
       - name: Validate native installer payload routing
