@@ -17,7 +17,7 @@ permissions:
 jobs:
   immutable-iso:
     name: One ISO / six BIOS-UEFI target boots / two-vCPU SMP
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +38,14 @@ jobs:
           echo "OVMF_PATH=$OVMF_PATH" >> "$GITHUB_ENV"
           echo "OVMF_VERSION=$(dpkg-query -W -f='\${Version}' ovmf)" >> "$GITHUB_ENV"
           qemu-system-x86_64 --version
+          QEMU_VERSION="$(qemu-system-x86_64 --version | awk 'NR == 1 { print $4 }')"
+          python3 - "$QEMU_VERSION" <<'PY'
+          import sys
+          version = tuple(int(part) for part in sys.argv[1].split(".")[:3])
+          if version < (10, 2, 1):
+              raise SystemExit(f"QEMU {sys.argv[1]} is too old for the x2APIC acceptance gate; require >=10.2.1")
+          print(f"QEMU_VERSION_GATE=PASS ({sys.argv[1]})")
+          PY
 
       - name: Apply and verify downstream interactive boot-menu policy
         shell: bash
