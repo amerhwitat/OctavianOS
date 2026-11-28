@@ -195,6 +195,18 @@ jobs:
               raise SystemExit("expected exactly one single-vCPU QEMU argument block")
           source = source.replace(qemu_old, qemu_new, 1)
 
+          # The native-stack gate enumerates legacy virtio-blk PCI (0x1AF4:0x1001).
+          # The previous -hda fixture exposed IDE instead, so the kernel correctly
+          # reported "no virtio-blk device" while this workflow ignored that failure.
+          qemu_disk_old = '            "-hda", str(disk),\n'
+          qemu_disk_new = (
+              '            "-drive", f"file={disk},if=none,format=raw,id=koronos-disk",\n'
+              '            "-device", "virtio-blk-pci,drive=koronos-disk,disable-modern=on",\n'
+          )
+          if source.count(qemu_disk_old) != 1:
+              raise SystemExit("expected exactly one IDE disk fixture to replace with legacy virtio-blk")
+          source = source.replace(qemu_disk_old, qemu_disk_new, 1)
+
           menu_old = '                wait_for(serial_trace, ["Live Aurora / Koronos"], 90)\n'
           menu_new = (
               menu_old
@@ -208,6 +220,7 @@ jobs:
           Path(sys.argv[2]).write_text(source, encoding="utf-8")
           compile(source, sys.argv[2], "exec")
           print("QEMU policy: machine=pc cpu=max smp=2")
+          print("QEMU disk policy: legacy virtio-blk PCI; no IDE-only -hda fixture")
           print("GRUB policy: wait for visible menu; send explicit QMP key before kernel boot")
           PY
 
@@ -253,6 +266,8 @@ jobs:
               for flag in ("-machine pc", "-cpu max", "-smp 2"):
                   if flag not in command:
                       failures.append(f"{name}: QEMU command missing {flag}")
+              if "-hda" in command or "virtio-blk-pci" not in command:
+                  failures.append(f"{name}: QEMU disk is not attached through legacy virtio-blk PCI")
               required = [
                   "[PMT ] SELFTEST PASS",
                   "[SMP ] SELFTEST PASS",
@@ -261,12 +276,19 @@ jobs:
                   "[SMP ] overlap_samples=256",
                   "[SMP ] ap_saw_bsp_rounds=256",
                   "[SMP ] tsc_overlap=1",
+                  "[NST ] SELFTEST PASS",
+                  "[NST ] PERSIST WRITE PASS",
+                  "[NST ] PERSIST READ PASS",
+                  "[NST ] Native block/VFS/PID1 gate passed",
                   f"USER INIT SYSCALL: target={case['target']}",
                   f"USERSPACE READY: target={case['target']}",
               ]
               for token in required:
                   if token not in trace:
                       failures.append(f"{name}: missing {token}")
+              for token in ("[NST ] SELFTEST FAIL", "[NST ] Native block/VFS/PID1 gate FAILED"):
+                  if token in trace:
+                      failures.append(f"{name}: observed fail-closed native-stack failure: {token}")
               verifier = case.get("handoff_verifier", {})
               if verifier.get("returncode") != 0:
                   failures.append(f"{name}: CPL3/PID handoff verifier failed")
@@ -277,6 +299,7 @@ jobs:
                   failures.append(f"{name}: measured overlap={match.group(1)}, expected 256")
               print(f"{name}: status={case.get('status')} iso_sha={case.get('iso_sha256')} "
                     f"ap_overlap={'256' if '[SMP ] overlap_samples=256' in trace else 'MISSING'} "
+                    f"native_stack={'PASS' if '[NST ] SELFTEST PASS' in trace else 'MISSING'} "
                     f"handoff_verifier={verifier.get('returncode')}")
           print(f"IMMUTABLE_ISO_SHA256={iso_sha}")
           print(f"RUNNER_EXIT={runner_rc}")
